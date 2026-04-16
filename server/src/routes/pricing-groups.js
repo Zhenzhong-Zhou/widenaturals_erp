@@ -13,7 +13,7 @@ const express                            = require('express');
 const { authorize }                      = require('../middlewares/authorize');
 const validate                           = require('../middlewares/validate');
 const createQueryNormalizationMiddleware = require('../middlewares/normalize-query');
-const PERMISSIONS = require('../utils/constants/domain/permissions');
+const PERMISSION_KEYS = require('../utils/constants/domain/permission-keys');
 const {
   getPaginatedPricingGroupsController,
   getPricingGroupByIdController,
@@ -31,11 +31,11 @@ const router = express.Router();
  * Filters: pricingTypeId, countryCode, statusId, validFrom, validTo, skuId, productId.
  * Sorting: sortBy, sortOrder (uses pricingGroupSortMap).
  * @access protected
- * @permission view_pricing
+ * @permission PERMISSION_KEYS.PRICING_GROUPS.VIEW
  */
 router.get(
   '/',
-  authorize([PERMISSIONS.PRICING_GROUPS.VIEW]),
+  authorize([PERMISSION_KEYS.PRICING_GROUPS.VIEW]),
   validate(pricingGroupQuerySchema, 'query'),
   createQueryNormalizationMiddleware(
     'pricingGroupSortMap',
@@ -50,11 +50,11 @@ router.get(
  * @route GET /pricing-groups/:pricingGroupId
  * @description Single pricing group detail by ID.
  * @access protected
- * @permission view_pricing
+ * @permission PERMISSION_KEYS.PRICING_GROUPS.VIEW_DETAILS
  */
 router.get(
   '/:pricingGroupId',
-  authorize([PERMISSIONS.PRICING_GROUPS.VIEW_DETAILS]),
+  authorize([PERMISSION_KEYS.PRICING_GROUPS.VIEW_DETAILS]),
   validate(pricingGroupParamsSchema, 'params'),
   getPricingGroupByIdController
 );

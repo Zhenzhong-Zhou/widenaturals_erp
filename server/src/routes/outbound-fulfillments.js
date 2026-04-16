@@ -13,7 +13,7 @@ const express                            = require('express');
 const { authorize }                      = require('../middlewares/authorize');
 const validate                           = require('../middlewares/validate');
 const createQueryNormalizationMiddleware = require('../middlewares/normalize-query');
-const PERMISSIONS                        = require('../utils/constants/domain/permissions');
+const PERMISSION_KEYS                        = require('../utils/constants/domain/permission-keys');
 const { orderIdParamSchema }             = require('../validators/order-validators');
 const { shipmentIdParamSchema }          = require('../validators/outbound-shipment-validators');
 const {
@@ -37,11 +37,11 @@ const router = express.Router();
  * @description Initiate outbound fulfillment for a specific order. Validates the
  * order ID and fulfillment payload before delegating to the controller.
  * @access protected
- * @permission OUTBOUND_FULFILLMENTS.INITIATE
+ * @permission PERMISSION_KEYS.OUTBOUND_FULFILLMENTS.INITIATE
  */
 router.post(
   '/orders/:orderId/fulfillment/initiate',
-  authorize([PERMISSIONS.OUTBOUND_FULFILLMENTS.INITIATE]),
+  authorize([PERMISSION_KEYS.OUTBOUND_FULFILLMENTS.INITIATE]),
   validate(orderIdParamSchema, 'params'),
   validate(fulfillOutboundShipmentBodySchema, 'body'),
   fulfillOutboundShipmentController
@@ -52,11 +52,11 @@ router.post(
  * @description Confirm a pending outbound fulfillment, applying any quantity
  * adjustments from the review payload.
  * @access protected
- * @permission OUTBOUND_FULFILLMENTS.CONFIRM
+ * @permission PERMISSION_KEYS.OUTBOUND_FULFILLMENTS.CONFIRM
  */
 router.post(
   '/orders/:orderId/fulfillment/confirm',
-  authorize([PERMISSIONS.OUTBOUND_FULFILLMENTS.CONFIRM]),
+  authorize([PERMISSION_KEYS.OUTBOUND_FULFILLMENTS.CONFIRM]),
   validate(orderIdParamSchema, 'params'),
   validate(fulfillAdjustmentBodySchema, 'body'),
   confirmOutboundFulfillmentController
@@ -68,11 +68,11 @@ router.post(
  * Filters: statusIds, warehouseIds, deliveryMethodIds.
  * Sorting: sortBy, sortOrder (uses outboundShipmentSortMap).
  * @access protected
- * @permission OUTBOUND_FULFILLMENTS.VIEW
+ * @permission PERMISSION_KEYS.OUTBOUND_FULFILLMENTS.VIEW
  */
 router.get(
   '/',
-  authorize([PERMISSIONS.OUTBOUND_FULFILLMENTS.VIEW]),
+  authorize([PERMISSION_KEYS.OUTBOUND_FULFILLMENTS.VIEW]),
   validate(outboundFulfillmentQuerySchema, 'query'),
   createQueryNormalizationMiddleware(
     'outboundShipmentSortMap',                              // moduleKey — drives allowed sortBy fields
@@ -87,11 +87,11 @@ router.get(
  * @route GET /outbound-fulfillments/:shipmentId/details
  * @description Full detail record for a single outbound shipment by ID.
  * @access protected
- * @permission OUTBOUND_FULFILLMENTS.VIEW
+ * @permission PERMISSION_KEYS.OUTBOUND_FULFILLMENTS.VIEW
  */
 router.get(
   '/:shipmentId/details',
-  authorize([PERMISSIONS.OUTBOUND_FULFILLMENTS.VIEW]),
+  authorize([PERMISSION_KEYS.OUTBOUND_FULFILLMENTS.VIEW]),
   validate(shipmentIdParamSchema, 'params'),
   getShipmentDetailsController
 );
@@ -101,11 +101,11 @@ router.get(
  * @description Mark a manual outbound shipment as complete. Validates the shipment
  * ID and manual fulfillment payload before delegating to the controller.
  * @access protected
- * @permission OUTBOUND_FULFILLMENTS.COMPLETE_MANUAL
+ * @permission PERMISSION_KEYS.OUTBOUND_FULFILLMENTS.COMPLETE_MANUAL
  */
 router.post(
   '/manual/:shipmentId/complete',
-  authorize([PERMISSIONS.OUTBOUND_FULFILLMENTS.COMPLETE_MANUAL]),
+  authorize([PERMISSION_KEYS.OUTBOUND_FULFILLMENTS.COMPLETE_MANUAL]),
   validate(shipmentIdParamSchema, 'params'),
   validate(manualFulfillmentBodySchema, 'body'),
   completeManualFulfillmentController

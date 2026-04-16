@@ -11,7 +11,7 @@
 
 const express = require('express');
 const { authorize }                      = require('../middlewares/authorize');
-const { BATCH_REGISTRY }                 = require('../utils/constants/domain/permissions');
+const PERMISSION_KEYS                = require('../utils/constants/domain/permission-keys');
 const validate                           = require('../middlewares/validate');
 const createQueryNormalizationMiddleware = require('../middlewares/normalize-query');
 const {
@@ -34,11 +34,11 @@ const router = express.Router();
  *          packagingMaterialIds, supplierIds, keyword.
  * Sorting: sortBy, sortOrder (uses batchRegistrySortMap).
  * @access protected
- * @permission BATCH_REGISTRY.VIEW_LIST
+ * @permission PERMISSION_KEYS.BATCH_REGISTRY.VIEW_LIST
  */
 router.get(
   '/',
-  authorize([BATCH_REGISTRY.VIEW_LIST]),
+  authorize([PERMISSION_KEYS.BATCH_REGISTRY.VIEW_LIST]),
   validate(batchRegistryQuerySchema, 'query', {
     allowUnknown: true, // downstream middleware normalizes unknown keys before business layer
   }),
@@ -66,11 +66,11 @@ router.get(
  * @description Update or clear the note on a batch registry record.
  * The note may be a non-empty string, an empty string, or null to clear it.
  * @access protected
- * @permission BATCH_REGISTRY.UPDATE_NOTE
+ * @permission PERMISSION_KEYS.BATCH_REGISTRY.UPDATE_NOTE
  */
 router.patch(
   '/:batchRegistryId/note',
-  authorize([BATCH_REGISTRY.UPDATE_NOTE]),
+  authorize([PERMISSION_KEYS.BATCH_REGISTRY.UPDATE_NOTE]),
   validate(batchRegistryIdParamSchema, 'params'),
   validate(updateBatchRegistryNoteSchema, 'body'),
   updateBatchRegistryNoteController

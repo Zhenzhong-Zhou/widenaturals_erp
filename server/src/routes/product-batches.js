@@ -14,7 +14,7 @@ const express                            = require('express');
 const { authorize }                      = require('../middlewares/authorize');
 const validate                           = require('../middlewares/validate');
 const createQueryNormalizationMiddleware = require('../middlewares/normalize-query');
-const { PRODUCT_BATCHES }                = require('../utils/constants/domain/permissions');
+const PERMISSION_KEYS            = require('../utils/constants/domain/permission-keys');
 const {
   productBatchQuerySchema,
   productBatchIdParamSchema,
@@ -42,11 +42,11 @@ const router = express.Router();
  * Filters: statusIds, skuIds, productIds, manufacturerIds.
  * Sorting: sortBy, sortOrder (uses productBatchSortMap).
  * @access protected
- * @permission PRODUCT_BATCHES.VIEW_LIST
+ * @permission PERMISSION_KEYS.PRODUCT_BATCHES.VIEW_LIST
  */
 router.get(
   '/',
-  authorize([PRODUCT_BATCHES.VIEW_LIST]),
+  authorize([PERMISSION_KEYS.PRODUCT_BATCHES.VIEW_LIST]),
   validate(productBatchQuerySchema, 'query', {
     allowUnknown: true, // downstream middleware normalizes unknown keys before business layer
   }),
@@ -71,11 +71,11 @@ router.get(
  * @route POST /product-batches/create
  * @description Bulk create one or more product batch records.
  * @access protected
- * @permission PRODUCT_BATCHES.CREATE
+ * @permission PERMISSION_KEYS.PRODUCT_BATCHES.CREATE
  */
 router.post(
   '/create',
-  authorize([PRODUCT_BATCHES.CREATE]),
+  authorize([PERMISSION_KEYS.PRODUCT_BATCHES.CREATE]),
   validate(createProductBatchBulkSchema, 'body'),
   createProductBatchesController
 );
@@ -84,11 +84,11 @@ router.post(
  * @route PATCH /product-batches/:batchId/metadata
  * @description Update editable metadata fields on a product batch.
  * @access protected
- * @permission PRODUCT_BATCHES.EDIT
+ * @permission PERMISSION_KEYS.PRODUCT_BATCHES.EDIT
  */
 router.patch(
   '/:batchId/metadata',
-  authorize([PRODUCT_BATCHES.EDIT]),
+  authorize([PERMISSION_KEYS.PRODUCT_BATCHES.EDIT]),
   validate(productBatchIdParamSchema, 'params'),
   validate(editProductBatchMetadataSchema, 'body'),
   editProductBatchMetadataController
@@ -98,11 +98,11 @@ router.patch(
  * @route PATCH /product-batches/:batchId/status
  * @description Transition a product batch to a new status.
  * @access protected
- * @permission PRODUCT_BATCHES.UPDATE_STATUS
+ * @permission PERMISSION_KEYS.PRODUCT_BATCHES.UPDATE_STATUS
  */
 router.patch(
   '/:batchId/status',
-  authorize([PRODUCT_BATCHES.UPDATE_STATUS]),
+  authorize([PERMISSION_KEYS.PRODUCT_BATCHES.UPDATE_STATUS]),
   validate(productBatchIdParamSchema, 'params'),
   validate(updateProductBatchStatusSchema, 'body'),
   updateProductBatchStatusController
@@ -112,11 +112,11 @@ router.patch(
  * @route PATCH /product-batches/:batchId/receive
  * @description Record physical receipt of a product batch into the warehouse.
  * @access protected
- * @permission PRODUCT_BATCHES.RECEIVE
+ * @permission PERMISSION_KEYS.PRODUCT_BATCHES.RECEIVE
  */
 router.patch(
   '/:batchId/receive',
-  authorize([PRODUCT_BATCHES.RECEIVE]),
+  authorize([PERMISSION_KEYS.PRODUCT_BATCHES.RECEIVE]),
   validate(productBatchIdParamSchema, 'params'),
   validate(receiveProductBatchSchema, 'body'),
   receiveProductBatchController
@@ -126,11 +126,11 @@ router.patch(
  * @route PATCH /product-batches/:batchId/release
  * @description Release a product batch for operational use.
  * @access protected
- * @permission PRODUCT_BATCHES.RELEASE
+ * @permission PERMISSION_KEYS.PRODUCT_BATCHES.RELEASE
  */
 router.patch(
   '/:batchId/release',
-  authorize([PRODUCT_BATCHES.RELEASE]),
+  authorize([PERMISSION_KEYS.PRODUCT_BATCHES.RELEASE]),
   validate(productBatchIdParamSchema, 'params'),
   validate(releaseProductBatchSchema, 'body'),
   releaseProductBatchController
@@ -140,11 +140,11 @@ router.patch(
  * @route GET /product-batches/:batchId/details
  * @description Full detail record for a single product batch by ID.
  * @access protected
- * @permission PRODUCT_BATCHES.VIEW_DETAILS
+ * @permission PERMISSION_KEYS.PRODUCT_BATCHES.VIEW_DETAILS
  */
 router.get(
   '/:batchId/details',
-  authorize([PRODUCT_BATCHES.VIEW_DETAILS]),
+  authorize([PERMISSION_KEYS.PRODUCT_BATCHES.VIEW_DETAILS]),
   validate(productBatchIdParamSchema, 'params'),
   getProductBatchDetailsController
 );

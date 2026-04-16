@@ -1,4 +1,4 @@
-const PERMISSIONS = {
+const PERMISSION_KEYS = {
   USERS: {
     CREATE_USER: 'create_user',
     VIEW_USERS: 'view_users',
@@ -122,4 +122,4 @@ const PERMISSIONS = {
   },
 };
 
-module.exports = PERMISSIONS;
+module.exports = PERMISSION_KEYS;

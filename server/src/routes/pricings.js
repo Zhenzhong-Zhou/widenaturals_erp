@@ -14,7 +14,7 @@ const express                            = require('express');
 const { authorize }                      = require('../middlewares/authorize');
 const validate                           = require('../middlewares/validate');
 const createQueryNormalizationMiddleware = require('../middlewares/normalize-query');
-const PERMISSIONS = require('../utils/constants/domain/permissions');
+const PERMISSION_KEYS = require('../utils/constants/domain/permission-keys');
 const {
   exportPricingRecordsController,
   getPricingBySkuIdController, getPaginatedPricingJoinController,
@@ -33,11 +33,11 @@ const router = express.Router();
  *          category, countryCode, statusId, currentlyValid, validFrom, validTo, validOn.
  * Sorting: sortBy, sortOrder (uses pricingJoinSortMap).
  * @access protected
- * @permission view_pricing
+ * @permission PERMISSION_KEYS.PRICING.VIEW
  */
 router.get(
   '/',
-  authorize([PERMISSIONS.PRICING.VIEW]),
+  authorize([PERMISSION_KEYS.PRICING.VIEW]),
   validate(pricingJoinQuerySchema, 'query'),
   createQueryNormalizationMiddleware(
     'pricingJoinSortMap',
@@ -54,11 +54,11 @@ router.get(
  * Filters: pricingTypeId, countryCode, statusId, brand, productId.
  * Query: exportFormat ('csv' | 'xlsx').
  * @access protected
- * @permission export_pricing
+ * @permission PERMISSION_KEYS.PRICING.EXPORT_DATA
  */
 router.get(
   '/export',
-  authorize([PERMISSIONS.PRICING.EXPORT_DATA]),
+  authorize([PERMISSION_KEYS.PRICING.EXPORT_DATA]),
   validate(pricingExportQuerySchema, 'query'),
   createQueryNormalizationMiddleware(
     null,
@@ -73,11 +73,11 @@ router.get(
  * @route GET /skus/:skuId/pricing
  * @description All pricing groups a SKU belongs to.
  * @access protected
- * @permission view_pricing
+ * @permission PERMISSION_KEYS.PRICING.VIEW
  */
 router.get(
   '/skus/:skuId/pricing',
-  authorize([PERMISSIONS.PRICING.VIEW]),
+  authorize([PERMISSION_KEYS.PRICING.VIEW]),
   validate(skuIdParamSchema, 'params'),
   getPricingBySkuIdController
 );

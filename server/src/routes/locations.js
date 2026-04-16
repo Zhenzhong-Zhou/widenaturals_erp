@@ -12,7 +12,7 @@ const express                            = require('express');
 const { authorize }                      = require('../middlewares/authorize');
 const validate                           = require('../middlewares/validate');
 const createQueryNormalizationMiddleware = require('../middlewares/normalize-query');
-const PERMISSIONS                        = require('../utils/constants/domain/permissions');
+const PERMISSION_KEYS                        = require('../utils/constants/domain/permission-keys');
 const { locationQuerySchema }            = require('../validators/location-validators');
 const {
   getPaginatedLocationsController,
@@ -26,11 +26,11 @@ const router = express.Router();
  * Filters: statusIds, locationTypeIds, includeArchived.
  * Sorting: sortBy, sortOrder (uses locationSortMap).
  * @access protected
- * @permission LOCATIONS.VIEW
+ * @permission PERMISSION_KEYS.LOCATIONS.VIEW
  */
 router.get(
   '/',
-  authorize([PERMISSIONS.LOCATIONS.VIEW]),
+  authorize([PERMISSION_KEYS.LOCATIONS.VIEW]),
   validate(locationQuerySchema, 'query'),
   createQueryNormalizationMiddleware(
     'locationSortMap',                   // moduleKey — drives allowed sortBy fields

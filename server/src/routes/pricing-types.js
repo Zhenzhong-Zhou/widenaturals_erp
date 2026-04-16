@@ -13,7 +13,7 @@ const express                            = require('express');
 const { authorize }                      = require('../middlewares/authorize');
 const validate                           = require('../middlewares/validate');
 const createQueryNormalizationMiddleware = require('../middlewares/normalize-query');
-const PERMISSIONS = require('../utils/constants/domain/permissions');
+const PERMISSION_KEYS = require('../utils/constants/domain/permission-keys');
 const {
   getPaginatedPricingTypesController,
   getPricingTypeByIdController,
@@ -31,11 +31,11 @@ const router = express.Router();
  * Filters: statusId, search, createdAfter, createdBefore, createdBy, updatedBy.
  * Sorting: sortBy, sortOrder (uses pricingTypeSortMap).
  * @access protected
- * @permission view_pricing
+ * @permission PERMISSION_KEYS.PRICING_TYPES.VIEW
  */
 router.get(
   '/',
-  authorize([PERMISSIONS.PRICING_TYPES.VIEW]),
+  authorize([PERMISSION_KEYS.PRICING_TYPES.VIEW]),
   validate(pricingTypeQuerySchema, 'query'),
   createQueryNormalizationMiddleware(
     'pricingTypeSortMap',
@@ -50,11 +50,11 @@ router.get(
  * @route GET /pricing-types/:pricingTypeId/details
  * @description Single pricing type detail by ID.
  * @access protected
- * @permission view_pricing
+ * @permission PERMISSION_KEYS.PRICING_TYPES.VIEW_PRICING_TYPES_DETAILS
  */
 router.get(
   '/:pricingTypeId/details',
-  authorize([PERMISSIONS.PRICING_TYPES.VIEW_PRICING_TYPES_DETAILS]),
+  authorize([PERMISSION_KEYS.PRICING_TYPES.VIEW_PRICING_TYPES_DETAILS]),
   validate(pricingTypeParamsSchema, 'params'),
   getPricingTypeByIdController
 );

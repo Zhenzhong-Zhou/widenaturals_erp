@@ -13,7 +13,7 @@ const { authorize, authorizeAny }        = require('../middlewares/authorize');
 const { createUserProfileRateLimiter }   = require('../middlewares/rate-limiter');
 const validate                           = require('../middlewares/validate');
 const createQueryNormalizationMiddleware = require('../middlewares/normalize-query');
-const PERMISSIONS                        = require('../utils/constants/domain/permissions');
+const PERMISSION_KEYS                        = require('../utils/constants/domain/permission-keys');
 const {
   userQuerySchema,
   userIdParamSchema,
@@ -33,11 +33,11 @@ const router = express.Router();
  * @description Create a new user account. Rate-limited to prevent automated
  * account creation. Strict body validation — no unknown fields permitted.
  * @access protected
- * @permission USERS.CREATE_USER
+ * @permission PERMISSION_KEYS.USERS.CREATE_USER
  */
 router.post(
   '/',
-  authorize([PERMISSIONS.USERS.CREATE_USER]),
+  authorize([PERMISSION_KEYS.USERS.CREATE_USER]),
   createUserProfileRateLimiter(),
   validate(createUserSchema, 'body', {
     allowUnknown: false, // strict — no unknown fields permitted on user creation
@@ -51,11 +51,11 @@ router.post(
  * Filters: statusIds, roleIds.
  * Sorting: sortBy, sortOrder (uses userSortMap).
  * @access protected
- * @permission USERS.VIEW_LIST or USERS.VIEW_CARD
+ * @permission PERMISSION_KEYS.USERS.VIEW_LIST or USERS.VIEW_CARD
  */
 router.get(
   '/',
-  authorizeAny([PERMISSIONS.USERS.VIEW_LIST, PERMISSIONS.USERS.VIEW_CARD]),
+  authorizeAny([PERMISSION_KEYS.USERS.VIEW_LIST, PERMISSION_KEYS.USERS.VIEW_CARD]),
   validate(userQuerySchema, 'query', {
     allowUnknown: true, // downstream middleware normalizes unknown keys before business layer
   }),
@@ -75,11 +75,11 @@ router.get(
  * @route GET /users/me/profile
  * @description Returns the authenticated user's own profile record.
  * @access protected
- * @permission USERS.VIEW_SELF_PROFILE
+ * @permission PERMISSION_KEYS.USERS.VIEW_SELF_PROFILE
  */
 router.get(
   '/me/profile',
-  authorize([PERMISSIONS.USERS.VIEW_SELF_PROFILE]),
+  authorize([PERMISSION_KEYS.USERS.VIEW_SELF_PROFILE]),
   getUserProfileController
 );
 
@@ -87,11 +87,11 @@ router.get(
  * @route GET /users/:userId/profile
  * @description Returns the profile record for any user by ID.
  * @access protected
- * @permission USERS.VIEW_ANY_USER_PROFILE
+ * @permission PERMISSION_KEYS.USERS.VIEW_ANY_USER_PROFILE
  */
 router.get(
   '/:userId/profile',
-  authorize([PERMISSIONS.USERS.VIEW_ANY_USER_PROFILE]),
+  authorize([PERMISSION_KEYS.USERS.VIEW_ANY_USER_PROFILE]),
   validate(userIdParamSchema, 'params'),
   getUserProfileController
 );

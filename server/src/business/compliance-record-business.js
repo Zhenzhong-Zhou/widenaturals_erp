@@ -9,12 +9,7 @@
 const {
   resolveUserPermissionContext,
 } = require('../services/permission-service');
-const {
-  VIEW_COMPLIANCE_RECORDINGS,
-  VIEW_COMPLIANCE_RECORDINGS_METADATA,
-  VIEW_COMPLIANCE_RECORDINGS_HISTORY,
-  VIEW_COMPLIANCE_RECORDINGS_INACTIVE,
-} = require('../utils/constants/domain/permissions');
+const { COMPLIANCE_RECORD_CONSTANTS } = require('../utils/constants/domain/compliance-record-constants');
 const { logSystemException } = require('../utils/logging/system-logger');
 const AppError = require('../utils/AppError');
 const { getStatusId } = require('../config/status-cache');
@@ -36,16 +31,16 @@ const evaluateComplianceViewAccessControl = async (user) => {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
     
     const canViewCompliance =
-      isRoot || permissions.includes(VIEW_COMPLIANCE_RECORDINGS);
+      isRoot || permissions.includes(COMPLIANCE_RECORD_CONSTANTS.PERMISSIONS.VIEW_COMPLIANCE_RECORDINGS);
     
     const canViewComplianceMetadata =
-      isRoot || permissions.includes(VIEW_COMPLIANCE_RECORDINGS_METADATA);
+      isRoot || permissions.includes(COMPLIANCE_RECORD_CONSTANTS.PERMISSIONS.VIEW_COMPLIANCE_RECORDINGS_METADATA);
     
     const canViewComplianceHistory =
-      isRoot || permissions.includes(VIEW_COMPLIANCE_RECORDINGS_HISTORY);
+      isRoot || permissions.includes(COMPLIANCE_RECORD_CONSTANTS.PERMISSIONS.VIEW_COMPLIANCE_RECORDINGS_HISTORY);
     
     const canViewInactiveCompliance =
-      isRoot || permissions.includes(VIEW_COMPLIANCE_RECORDINGS_INACTIVE);
+      isRoot || permissions.includes(COMPLIANCE_RECORD_CONSTANTS.PERMISSIONS.VIEW_COMPLIANCE_RECORDINGS_INACTIVE);
     
     return {
       canViewCompliance,

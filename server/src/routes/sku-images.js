@@ -17,7 +17,7 @@ const {
   parseSkuImageJson,
   attachUploadedFilesToSkus,
 } = require('../middlewares/sku-image-upload');
-const PERMISSIONS                    = require('../utils/constants/domain/permissions');
+const PERMISSION_KEYS                    = require('../utils/constants/domain/permission-keys');
 const {
   bulkSkuImageUploadSchema,
   bulkSkuImageUpdateSchema,
@@ -34,11 +34,11 @@ const router = express.Router();
  * @description Upload one or more SKU images. Multipart files are received by Multer,
  * parsed and attached to their respective SKUs, then validated before processing.
  * @access protected
- * @permission SKUS.UPLOAD_IMAGE
+ * @permission PERMISSION_KEYS.SKUS.UPLOAD_IMAGE
  */
 router.post(
   '/upload',
-  authorize([PERMISSIONS.SKUS.UPLOAD_IMAGE]),
+  authorize([PERMISSION_KEYS.SKUS.UPLOAD_IMAGE]),
   createUploadMiddleware('array', 'files'), // accepts multipart/form-data file array
   parseSkuImageJson,                        // parses JSON fields from multipart body
   attachUploadedFilesToSkus,                // maps uploaded files to their SKU entries
@@ -52,11 +52,11 @@ router.post(
  * pipeline as upload — Multer → parse → attach → validate — before delegating
  * to the update controller.
  * @access protected
- * @permission SKUS.UPDATE_IMAGE
+ * @permission PERMISSION_KEYS.SKUS.UPDATE_IMAGE
  */
 router.post(
   '/update',
-  authorize([PERMISSIONS.SKUS.UPDATE_IMAGE]),
+  authorize([PERMISSION_KEYS.SKUS.UPDATE_IMAGE]),
   createUploadMiddleware('array', 'files'), // accepts multipart/form-data file array
   parseSkuImageJson,                        // parses JSON fields from multipart body
   attachUploadedFilesToSkus,                // maps uploaded files to their SKU entries

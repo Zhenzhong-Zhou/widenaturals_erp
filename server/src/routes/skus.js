@@ -14,7 +14,7 @@ const express                            = require('express');
 const { authorize }                      = require('../middlewares/authorize');
 const validate                           = require('../middlewares/validate');
 const createQueryNormalizationMiddleware = require('../middlewares/normalize-query');
-const PERMISSIONS                        = require('../utils/constants/domain/permissions');
+const PERMISSION_KEYS                        = require('../utils/constants/domain/permission-keys');
 const {
   getPaginatedSkuProductCardsSchema,
   skuQuerySchema,
@@ -44,11 +44,11 @@ const router = express.Router();
  * Filters: skuIds.
  * Sorting: sortBy, sortOrder (uses skuProductCards sort map).
  * @access protected
- * @permission SKUS.VIEW_CARDS
+ * @permission PERMISSION_KEYS.SKUS.VIEW_CARDS
  */
 router.get(
   '/cards',
-  authorize([PERMISSIONS.SKUS.VIEW_CARDS]),
+  authorize([PERMISSION_KEYS.SKUS.VIEW_CARDS]),
   validate(getPaginatedSkuProductCardsSchema, 'query'),
   createQueryNormalizationMiddleware(
     'skuProductCards',                  // moduleKey — drives allowed sortBy fields
@@ -65,11 +65,11 @@ router.get(
  * Filters: statusIds, productIds.
  * Sorting: sortBy, sortOrder (uses skuSortMap).
  * @access protected
- * @permission SKUS.VIEW_LIST
+ * @permission PERMISSION_KEYS.SKUS.VIEW_LIST
  */
 router.get(
   '/',
-  authorize([PERMISSIONS.SKUS.VIEW_LIST]),
+  authorize([PERMISSION_KEYS.SKUS.VIEW_LIST]),
   validate(skuQuerySchema, 'query'),
   createQueryNormalizationMiddleware(
     'skuSortMap',                  // moduleKey — drives allowed sortBy fields
@@ -84,11 +84,11 @@ router.get(
  * @route GET /skus/:skuId/details
  * @description Full detail record for a single SKU by ID.
  * @access protected
- * @permission SKUS.VIEW_DETAILS
+ * @permission PERMISSION_KEYS.SKUS.VIEW_DETAILS
  */
 router.get(
   '/:skuId/details',
-  authorize([PERMISSIONS.SKUS.VIEW_DETAILS]),
+  authorize([PERMISSION_KEYS.SKUS.VIEW_DETAILS]),
   validate(skuIdParamSchema, 'params'),
   getSkuDetailsController
 );
@@ -97,11 +97,11 @@ router.get(
  * @route POST /skus/create
  * @description Bulk create one or more SKU records.
  * @access protected
- * @permission SKUS.CREATE
+ * @permission PERMISSION_KEYS.SKUS.CREATE
  */
 router.post(
   '/create',
-  authorize([PERMISSIONS.SKUS.CREATE]),
+  authorize([PERMISSION_KEYS.SKUS.CREATE]),
   validate(createSkuBulkSchema, 'body'),
   createSkusController
 );
@@ -110,11 +110,11 @@ router.post(
  * @route PATCH /skus/:skuId/metadata
  * @description Update editable metadata fields on a SKU.
  * @access protected
- * @permission SKUS.UPDATE_METADATA
+ * @permission PERMISSION_KEYS.SKUS.UPDATE_METADATA
  */
 router.patch(
   '/:skuId/metadata',
-  authorize([PERMISSIONS.SKUS.UPDATE_METADATA]),
+  authorize([PERMISSION_KEYS.SKUS.UPDATE_METADATA]),
   validate(skuIdParamSchema, 'params'),
   validate(updateSkuMetadataSchema, 'body'),
   updateSkuMetadataController
@@ -124,11 +124,11 @@ router.patch(
  * @route PATCH /skus/:skuId/status
  * @description Transition a SKU to a new status.
  * @access protected
- * @permission SKUS.UPDATE_STATUS
+ * @permission PERMISSION_KEYS.SKUS.UPDATE_STATUS
  */
 router.patch(
   '/:skuId/status',
-  authorize([PERMISSIONS.SKUS.UPDATE_STATUS]),
+  authorize([PERMISSION_KEYS.SKUS.UPDATE_STATUS]),
   validate(skuIdParamSchema, 'params'),
   validate(updateSkuStatusSchema, 'body'),
   updateSkuStatusController
@@ -138,11 +138,11 @@ router.patch(
  * @route PATCH /skus/:skuId/dimensions
  * @description Update physical dimension fields on a SKU.
  * @access protected
- * @permission SKUS.UPDATE_DIMENSIONS
+ * @permission PERMISSION_KEYS.SKUS.UPDATE_DIMENSIONS
  */
 router.patch(
   '/:skuId/dimensions',
-  authorize([PERMISSIONS.SKUS.UPDATE_DIMENSIONS]),
+  authorize([PERMISSION_KEYS.SKUS.UPDATE_DIMENSIONS]),
   validate(skuIdParamSchema, 'params'),
   validate(updateSkuDimensionsSchema, 'body'),
   updateSkuDimensionsController
@@ -152,11 +152,11 @@ router.patch(
  * @route PATCH /skus/:skuId/identity
  * @description Update identity fields on a SKU (e.g. codes, identifiers).
  * @access protected
- * @permission SKUS.UPDATE_IDENTITY
+ * @permission PERMISSION_KEYS.SKUS.UPDATE_IDENTITY
  */
 router.patch(
   '/:skuId/identity',
-  authorize([PERMISSIONS.SKUS.UPDATE_IDENTITY]),
+  authorize([PERMISSION_KEYS.SKUS.UPDATE_IDENTITY]),
   validate(skuIdParamSchema, 'params'),
   validate(updateSkuIdentitySchema, 'body'),
   updateSkuIdentityController

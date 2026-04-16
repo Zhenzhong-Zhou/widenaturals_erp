@@ -12,7 +12,7 @@ const express                            = require('express');
 const { authorize }                      = require('../middlewares/authorize');
 const validate                           = require('../middlewares/validate');
 const createQueryNormalizationMiddleware = require('../middlewares/normalize-query');
-const PERMISSIONS                        = require('../utils/constants/domain/permissions');
+const PERMISSION_KEYS                        = require('../utils/constants/domain/permission-keys');
 const {
   locationTypeQuerySchema,
   locationTypeIdParamSchema,
@@ -30,11 +30,11 @@ const router = express.Router();
  * Filters: statusIds.
  * Sorting: sortBy, sortOrder (uses locationTypeSortMap).
  * @access protected
- * @permission LOCATION_TYPES.VIEW
+ * @permission PERMISSION_KEYS.LOCATION_TYPES.VIEW
  */
 router.get(
   '/',
-  authorize([PERMISSIONS.LOCATION_TYPES.VIEW]),
+  authorize([PERMISSION_KEYS.LOCATION_TYPES.VIEW]),
   validate(locationTypeQuerySchema, 'query'),
   createQueryNormalizationMiddleware(
     'locationTypeSortMap',    // moduleKey — drives allowed sortBy fields
@@ -49,11 +49,11 @@ router.get(
  * @route GET /location-types/:locationTypeId/details
  * @description Full detail record for a single location type by ID.
  * @access protected
- * @permission LOCATION_TYPES.VIEW_DETAILS
+ * @permission PERMISSION_KEYS.LOCATION_TYPES.VIEW_DETAILS
  */
 router.get(
   '/:locationTypeId/details',
-  authorize([PERMISSIONS.LOCATION_TYPES.VIEW_DETAILS]),
+  authorize([PERMISSION_KEYS.LOCATION_TYPES.VIEW_DETAILS]),
   validate(locationTypeIdParamSchema, 'params'),
   getLocationTypeDetailsController
 );

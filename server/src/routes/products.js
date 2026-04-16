@@ -14,7 +14,7 @@ const express                            = require('express');
 const { authorize }                      = require('../middlewares/authorize');
 const validate                           = require('../middlewares/validate');
 const createQueryNormalizationMiddleware = require('../middlewares/normalize-query');
-const PERMISSIONS                        = require('../utils/constants/domain/permissions');
+const PERMISSION_KEYS                        = require('../utils/constants/domain/permission-keys');
 const {
   productQuerySchema,
   productIdParamSchema,
@@ -38,11 +38,11 @@ const router = express.Router();
  * Filters: statusIds.
  * Sorting: sortBy, sortOrder (uses productSortMap).
  * @access protected
- * @permission PRODUCTS.VIEW
+ * @permission PERMISSION_KEYS.PRODUCTS.VIEW
  */
 router.get(
   '/',
-  authorize([PERMISSIONS.PRODUCTS.VIEW]),
+  authorize([PERMISSION_KEYS.PRODUCTS.VIEW]),
   validate(productQuerySchema, 'query'),
   createQueryNormalizationMiddleware(
     'productSortMap',    // moduleKey — drives allowed sortBy fields
@@ -57,11 +57,11 @@ router.get(
  * @route GET /products/:productId/details
  * @description Full detail record for a single product by ID.
  * @access protected
- * @permission PRODUCTS.VIEW_DETAILS
+ * @permission PERMISSION_KEYS.PRODUCTS.VIEW_DETAILS
  */
 router.get(
   '/:productId/details',
-  authorize([PERMISSIONS.PRODUCTS.VIEW_DETAILS]),
+  authorize([PERMISSION_KEYS.PRODUCTS.VIEW_DETAILS]),
   validate(productIdParamSchema, 'params'),
   getProductDetailsController
 );
@@ -70,11 +70,11 @@ router.get(
  * @route PATCH /products/:productId/status
  * @description Transition a product to a new status.
  * @access protected
- * @permission PRODUCTS.UPDATE_STATUS
+ * @permission PERMISSION_KEYS.PRODUCTS.UPDATE_STATUS
  */
 router.patch(
   '/:productId/status',
-  authorize([PERMISSIONS.PRODUCTS.UPDATE_STATUS]),
+  authorize([PERMISSION_KEYS.PRODUCTS.UPDATE_STATUS]),
   validate(productIdParamSchema, 'params'),
   validate(updateProductStatusSchema, 'body'),
   updateProductStatusController
@@ -84,11 +84,11 @@ router.patch(
  * @route PUT /products/:productId/info
  * @description Replace editable product info fields (full update).
  * @access protected
- * @permission PRODUCTS.UPDATE_INFO
+ * @permission PERMISSION_KEYS.PRODUCTS.UPDATE_INFO
  */
 router.put(
   '/:productId/info',
-  authorize([PERMISSIONS.PRODUCTS.UPDATE_INFO]),
+  authorize([PERMISSION_KEYS.PRODUCTS.UPDATE_INFO]),
   validate(productIdParamSchema, 'params'),
   validate(productUpdateSchema, 'body'),
   updateProductInfoController
@@ -98,11 +98,11 @@ router.put(
  * @route POST /products/create
  * @description Bulk create one or more product records.
  * @access protected
- * @permission PRODUCTS.CREATE
+ * @permission PERMISSION_KEYS.PRODUCTS.CREATE
  */
 router.post(
   '/create',
-  authorize([PERMISSIONS.PRODUCTS.CREATE]),
+  authorize([PERMISSION_KEYS.PRODUCTS.CREATE]),
   validate(createProductBulkSchema, 'body'),
   createProductsController
 );

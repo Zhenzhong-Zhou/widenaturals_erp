@@ -9,7 +9,7 @@
 
 const express = require('express');
 const { authorize } = require('../middlewares/authorize');
-const { WAREHOUSE_INVENTORY } = require('../utils/constants/domain/permissions');
+const PERMISSION_KEYS = require('../utils/constants/domain/permission-keys');
 const {
   getPaginatedWarehouseInventoryController,
   createWarehouseInventoryController,
@@ -46,11 +46,11 @@ const router = express.Router();
  *   inboundDateAfter, inboundDateBefore, hasReserved, lowStockThreshold,
  *   expiringWithinDays, search.
  * @access protected
- * @permission WAREHOUSE_INVENTORY.VIEW
+ * @permission PERMISSION_KEYS.WAREHOUSE_INVENTORY.VIEW
  */
 router.get(
   '/:warehouseId/inventory',
-  authorize([WAREHOUSE_INVENTORY.VIEW]),
+  authorize([PERMISSION_KEYS.WAREHOUSE_INVENTORY.VIEW]),
   validate(warehouseIdParamSchema, 'params'),
   validate(warehouseInventoryQuerySchema, 'query'),
   createQueryNormalizationMiddleware(
@@ -69,11 +69,11 @@ router.get(
  * @route POST /:warehouseId/inventory
  * @description Bulk create warehouse inventory records for a given warehouse.
  * @access protected
- * @permission WAREHOUSE_INVENTORY.CREATE
+ * @permission PERMISSION_KEYS.WAREHOUSE_INVENTORY.CREATE
  */
 router.post(
   '/:warehouseId/inventory',
-  authorize([WAREHOUSE_INVENTORY.CREATE]),
+  authorize([PERMISSION_KEYS.WAREHOUSE_INVENTORY.CREATE]),
   validate(warehouseIdParamSchema, 'params'),
   validate(createWarehouseInventoryBulkSchema, 'body'),
   createWarehouseInventoryController
@@ -83,11 +83,11 @@ router.post(
  * @route PATCH /:warehouseId/inventory/quantities
  * @description Bulk adjust warehouse and reserved quantities for inventory records.
  * @access protected
- * @permission WAREHOUSE_INVENTORY.ADJUST_INVENTORY
+ * @permission PERMISSION_KEYS.WAREHOUSE_INVENTORY.ADJUST_INVENTORY
  */
 router.patch(
   '/:warehouseId/inventory/quantities',
-  authorize([WAREHOUSE_INVENTORY.ADJUST_INVENTORY]),
+  authorize([PERMISSION_KEYS.WAREHOUSE_INVENTORY.ADJUST_INVENTORY]),
   validate(warehouseIdParamSchema, 'params'),
   validate(adjustWarehouseInventoryQuantitySchema, 'body'),
   adjustWarehouseInventoryQuantityController
@@ -97,11 +97,11 @@ router.patch(
  * @route PATCH /:warehouseId/inventory/statuses
  * @description Bulk update inventory status for a set of inventory records.
  * @access protected
- * @permission WAREHOUSE_INVENTORY.UPDATE_INVENTORY_STATUS
+ * @permission PERMISSION_KEYS.WAREHOUSE_INVENTORY.UPDATE_INVENTORY_STATUS
  */
 router.patch(
   '/:warehouseId/inventory/statuses',
-  authorize([WAREHOUSE_INVENTORY.UPDATE_INVENTORY_STATUS]),
+  authorize([PERMISSION_KEYS.WAREHOUSE_INVENTORY.UPDATE_INVENTORY_STATUS]),
   validate(warehouseIdParamSchema, 'params'),
   validate(updateWarehouseInventoryStatusSchema, 'body'),
   updateWarehouseInventoryStatusController
@@ -111,11 +111,11 @@ router.patch(
  * @route PATCH /:warehouseId/inventory/:inventoryId/metadata
  * @description Update inbound date and warehouse fee for a single inventory record.
  * @access protected
- * @permission WAREHOUSE_INVENTORY.ADJUST_INVENTORY
+ * @permission PERMISSION_KEYS.WAREHOUSE_INVENTORY.ADJUST_INVENTORY
  */
 router.patch(
   '/:warehouseId/inventory/:inventoryId/metadata',
-  authorize([WAREHOUSE_INVENTORY.ADJUST_INVENTORY]),
+  authorize([PERMISSION_KEYS.WAREHOUSE_INVENTORY.ADJUST_INVENTORY]),
   validate(inventoryIdParamSchema, 'params'),
   validate(updateWarehouseInventoryMetadataSchema, 'body'),
   updateWarehouseInventoryMetadataController
@@ -125,11 +125,11 @@ router.patch(
  * @route POST /:warehouseId/inventory/outbound
  * @description Record outbound stock movement for one or more inventory records.
  * @access protected
- * @permission WAREHOUSE_INVENTORY.CREATE_OUTBOUND
+ * @permission PERMISSION_KEYS.WAREHOUSE_INVENTORY.CREATE_OUTBOUND
  */
 router.post(
   '/:warehouseId/inventory/outbound',
-  authorize([WAREHOUSE_INVENTORY.CREATE_OUTBOUND]),
+  authorize([PERMISSION_KEYS.WAREHOUSE_INVENTORY.CREATE_OUTBOUND]),
   validate(warehouseIdParamSchema, 'params'),
   validate(recordWarehouseInventoryOutboundSchema, 'body'),
   recordWarehouseInventoryOutboundController
@@ -140,11 +140,11 @@ router.post(
  * @description Full detail view for a single warehouse inventory record,
  *   including zone assignments and recent movement history.
  * @access protected
- * @permission WAREHOUSE_INVENTORY.READ
+ * @permission PERMISSION_KEYS.WAREHOUSE_INVENTORY.READ
  */
 router.get(
   '/:warehouseId/inventory/:inventoryId',
-  authorize([WAREHOUSE_INVENTORY.READ]),
+  authorize([PERMISSION_KEYS.WAREHOUSE_INVENTORY.READ]),
   validate(inventoryIdParamSchema, 'params'),
   getWarehouseInventoryDetailController
 );
@@ -154,11 +154,11 @@ router.get(
  * @description Paginated inventory activity log scoped to a given warehouse.
  *   Filters: inventoryId, actionTypeId, performedBy, dateAfter, dateBefore.
  * @access protected
- * @permission WAREHOUSE_INVENTORY.READ
+ * @permission PERMISSION_KEYS.WAREHOUSE_INVENTORY.READ
  */
 router.get(
   '/:warehouseId/inventory/activity-log',
-  authorize([WAREHOUSE_INVENTORY.READ]),
+  authorize([PERMISSION_KEYS.WAREHOUSE_INVENTORY.READ]),
   validate(warehouseIdParamSchema, 'params'),
   validate(inventoryActivityLogQuerySchema, 'query', { allowUnknown: true }),
   createQueryNormalizationMiddleware(
@@ -178,11 +178,11 @@ router.get(
  * @description Warehouse-level inventory summary including quantity totals,
  *   batch-type breakdown, and per-status breakdown.
  * @access protected
- * @permission WAREHOUSE_INVENTORY.VIEW_SUMMARY
+ * @permission PERMISSION_KEYS.WAREHOUSE_INVENTORY.VIEW_SUMMARY
  */
 router.get(
   '/:warehouseId/summary',
-  authorize([WAREHOUSE_INVENTORY.VIEW_SUMMARY]),
+  authorize([PERMISSION_KEYS.WAREHOUSE_INVENTORY.VIEW_SUMMARY]),
   validate(warehouseIdParamSchema, 'params'),
   getWarehouseSummaryController
 );
@@ -192,11 +192,11 @@ router.get(
  * @description Paginated product and packaging material inventory summary
  *   for a given warehouse, with optional batch-type filtering.
  * @access protected
- * @permission WAREHOUSE_INVENTORY.VIEW_SUMMARY_ITEM_DETAILS
+ * @permission PERMISSION_KEYS.WAREHOUSE_INVENTORY.VIEW_SUMMARY_ITEM_DETAILS
  */
 router.get(
   '/:warehouseId/summary/items',
-  authorize([WAREHOUSE_INVENTORY.VIEW_SUMMARY_ITEM_DETAILS]),
+  authorize([PERMISSION_KEYS.WAREHOUSE_INVENTORY.VIEW_SUMMARY_ITEM_DETAILS]),
   validate(warehouseIdParamSchema, 'params'),
   validate(warehouseItemSummaryQuerySchema, 'query'),
   getWarehouseItemSummaryController

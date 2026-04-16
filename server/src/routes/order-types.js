@@ -12,7 +12,7 @@ const express                            = require('express');
 const { authorize }                      = require('../middlewares/authorize');
 const validate                           = require('../middlewares/validate');
 const createQueryNormalizationMiddleware = require('../middlewares/normalize-query');
-const PERMISSIONS                        = require('../utils/constants/domain/permissions');
+const PERMISSION_KEYS                        = require('../utils/constants/domain/permission-keys');
 const { orderTypeQuerySchema }           = require('../validators/order-type-validators');
 const {
   getPaginatedOrderTypesController,
@@ -26,11 +26,11 @@ const router = express.Router();
  * Filters: statusId, createdBy, updatedBy.
  * Sorting: sortBy, sortOrder (uses orderTypeSortMap).
  * @access protected
- * @permission ORDER_TYPES.VIEW
+ * @permission PERMISSION_KEYS.ORDER_TYPES.VIEW
  */
 router.get(
   '/',
-  authorize([PERMISSIONS.ORDER_TYPES.VIEW]),
+  authorize([PERMISSION_KEYS.ORDER_TYPES.VIEW]),
   validate(
     orderTypeQuerySchema,
     'query',

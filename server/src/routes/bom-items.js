@@ -10,7 +10,7 @@
 const express            = require('express');
 const { authorize }      = require('../middlewares/authorize');
 const validate           = require('../middlewares/validate');
-const PERMISSIONS        = require('../utils/constants/domain/permissions');
+const PERMISSION_KEYS        = require('../utils/constants/domain/permission-keys');
 const { bomIdParamSchema } = require('../validators/bom-validators');
 const {
   getBomMaterialSupplyDetailsController,
@@ -27,7 +27,7 @@ const router = express.Router();
  */
 router.get(
   '/:bomId/material-supply',
-  authorize([PERMISSIONS.BOMS.VIEW_BOM_DETAILS]),
+  authorize([PERMISSION_KEYS.BOMS.VIEW_BOM_DETAILS]),
   validate(bomIdParamSchema, 'params'),
   getBomMaterialSupplyDetailsController
 );

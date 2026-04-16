@@ -16,7 +16,7 @@ const {
 const { authorize }                        = require('../middlewares/authorize');
 const validate                             = require('../middlewares/validate');
 const createQueryNormalizationMiddleware   = require('../middlewares/normalize-query');
-const { ADDRESSES }                          = require('../utils/constants/domain/permissions');
+const PERMISSION_KEYS                         = require('../utils/constants/domain/permission-keys');
 const {
   addressArraySchema,
   addressQuerySchema,
@@ -28,11 +28,11 @@ const router = express.Router();
  * @route POST /addresses/add-new-addresses
  * @description Create one or more address records. Accepts a JSON array for single or bulk insertion.
  * @access protected
- * @permission ADDRESSES.CREATE
+ * @permission PERMISSION_KEYS.ADDRESSES.CREATE
  */
 router.post(
   '/add-new-addresses',
-  authorize([ADDRESSES.CREATE]),
+  authorize([PERMISSION_KEYS.ADDRESSES.CREATE]),
   validate(addressArraySchema, 'body'),
   createAddressController
 );
@@ -44,11 +44,11 @@ router.post(
  *          createdAfter, createdBefore, updatedAfter, updatedBefore.
  * Sorting: sortBy, sortOrder (uses addressSortMap).
  * @access protected
- * @permission ADDRESSES.VIEW
+ * @permission PERMISSION_KEYS.ADDRESSES.VIEW
  */
 router.get(
   '/',
-  authorize([ADDRESSES.VIEW]),
+  authorize([PERMISSION_KEYS.ADDRESSES.VIEW]),
   validate(
     addressQuerySchema,
     'query',

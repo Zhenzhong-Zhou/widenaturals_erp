@@ -19,7 +19,7 @@ const express                            = require('express');
 const { authorize }                      = require('../middlewares/authorize');
 const validate                           = require('../middlewares/validate');
 const createQueryNormalizationMiddleware = require('../middlewares/normalize-query');
-const PERMISSIONS                        = require('../utils/constants/domain/permissions');
+const PERMISSION_KEYS                        = require('../utils/constants/domain/permission-keys');
 const { orderIdParamSchema }             = require('../validators/order-validators');
 const {
   allocateInventorySchema,
@@ -40,11 +40,11 @@ const router = express.Router();
  * @description Allocate available inventory against a specific order.
  * Validates the order ID and allocation payload before delegating to the controller.
  * @access protected
- * @permission INVENTORY_ALLOCATION.ALLOCATE
+ * @permission PERMISSION_KEYS.INVENTORY_ALLOCATION.ALLOCATE
  */
 router.post(
   '/allocate/:orderId',
-  authorize([PERMISSIONS.INVENTORY_ALLOCATION.ALLOCATE]),
+  authorize([PERMISSION_KEYS.INVENTORY_ALLOCATION.ALLOCATE]),
   validate(orderIdParamSchema, 'params'),
   validate(allocateInventorySchema, 'body'),
   allocateInventoryForOrderController
@@ -54,11 +54,11 @@ router.post(
  * @route POST /inventory-allocations/review/:orderId
  * @description Submit a review decision on a pending inventory allocation for an order.
  * @access protected
- * @permission INVENTORY_ALLOCATION.REVIEW
+ * @permission PERMISSION_KEYS.INVENTORY_ALLOCATION.REVIEW
  */
 router.post(
   '/review/:orderId',
-  authorize([PERMISSIONS.INVENTORY_ALLOCATION.REVIEW]),
+  authorize([PERMISSION_KEYS.INVENTORY_ALLOCATION.REVIEW]),
   validate(orderIdParamSchema, 'params'),
   validate(allocationReviewSchema, 'body'),
   reviewInventoryAllocationController
@@ -70,11 +70,11 @@ router.post(
  * Filters: statusIds, warehouseIds, batchIds.
  * Sorting: sortBy, sortOrder (uses inventoryAllocationSortMap).
  * @access protected
- * @permission INVENTORY_ALLOCATION.VIEW
+ * @permission PERMISSION_KEYS.INVENTORY_ALLOCATION.VIEW
  */
 router.get(
   '/',
-  authorize([PERMISSIONS.INVENTORY_ALLOCATION.VIEW]),
+  authorize([PERMISSION_KEYS.INVENTORY_ALLOCATION.VIEW]),
   validate(inventoryAllocationsQuerySchema, 'query'),
   createQueryNormalizationMiddleware(
     'inventoryAllocationSortMap',                  // moduleKey — drives allowed sortBy fields
@@ -89,11 +89,11 @@ router.get(
  * @route PATCH /inventory-allocations/confirm/:orderId
  * @description Confirm a reviewed inventory allocation, locking it for fulfillment.
  * @access protected
- * @permission INVENTORY_ALLOCATION.CONFIRM
+ * @permission PERMISSION_KEYS.INVENTORY_ALLOCATION.CONFIRM
  */
 router.patch(
   '/confirm/:orderId',
-  authorize([PERMISSIONS.INVENTORY_ALLOCATION.CONFIRM]),
+  authorize([PERMISSION_KEYS.INVENTORY_ALLOCATION.CONFIRM]),
   validate(orderIdParamSchema, 'params'),
   confirmInventoryAllocationController
 );

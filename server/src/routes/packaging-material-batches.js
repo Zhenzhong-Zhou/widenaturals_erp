@@ -14,7 +14,7 @@ const express                            = require('express');
 const { authorize }                      = require('../middlewares/authorize');
 const validate                           = require('../middlewares/validate');
 const createQueryNormalizationMiddleware = require('../middlewares/normalize-query');
-const { PACKAGING_MATERIAL_BATCHES }     = require('../utils/constants/domain/permissions');
+const PERMISSION_KEYS  = require('../utils/constants/domain/permission-keys');
 const {
   packagingMaterialBatchQuerySchema,
   packagingMaterialBatchIdParamSchema,
@@ -41,11 +41,11 @@ const router = express.Router();
  * Filters: statusIds, packagingMaterialIds, supplierIds.
  * Sorting: sortBy, sortOrder (uses packagingMaterialBatchSortMap).
  * @access protected
- * @permission PACKAGING_MATERIAL_BATCHES.VIEW_LIST
+ * @permission PERMISSION_KEYS.PACKAGING_MATERIAL_BATCHES.VIEW_LIST
  */
 router.get(
   '/',
-  authorize([PACKAGING_MATERIAL_BATCHES.VIEW_LIST]),
+  authorize([PERMISSION_KEYS.PACKAGING_MATERIAL_BATCHES.VIEW_LIST]),
   validate(packagingMaterialBatchQuerySchema, 'query', {
     allowUnknown: true, // downstream middleware normalizes unknown keys before business layer
   }),
@@ -69,11 +69,11 @@ router.get(
  * @route POST /packaging-material-batches/create
  * @description Bulk create one or more packaging material batch records.
  * @access protected
- * @permission PACKAGING_MATERIAL_BATCHES.CREATE
+ * @permission PERMISSION_KEYS.PACKAGING_MATERIAL_BATCHES.CREATE
  */
 router.post(
   '/create',
-  authorize([PACKAGING_MATERIAL_BATCHES.CREATE]),
+  authorize([PERMISSION_KEYS.PACKAGING_MATERIAL_BATCHES.CREATE]),
   validate(createPackagingMaterialBatchBulkSchema, 'body'),
   createPackagingMaterialBatchesController
 );
@@ -82,11 +82,11 @@ router.post(
  * @route PATCH /packaging-material-batches/:batchId/metadata
  * @description Update editable metadata fields on a packaging material batch.
  * @access protected
- * @permission PACKAGING_MATERIAL_BATCHES.EDIT
+ * @permission PERMISSION_KEYS.PACKAGING_MATERIAL_BATCHES.EDIT
  */
 router.patch(
   '/:batchId/metadata',
-  authorize([PACKAGING_MATERIAL_BATCHES.EDIT]),
+  authorize([PERMISSION_KEYS.PACKAGING_MATERIAL_BATCHES.EDIT]),
   validate(packagingMaterialBatchIdParamSchema, 'params'),
   validate(editPackagingMaterialBatchMetadataSchema, 'body'),
   editPackagingMaterialBatchMetadataController
@@ -96,11 +96,11 @@ router.patch(
  * @route PATCH /packaging-material-batches/:batchId/status
  * @description Transition a packaging material batch to a new status.
  * @access protected
- * @permission PACKAGING_MATERIAL_BATCHES.UPDATE_STATUS
+ * @permission PERMISSION_KEYS.PACKAGING_MATERIAL_BATCHES.UPDATE_STATUS
  */
 router.patch(
   '/:batchId/status',
-  authorize([PACKAGING_MATERIAL_BATCHES.UPDATE_STATUS]),
+  authorize([PERMISSION_KEYS.PACKAGING_MATERIAL_BATCHES.UPDATE_STATUS]),
   validate(packagingMaterialBatchIdParamSchema, 'params'),
   validate(updatePackagingMaterialBatchStatusSchema, 'body'),
   updatePackagingMaterialBatchStatusController
@@ -110,11 +110,11 @@ router.patch(
  * @route PATCH /packaging-material-batches/:batchId/receive
  * @description Record physical receipt of a packaging material batch into the warehouse.
  * @access protected
- * @permission PACKAGING_MATERIAL_BATCHES.RECEIVE
+ * @permission PERMISSION_KEYS.PACKAGING_MATERIAL_BATCHES.RECEIVE
  */
 router.patch(
   '/:batchId/receive',
-  authorize([PACKAGING_MATERIAL_BATCHES.RECEIVE]),
+  authorize([PERMISSION_KEYS.PACKAGING_MATERIAL_BATCHES.RECEIVE]),
   validate(packagingMaterialBatchIdParamSchema, 'params'),
   validate(receivePackagingMaterialBatchSchema, 'body'),
   receivePackagingMaterialBatchController
@@ -124,11 +124,11 @@ router.patch(
  * @route PATCH /packaging-material-batches/:batchId/release
  * @description Release a packaging material batch for production use.
  * @access protected
- * @permission PACKAGING_MATERIAL_BATCHES.RELEASE
+ * @permission PERMISSION_KEYS.PACKAGING_MATERIAL_BATCHES.RELEASE
  */
 router.patch(
   '/:batchId/release',
-  authorize([PACKAGING_MATERIAL_BATCHES.RELEASE]),
+  authorize([PERMISSION_KEYS.PACKAGING_MATERIAL_BATCHES.RELEASE]),
   validate(packagingMaterialBatchIdParamSchema, 'params'),
   validate(releasePackagingMaterialBatchSchema, 'body'),
   releasePackagingMaterialBatchController
