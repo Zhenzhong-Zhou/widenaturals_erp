@@ -11,78 +11,138 @@
  *  - transformWarehouseSummary                  — warehouse summary row and status rows to record
  *  - transformWarehouseProductSummary           — product summary rows to API records
  *  - transformWarehousePackagingSummary         — packaging summary rows to API records
+ *
+ * Internal helpers (not exported):
+ *  - mapWarehouseInventoryBase — shared base field mapping for all batch types
+ *  - buildProductInfo          — product info subtree, returns null when empty
+ *  - buildPackagingInfo        — packaging info subtree, returns null when empty
  */
 
 'use strict';
 
-const { cleanObject } = require('../utils/object-utils');
+const { cleanObject, cleanOrNull } = require('../utils/object-utils');
 const { makeStatus } = require('../utils/status-utils');
 const { transformPageResult } = require('../utils/transformer-utils');
 const { compactAudit, makeAudit } = require('../utils/audit-utils');
 const { getProductDisplayName } = require('../utils/display-name-utils');
 
 /**
+ * Builds the product info subtree from a warehouse inventory row.
+ *
+ * Returns null when all product-related fields are null (e.g. when the
+ * row represents a packaging_material batch).
+ *
+ * @param {WarehouseInventoryRow} row
+ * @returns {ProductInfo|null}
+ */
+const buildProductInfo = (row) =>
+  cleanOrNull({
+    batch: {
+      id: row.product_batch_id,
+      lotNumber: row.product_lot_number,
+      expiryDate: row.product_expiry_date,
+    },
+    sku: {
+      id: row.sku_id,
+      sku: row.sku,
+      barcode: row.barcode,
+      sizeLabel: row.size_label,
+      countryCode: row.country_code,
+      marketRegion: row.market_region,
+    },
+    product: {
+      id: row.product_id,
+      name: row.product_name,
+      brand: row.brand,
+    },
+    manufacturer: {
+      id: row.manufacturer_id,
+      name: row.manufacturer_name,
+    },
+  });
+
+/**
+ * Builds the packaging info subtree from a warehouse inventory row.
+ *
+ * Returns null when all packaging-related fields are null (e.g. when the
+ * row represents a product batch).
+ *
+ * @param {WarehouseInventoryRow} row
+ * @returns {PackagingInfo|null}
+ */
+const buildPackagingInfo = (row) =>
+  cleanOrNull({
+    batch: {
+      id: row.packaging_batch_id,
+      lotNumber: row.packaging_lot_number,
+      displayName: row.packaging_display_name,
+      expiryDate: row.packaging_expiry_date,
+    },
+    material: {
+      id: row.packaging_material_id,
+      code: row.packaging_material_code,
+    },
+    supplier: {
+      id: row.supplier_id,
+      name: row.supplier_name,
+    },
+  });
+
+/**
+ * Maps shared warehouse inventory fields common to all batch types.
+ *
+ * @param {WarehouseInventoryRow} row
+ * @returns {WarehouseInventoryBase}
+ */
+const mapWarehouseInventoryBase = (row) => ({
+  id: row.id,
+  batchId: row.batch_id,
+  batchType: row.batch_type,
+  warehouseQuantity: row.warehouse_quantity,
+  reservedQuantity: row.reserved_quantity,
+  availableQuantity: row.available_quantity,
+  warehouseFee: row.warehouse_fee,
+  inboundDate: row.inbound_date,
+  outboundDate: row.outbound_date,
+  lastMovementAt: row.last_movement_at,
+  status: makeStatus(row),
+});
+
+/**
  * Transforms a raw warehouse inventory DB row into a structured API record.
+ *
+ * Branches on batch_type to build the appropriate info subtree — productInfo
+ * for product batches, packagingInfo for packaging_material batches. The
+ * inactive side is always null, giving the frontend a stable discriminated shape.
  *
  * @param {WarehouseInventoryRow} row
  * @returns {WarehouseInventoryRecord}
  */
-const transformWarehouseInventoryRecord = (row) => ({
-  id:                row.id,
-  batchId:           row.batch_id,
-  batchType:         row.batch_type,
-  warehouseQuantity: row.warehouse_quantity,
-  reservedQuantity:  row.reserved_quantity,
-  availableQuantity: row.available_quantity,
-  warehouseFee:      row.warehouse_fee,
-  inboundDate:       row.inbound_date,
-  outboundDate:      row.outbound_date,
-  lastMovementAt:    row.last_movement_at,
+const transformWarehouseInventoryRecord = (row) => {
+  const base = mapWarehouseInventoryBase(row);
   
-  status: makeStatus(row),
+  if (row.batch_type === 'product') {
+    return {
+      ...base,
+      productInfo: buildProductInfo(row),
+      packagingInfo: null,
+    };
+  }
   
-  productInfo: cleanObject({
-    batch: cleanObject({
-      id:         row.product_batch_id,
-      lotNumber:  row.product_lot_number,
-      expiryDate: row.product_expiry_date,
-    }),
-    sku: cleanObject({
-      id:           row.sku_id,
-      sku:          row.sku,
-      barcode:      row.barcode,
-      sizeLabel:    row.size_label,
-      countryCode:  row.country_code,
-      marketRegion: row.market_region,
-    }),
-    product: cleanObject({
-      id:    row.product_id,
-      name:  row.product_name,
-      brand: row.brand,
-    }),
-    manufacturer: cleanObject({
-      id:   row.manufacturer_id,
-      name: row.manufacturer_name,
-    }),
-  }),
+  if (row.batch_type === 'packaging_material') {
+    return {
+      ...base,
+      productInfo: null,
+      packagingInfo: buildPackagingInfo(row),
+    };
+  }
   
-  packagingInfo: cleanObject({
-    batch: cleanObject({
-      id:          row.packaging_batch_id,
-      lotNumber:   row.packaging_lot_number,
-      displayName: row.packaging_display_name,
-      expiryDate:  row.packaging_expiry_date,
-    }),
-    material: cleanObject({
-      id:   row.packaging_material_id,
-      code: row.packaging_material_code,
-    }),
-    supplier: cleanObject({
-      id:   row.supplier_id,
-      name: row.supplier_name,
-    }),
-  }),
-});
+  return {
+    ...base,
+    productInfo: null,
+    packagingInfo: null,
+  };
+};
 
 /**
  * @param {PaginatedResult<WarehouseInventoryRow>} paginatedResult
