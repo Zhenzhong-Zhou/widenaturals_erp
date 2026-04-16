@@ -4,7 +4,9 @@
  *
  * Exports:
  *   - fulfillOutboundShipmentService         – creates shipment and fulfillment records
- *   - confirmOutboundFulfillmentService      – confirms fulfillment, adjusts inventory
+ *   - confirmOutboundFulfillmentService      — confirms fulfillment, applies bulk inventory
+ *                                              quantity updates and status resolution,
+ *                                              and inserts inventory activity logs
  *   - fetchPaginatedOutboundFulfillmentService – paginated shipment list
  *   - fetchShipmentDetailsService            – full shipment detail with fulfillments and batches
  *   - completeManualFulfillmentService       – completes a manual/pickup fulfillment
@@ -31,11 +33,9 @@ const {
 }                                            = require('../repositories/order-fulfillment-repository');
 const { insertShipmentBatchesBulk }          = require('../repositories/shipment-batch-repository');
 const {
-  getWarehouseInventoryQuantities,
-  bulkUpdateWarehouseQuantities,
+  getWarehouseInventoryQuantities, updateWarehouseInventoryQuantityBulk,
 }                                            = require('../repositories/warehouse-inventory-repository');
 const { getOrderStatusByCode }               = require('../repositories/order-status-repository');
-const { insertInventoryActivityLogs }        = require('../repositories/inventory-log-repository');
 const { getInventoryActionTypeId }           = require('../repositories/inventory-action-type-repository');
 const {
   transformFulfillmentResult,
@@ -54,7 +54,6 @@ const {
   enrichAllocationsWithInventory,
   calculateInventoryAdjustments,
   updateAllStatuses,
-  buildInventoryActivityLogs,
   assertOrderMeta,
   assertFulfillmentsValid,
   assertStatusesResolved,
@@ -87,6 +86,9 @@ const {
   getShipmentByShipmentId,
 }                                            = require('../repositories/outbound-shipment-repository');
 const { getOrderItemsByOrderId }             = require('../repositories/order-item-repository');
+const { getStatusId } = require('../config/status-cache');
+const { resolveInventoryStatus, buildFulfillmentLogEntry } = require('../business/warehouse-inventory-business');
+const { insertInventoryActivityLogBulk } = require('../repositories/inventory-activity-log-repository');
 
 const CONTEXT = 'outbound-fulfillment-service';
 
@@ -234,16 +236,38 @@ const fulfillOutboundShipmentService = async (requestData, orderId, user) => {
 };
 
 /**
- * Confirms an outbound fulfillment, adjusts warehouse inventory,
- * and updates all linked statuses and activity logs.
+ * Confirms an outbound fulfillment for an order — adjusts warehouse inventory
+ * quantities and status, updates order, item, allocation, fulfillment, and
+ * shipment statuses, and inserts inventory activity logs within a single transaction.
  *
- * @param {Object} requestData
- * @param {string} orderId
- * @param {Object} user
- * @returns {Promise<Object>}
+ * Flow:
+ *  1. Validates order metadata and current status eligibility.
+ *  2. Fetches and locks allocation and warehouse inventory rows.
+ *  3. Validates fulfillment and shipment status eligibility.
+ *  4. Enriches allocations with current inventory snapshot.
+ *  5. Computes inventory quantity deltas per allocation.
+ *  6. Resolves new inventory status per row and applies bulk quantity updates.
+ *  7. Updates order, item, allocation, fulfillment, and shipment statuses.
+ *  8. Builds and inserts inventory activity log entries for each quantity change.
  *
- * @throws {AppError} Re-throws AppErrors from lower layers unchanged.
- * @throws {AppError} Wraps unexpected errors as `AppError.serviceError`.
+ * No warehouse ACL check required — warehouse scope is implicitly enforced
+ * by the existing allocation records created during allocateInventoryForOrderService.
+ *
+ * @param {object} requestData
+ * @param {string} requestData.orderStatus       - Target order status code.
+ * @param {string} requestData.allocationStatus  - Target allocation status code.
+ * @param {string} requestData.shipmentStatus    - Target shipment status code.
+ * @param {string} requestData.fulfillmentStatus - Target fulfillment status code.
+ * @param {string} orderId                       - UUID of the order to confirm fulfillment for.
+ * @param {object} user                          - Authenticated user (requires `id`).
+ *
+ * @returns {Promise<object>} Transformed fulfillment confirmation response.
+ *
+ * @throws {AppError} `validationError`  — ineligible order, fulfillment, or shipment status.
+ * @throws {AppError} `notFoundError`    — missing allocations, shipment, or status codes.
+ * @throws {AppError} `businessError`   — empty enriched allocations or missing inventory adjustments.
+ * @throws {AppError} Re-throws all other AppErrors from lower layers unchanged.
+ * @throws {AppError} Wraps unexpected errors as `serviceError`.
  */
 const confirmOutboundFulfillmentService = async (requestData, orderId, user) => {
   const context = `${CONTEXT}/confirmOutboundFulfillmentService`;
@@ -299,9 +323,9 @@ const confirmOutboundFulfillmentService = async (requestData, orderId, user) => 
       
       // 7. Validate workflow eligibility before confirmation.
       validateStatusesBeforeConfirmation({
-        orderStatusCode:      order_status_code,
-        fulfillmentStatuses:  fulfillmentStatusMeta.map((s) => s.code),
-        shipmentStatusCode:   shipment.status_code,
+        orderStatusCode:     order_status_code,
+        fulfillmentStatuses: fulfillmentStatusMeta.map((s) => s.code),
+        shipmentStatusCode:  shipment.status_code,
       });
       
       // 8. Fetch inventory snapshot for affected batches.
@@ -313,12 +337,29 @@ const confirmOutboundFulfillmentService = async (requestData, orderId, user) => 
       assertEnrichedAllocations(enrichedAllocations);
       
       // 10. Compute inventory deltas.
-      const updatesObject = calculateInventoryAdjustments(enrichedAllocations);
-      assertInventoryAdjustments(updatesObject);
+      const updates = calculateInventoryAdjustments(enrichedAllocations);
+      assertInventoryAdjustments(updates);
       
       // 11. Apply bulk inventory updates.
-      const warehouseInventoryIds = await bulkUpdateWarehouseQuantities(updatesObject, userId, client);
-      assertWarehouseUpdatesApplied(warehouseInventoryIds, { updates: updatesObject });
+      const inStockStatusId    = getStatusId('inventory_in_stock');
+      const outOfStockStatusId = getStatusId('inventory_out_of_stock');
+      
+      const updateInputs = updates.map((row) => ({
+        id:                row.id,
+        warehouseQuantity: row.warehouse_quantity,
+        reservedQuantity:  row.reserved_quantity,
+        statusId:          resolveInventoryStatus(row.warehouse_quantity, {
+          inStockStatusId,
+          outOfStockStatusId,
+        }),
+      }));
+      
+      const updatedWarehouseRecords = await updateWarehouseInventoryQuantityBulk(
+        updateInputs,
+        userId,
+        client
+      );
+      assertWarehouseUpdatesApplied(updatedWarehouseRecords, { updates: updateInputs });
       
       // 12. Resolve new status IDs.
       const { id: newOrderStatusId }       = await getOrderStatusByCode(orderStatus, client);
@@ -358,9 +399,13 @@ const confirmOutboundFulfillmentService = async (requestData, orderId, user) => 
       
       const logs = fulfillments.flatMap((f) => {
         const allocation = enrichedAllocations.find((a) => a.allocation_id === f.allocation_id);
-        if (!allocation) return [];
+        const update     = updatedWarehouseRecords.find((r) => r.id === allocation?.warehouse_inventory_id);
         
-        return buildInventoryActivityLogs([allocation], updatesObject, {
+        if (!allocation || !update) return [];
+        
+        return buildFulfillmentLogEntry({
+          allocation,
+          update,
           inventoryActionTypeId,
           userId,
           orderId,
@@ -372,27 +417,22 @@ const confirmOutboundFulfillmentService = async (requestData, orderId, user) => 
       
       assertLogsGenerated(logs, 'build');
       
-      const logMetadata = await insertInventoryActivityLogs(logs, client, {
-        context,
-        orderId,
-        orderNumber,
-        shipmentId,
-      });
+      const logInsertResult = await insertInventoryActivityLogBulk(logs, client, { context });
       
-      assertLogsGenerated(logMetadata, 'insert');
+      assertLogsGenerated(logInsertResult, 'insert');
       
       return transformAdjustedFulfillmentResult({
         orderId,
         orderNumber,
         fulfillments,
         shipmentId,
-        warehouseInventoryIds,
+        warehouseInventoryIds:  updatedWarehouseRecords.map((r) => r.id),
         orderStatusRow,
         orderItemStatusRow,
         inventoryAllocationStatusRow,
         orderFulfillmentStatusRow,
         shipmentStatusRow,
-        logMetadata,
+        logMetadata:            logInsertResult,
       });
     });
   } catch (error) {

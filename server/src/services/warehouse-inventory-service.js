@@ -71,7 +71,8 @@ const {
   validateOutboundRecords,
   buildOutboundLogEntries,
   buildStatusChangeLogEntries,
-  assertAllInventoryRecordsFound
+  assertAllInventoryRecordsFound,
+  resolveInventoryStatus
 } = require('../business/warehouse-inventory-business');
 const { withTransaction } = require('../database/db');
 const { insertInventoryActivityLogBulk } = require('../repositories/inventory-activity-log-repository');
@@ -250,19 +251,28 @@ const createWarehouseInventoryService = async ({
 // ── Adjust quantities ───────────────────────────────────────────────
 
 /**
- * Bulk adjusts warehouse and reserved quantities for inventory records.
+ * Adjusts warehouse and reserved quantities for a set of inventory records
+ * within a single warehouse.
  *
- * Validates warehouse access and quantity rules, fetches pre-mutation state
- * for log generation, applies updates, and writes activity log entries.
+ * Flow:
+ *  1. Validates the requesting user has access to the specified warehouse.
+ *  2. Validates quantity adjustment inputs.
+ *  3. Fetches pre-mutation inventory state for activity log generation.
+ *  4. Resolves new inventory status per row based on resulting warehouse quantity.
+ *  5. Applies bulk quantity updates scoped to the warehouse (atomic ACL guard).
+ *  6. Builds and inserts inventory activity log entries.
  *
- * @param {string}   warehouseId
- * @param {object[]} updates
- * @param {string}   updates[].id
- * @param {number}   updates[].warehouseQuantity
- * @param {number}   updates[].reservedQuantity
- * @param {AuthUser} user
+ * @param {object}   options
+ * @param {string}   options.warehouseId              - UUID of the warehouse to adjust inventory in.
+ * @param {WarehouseInventoryQuantityUpdate[]} options.updates
+ * @param {object}   options.user                     - Authenticated user (requires `id` and permissions).
+ *
  * @returns {Promise<{ count: number, updatedIds: string[] }>}
- * @throws {AppError} Passes through business/ACL AppErrors; wraps unexpected errors as serviceError.
+ *
+ * @throws {AppError} `validationError`  — warehouse access denied or invalid quantity inputs.
+ * @throws {AppError} `notFoundError`    — one or more inventory records not found in the warehouse.
+ * @throws {AppError} Re-throws all other AppErrors from lower layers unchanged.
+ * @throws {AppError} Wraps unexpected errors as `serviceError`.
  */
 const adjustWarehouseInventoryQuantityService = async ({
                                                          warehouseId,
@@ -278,27 +288,44 @@ const adjustWarehouseInventoryQuantityService = async ({
     validateQuantityAdjustments(updates);
     
     return await withTransaction(async (client) => {
-      const ids = updates.map((u) => u.id);
+      const ids             = updates.map((u) => u.id);
       const previousRecords = await fetchWarehouseInventoryStateByIds(ids, warehouseId, client);
       
       assertAllInventoryRecordsFound(ids, previousRecords);
       
-      const actionTypeId = getStatusId('action_manual_stock_adjust');
+      const actionTypeId     = getStatusId('action_manual_stock_adjust');
+      const adjustmentTypeId = getStatusId('adjustment_manual_stock_insert');
+      const inStockStatusId  = getStatusId('inventory_in_stock');
+      const outOfStockStatusId = getStatusId('inventory_out_of_stock');
       
       if (!actionTypeId) {
         throw AppError.businessError(
-          'Adjustment action type not found. Contact an administrator.'
+          'Adjustment action type not found. Contact an administrator.',
+          { context }
         );
       }
       
-      const adjustmentTypeId = getStatusId('adjustment_manual_stock_insert');
+      // Resolve new status per row based on resulting warehouse quantity.
+      const updateInputs = updates.map((u) => ({
+        id:               u.id,
+        warehouseQuantity: u.warehouseQuantity,
+        reservedQuantity:  u.reservedQuantity,
+        statusId:          resolveInventoryStatus(u.warehouseQuantity, { inStockStatusId, outOfStockStatusId }),
+        warehouseId,
+      }));
       
       const updatedRecords = await updateWarehouseInventoryQuantityBulk(
-        updates, warehouseId, user.id, client
+        updateInputs,
+        user.id,
+        client
       );
       
       const logEntries = buildQuantityAdjustmentLogEntries(
-        previousRecords, updatedRecords, actionTypeId, adjustmentTypeId, user.id
+        previousRecords,
+        updatedRecords,
+        actionTypeId,
+        adjustmentTypeId,
+        user.id
       );
       
       await insertInventoryActivityLogBulk(logEntries, client);
@@ -315,7 +342,7 @@ const adjustWarehouseInventoryQuantityService = async ({
       'Unable to adjust warehouse inventory quantities at this time.',
       {
         context,
-        meta: { error: error.message }
+        meta: { error: error.message },
       }
     );
   }

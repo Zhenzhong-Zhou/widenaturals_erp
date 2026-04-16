@@ -3,10 +3,22 @@
  * @description Business logic for inventory allocation lifecycle operations.
  *
  * Exports:
- *   - allocateInventoryForOrderService          – allocates inventory batches to order items
- *   - reviewInventoryAllocationService          – retrieves allocation review data for an order
- *   - fetchPaginatedInventoryAllocationsService – paginated allocation list with filtering/sorting
- *   - confirmInventoryAllocationService         – confirms allocations and updates warehouse quantities
+ *   - allocateInventoryForOrderService          — allocates inventory batches to order items using FEFO/FIFO strategy
+ *   - reviewInventoryAllocationService          — retrieves full allocation review data for an order
+ *   - fetchPaginatedInventoryAllocationsService — paginated allocation list with ACL-scoped warehouse filtering
+ *   - confirmInventoryAllocationService         — confirms allocations, updates reserved warehouse quantities,
+ *                                                 recalculates inventory status, and inserts activity logs
+ *
+ * ACL:
+ *   - allocateInventoryForOrderService          — validates user has access to the requested warehouseId
+ *                                                 before entering the transaction.
+ *   - fetchPaginatedInventoryAllocationsService — evaluates warehouse visibility per user and injects
+ *                                                 warehouse scope into filters before querying.
+ *   - reviewInventoryAllocationService          — intersects requested warehouseIds with user's assigned
+ *                                                 warehouses before fetching allocation review data.
+ *   - confirmInventoryAllocationService         — no additional ACL; warehouse scope is implicitly
+ *                                                 enforced by the allocation records already scoped
+ *                                                 to the order.
  *
  * Error handling follows a single-log principle — errors are not logged here.
  * They bubble up to globalErrorHandler, which logs once with the normalised shape.
@@ -45,16 +57,18 @@ const { getStatusId }                            = require('../config/status-cac
 const {
   getAllocatableBatchesByWarehouse,
   getWarehouseInventoryQuantities,
-  bulkUpdateWarehouseQuantities,
+  updateWarehouseInventoryQuantityBulk,
 }                                                = require('../repositories/warehouse-inventory-repository');
 const {
   allocateBatchesForOrderItems,
   computeAllocationStatusPerItem,
   updateReservedQuantitiesFromAllocations,
-  buildWarehouseInventoryActivityLogsForOrderAllocation,
   buildOrderAllocationResult,
   validateAllocationStatusTransition,
   resolveOrderItemDisplay,
+  evaluateInventoryAllocationVisibility,
+  applyInventoryAllocationVisibilityRules,
+  dedupeWarehouseBatchKeys,
 }                                                = require('../business/inventory-allocation-business');
 const {
   insertInventoryAllocationsBulk,
@@ -73,46 +87,54 @@ const {
   getInventoryActionTypeId,
 }                                                = require('../repositories/inventory-action-type-repository');
 const {
-  insertInventoryActivityLogs,
-}                                                = require('../repositories/inventory-log-repository');
-const {
   getInventoryAllocationStatusId,
 }                                                = require('../repositories/inventory-allocation-status-repository');
+const { insertInventoryActivityLogBulk } = require('../repositories/inventory-activity-log-repository');
 const {
-  dedupeWarehouseBatchKeys,
-}                                                = require('../utils/inventory-allocation-utils');
+  buildAllocationConfirmLogEntries,
+  assertWarehouseAccess,
+  enforceWarehouseScope
+} = require('../business/warehouse-inventory-business');
+
+const CONTEXT = 'inventory-allocation-service';
 
 /**
  * Allocates inventory batches to order items using the specified strategy.
  *
- * Locks order, order items, and warehouse inventory rows for the duration of
- * the transaction. Validates status transitions, applies the allocation strategy,
- * inserts allocation records, and updates order/item statuses.
+ * Enforces warehouse access before entering the transaction. Locks order,
+ * order items, and warehouse inventory rows for the duration of the transaction.
+ * Validates status transitions, applies the allocation strategy, inserts
+ * allocation records, and updates order and item statuses.
  *
- * @param {Object}  user                          - Authenticated user (requires `id`).
+ * @param {object}  user                          - Authenticated user (requires `id` and permissions).
  * @param {string}  rawOrderId                    - UUID of the order to allocate.
- * @param {Object}  options
- * @param {string}  [options.strategy='fefo']     - Allocation strategy (`'fefo'`).
- * @param {string}  options.warehouseId           - UUID of the warehouse to allocate from.
+ * @param {object}  options
+ * @param {string}  [options.strategy='fefo']     - Allocation strategy (`'fefo'` or `'fifo'`).
+ * @param {string}  options.warehouseId           - UUID of the warehouse to allocate from (access validated).
  * @param {boolean} [options.allowPartial=false]  - Whether partial allocation is permitted.
  *
- * @returns {Promise<{ orderId: string, allocationIds: string[] }>}
+ * @returns {Promise<object>} Transformed allocation review data for the order.
  *
- * @throws {AppError} `validationError`  – missing warehouseId, invalid item statuses, or insufficient inventory.
- * @throws {AppError} `notFoundError`    – no order items found for the order.
+ * @throws {AppError} `validationError`  — missing warehouseId, warehouse access denied,
+ *                                         invalid item statuses, or insufficient inventory.
+ * @throws {AppError} `notFoundError`    — no order items found for the order.
  * @throws {AppError} Re-throws all other AppErrors from lower layers unchanged.
- * @throws {AppError} Wraps unexpected errors as `AppError.serviceError`.
+ * @throws {AppError} Wraps unexpected errors as `serviceError`.
  */
 const allocateInventoryForOrderService = async (
   user,
   rawOrderId,
   { strategy = 'fefo', warehouseId, allowPartial = false }
 ) => {
-  const context = 'inventory-allocation-service/allocateInventoryForOrderService';
+  const context = `${CONTEXT}/allocateInventoryForOrderService`;
   
   if (!warehouseId) {
     throw AppError.validationError('Warehouse ID is required for allocation.');
   }
+  
+  // Enforce warehouse access before entering the transaction.
+  const assignedWarehouseIds = await assertWarehouseAccess(user);
+  enforceWarehouseScope(assignedWarehouseIds, warehouseId);
   
   try {
     return await withTransaction(async (client) => {
@@ -257,23 +279,39 @@ const allocateInventoryForOrderService = async (
 /**
  * Retrieves and transforms allocation review data for a given order.
  *
- * Validates that provided allocation IDs belong to the order before fetching.
- * Returns `null` if no review data is found.
+ * Evaluates warehouse visibility for the requesting user and intersects the
+ * requested warehouseIds with assigned warehouses before fetching. Validates
+ * that provided allocation IDs belong to the order. Returns `null` if no
+ * review data is found or the user has no warehouse access.
  *
+ * @param {object}   user           - Authenticated user (requires `id` and permissions).
  * @param {string}   orderId        - UUID of the order.
- * @param {string[]} warehouseIds   - Warehouse IDs to scope the review.
+ * @param {string[]} warehouseIds   - Warehouse IDs to scope the review (intersected with user access).
  * @param {string[]} allocationIds  - Allocation IDs to filter by (maybe empty).
  *
- * @returns {Promise<Object|null>} Transformed review data or `null` if none found.
+ * @returns {Promise<object|null>} Transformed review data or `null` if none found.
  *
- * @throws {AppError} `validationError` – allocation IDs do not belong to the order.
+ * @throws {AppError} `validationError`  — allocation IDs do not belong to the order.
+ * @throws {AppError} `businessError`    — warehouse visibility evaluation failed.
  * @throws {AppError} Re-throws all other AppErrors from lower layers unchanged.
- * @throws {AppError} Wraps unexpected errors as `AppError.serviceError`.
+ * @throws {AppError} Wraps unexpected errors as `serviceError`.
  */
-const reviewInventoryAllocationService = async (orderId, warehouseIds, allocationIds) => {
-  const context = 'inventory-allocation-service/reviewInventoryAllocationService';
+const reviewInventoryAllocationService = async (
+  user,
+  orderId,
+  warehouseIds,
+  allocationIds
+) => {
+  const context = `${CONTEXT}/reviewInventoryAllocationService`;
   
   try {
+    const access          = await evaluateInventoryAllocationVisibility(user);
+    const adjustedFilters = applyInventoryAllocationVisibilityRules({ warehouseIds }, access);
+    
+    if (adjustedFilters.forceEmptyResult) return null;
+    
+    const scopedWarehouseIds = adjustedFilters.warehouseIds ?? [];
+    
     if (allocationIds.length > 0) {
       const mismatches = await getMismatchedAllocationIds(orderId, allocationIds, null);
       
@@ -292,7 +330,12 @@ const reviewInventoryAllocationService = async (orderId, warehouseIds, allocatio
       }
     }
     
-    const rawReviewData = await getInventoryAllocationReview(orderId, warehouseIds, allocationIds, null);
+    const rawReviewData = await getInventoryAllocationReview(
+      orderId,
+      scopedWarehouseIds,
+      allocationIds,
+      null
+    );
     
     if (!rawReviewData || rawReviewData.length === 0) return null;
     
@@ -307,50 +350,99 @@ const reviewInventoryAllocationService = async (orderId, warehouseIds, allocatio
 /**
  * Fetches paginated inventory allocation records with optional filtering and sorting.
  *
- * @param {Object}        options
- * @param {Object}        [options.filters={}]           - Field filters to apply.
- * @param {number}        [options.page=1]               - Page number (1-based).
- * @param {number}        [options.limit=10]             - Records per page.
- * @param {string}        [options.sortBy='createdAt']   - Sort field key (validated against sort map).
- * @param {'ASC'|'DESC'}  [options.sortOrder='DESC']     - Sort direction.
+ * Evaluates warehouse visibility for the requesting user and injects warehouse
+ * scope into filters before querying. Users without full warehouse access are
+ * restricted to allocations belonging to their assigned warehouses only.
+ *
+ * @param {object}        options
+ * @param {object}        [options.filters={}]              - Field filters to apply.
+ * @param {number}        [options.page=1]                  - Page number (1-based).
+ * @param {number}        [options.limit=10]                - Records per page.
+ * @param {string}        [options.sortBy='orderDate']      - Sort field key (camelCase, validated against inventoryAllocationSortMap).
+ * @param {'ASC'|'DESC'}  [options.sortOrder='DESC']        - Sort direction.
+ * @param {object}        options.user                      - Authenticated user (requires `id` and permissions).
  *
  * @returns {Promise<PaginatedResult<InventoryAllocationRow>>}
  *
- * @throws {AppError} Re-throws AppErrors from lower layers unchanged.
- * @throws {AppError} Wraps unexpected errors as `AppError.serviceError`.
+ * @throws {AppError} `businessError`  — warehouse visibility evaluation failed.
+ * @throws {AppError} Re-throws all other AppErrors from lower layers unchanged.
+ * @throws {AppError} Wraps unexpected errors as `serviceError`.
  */
 const fetchPaginatedInventoryAllocationsService = async ({
                                                            filters   = {},
                                                            page      = 1,
                                                            limit     = 10,
-                                                           sortBy    = 'createdAt',
+                                                           sortBy    = 'orderDate',
                                                            sortOrder = 'DESC',
+                                                           user,
                                                          }) => {
+  const context = `${CONTEXT}/fetchPaginatedInventoryAllocationsService`;
+  
   try {
-    const rawResult = await getPaginatedInventoryAllocations({ filters, page, limit, sortBy, sortOrder });
+    const access = await evaluateInventoryAllocationVisibility(user);
+    
+    const adjustedFilters = applyInventoryAllocationVisibilityRules(filters, access);
+    
+    if (adjustedFilters.forceEmptyResult) {
+      return { data: [], pagination: { page, limit, totalRecords: 0, totalPages: 0 } };
+    }
+    
+    const rawResult = await getPaginatedInventoryAllocations({
+      filters: adjustedFilters,
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+    });
+    
+    if (!rawResult?.data?.length) {
+      return { data: [], pagination: { page, limit, totalRecords: 0, totalPages: 0 } };
+    }
+    
     return transformPaginatedInventoryAllocationResults(rawResult);
   } catch (error) {
     if (error instanceof AppError) throw error;
     
-    throw AppError.serviceError('Unable to fetch inventory allocations.');
+    throw AppError.serviceError(
+      'Unable to retrieve inventory allocation records at this time.',
+      {
+        context,
+        meta: { error: error.message },
+      }
+    );
   }
 };
 
 /**
- * Confirms pending inventory allocations, updates warehouse quantities, order and
- * item statuses, and inserts inventory activity logs — all within a single transaction.
+ * Confirms pending inventory allocations, updates reserved warehouse quantities,
+ * recalculates inventory status, updates order and item statuses, and inserts
+ * inventory activity logs — all within a single transaction.
  *
- * @param {Object} user       - Authenticated user (requires `id`).
- * @param {string} rawOrderId - UUID of the order to confirm allocations for.
+ * Flow:
+ *  1. Lock order and order item rows.
+ *  2. Validate allocation status transitions to ALLOC_CONFIRMED.
+ *  3. Compute per-item allocation status.
+ *  4. Update order item and order statuses.
+ *  5. Lock warehouse_inventory rows for affected (warehouse, batch) pairs.
+ *  6. Compute updated reserved quantities and resolve inventory status per row.
+ *  7. Bulk update warehouse_inventory rows (reserved_quantity, status_id).
+ *  8. Update inventory allocation statuses (confirmed or partial).
+ *  9. Build and insert inventory activity logs for each reservation change.
+ * 10. Build and return transformed allocation confirmation response.
  *
- * @returns {Promise<Object>} Transformed allocation confirmation response.
+ * @param {object} user          - Authenticated user (requires `id`).
+ * @param {string} rawOrderId    - UUID of the order to confirm allocations for.
  *
- * @throws {AppError} `notFoundError`  – no order items found for the order.
+ * @returns {Promise<object>} Transformed allocation confirmation response.
+ *
+ * @throws {AppError} `notFoundError`   — no order items found for the order.
+ * @throws {AppError} `conflictError`   — allocation quantity exceeds available stock.
+ * @throws {AppError} `validationError` — invalid allocation status transition.
  * @throws {AppError} Re-throws all other AppErrors from lower layers unchanged.
- * @throws {AppError} Wraps unexpected errors as `AppError.serviceError`.
+ * @throws {AppError} Wraps unexpected errors as `serviceError`.
  */
 const confirmInventoryAllocationService = async (user, rawOrderId) => {
-  const context = 'inventory-allocation-service/confirmInventoryAllocationService';
+  const context = `${CONTEXT}/confirmInventoryAllocationService`;
   
   try {
     return await withTransaction(async (client) => {
@@ -426,20 +518,19 @@ const confirmInventoryAllocationService = async (user, rawOrderId) => {
         { inStockStatusId, outOfStockStatusId }
       );
       
-      const updatesObject = Object.fromEntries(
-        updates.map((row) => [
-          `${row.warehouse_id}-${row.batch_id}`,
-          {
-            warehouse_quantity: row.warehouse_quantity,
-            reserved_quantity:  row.reserved_quantity,
-            status_id:          row.status_id,
-            last_update:        new Date(),
-          },
-        ])
-      );
-      
       // 8. Apply bulk warehouse inventory updates.
-      const updatedWarehouseRecords = await bulkUpdateWarehouseQuantities(updatesObject, userId, client);
+      const updateInputs = updates.map((row) => ({
+        id:                row.id,
+        warehouseQuantity: row.warehouse_quantity,
+        reservedQuantity:  row.reserved_quantity,
+        statusId:          row.status_id,
+      }));
+      
+      const updatedWarehouseRecords = await updateWarehouseInventoryQuantityBulk(
+        updateInputs,
+        userId,
+        client
+      );
       
       // 9. Resolve confirmed and partial allocation IDs and update statuses.
       const confirmedStatusId = await getInventoryAllocationStatusId('ALLOC_CONFIRMED', client);
@@ -476,24 +567,30 @@ const confirmInventoryAllocationService = async (user, rawOrderId) => {
       }
       
       // 10. Build and insert inventory activity logs.
-      const inventoryActionTypeId    = await getInventoryActionTypeId('reserve', client);
-      const inventoryActivityLogs    = buildWarehouseInventoryActivityLogsForOrderAllocation(
+      const inventoryActionTypeId = await getInventoryActionTypeId('reserve', client);
+      
+      const inventoryActivityLogs = buildAllocationConfirmLogEntries(
         updates,
         warehouseBatchInfo,
-        { orderId: rawOrderId, performedBy: userId, actionTypeId: inventoryActionTypeId }
+        {
+          orderId:      rawOrderId,
+          performedBy:  userId,
+          actionTypeId: inventoryActionTypeId,
+        }
       );
-      const logInsertResult = await insertInventoryActivityLogs(inventoryActivityLogs, client, {
-        context:     `${context}/insertInventoryActivityLogs`,
-        orderId:     rawOrderId,
-        performedBy: userId,
-      });
+      
+      const logInsertResult = await insertInventoryActivityLogBulk(
+        inventoryActivityLogs,
+        client,
+        { context }
+      );
       
       // 11. Build and return final response.
       const rawResult = buildOrderAllocationResult({
         orderId: rawOrderId,
         inventoryAllocations:    inventoryAllocationDetails.map(({ allocation_id }) => ({ allocation_id })),
-        warehouseUpdateIds:      updatedWarehouseRecords.map(({ warehouse_id, batch_id }) => ({ id: `${warehouse_id}-${batch_id}` })),
-        inventoryLogIds:         logInsertResult.activityLogIds.map(String),
+        warehouseUpdateIds:      updatedWarehouseRecords.map((r) => ({ id: r.id })),
+        inventoryLogIds:         logInsertResult.map((r) => String(r.id)),
         allocationResults,
       });
       

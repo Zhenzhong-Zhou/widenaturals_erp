@@ -141,11 +141,11 @@ const evaluateSkuFilterAccessControl = async (user) => {
 /**
  * Applies ACL-driven visibility rules to a SKU lookup options object.
  *
- * Restricted users are required to have available stock and are defaulted
- * to warehouse stock checks.
+ * Restricted users are required to have available stock in warehouse inventory.
+ * Unrestricted users (allowAllSkus) receive the options unchanged.
  *
- * @param {object} [options={}] - Base options object from the request.
- * @param {SkuFilterAcl} [userAccess={}] - Resolved ACL from `evaluateSkuFilterAccessControl`.
+ * @param {object}      [options={}]    - Base options object from the request.
+ * @param {SkuFilterAcl} [userAccess={}] - Resolved ACL from evaluateSkuFilterAccessControl.
  * @returns {object} Adjusted options with visibility rules applied.
  */
 const enforceSkuLookupVisibilityRules = (options = {}, userAccess = {}) => {
@@ -155,8 +155,7 @@ const enforceSkuLookupVisibilityRules = (options = {}, userAccess = {}) => {
   };
   
   if (!userAccess.allowAllSkus) {
-    adjusted.requireAvailableStock     = true;
-    adjusted.requireAvailableStockFrom = adjusted.requireAvailableStockFrom || 'warehouse';
+    adjusted.requireAvailableStock = true;
   }
   
   return adjusted;
@@ -165,13 +164,14 @@ const enforceSkuLookupVisibilityRules = (options = {}, userAccess = {}) => {
 /**
  * Applies ACL-driven access filters to a SKU lookup filter object.
  *
- * Restricted users are pinned to active SKU and product statuses and must
- * have available stock.
+ * Restricted users are pinned to active SKU and product statuses and
+ * required to have available warehouse inventory stock.
+ * Unrestricted users (allowAllSkus) receive the filters unchanged.
  *
- * @param {object} [filters={}] - Base filter object from the request.
- * @param {SkuFilterAcl} [userAccess={}] - Resolved ACL from `evaluateSkuFilterAccessControl`.
- * @param {string} activeStatusId - UUID of the active status record.
- * @returns {object} Adjusted copy of `filters` with access rules applied.
+ * @param {object}       [filters={}]    - Base filter object from the request.
+ * @param {SkuFilterAcl} [userAccess={}] - Resolved ACL from evaluateSkuFilterAccessControl.
+ * @param {string}       activeStatusId  - UUID of the active status record.
+ * @returns {object} Adjusted copy of filters with access rules applied.
  */
 const filterSkuLookupQuery = (
   filters = {},
@@ -181,10 +181,9 @@ const filterSkuLookupQuery = (
   const modified = { ...filters };
   
   if (!userAccess.allowAllSkus) {
-    modified.sku_status_id              = activeStatusId;
-    modified.product_status_id          = activeStatusId;
-    modified.requireAvailableStock      = true;
-    modified.requireAvailableStockFrom  = modified.requireAvailableStockFrom || 'warehouse';
+    modified.sku_status_id         = activeStatusId;
+    modified.product_status_id     = activeStatusId;
+    modified.requireAvailableStock = true;
   }
   
   return modified;

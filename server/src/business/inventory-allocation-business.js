@@ -1,201 +1,208 @@
 /**
- * @typedef {Object} Batch
- * @property {string} batch_id
- * @property {number} warehouse_quantity
- * @property {number} reserved_quantity
- * @property {string|Date} expiry_date
- * @property {any} [key] - Additional metadata like sku_id, warehouse_id, etc.
- */
-
-/**
- * @typedef {Batch & { allocated_quantity: number }} AllocatedBatch
- */
-
-const { generateChecksum } = require('../utils/crypto-utils');
-const AppError = require('../utils/AppError');
-const { getProductDisplayName } = require('../utils/display-name-utils');
-
-/**
- * Allocates inventory batches for each order item using the specified strategy (FEFO or FIFO).
+ * @file inventory-allocation-business.js
+ * @description Pure domain business logic for the inventory allocation lifecycle.
  *
- * This function applies pure domain logic only — it performs no database operations or logging.
- * It maps each order item to a set of batches from the given input, choosing those that best fulfill
- * the requested quantity using the chosen strategy (default: FEFO).
+ * Covers:
+ *   - Warehouse visibility evaluation and ACL filter injection
+ *   - Batch allocation engine (FEFO / FIFO strategies)
+ *   - Order item display resolution for error messages and logs
+ *   - Allocation status transition validation
+ *   - Per-item allocation status computation
+ *   - Reserved quantity updates and inventory status recalculation
+ *   - Warehouse-batch key deduplication for row locking
+ *   - Allocation result construction for service-layer output
+ *
+ * All functions are pure or async-pure (no side effects beyond DB reads in
+ * evaluateInventoryAllocationVisibility). No logging, no AppError wrapping
+ * beyond domain validation errors, no transformer calls.
+ */
+
+'use strict';
+
+const { resolveUserPermissionContext }   = require('../services/permission-service');
+const { WAREHOUSE_INVENTORY_CONSTANTS }  = require('../utils/constants/domain/warehouse-inventory');
+const { INVENTORY_ALLOCATION_CONSTANTS } = require('../utils/constants/domain/inventory-allocation');
+const { getWarehouseIdsByUserId }        = require('../repositories/user-warehouse-assignment-repository');
+const { logSystemException }             = require('../utils/logging/system-logger');
+const AppError                           = require('../utils/AppError');
+const { getProductDisplayName }          = require('../utils/display-name-utils');
+
+const CONTEXT = 'inventory-allocation-business';
+
+// ─── Visibility & ACL ────────────────────────────────────────────────────────
+
+/**
+ * Evaluates warehouse visibility scope for a user in the allocation domain.
+ *
+ * Users with `VIEW_ALL_WAREHOUSES` or `VIEW_ALL_ALLOCATIONS` permission (or root)
+ * receive unrestricted access. All others are scoped to their assigned warehouses.
+ *
+ * @param {object} user           - Authenticated user (requires `id` and resolved permissions).
+ * @returns {Promise<InventoryAllocationVisibilityAcl>}
+ *
+ * @throws {AppError} `businessError` — if permission resolution or warehouse lookup fails.
+ */
+const evaluateInventoryAllocationVisibility = async (user) => {
+  const context = `${CONTEXT}/evaluateInventoryAllocationVisibility`;
+  
+  try {
+    const { permissions, isRoot } = await resolveUserPermissionContext(user);
+    
+    const canViewAllWarehouses =
+      isRoot ||
+      permissions.includes(WAREHOUSE_INVENTORY_CONSTANTS.PERMISSIONS.VIEW_ALL_WAREHOUSES) ||
+      permissions.includes(INVENTORY_ALLOCATION_CONSTANTS.PERMISSIONS.VIEW_ALL_ALLOCATIONS);
+    
+    // Only fetch assigned warehouses when the user is not globally privileged.
+    const assignedWarehouseIds = canViewAllWarehouses
+      ? null
+      : await getWarehouseIdsByUserId(user.id);
+    
+    return {
+      canViewAllWarehouses,
+      assignedWarehouseIds,
+    };
+  } catch (err) {
+    logSystemException(err, 'Failed to evaluate inventory allocation visibility', {
+      context,
+      userId: user?.id,
+    });
+    
+    throw AppError.businessError(
+      'Unable to evaluate inventory allocation visibility.'
+    );
+  }
+};
+
+/**
+ * Applies ACL-driven warehouse visibility rules to an allocation filter object.
+ *
+ * Evaluation order:
+ *  1. Unrestricted users — filters returned unchanged.
+ *  2. User supplied specific warehouseIds — intersect with assigned warehouses.
+ *     If intersection is empty, forceEmptyResult is set to short-circuit the query.
+ *  3. No warehouse filter supplied — inject assigned warehouses as the filter.
+ *
+ * @param {AllocationVisibilityFilters}      filters  - Raw filters from the request.
+ * @param {InventoryAllocationVisibilityAcl} acl      - Resolved ACL from evaluateInventoryAllocationVisibility.
+ * @returns {AllocationVisibilityFilters} Adjusted filter object with warehouse scope applied.
+ */
+const applyInventoryAllocationVisibilityRules = (filters, acl) => {
+  const adjusted = { ...filters };
+  
+  // Unrestricted — return filters unchanged.
+  if (acl.canViewAllWarehouses) return adjusted;
+  
+  if (adjusted.warehouseIds?.length) {
+    // Intersect requested warehouses with user's assigned ones.
+    const allowed = adjusted.warehouseIds.filter((id) =>
+      acl.assignedWarehouseIds.includes(id)
+    );
+    
+    if (!allowed.length) {
+      // No overlap — short-circuit at the service layer.
+      adjusted.forceEmptyResult = true;
+      return adjusted;
+    }
+    
+    adjusted.warehouseIds = allowed;
+    return adjusted;
+  }
+  
+  // No warehouse filter requested — scope down to assigned warehouses only.
+  adjusted.warehouseIds = acl.assignedWarehouseIds;
+  return adjusted;
+};
+
+// ─── Batch Allocation Engine ──────────────────────────────────────────────────
+
+/**
+ * Allocates inventory batches to order items using the specified strategy.
+ *
+ * Builds O(1) lookup indexes by `sku_id` and `packaging_material_id` to avoid
+ * N×M candidate filtering. Each order item is matched against its typed candidates
+ * and allocated via `allocateBatchesByStrategy`.
+ *
+ * Pure function — no DB calls, no logging, no side effects.
  *
  * @param {Array<{
  *   order_item_id: string,
- *   sku_id?: string | null,
- *   packaging_material_id?: string | null,
+ *   sku_id?: string|null,
+ *   packaging_material_id?: string|null,
  *   quantity_ordered: number
- * }>} orderItems - List of order items needing allocation.
- *
- * @param {Array<{
- *   batch_id: string,
- *   warehouse_id: string,
- *   warehouse_quantity: number,
- *   reserved_quantity?: number,
- *   expiry_date?: string | Date,
- *   inbound_date?: string | Date,
- *   sku_id?: string | null,
- *   packaging_material_id?: string | null
- * }>} batches - All available batches with relevant metadata.
- *
- * @param {'fefo' | 'fifo'} [strategy='fefo'] - Allocation strategy:
- *   - 'fefo': First Expiry, First Out
- *   - 'fifo': First Inbound, First Out
- *
- * @returns {Array<{
- *   order_item_id: string,
- *   sku_id: string | null,
- *   packaging_material_id: string | null,
- *   quantity_ordered: number,
- *   allocated: {
- *     allocatedBatches: Array<{
- *       batch_id: string,
- *       warehouse_id: string,
- *       warehouse_name: string,
- *       warehouse_quantity: number,
- *       reserved_quantity: number,
- *       expiry_date: Date | null,
- *       lot_number: string | null,
- *       batch_type: string,
- *       sku_id: string | null,
- *       packaging_material_id: string | null,
- *       _available: number,
- *       allocated_quantity: number
- *     }>,
- *     allocatedTotal: number,
- *     remaining: number,
- *     fulfilled: boolean
- *   }
- * }>}
- * Allocation result for each order item.
+ * }>} orderItems  - Order items requiring allocation.
+ * @param {AllocatableBatch[]}   batches   - Available warehouse inventory batches.
+ * @param {'fefo'|'fifo'}        [strategy='fefo']  - Allocation strategy.
+ * @returns {AllocationResult[]}
  */
 const allocateBatchesForOrderItems = (
   orderItems,
   batches,
   strategy = 'fefo'
 ) => {
-  // Build indexes to avoid N×M filtering
+  // Build indexes keyed by sku_id and packaging_material_id for O(1) lookup.
   const bySku = new Map();
   const byMat = new Map();
-
-  for (const b of batches || []) {
-    if (b && b.sku_id) {
+  
+  for (const b of batches ?? []) {
+    if (b?.sku_id) {
       if (!bySku.has(b.sku_id)) bySku.set(b.sku_id, []);
       bySku.get(b.sku_id).push(b);
     }
-    if (b && b.packaging_material_id) {
-      if (!byMat.has(b.packaging_material_id))
-        byMat.set(b.packaging_material_id, []);
+    if (b?.packaging_material_id) {
+      if (!byMat.has(b.packaging_material_id)) byMat.set(b.packaging_material_id, []);
       byMat.get(b.packaging_material_id).push(b);
     }
   }
-
-  return (orderItems || []).map((item) => {
-    const { order_item_id, sku_id, packaging_material_id, quantity_ordered } =
-      item;
-
+  
+  return (orderItems ?? []).map((item) => {
+    const { order_item_id, sku_id, packaging_material_id, quantity_ordered } = item;
+    
+    // Select candidates from the appropriate index.
     const candidates = sku_id
-      ? bySku.get(sku_id) || []
+      ? (bySku.get(sku_id) ?? [])
       : packaging_material_id
-        ? byMat.get(packaging_material_id) || []
+        ? (byMat.get(packaging_material_id) ?? [])
         : [];
-
-    const { allocatedBatches, allocatedTotal, remaining, fulfilled } =
+    
+    const { allocatedBatches, allocatedTotal, remaining, fulfilled, partial } =
       allocateBatchesByStrategy(candidates, quantity_ordered, { strategy });
-
+    
     return {
       order_item_id,
-      sku_id: sku_id ?? null,
+      sku_id:                sku_id               ?? null,
       packaging_material_id: packaging_material_id ?? null,
       quantity_ordered,
-      allocated: { allocatedBatches, allocatedTotal, remaining, fulfilled },
+      allocated: { allocatedBatches, allocatedTotal, remaining, fulfilled, partial },
     };
   });
 };
 
 /**
- * Resolves a human-readable display code and name for an order item.
+ * Allocates quantity from a list of batches using FEFO or FIFO ordering.
  *
- * Order items in the ERP system may represent different inventory entities,
- * currently:
- *   - Product SKUs
- *   - Packaging materials
+ * Strategy sort fields:
+ *  - `fefo` → `expiry_date ASC NULLS LAST`
+ *  - `fifo` → `inbound_date ASC NULLS LAST`
  *
- * This helper extracts a normalized `{ itemCode, itemName }` pair from the
- * order item metadata so it can be safely used in:
+ * Available quantity per batch is computed as:
+ *   `max(0, warehouse_quantity - reserved_quantity)`
  *
- * - validation error messages
- * - allocation error responses
- * - logs and audit entries
+ * Batches with zero available quantity are skipped. Allocation accumulates
+ * across batches until the required quantity is met or candidates are exhausted.
  *
- * The function is defensive and returns `null` values when the metadata
- * does not contain a recognized item type.
- *
- * @param {Object} meta - Order item metadata row returned from repository query
- * @param {string|null} meta.sku_id - SKU ID if the item represents a product
- * @param {string|null} meta.packaging_material_id - Packaging material ID if applicable
- * @param {string|null} meta.sku_code - SKU code
- * @param {string|null} meta.material_code - Packaging material code
- * @param {string|null} meta.material_name - Packaging material name
- *
- * @returns {{ itemCode: string | null, itemName: string | null }}
- * Normalized display information for the order item.
- */
-const resolveOrderItemDisplay = (meta) => {
-  if (!meta) {
-    return { itemCode: null, itemName: null };
-  }
-
-  // Product SKU item
-  if (meta.sku_id) {
-    return {
-      itemCode: meta.sku_code ?? null,
-      itemName: getProductDisplayName(meta) ?? null,
-    };
-  }
-
-  // Packaging material item
-  if (meta.packaging_material_id) {
-    return {
-      itemCode: meta.material_code ?? null,
-      itemName: meta.material_name ?? null,
-    };
-  }
-
-  return { itemCode: null, itemName: null };
-};
-
-/**
- * Allocate inventory from batches using a strategy (FEFO/FIFO), accumulating across batches.
- *
- * Strategy:
- *  - 'fefo' => sort by expiry_date ASC
- *  - 'fifo' => sort by inbound_date ASC
- *
- * Edge cases handled:
- *  - Uses available = warehouse_quantity - reserved_quantity (clamped at 0)
- *  - Skips batches with no availability
- *  - Can optionally exclude expired batches
- *  - Returns meta: total allocated, remaining, fulfilled flag
- *
- * @param {Array<Object>} batches - Each batch should include:
- *   - warehouse_quantity: number
- *   - reserved_quantity?: number
- *   - expiry_date?: string|Date   (for FEFO)
- *   - inbound_date?: string|Date  (for FIFO)
- *   - other identifying fields (batch_id, warehouse_id, sku_id / packaging_material_id)
- * @param {number} requiredQuantity - Quantity requested
- * @param {Object} [options]
- * @param {'fefo'|'fifo'} [options.strategy='fefo']
- * @param {boolean} [options.excludeExpired=false] - If true, drop batches with expiry_date < now (FEFO only)
- * @param {Date} [options.now=new Date()] - Reference time for expiry checks
+ * @param {AllocatableBatch[]} batches           - Candidate batches.
+ * @param {number}             requiredQuantity  - Total quantity needed.
+ * @param {object}             [options]
+ * @param {'fefo'|'fifo'}      [options.strategy='fefo']        - Sort strategy.
+ * @param {boolean}            [options.excludeExpired=false]   - Drop expired batches (FEFO only).
+ * @param {Date}               [options.now=new Date()]         - Reference time for expiry checks.
  * @returns {{
- *   allocatedBatches: Array<Object>, // original batch fields + allocated_quantity
- *   allocatedTotal: number,
- *   remaining: number,
- *   fulfilled: boolean
+ *   allocatedBatches: AllocatedBatch[],
+ *   allocatedTotal:   number,
+ *   remaining:        number,
+ *   fulfilled:        boolean,
+ *   partial:          boolean
  * }}
  */
 const allocateBatchesByStrategy = (
@@ -206,73 +213,99 @@ const allocateBatchesByStrategy = (
   if (!Array.isArray(batches) || requiredQuantity <= 0) {
     return {
       allocatedBatches: [],
-      allocatedTotal: 0,
-      remaining: Math.max(0, requiredQuantity || 0),
-      fulfilled: false,
+      allocatedTotal:   0,
+      remaining:        Math.max(0, requiredQuantity || 0),
+      fulfilled:        false,
+      partial:          false,
     };
   }
-
+  
   const sortField = strategy === 'fifo' ? 'inbound_date' : 'expiry_date';
-
-  // Normalize/prepare list
+  
+  // Compute available quantity per batch and filter out unavailable ones.
   let candidates = batches
     .map((b) => {
       const reserved = Math.max(0, Number(b.reserved_quantity || 0));
-      const qty = Math.max(0, Number(b.warehouse_quantity || 0) - reserved);
-      return { ...b, _available: qty };
+      const available = Math.max(0, Number(b.warehouse_quantity || 0) - reserved);
+      return { ...b, _available: available };
     })
     .filter((b) => b._available > 0);
-
-  // Optional: exclude expired for FEFO
+  
+  // Optionally exclude expired batches when using FEFO.
   if (excludeExpired && sortField === 'expiry_date') {
     candidates = candidates.filter(
       (b) => b.expiry_date && new Date(b.expiry_date) >= now
     );
   }
-
-  // Sort by strategy field; push records with missing sortField to the end
+  
+  // Sort by strategy field — batches missing the sort field sort to the end.
   candidates.sort((a, b) => {
-    const da = a[sortField]
-      ? new Date(a[sortField]).getTime()
-      : Number.POSITIVE_INFINITY;
-    const db = b[sortField]
-      ? new Date(b[sortField]).getTime()
-      : Number.POSITIVE_INFINITY;
+    const da = a[sortField] ? new Date(a[sortField]).getTime() : Number.POSITIVE_INFINITY;
+    const db = b[sortField] ? new Date(b[sortField]).getTime() : Number.POSITIVE_INFINITY;
     return da - db;
   });
-
+  
   const allocatedBatches = [];
-  let accumulated = 0;
-
+  let accumulated        = 0;
+  
   for (const batch of candidates) {
     if (accumulated >= requiredQuantity) break;
+    
     const needed = requiredQuantity - accumulated;
-    const take = Math.min(batch._available, needed);
+    const take   = Math.min(batch._available, needed);
     if (take <= 0) continue;
-
-    // Emit allocation row
-    allocatedBatches.push({
-      ...batch,
-      allocated_quantity: take,
-    });
-
+    
+    allocatedBatches.push({ ...batch, allocated_quantity: take });
     accumulated += take;
   }
-
+  
   const allocatedTotal = accumulated;
-  const remaining = Math.max(0, requiredQuantity - allocatedTotal);
-  const fulfilled = remaining === 0;
-
-  return {
-    allocatedBatches,
-    allocatedTotal,
-    remaining,
-    fulfilled,
-    partial: !fulfilled && allocatedTotal > 0, // Optional field
-  };
+  const remaining      = Math.max(0, requiredQuantity - allocatedTotal);
+  const fulfilled      = remaining === 0;
+  const partial        = !fulfilled && allocatedTotal > 0;
+  
+  return { allocatedBatches, allocatedTotal, remaining, fulfilled, partial };
 };
 
-// Ordered list of valid allocation status transitions
+// ─── Order Item Display ───────────────────────────────────────────────────────
+
+/**
+ * Resolves a human-readable display code and name for an order item.
+ *
+ * Handles multiple column alias conventions used by different queries:
+ *  - Product SKUs:        `sku_code` or `sku` / `getProductDisplayName`
+ *  - Packaging materials: `material_code` or `packaging_material_code`
+ *                         `material_name` or `packaging_material_name`
+ *
+ * Returns `{ itemCode: null, itemName: null }` when metadata is absent or
+ * does not match a recognized item type.
+ *
+ * @param {OrderItemDisplayMeta} meta
+ * @returns {{ itemCode: string|null, itemName: string|null }}
+ */
+const resolveOrderItemDisplay = (meta) => {
+  if (!meta) return { itemCode: null, itemName: null };
+  
+  if (meta.sku_id) {
+    return {
+      itemCode: meta.sku_code ?? meta.sku ?? null,
+      itemName: getProductDisplayName(meta) ?? null,
+    };
+  }
+  
+  if (meta.packaging_material_id) {
+    return {
+      itemCode: meta.material_code             ?? meta.packaging_material_code ?? null,
+      itemName: meta.material_name             ?? meta.packaging_material_name ?? null,
+    };
+  }
+  
+  return { itemCode: null, itemName: null };
+};
+
+// ─── Allocation Status Validation ─────────────────────────────────────────────
+
+// Forward-only allocation status sequence — transitions must move rightward.
 const ALLOCATION_STATUS_SEQUENCE = [
   'ALLOC_PENDING',
   'ALLOC_CONFIRMED',
@@ -283,49 +316,47 @@ const ALLOCATION_STATUS_SEQUENCE = [
   'ALLOC_CANCELLED',
 ];
 
-// Final statuses — no further transitions allowed
+// Terminal statuses — no further transitions are permitted from these.
 const ALLOCATION_FINAL_STATUSES = ['ALLOC_FULFILLED', 'ALLOC_CANCELLED'];
 
 /**
- * Checks if the given allocation status is final (i.e., cannot be transitioned further).
+ * Returns true if the given allocation status code is terminal.
  *
- * @param {string} code - The allocation status code to check.
- * @returns {boolean} True if the status is considered final, false otherwise.
+ * @param {string} code
+ * @returns {boolean}
  */
 const isFinalStatus = (code) => ALLOCATION_FINAL_STATUSES.includes(code);
 
 /**
- * Validates whether a transition from the current allocation status to the next is allowed.
+ * Validates whether a transition from `currentCode` to `nextCode` is permitted.
  *
- * Rules:
- * - Both statuses must exist in the defined status sequence.
- * - No transitions are allowed from final statuses (`ALLOC_FULFILLED`, `ALLOC_CANCELLED`).
- * - Backward transitions (e.g., `ALLOC_CONFIRMED` → `ALLOC_PENDING`) are not allowed.
+ * Rules enforced:
+ *  - Both codes must exist in `ALLOCATION_STATUS_SEQUENCE`.
+ *  - Transitions from terminal statuses are always rejected.
+ *  - Backward transitions are rejected (nextIndex must be > currentIndex).
  *
- * @function
- * @param {string} currentCode - The current allocation status code.
- * @param {string} nextCode - The desired next status code.
- * @throws {AppError} If transition is invalid due to:
- *   - Unknown status code
- *   - Transition from a final status
- *   - Attempted backward transition
+ * @param {string} currentCode - Current allocation status code.
+ * @param {string} nextCode    - Target allocation status code.
+ * @returns {void}
+ *
+ * @throws {AppError} `validationError` — unknown codes, terminal source, or backward transition.
  */
 const validateAllocationStatusTransition = (currentCode, nextCode) => {
   const currentIndex = ALLOCATION_STATUS_SEQUENCE.indexOf(currentCode);
-  const nextIndex = ALLOCATION_STATUS_SEQUENCE.indexOf(nextCode);
-
+  const nextIndex    = ALLOCATION_STATUS_SEQUENCE.indexOf(nextCode);
+  
   if (currentIndex === -1 || nextIndex === -1) {
     throw AppError.validationError(
-      `Invalid status code(s): ${currentCode}, ${nextCode}`
+      `Invalid allocation status code(s): ${currentCode}, ${nextCode}`
     );
   }
-
+  
   if (isFinalStatus(currentCode)) {
     throw AppError.validationError(
       `Cannot transition from final allocation status: ${currentCode}`
     );
   }
-
+  
   if (nextIndex <= currentIndex) {
     throw AppError.validationError(
       `Cannot transition allocation status backward: ${currentCode} → ${nextCode}`
@@ -333,390 +364,185 @@ const validateAllocationStatusTransition = (currentCode, nextCode) => {
   }
 };
 
+// ─── Per-Item Allocation Status ───────────────────────────────────────────────
+
 /**
- * Computes the allocation status for each order item based on total allocated quantity.
+ * Computes allocation status for each order item by comparing allocated vs ordered quantity.
  *
- * For every order item, this function calculates how much quantity has been allocated
- * across all associated inventory batches. It compares the allocated quantity
- * against the ordered quantity and determines the appropriate allocation status:
+ * Status codes returned:
+ *  - `ORDER_ALLOCATED`           — allocatedQty === orderedQty (fully matched)
+ *  - `ORDER_PARTIALLY_ALLOCATED` — 0 < allocatedQty < orderedQty
+ *  - `ORDER_BACKORDERED`         — allocatedQty === 0
  *
- * - `ORDER_ALLOCATED`: Fully allocated (allocatedQty === orderedQty)
- * - `ORDER_PARTIALLY_ALLOCATED`: Partially fulfilled (allocatedQty > 0 && < orderedQty)
- * - `ORDER_BACKORDERED`: No allocation yet (allocatedQty === 0)
- *
- * This is commonly used after batch-level allocation to determine order-level progress.
- *
- * @param {Array<{
- *   order_item_id: string,
- *   quantity_ordered: number
- * }>} orderItemsMetadata - Array of order item metadata including ordered quantity.
- *
- * @param {Array<{
- *   order_item_id: string,
- *   allocated_quantity: number
- * }>} inventoryAllocationDetails - Allocation records including order item references and allocated quantities.
- *
- * @returns {Array<{
- *   orderItemId: string,
- *   orderedQty: number,
- *   allocatedQty: number,
- *   isMatched: boolean,
- *   allocationStatus: 'ORDER_ALLOCATED' | 'ORDER_PARTIALLY_ALLOCATED' | 'ORDER_BACKORDERED'
- * }>} Summary of allocation status per order item.
+ * @param {Array<{ order_item_id: string, quantity_ordered: number }>} orderItemsMetadata
+ * @param {Array<{ order_item_id: string, allocated_quantity: number }>} inventoryAllocationDetails
+ * @returns {AllocationStatusPerItem[]}
  */
 const computeAllocationStatusPerItem = (
   orderItemsMetadata,
   inventoryAllocationDetails
 ) => {
-  // Aggregate total allocated quantity by order_item_id
+  // Aggregate total allocated quantity per order item in a single pass.
   const allocationMap = inventoryAllocationDetails.reduce((acc, row) => {
-    const key = row.order_item_id;
-    acc[key] = (acc[key] || 0) + Number(row.allocated_quantity);
+    acc[row.order_item_id] = (acc[row.order_item_id] || 0) + Number(row.allocated_quantity);
     return acc;
   }, {});
-
+  
   return orderItemsMetadata.map((item) => {
-    const orderItemId = item.order_item_id;
-    const orderedQty = Number(item.quantity_ordered || 0);
+    const orderItemId  = item.order_item_id;
+    const orderedQty   = Number(item.quantity_ordered || 0);
     const allocatedQty = allocationMap[orderItemId] || 0;
-
-    let allocationStatusCode;
-
-    if (allocatedQty === 0) {
-      allocationStatusCode = 'ORDER_BACKORDERED';
-    } else if (allocatedQty < orderedQty) {
-      allocationStatusCode = 'ORDER_PARTIALLY_ALLOCATED';
-    } else {
-      allocationStatusCode = 'ORDER_ALLOCATED';
-    }
-
-    const isMatched = allocatedQty === orderedQty;
-
-    return {
-      orderItemId,
-      isMatched,
-      allocatedQty,
-      orderedQty,
-      allocationStatus: allocationStatusCode,
-    };
+    const isMatched    = allocatedQty === orderedQty;
+    
+    const allocationStatus =
+      allocatedQty === 0        ? 'ORDER_BACKORDERED'         :
+        allocatedQty < orderedQty ? 'ORDER_PARTIALLY_ALLOCATED' :
+          'ORDER_ALLOCATED';
+    
+    return { orderItemId, isMatched, allocatedQty, orderedQty, allocationStatus };
   });
 };
 
+// ─── Warehouse-Batch Key Utilities ────────────────────────────────────────────
+
 /**
- * Updates reserved quantities and inventory status based on confirmed allocations.
+ * Deduplicates `(warehouse_id, batch_id)` pairs from allocation records.
  *
- * This function:
- * 1. Aggregates total allocated quantities grouped by `(warehouse_id, batch_id)`.
- * 2. Adds the allocated amount to the current `reserved_quantity` for each matched warehouse-batch record.
- * 3. Validates that allocations do not exceed the available quantity.
- * 4. Recalculates the `status_id` based on remaining quantity after reservation.
- * 5. Returns updated records ready for bulk persistence (e.g., UPDATE ... WHERE ...).
+ * Used before row-level locking and bulk updates to ensure each
+ * warehouse_inventory row is targeted exactly once.
  *
- * This function does not mutate the input data. It returns a new array of updated records.
+ * @param {Array<{ warehouse_id: string, batch_id: string }>} allocationDetails
+ * @returns {Array<{ warehouse_id: string, batch_id: string }>} Unique pairs.
  *
- * Throws a `ConflictError` if any allocation exceeds the available stock.
+ * @example
+ * dedupeWarehouseBatchKeys([
+ *   { warehouse_id: 'w1', batch_id: 'b1' },
+ *   { warehouse_id: 'w1', batch_id: 'b1' },
+ *   { warehouse_id: 'w2', batch_id: 'b2' },
+ * ]);
+ * // => [{ warehouse_id: 'w1', batch_id: 'b1' }, { warehouse_id: 'w2', batch_id: 'b2' }]
+ */
+const dedupeWarehouseBatchKeys = (allocationDetails) => {
+  const seen       = new Set();
+  const uniqueKeys = [];
+  
+  for (const { warehouse_id, batch_id } of allocationDetails) {
+    const key = `${warehouse_id}::${batch_id}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      uniqueKeys.push({ warehouse_id, batch_id });
+    }
+  }
+  
+  return uniqueKeys;
+};
+
+// ─── Reserved Quantity Updates ────────────────────────────────────────────────
+
+/**
+ * Computes updated reserved quantities and inventory statuses for confirmed allocations.
  *
- * @param {Array<{
- *   warehouse_id: string,
- *   batch_id: string,
- *   allocated_quantity: number
- * }>} allocations - List of confirmed allocation records grouped by warehouse and batch.
+ * Steps:
+ *  1. Aggregates total allocated quantity per `(warehouse_id, batch_id)` key.
+ *  2. For each warehouse record, validates the allocation does not exceed available stock.
+ *  3. Computes new `reserved_quantity` and derives `status_id` from remaining quantity.
  *
- * @param {Array<{
- *   warehouse_id: string,
- *   batch_id: string,
- *   warehouse_quantity: number,
- *   reserved_quantity: number
- * }>} warehouseBatchInfo - Current inventory state per (warehouse, batch) pair.
+ * Pure function — does not mutate inputs. Returns a new array ready for bulk persistence.
  *
- * @param {{
- *   inStockStatusId: string,
- *   outOfStockStatusId: string
- * }} statusIds - Status IDs used to mark inventory as in stock or out of stock.
+ * @param {Array<{ warehouse_id: string, batch_id: string, allocated_quantity: number }>} allocations
+ * @param {Array<{ id: string, warehouse_id: string, batch_id: string, warehouse_quantity: number, reserved_quantity: number }>} warehouseBatchInfo
+ * @param {{ inStockStatusId: string, outOfStockStatusId: string }} statusIds
+ * @returns {WarehouseBatchUpdate[]}
  *
- * @returns {Array<{
- *   warehouse_id: string,
- *   batch_id: string,
- *   warehouse_quantity: number,
- *   reserved_quantity: number,
- *   status_id: string
- * }>} Updated records reflecting new reserved quantities and statuses.
- *
- * @throws {AppError} If any allocation would exceed the available quantity.
+ * @throws {AppError} `conflictError` — allocation quantity exceeds available stock.
  */
 const updateReservedQuantitiesFromAllocations = (
   allocations,
   warehouseBatchInfo,
   { inStockStatusId, outOfStockStatusId }
 ) => {
-  // Step 1: Aggregate total allocated quantities by (warehouse_id + batch_id)
+  // Aggregate total allocated quantity per (warehouse_id, batch_id) key in one pass.
   const allocationMap = {};
-
+  
   for (const { warehouse_id, batch_id, allocated_quantity } of allocations) {
-    const key = `${warehouse_id}__${batch_id}`;
+    const key          = `${warehouse_id}__${batch_id}`;
     allocationMap[key] = (allocationMap[key] || 0) + Number(allocated_quantity);
   }
-
-  // Step 2: Update each warehouse record with new reserved qty and recalculate status
+  
   return warehouseBatchInfo.map((record) => {
-    const key = `${record.warehouse_id}__${record.batch_id}`;
-    const allocationQty = allocationMap[key] || 0;
-
-    const currentReservedQty = Number(record.reserved_quantity || 0);
-    const availableQty = Number(record.warehouse_quantity) - currentReservedQty;
-
-    // Validate: prevent over-reservation
+    const key            = `${record.warehouse_id}__${record.batch_id}`;
+    const allocationQty  = allocationMap[key] || 0;
+    const currentReserved = Number(record.reserved_quantity || 0);
+    const availableQty   = Number(record.warehouse_quantity) - currentReserved;
+    
+    // Prevent over-reservation — throw before any mutation.
     if (allocationQty > availableQty) {
       throw AppError.conflictError(
-        `Insufficient stock to fulfill allocation request. Please review batch availability. ` +
-          `Available: ${availableQty}, Requested: ${allocationQty}`
+        `Insufficient stock to fulfill allocation request. ` +
+        `Available: ${availableQty}, Requested: ${allocationQty}`
       );
     }
-
-    const newReservedQty = currentReservedQty + allocationQty;
-    const remainingQty = Number(record.warehouse_quantity) - newReservedQty;
-    const status_id = remainingQty > 0 ? inStockStatusId : outOfStockStatusId;
-
+    
+    const newReservedQty = currentReserved + allocationQty;
+    const remainingQty   = Number(record.warehouse_quantity) - newReservedQty;
+    
     return {
-      warehouse_id: record.warehouse_id,
-      batch_id: record.batch_id,
-      warehouse_quantity: record.warehouse_quantity, // keep as-is
-      reserved_quantity: newReservedQty,
-      status_id,
+      id:                 record.id,
+      warehouse_id:       record.warehouse_id,
+      batch_id:           record.batch_id,
+      warehouse_quantity: record.warehouse_quantity,
+      reserved_quantity:  newReservedQty,
+      status_id:          remainingQty > 0 ? inStockStatusId : outOfStockStatusId,
     };
   });
 };
 
-/**
- * Builds structured inventory activity log entries from allocation updates for a sales order.
- *
- * This function compares the `reserved_quantity` values before and after allocation
- * and generates a log entry for each changed inventory record (by warehouse + batch).
- * These logs are used to track inventory reservation actions tied to sales orders.
- *
- * The resulting logs are suitable for direct insertion via `insertInventoryActivityLogs`.
- *
- * @param {Array<{
- *   warehouse_id: string,
- *   batch_id: string,
- *   warehouse_quantity: number,
- *   reserved_quantity: number,
- *   status_id: string
- * }>} updatedRows - Output from `updateReservedQuantitiesFromAllocations`, reflecting new state.
- *
- * @param {Array<{
- *   id: string,
- *   warehouse_id: string,
- *   batch_id: string,
- *   reserved_quantity: number
- * }>} originalWarehouseInfo - Snapshot of the warehouse inventory records before allocation.
- *
- * @param {{
- *   orderId: string,              // Sales order ID (used as `sourceRefId`)
- *   performedBy: string,          // ID of the user performing the allocation
- *   actionTypeId: string,         // Inventory action type (e.g., 'reserve', 'allocate')
- *   comments?: (string | null)          // Optional comment to include in each log entry
- * }} options - Contextual data for generating audit logs.
- *
- * @returns {Array<Object>} Array of inventory activity log objects to insert.
- *
- * @throws {Error} If any updated row is missing a corresponding original record.
- */
-const buildWarehouseInventoryActivityLogsForOrderAllocation = (
-  updatedRows,
-  originalWarehouseInfo,
-  { orderId, performedBy, actionTypeId, comments = null }
-) => {
-  const originalMap = Object.fromEntries(
-    originalWarehouseInfo.map((record) => [
-      `${record.warehouse_id}__${record.batch_id}`,
-      record,
-    ])
-  );
-
-  return updatedRows.map((updated) => {
-    const key = `${updated.warehouse_id}__${updated.batch_id}`;
-    const original = originalMap[key];
-
-    if (!original) {
-      throw new Error(`Missing original data for ${key}`);
-    }
-
-    return buildAllocationLogEntry({
-      inventoryId: original.id,
-      previousReservedQty: original.reserved_quantity,
-      newReservedQty: updated.reserved_quantity,
-      warehouseQty: updated.warehouse_quantity,
-      statusId: updated.status_id,
-      userId: performedBy,
-      orderId,
-      inventoryActionTypeId: actionTypeId,
-      sourceType: 'order',
-      sourceRefId: orderId,
-      recordScope: 'warehouse',
-      comments:
-        comments ??
-        `System-generated log: reserved quantity updated during allocation`,
-      metadata: {
-        source: 'order_allocation',
-        warehouse_id: updated.warehouse_id,
-        batch_id: updated.batch_id,
-      },
-    });
-  });
-};
+// ─── Allocation Result Builder ────────────────────────────────────────────────
 
 /**
- * Builds a structured log entry object for an inventory allocation event.
+ * Constructs a structured allocation result summary for service-layer output.
  *
- * This function is used to record allocation-related changes to the `reserved_quantity`
- * field in the `warehouse_inventory` table. It computes the quantity change, builds a
- * metadata object with contextual details, and generates a checksum to ensure log integrity.
+ * Aggregates allocation IDs, affected warehouse inventory IDs, activity log IDs,
+ * overall fulfillment status, and per-item allocation outcomes into a single
+ * normalized object consumed by the response transformer.
  *
- * The returned object is ready for insertion into the inventory activity log table.
- *
- * @param {Object} params - Allocation log parameters.
- * @param {string} params.inventoryId - The ID of the warehouse inventory record.
- * @param {number} params.previousReservedQty - The previous reserved quantity.
- * @param {number} params.newReservedQty - The updated reserved quantity after allocation.
- * @param {number} params.warehouseQty - The current warehouse quantity (for snapshot only).
- * @param {string} params.statusId - Inventory status ID after allocation.
- * @param {string} params.userId - The ID of the user performing the allocation.
- * @param {string} params.orderId - The ID of the related order (if applicable).
- * @param {string} params.inventoryActionTypeId - ID of the action type (e.g., "ALLOCATE").
- * @param {string} [params.sourceType='order'] - Source of the change (e.g., 'order', 'manual').
- * @param {string|null} [params.sourceRefId=null] - Reference ID from the source context.
- * @param {string} [params.recordScope='warehouse'] - Scope of the record ('warehouse' or 'location').
- * @param {string|null} [params.comments=null] - Optional comment describing the action.
- * @param {object} [params.metadata={}] - Additional metadata for traceability.
- *
- * @returns {object} Inventory activity log object with checksum and full context.
- */
-const buildAllocationLogEntry = ({
-  inventoryId,
-  previousReservedQty,
-  newReservedQty,
-  warehouseQty,
-  statusId,
-  userId,
-  orderId,
-  inventoryActionTypeId,
-  sourceType = 'order',
-  sourceRefId = null,
-  recordScope = 'warehouse',
-  comments = null,
-  metadata = {},
-}) => {
-  const quantityChange = newReservedQty - previousReservedQty;
-
-  const checksum = generateChecksum({
-    inventory_id: inventoryId,
-    inventory_action_type_id: inventoryActionTypeId,
-    previous_quantity: previousReservedQty,
-    quantity_change: quantityChange,
-    new_quantity: newReservedQty,
-    source_action_id: sourceRefId || undefined,
-    comments: comments || undefined,
-  });
-
-  return {
-    warehouse_inventory_id: inventoryId,
-    inventory_action_type_id: inventoryActionTypeId,
-    adjustment_type_id: null,
-    order_id: orderId || null,
-    previous_quantity: previousReservedQty,
-    quantity_change: quantityChange,
-    new_quantity: newReservedQty,
-    status_id: statusId,
-    performed_by: userId,
-    recorded_by: userId,
-    comments,
-    metadata: {
-      action: 'allocate',
-      warehouse_quantity_snapshot: warehouseQty,
-      record_scope: recordScope,
-      ...metadata,
-    },
-    source_type: sourceType,
-    source_ref_id: sourceRefId,
-    inventory_scope: recordScope,
-    checksum,
-  };
-};
-
-/**
- * Constructs a structured result object summarizing the outcome of a sales order allocation operation.
- *
- * This function aggregates allocation-related information, including:
- * - Allocation IDs created or updated
- * - Warehouse inventory IDs affected by reservation updates
- * - Activity log IDs generated
- * - Whether the order is fully allocated
- * - Per-item allocation status and fulfillment match
- *
- * This is typically used as a business-layer output before transforming the response
- * into a client-facing format (e.g., via transformer).
- *
- * @param {{
- *   orderId: string,
- *   inventoryAllocations: Array<{
- *     allocation_id: string
- *   }>,
- *   warehouseUpdateIds: Array<{
- *     id: string
- *   }>,
- *   inventoryLogIds: string[], // IDs from activity log insert
- *   allocationResults: Array<{
- *     orderItemId: string,
- *     allocationStatus: 'ORDER_ALLOCATED' | 'ORDER_PARTIALLY_ALLOCATED' | 'ORDER_BACKORDERED',
- *     isMatched: boolean
- *   }>
- * }} params - All input data needed to construct the result.
- *
- * @returns {{
- *   orderId: string,
- *   allocationIds: string[],
- *   updatedWarehouseInventoryIds: string[],
- *   logIds: string[],
- *   fullyAllocated: boolean,
- *   updatedItemStatuses: Array<{
- *     orderItemId: string,
- *     newStatus: string,
- *     isFullyAllocated: boolean
- *   }>
- * }} Allocation summary result object.
+ * @param {OrderAllocationResultInput} params
+ * @returns {OrderAllocationResult}
  */
 const buildOrderAllocationResult = ({
-  orderId,
-  inventoryAllocations,
-  warehouseUpdateIds,
-  inventoryLogIds,
-  allocationResults,
-}) => {
+                                      orderId,
+                                      inventoryAllocations,
+                                      warehouseUpdateIds,
+                                      inventoryLogIds,
+                                      allocationResults,
+                                    }) => {
   const fullyAllocated = allocationResults.every((res) => res.isMatched);
-
+  
   return {
     orderId,
-    allocationIds: inventoryAllocations.map((a) => a.allocation_id),
+    allocationIds:                inventoryAllocations.map((a) => a.allocation_id),
     updatedWarehouseInventoryIds: warehouseUpdateIds.map((r) => r.id),
-    logIds: inventoryLogIds,
+    logIds:                       inventoryLogIds,
     fullyAllocated,
-    updatedItemStatuses: allocationResults.map((res) => ({
-      orderItemId: res.orderItemId,
-      newStatus: res.allocationStatus,
+    updatedItemStatuses:          allocationResults.map((res) => ({
+      orderItemId:      res.orderItemId,
+      newStatus:        res.allocationStatus,
       isFullyAllocated: res.isMatched,
     })),
   };
 };
 
+// ─── Exports ──────────────────────────────────────────────────────────────────
+
 module.exports = {
+  evaluateInventoryAllocationVisibility,
+  applyInventoryAllocationVisibilityRules,
   allocateBatchesForOrderItems,
-  resolveOrderItemDisplay,
   allocateBatchesByStrategy,
+  resolveOrderItemDisplay,
   validateAllocationStatusTransition,
   computeAllocationStatusPerItem,
+  dedupeWarehouseBatchKeys,
   updateReservedQuantitiesFromAllocations,
-  buildWarehouseInventoryActivityLogsForOrderAllocation,
-  buildAllocationLogEntry,
   buildOrderAllocationResult,
 };

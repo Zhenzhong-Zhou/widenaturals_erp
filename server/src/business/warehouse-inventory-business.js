@@ -5,31 +5,40 @@
  *
  * Covers ACL evaluation and filter application for inventory visibility,
  * warehouse scope enforcement, inbound batch and quantity validation,
- * status transition rules, activity log entry construction, and
- * SHA-256 checksum generation for audit integrity.
+ * status transition rules, inventory status resolution, activity log entry
+ * construction, and SHA-256 checksum generation for log integrity.
  *
  * Exports:
- *  - evaluateWarehouseInventoryVisibility  — resolve visibility ACL for the current user
- *  - applyWarehouseInventoryVisibilityRules — apply ACL rules to filter object
- *  - assertWarehouseAccess                 — resolve assigned warehouse IDs for the user
- *  - enforceWarehouseScope                 — throw if user lacks access to target warehouse
- *  - validateInboundBatches               — verify batch IDs exist and are not duplicated
- *  - resolveInboundStatus                 — resolve default or requested inbound status UUID
- *  - assertValidStatusTransition          — enforce allowed status transition rules
- *  - validateInboundQuantities            — validate positive integer quantities on inbound records
- *  - validateQuantityAdjustments          — validate non-negative quantities and reserved constraints
- *  - validateOutboundRecords              — validate outbound date and quantity on outbound records
- *  - assertAllInventoryRecordsFound       — throw if any expected inventory IDs are missing
- *  - buildInboundActivityLogEntries       — build log entries for newly inserted inbound records
- *  - buildQuantityAdjustmentLogEntries    — build log entries for quantity adjustment operations
- *  - buildStatusChangeLogEntries          — build log entries for status update operations
- *  - buildOutboundLogEntries              — build log entries for outbound movement operations
- *  - computeLogChecksum                   — compute SHA-256 checksum for an activity log entry
+ *
+ * ─── ACL & Visibility ─────────────────────────────────────────────────────────
+ *  - evaluateWarehouseInventoryVisibility          — resolve visibility ACL for the current user
+ *  - applyWarehouseInventoryVisibilityRules        — apply ACL rules to filter object
+ *  - assertWarehouseAccess                         — resolve assigned warehouse IDs for the user
+ *  - enforceWarehouseScope                         — throw if user lacks access to target warehouse
+ *
+ * ─── Validation ───────────────────────────────────────────────────────────────
+ *  - validateInboundBatches                        — verify batch IDs exist and are not duplicated
+ *  - validateInboundQuantities                     — validate positive integer quantities on inbound records
+ *  - validateQuantityAdjustments                   — validate non-negative quantities and reserved constraints
+ *  - validateOutboundRecords                       — validate outbound date and quantity on outbound records
+ *  - assertAllInventoryRecordsFound                — throw if any expected inventory IDs are missing
+ *  - assertValidStatusTransition                   — enforce allowed status transition rules
+ *
+ * ─── Status Resolution ────────────────────────────────────────────────────────
+ *  - resolveInboundStatus                          — resolve default or requested inbound status UUID
+ *  - resolveInventoryStatus                        — derive in-stock or out-of-stock status ID from quantity
+ *
+ * ─── Activity Log Builders ────────────────────────────────────────────────────
+ *  - buildInboundActivityLogEntries                — build log entries for newly inserted inbound records
+ *  - buildQuantityAdjustmentLogEntries             — build log entries for quantity adjustment operations
+ *  - buildStatusChangeLogEntries                   — build log entries for status update operations
+ *  - buildOutboundLogEntries                       — build log entries for outbound movement operations
+ *  - buildAllocationConfirmLogEntries              — build log entries for reserved quantity changes
+ *                                                    triggered by order allocation confirmation
  */
 
 'use strict';
 
-const crypto = require('crypto');
 const AppError = require('../utils/AppError');
 const { resolveUserPermissionContext } = require('../services/permission-service');
 const { logSystemException } = require('../utils/logging/system-logger');
@@ -40,6 +49,8 @@ const { validateBatchRegistryIds } = require('../repositories/batch-registry-rep
 const { findExistingInventoryByBatchIds } = require('../repositories/warehouse-inventory-repository');
 const { getStatusId } = require('../config/status-cache');
 const { getInventoryStatusById } = require('../repositories/inventory-status-repository');
+const { computeLogChecksum } = require('../utils/hash-utils');
+const { cleanObject } = require('../utils/object-utils');
 
 const CONTEXT = 'warehouse-inventory-business';
 
@@ -375,35 +386,6 @@ const buildInboundActivityLogEntries = (insertedRecords, actionTypeId, performed
     created_by: performedBy,
   }));
 
-// ── Checksum ────────────────────────────────────────────────────────
-
-/**
- * Computes an SHA-256 checksum for an activity log entry.
- *
- * @param {object} fields
- * @param {string} fields.warehouseInventoryId
- * @param {string} fields.actionTypeId
- * @param {number} fields.previousQuantity
- * @param {number} fields.quantityChange
- * @param {number} fields.newQuantity
- * @param {string} fields.performedBy
- * @param {string} fields.performedAt
- * @returns {string}
- */
-const computeLogChecksum = (fields) => {
-  const payload = [
-    fields.warehouseInventoryId,
-    fields.actionTypeId,
-    fields.previousQuantity,
-    fields.quantityChange,
-    fields.newQuantity,
-    fields.performedBy,
-    fields.performedAt,
-  ].join('|');
-  
-  return crypto.createHash('sha256').update(payload).digest('hex');
-};
-
 // ── Quantity adjustment validation ──────────────────────────────────
 
 /**
@@ -637,6 +619,173 @@ const assertAllInventoryRecordsFound = (expectedIds, foundRecords) => {
   );
 };
 
+/**
+ * Resolves the inventory status ID based on the resulting warehouse quantity.
+ *
+ * @param {number} warehouseQuantity
+ * @param {{ inStockStatusId: string, outOfStockStatusId: string }} statusIds
+ * @returns {string}
+ */
+const resolveInventoryStatus = (warehouseQuantity, { inStockStatusId, outOfStockStatusId }) => {
+  return warehouseQuantity > 0 ? inStockStatusId : outOfStockStatusId;
+};
+
+/**
+ * Builds inventory activity log entries for warehouse quantity changes
+ * triggered by an order allocation confirmation.
+ *
+ * Maps each updated warehouse inventory row back to its original state using
+ * a `warehouse_id__batch_id` keyed lookup, then constructs a log entry
+ * reflecting the reserved quantity delta for that row.
+ *
+ * Pure function — no DB calls, no logging, no side effects.
+ *
+ * @param {WarehouseBatchUpdate[]} updatedRows           - Computed reservation updates from updateReservedQuantitiesFromAllocations.
+ * @param {WarehouseInventoryQuantityRow[]} originalWarehouseInfo - Pre-mutation inventory snapshots from getWarehouseInventoryQuantities.
+ * @param {object} options
+ * @param {string} options.orderId       - UUID of the order triggering the allocation.
+ * @param {string} options.performedBy   - UUID of the acting user.
+ * @param {string} options.actionTypeId  - Inventory action type UUID (e.g. `reserve`).
+ * @param {string|null} [options.comments=null]  - Optional override for the log comment field.
+ *
+ * @returns {object[]} Activity log row objects ready for `insertInventoryActivityLogBulk`.
+ *
+ * @throws {Error} If a matching original record cannot be found for an updated row —
+ *                 indicates a data integrity issue between the update and snapshot sets.
+ */
+const buildAllocationConfirmLogEntries = (
+  updatedRows,
+  originalWarehouseInfo,
+  { orderId, performedBy, actionTypeId, comments = null }
+) => {
+  const originalMap = Object.fromEntries(
+    originalWarehouseInfo.map((record) => [
+      `${record.warehouse_id}__${record.batch_id}`,
+      record,
+    ])
+  );
+  
+  return updatedRows.map((updated) => {
+    const key      = `${updated.warehouse_id}__${updated.batch_id}`;
+    const original = originalMap[key];
+    const performedAt = new Date().toISOString();
+    
+    if (!original) {
+      throw new Error(`Missing original warehouse inventory data for key: ${key}`);
+    }
+    
+    const previousQty = original.reserved_quantity;
+    const newQty      = updated.reserved_quantity;
+    
+    return {
+      warehouse_inventory_id:   original.id,
+      inventory_action_type_id: actionTypeId,
+      adjustment_type_id:       null,
+      previous_quantity:        previousQty,
+      quantity_change:          newQty - previousQty,
+      new_quantity:             newQty,
+      status_id:                updated.status_id,
+      status_effective_at:      performedAt,
+      reference_type:           'order',
+      reference_id:             orderId,
+      performed_by:             performedBy,
+      comments:                 comments ?? 'Reserved quantity updated during order allocation.',
+      checksum: computeLogChecksum({
+        warehouseInventoryId: original.id,
+        actionTypeId:         actionTypeId,
+        previousQuantity:     previousQty,
+        quantityChange:       newQty - previousQty,
+        newQuantity:          newQty,
+        performedBy:          performedBy,
+        performedAt,
+        referenceId:          orderId,
+      }),
+      metadata: {
+        source:       'order_allocation',
+        warehouse_id: updated.warehouse_id,
+        batch_id:     updated.batch_id,
+      },
+      created_by: performedBy,
+    };
+  });
+};
+
+/**
+ * Builds a single inventory activity log entry for a warehouse quantity
+ * change triggered by an outbound fulfillment confirmation.
+ *
+ * Computes the quantity delta as the negative of the allocated quantity
+ * (stock is deducted on fulfillment). The fulfillment ID is used as the
+ * `reference_id` and included in the checksum for deduplication.
+ *
+ * Pure function — no DB calls, no logging, no side effects.
+ *
+ * @param {object} options
+ * @param {object} options.allocation              - Enriched allocation record from enrichAllocationsWithInventory.
+ * @param {object} options.update                  - Computed inventory delta from calculateInventoryAdjustments.
+ * @param {string} options.inventoryActionTypeId   - Inventory action type UUID (e.g. `fulfilled`).
+ * @param {string} options.userId                  - UUID of the acting user.
+ * @param {string} options.shipmentId              - UUID of the outbound shipment.
+ * @param {string} options.fulfillmentId           - UUID of the fulfillment record (used as reference_id).
+ * @param {string} options.orderNumber             - Human-readable order number for the log comment.
+ *
+ * @returns {object} Activity log row object ready for `insertInventoryActivityLogBulk`.
+ */
+const buildFulfillmentLogEntry = ({
+                                    allocation,
+                                    update,
+                                    inventoryActionTypeId,
+                                    userId,
+                                    shipmentId,
+                                    fulfillmentId,
+                                    orderNumber,
+                                  }) => {
+  const previousQuantity = allocation.warehouse_quantity;
+  const quantityChange   = -allocation.allocated_quantity;
+  const newQuantity      = update.warehouse_quantity;
+  
+  const comments = `[System] Inventory adjusted during fulfillment for order ${orderNumber}`;
+  
+  const metadata = cleanObject({
+    batch_id:                    allocation.batch_id,
+    allocation_id:               allocation.allocation_id,
+    shipment_id:                 shipmentId,
+    fulfillment_id:              fulfillmentId,
+    reserved_quantity_before:    allocation.reserved_quantity,
+    reserved_quantity_after:     update.reserved_quantity,
+    warehouse_quantity_snapshot: previousQuantity,
+  });
+  
+  const checksum = computeLogChecksum({
+    warehouseInventoryId: allocation.warehouse_inventory_id,
+    actionTypeId:         inventoryActionTypeId,
+    previousQuantity,
+    quantityChange,
+    newQuantity,
+    performedBy:          userId,
+    performedAt:          new Date().toISOString(),
+    referenceId:          fulfillmentId,
+  });
+  
+  return {
+    warehouse_inventory_id:   allocation.warehouse_inventory_id,
+    inventory_action_type_id: inventoryActionTypeId,
+    adjustment_type_id:       null,
+    previous_quantity:        previousQuantity,
+    quantity_change:          quantityChange,
+    new_quantity:             newQuantity,
+    status_id:                update.status_id,
+    status_effective_at:      new Date().toISOString(),
+    reference_type:           'fulfillment',
+    reference_id:             fulfillmentId,
+    performed_by:             userId,
+    comments,
+    checksum,
+    metadata,
+    created_by:               userId,
+  };
+};
+
 module.exports = {
   evaluateWarehouseInventoryVisibility,
   applyWarehouseInventoryVisibilityRules,
@@ -647,11 +796,13 @@ module.exports = {
   assertValidStatusTransition,
   validateInboundQuantities,
   buildInboundActivityLogEntries,
-  computeLogChecksum,
   validateQuantityAdjustments,
   validateOutboundRecords,
   buildQuantityAdjustmentLogEntries,
   buildStatusChangeLogEntries,
   buildOutboundLogEntries,
   assertAllInventoryRecordsFound,
+  resolveInventoryStatus,
+  buildAllocationConfirmLogEntries,
+  buildFulfillmentLogEntry,
 };
