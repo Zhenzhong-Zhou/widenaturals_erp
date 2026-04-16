@@ -17,6 +17,7 @@ const {
 const {
   BATCH_CONSTANTS,
 } = require('../utils/constants/domain/batch-constants');
+const { applyBatchTypeVisibility } = require('./apply-batch-type-visibility');
 
 const CONTEXT = 'batch-registry-business';
 
@@ -135,67 +136,13 @@ const evaluateBatchRegistryVisibility = async (user) => {
  */
 const applyBatchRegistryVisibilityRules = (filters, acl) => {
   const adjusted = { ...filters };
-  
-  const requestedType = filters.batchType;
-  
-  const canViewProduct = acl.canViewProductBatches === true;
-  const canViewPackaging = acl.canViewPackagingBatches === true;
-  const canViewAll = acl.canViewAllBatches === true;
-  
-  // -------------------------------------------------------------
-  // 1. Full visibility override → respect user intent entirely
-  // -------------------------------------------------------------
-  if (canViewAll) {
-    adjusted.keywordCapabilities = {
-      canSearchProduct: true,
-      canSearchSku: true,
-      canSearchManufacturer: true,
-      canSearchPackagingMaterial: true,
-      canSearchSupplier: true,
-    };
-    return adjusted;
-  }
-  
-  // -------------------------------------------------------------
-  // 2. User explicitly requested a batch type they cannot view
-  // -------------------------------------------------------------
-  if (requestedType === 'product' && !canViewProduct) {
-    adjusted.forceEmptyResult = true;
-    return adjusted;
-  }
-  
-  if (requestedType === 'packaging_material' && !canViewPackaging) {
-    adjusted.forceEmptyResult = true;
-    return adjusted;
-  }
-  
-  // -------------------------------------------------------------
-  // 3. No batchType requested → narrow to allowed scope
-  // -------------------------------------------------------------
-  if (!requestedType) {
-    if (canViewProduct && !canViewPackaging) {
-      adjusted.batchType = 'product';
-    } else if (!canViewProduct && canViewPackaging) {
-      adjusted.batchType = 'packaging_material';
-    } else if (!canViewProduct && !canViewPackaging) {
-      adjusted.forceEmptyResult = true;
-      return adjusted;
-    }
-    // canViewProduct && canViewPackaging → no restriction needed, leave batchType unset
-  }
-  
-  // -------------------------------------------------------------
-  // 4. Inject keyword search capabilities
-  // -------------------------------------------------------------
-  adjusted.keywordCapabilities = {
-    canSearchProduct: canViewProduct,
-    canSearchSku: canViewProduct,
-    canSearchManufacturer: acl.canViewManufacturer === true,
-    canSearchPackagingMaterial: canViewPackaging,
-    canSearchSupplier: acl.canViewSupplier === true,
-  };
-  
-  return adjusted;
+  return applyBatchTypeVisibility(adjusted, {
+    canViewAllBatchTypes:    acl.canViewAllBatches,
+    canViewProductBatches:   acl.canViewProductBatches,
+    canViewPackagingBatches: acl.canViewPackagingBatches,
+    canViewManufacturer:     acl.canViewManufacturer,
+    canViewSupplier:         acl.canViewSupplier,
+  });
 };
 
 /**
