@@ -69,7 +69,8 @@ const fetchPaginatedOrderTypesService = async ({
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to fetch order type list.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message }
     });
   }
 };

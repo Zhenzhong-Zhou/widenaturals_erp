@@ -81,7 +81,8 @@ const fetchPaginatedProductsService = async ({
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to fetch products.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message }
     });
   }
 };
@@ -111,7 +112,8 @@ const fetchProductDetailsService = async (productId) => {
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to fetch product details.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message }
     });
   }
 };
@@ -170,7 +172,8 @@ const updateProductStatusService = async ({ productId, statusId, user }) => {
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to update product status.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message }
     });
   }
 };
@@ -221,7 +224,8 @@ const updateProductInfoService = async ({ productId, updates, user }) => {
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to update product information.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message }
     });
   }
 };
@@ -256,7 +260,8 @@ const createProductsService = async (productList, user) => {
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to create products.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message }
     });
   }
 };

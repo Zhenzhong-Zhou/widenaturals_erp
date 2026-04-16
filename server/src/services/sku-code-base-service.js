@@ -75,7 +75,8 @@ const getOrCreateBaseCodesBulk = async (pairs, client) => {
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to fetch or create base codes.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message }
     });
   }
 };

@@ -120,7 +120,8 @@ const fetchPaginatedSkuProductCardsService = async ({
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to fetch SKU product cards.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message }
     });
   }
 };
@@ -163,7 +164,8 @@ const fetchPaginatedSkusService = async ({
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to fetch SKU records.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message }
     });
   }
 };
@@ -234,7 +236,8 @@ const fetchSkuDetailsService = async (skuId, user) => {
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to fetch SKU detail.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message }
     });
   }
 };
@@ -331,7 +334,8 @@ const createSkusService = async (skuList, user) => {
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to create SKUs.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message }
     });
   }
 };
@@ -371,7 +375,8 @@ const updateSkuMetadataService = async ({ skuId, payload, user }) => {
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to update SKU metadata.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message }
     });
   }
 };
@@ -417,7 +422,8 @@ const updateSkuStatusService = async ({ skuId, statusId, user }) => {
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to update SKU status.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message }
     });
   }
 };
@@ -457,7 +463,8 @@ const updateSkuDimensionsService = async ({ skuId, payload, user }) => {
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to update SKU dimensions.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message }
     });
   }
 };
@@ -497,7 +504,8 @@ const updateSkuIdentityService = async ({ skuId, payload, user }) => {
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to update SKU identity.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message }
     });
   }
 };

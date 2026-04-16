@@ -100,7 +100,8 @@ const fetchPaginatedPackagingMaterialBatchesService = async ({
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to retrieve packaging material batches.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message }
     });
   }
 };
@@ -185,7 +186,8 @@ const createPackagingMaterialBatchesService = async (packagingMaterialBatches, u
       if (error instanceof AppError) throw error;
       
       throw AppError.serviceError('Unable to create packaging material batches.', {
-        meta: { error: error.message, context },
+        context,
+        meta: { error: error.message }
       });
     }
   });
@@ -243,7 +245,8 @@ const editPackagingMaterialBatchMetadataService = async (
       if (error instanceof AppError) throw error;
       
       throw AppError.serviceError('Unable to update packaging material batch metadata.', {
-        meta: { error: error.message, context },
+        context,
+        meta: { error: error.message }
       });
     }
   });

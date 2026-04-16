@@ -58,7 +58,8 @@ const fetchPaginatedLocationTypesService = async ({
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to fetch location types.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message }
     });
   }
 };
@@ -89,7 +90,8 @@ const fetchLocationTypeDetailsService = async (locationTypeId) => {
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to fetch location type details.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message }
     });
   }
 };

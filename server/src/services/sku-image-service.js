@@ -305,7 +305,8 @@ const saveSkuImagesService = async (
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to save SKU images.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message }
     });
   }
 };
@@ -371,7 +372,8 @@ const saveBulkSkuImagesService = async (skuImageSets, user) => {
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to complete bulk SKU image upload.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message }
     });
   }
 };
@@ -441,7 +443,8 @@ const updateSkuImagesService = async (
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to update SKU images.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message }
     });
   }
 };
@@ -507,7 +510,8 @@ const updateBulkSkuImagesService = async (skuUpdateSets, user) => {
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to complete bulk SKU image update.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message }
     });
   }
 };

@@ -131,7 +131,8 @@ const createOrderService = async (orderData, category, user) => {
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to create order.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message }
     });
   }
 };
@@ -213,7 +214,8 @@ const fetchPaginatedOrdersService = async ({
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to fetch paginated orders.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message }
     });
   }
 };
@@ -257,7 +259,8 @@ const fetchOrderDetailsByIdService = async (category, orderId, user) => {
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to retrieve order details.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message }
     });
   }
 };
@@ -382,7 +385,8 @@ const updateOrderStatusService = async (user, categoryParam, orderId, nextStatus
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to update order status.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message }
     });
   }
 };

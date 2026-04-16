@@ -230,7 +230,8 @@ const fulfillOutboundShipmentService = async (requestData, orderId, user) => {
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to create outbound shipment.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message }
     });
   }
 };
@@ -439,7 +440,8 @@ const confirmOutboundFulfillmentService = async (requestData, orderId, user) => 
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to confirm outbound fulfillment.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message }
     });
   }
 };
@@ -474,7 +476,8 @@ const fetchPaginatedOutboundFulfillmentService = async ({
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to fetch outbound shipments.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message }
     });
   }
 };
@@ -504,7 +507,8 @@ const fetchShipmentDetailsService = async (shipmentId) => {
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to fetch shipment details.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message }
     });
   }
 };
@@ -628,7 +632,8 @@ const completeManualFulfillmentService = async (completionData, shipmentId, user
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to complete manual fulfillment.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message }
     });
   }
 };

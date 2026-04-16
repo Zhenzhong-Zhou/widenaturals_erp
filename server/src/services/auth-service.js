@@ -460,7 +460,8 @@ const refreshTokenService = async (
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to refresh token.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message }
     });
   }
 };
