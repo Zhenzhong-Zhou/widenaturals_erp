@@ -285,7 +285,7 @@ const updateOrderItemStatus = async (
  * @param {string}     orderId - UUID of the order.
  * @param {PoolClient} client  - DB client for transactional context.
  *
- * @returns {Promise<Array<Object>>} Lightweight order item rows.
+ * @returns {Promise<Array<OrderItemRow>>} Lightweight order item rows.
  * @throws  {AppError}               Normalized database error if the query fails.
  */
 const getOrderItemsByOrderId = async (orderId, client) => {

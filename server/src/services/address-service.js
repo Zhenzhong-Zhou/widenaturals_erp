@@ -19,7 +19,7 @@ const { withTransaction }          = require('../database/db');
 const MAX_LIMITS                   = require('../utils/constants/general/max-limits');
 const { validateBulkInputSize }    = require('../utils/validation/bulk-input-validator');
 const AppError                     = require('../utils/AppError');
-const { generateAddressHash }      = require('../utils/crypto-utils');
+const { generateAddressHash }      = require('../utils/hash-utils');
 const {
   insertAddressRecords,
   getEnrichedAddressesByIds,
