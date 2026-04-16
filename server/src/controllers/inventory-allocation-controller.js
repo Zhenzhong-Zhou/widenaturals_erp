@@ -73,14 +73,19 @@ const allocateInventoryForOrderController = wrapAsyncHandler(async (req, res) =>
 /**
  * Retrieves inventory allocation review data for a specific order.
  *
- * Not-found case is handled by the service layer via AppError.notFound().
- * Requires: auth middleware, Joi body validation, VIEW_INVENTORY_ALLOCATIONS permission.
+ * Warehouse scope is enforced by the service layer based on the requesting
+ * user's assigned warehouses. Returns null if no data found or access is
+ * denied for all requested warehouses.
+ *
+ * Requires: auth middleware, Joi body validation, VIEW_ALLOCATION permission.
  */
 const reviewInventoryAllocationController = wrapAsyncHandler(async (req, res) => {
-  const { orderId } = req.params;
+  const { orderId }                          = req.params;
   const { warehouseIds = [], allocationIds = [] } = req.body;
+  const user                                 = req.auth.user;
   
   const result = await reviewInventoryAllocationService(
+    user,
     orderId,
     warehouseIds,
     allocationIds,
@@ -89,7 +94,7 @@ const reviewInventoryAllocationController = wrapAsyncHandler(async (req, res) =>
   res.status(200).json({
     success: true,
     message: 'Inventory allocation review retrieved successfully.',
-    data:    result,
+    payload: { data: result },
     traceId: req.traceId,
   });
 });
@@ -99,13 +104,14 @@ const reviewInventoryAllocationController = wrapAsyncHandler(async (req, res) =>
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Retrieves paginated inventory allocation records with optional filters and sorting.
+ * Returns paginated inventory allocation records scoped to the requesting
+ * user's warehouse assignments.
  *
- * Reads from req.normalizedQuery — populated by createQueryNormalizationMiddleware.
- * Requires: auth middleware, query normalizer, VIEW_INVENTORY_ALLOCATIONS permission.
+ * Requires: auth middleware, query normalization middleware, VIEW_ALLOCATION permission.
  */
 const getPaginatedInventoryAllocationsController = wrapAsyncHandler(async (req, res) => {
   const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
+  const user = req.auth.user;
   
   const { data, pagination } = await fetchPaginatedInventoryAllocationsService({
     filters,
@@ -113,14 +119,15 @@ const getPaginatedInventoryAllocationsController = wrapAsyncHandler(async (req, 
     limit,
     sortBy,
     sortOrder,
+    user,
   });
   
   res.status(200).json({
-    success: true,
-    message: 'Inventory allocations retrieved successfully.',
+    success:  true,
+    message:  'Inventory allocations retrieved successfully.',
     data,
     pagination,
-    traceId: req.traceId,
+    traceId:  req.traceId,
   });
 });
 

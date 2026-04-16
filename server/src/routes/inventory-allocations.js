@@ -3,6 +3,12 @@
  * @description Inventory allocation routes for order-based allocation, review,
  * confirmation, and paginated allocation queries.
  *
+ * Routes:
+ *   POST  /allocate/:orderId  — allocate inventory batches against an order
+ *   POST  /review/:orderId    — retrieve allocation review data for an order
+ *   GET   /                  — paginated allocation list with filtering and sorting
+ *   PATCH /confirm/:orderId   — confirm a pending allocation for an order
+ *
  * All routes are protected and require explicit permission checks via `authorize`.
  * Query normalization is handled by `createQueryNormalizationMiddleware`.
  */
@@ -80,12 +86,12 @@ router.get(
 );
 
 /**
- * @route POST /inventory-allocations/confirm/:orderId
+ * @route PATCH /inventory-allocations/confirm/:orderId
  * @description Confirm a reviewed inventory allocation, locking it for fulfillment.
  * @access protected
  * @permission INVENTORY_ALLOCATION.CONFIRM
  */
-router.post(
+router.patch(
   '/confirm/:orderId',
   authorize([PERMISSIONS.INVENTORY_ALLOCATION.CONFIRM]),
   validate(orderIdParamSchema, 'params'),

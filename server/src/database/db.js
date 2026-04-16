@@ -24,7 +24,6 @@ const {
   logDbSlowQuery,
   logDbQueryError,
   logDbTransactionEvent,
-  logPaginatedQueryError,
 } = require('../utils/db-logger');
 const { getConnectionConfig, getEnvNumber } = require('../config/db-config');
 const AppError = require('../utils/AppError');
@@ -33,7 +32,6 @@ const {
   logSystemException,
   logSystemInfo,
   logSystemWarn,
-  logSystemDebug,
   logRetryWarning,
   logSystemCrash,
 } = require('../utils/logging/system-logger');
@@ -574,106 +572,6 @@ const retryDatabaseConnection = async (config, options = {}) => {
 };
 
 // ============================================================
-// Pagination
-// ============================================================
-
-/**
- * Wraps a complex SQL query in a `COUNT(*)` subquery.
- *
- * Used to derive a total-count query from a data query before adding
- * LIMIT/OFFSET — correctly handles CTEs and grouped queries that cannot
- * be wrapped with a simple `SELECT COUNT(*) WHERE ...`.
- *
- * Strips any trailing semicolon before wrapping to produce valid SQL.
- *
- * @param {string} queryText      - The full query to count rows from.
- * @param {string} [alias='subquery'] - Alias applied to the wrapped subquery.
- * @returns {string} A SQL string: `SELECT COUNT(*) AS total_count FROM (...) AS <alias>`.
- */
-const getCountQuery = (queryText, alias = 'subquery') => {
-  const trimmedQuery = queryText.trim().replace(/;$/, '');
-  const countQuery = `SELECT COUNT(*) AS total_count FROM (${trimmedQuery}) AS ${alias}`;
-  
-  if (process.env.NODE_ENV !== 'production') {
-    logSystemDebug('Generated count query', {
-      context: 'db/getCountQuery/query-builder',
-      baseQuery: trimmedQuery,
-      countQuery,
-    });
-  }
-  
-  return countQuery;
-};
-
-/**
- * Executes a paginated query and returns results with metadata.
- *
- * Runs the data query and its derived count query in parallel via
- * `Promise.all` for a single round-trip cost. LIMIT/OFFSET are appended
- * to the data query using the next available parameter indices.
- *
- * @param {object} options
- * @param {string}   options.dataQuery      - Base SQL query (must NOT include LIMIT/OFFSET).
- * @param {Array}    [options.params=[]]    - Parameters for the base query.
- * @param {number}   [options.page=1]       - Page number (1-based).
- * @param {number}   [options.limit=20]     - Page size.
- * @param {object}   [options.meta={}]      - Optional metadata for logging (e.g., traceId, context).
- * @returns {Promise<{ data: object[], pagination: { page: number, limit: number, totalRecords: number, totalPages: number } }>}
- * @throws {AppError} On query failure.
- */
-const paginateResults = async ({
-                                 dataQuery,
-                                 params = [],
-                                 page = 1,
-                                 limit = 20,
-                                 meta = {},
-                               }) => {
-  const offset = (page - 1) * limit;
-  
-  // Append LIMIT/OFFSET as the next positional parameters after the caller's params.
-  const paginatedQuery = `${dataQuery.trim().replace(/;$/, '')} LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
-  const paginatedParams = [...params, limit, offset];
-  
-  const countQuery = getCountQuery(dataQuery);
-  
-  try {
-    const [dataRows, countResult] = await Promise.all([
-      query(paginatedQuery, paginatedParams),
-      query(countQuery, params),
-    ]);
-    
-    /** @type {{ total_count: string | number }[]} */
-    const countRows = countResult.rows;
-    
-    const totalRecords = Number(countRows[0]?.total_count ?? 0);
-    const totalPages = Math.ceil(totalRecords / limit);
-    
-    return {
-      data: dataRows.rows ?? [],
-      pagination: {
-        page,
-        limit,
-        totalRecords,
-        totalPages,
-      },
-    };
-  } catch (error) {
-    throw handleDbError(error, {
-      context: 'db/paginateResults',
-      message: 'Failed to execute paginated results query.',
-      meta: { page, limit, ...meta },
-      logFn: (err) =>
-        logPaginatedQueryError(err, dataQuery, countQuery, params, {
-          page,
-          limit,
-          ...meta,
-        }),
-    });
-  }
-};
-
-
-// ============================================================
 // Exports
 // ============================================================
 module.exports = {
@@ -685,6 +583,4 @@ module.exports = {
   testConnection,
   monitorPool,
   retryDatabaseConnection,
-  getCountQuery,
-  paginateResults,
 };
