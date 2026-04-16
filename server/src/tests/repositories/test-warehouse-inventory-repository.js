@@ -3,7 +3,7 @@
  *
  * Tests:
  *  - insertWarehouseInventoryBulk
- *  - updateWarehouseInventoryQuantityBulk
+ *  - updateWarehouseInventoryQuantityBulk      (with and without warehouseId)
  *  - updateWarehouseInventoryStatusBulk
  *  - updateWarehouseInventoryMetadata
  *  - updateWarehouseInventoryOutboundBulk
@@ -48,14 +48,15 @@ const info = (label, value) => console.log(`     ${label}:`, value);
     const { rows: batchRows } = await pool.query(`
       SELECT br.id AS batch_id, br.batch_type
       FROM batch_registry br
-      LEFT JOIN warehouse_inventory wi
-        ON wi.batch_id = br.id
+      LEFT JOIN warehouse_inventory wi ON wi.batch_id = br.id
       WHERE wi.id IS NULL
       LIMIT 2
     `);
     
     const { rows: statusRows } = await pool.query(`
-      SELECT id, name FROM inventory_status LIMIT 2
+      SELECT id, name
+      FROM inventory_status
+      WHERE name IN ('in_stock', 'out_of_stock')
     `);
     
     const { rows: userRows } = await pool.query(`
@@ -67,17 +68,22 @@ const info = (label, value) => console.log(`     ${label}:`, value);
       return;
     }
     
-    const testWarehouseId = warehouseRows[0].id;
-    const testUserId      = userRows[0].id;
-    const testStatusId    = statusRows[0].id;
-    const altStatusId     = statusRows[1]?.id || testStatusId;
+    const testWarehouseId    = warehouseRows[0].id;
+    const testUserId         = userRows[0].id;
+    const inStockStatusId    = statusRows.find((r) => r.name === 'in_stock')?.id;
+    const outOfStockStatusId = statusRows.find((r) => r.name === 'out_of_stock')?.id;
+    
+    if (!inStockStatusId || !outOfStockStatusId) {
+      console.warn(`${LOG} Missing inventory_status seed data — need in_stock and out_of_stock.`);
+      return;
+    }
     
     console.log(`${LOG} Resolved test IDs:`);
-    console.log(`  warehouse_id: ${testWarehouseId}`);
-    console.log(`  user_id:      ${testUserId}`);
-    console.log(`  status_id:    ${testStatusId}`);
-    console.log(`  alt_status:   ${altStatusId}`);
-    console.log(`  batches:      ${batchRows.map((r) => r.batch_id).join(', ')}`);
+    console.log(`  warehouse_id:        ${testWarehouseId}`);
+    console.log(`  user_id:             ${testUserId}`);
+    console.log(`  in_stock_status:     ${inStockStatusId}`);
+    console.log(`  out_of_stock_status: ${outOfStockStatusId}`);
+    console.log(`  batches:             ${batchRows.map((r) => r.batch_id).join(', ')}`);
     
     let insertedIds = [];
     
@@ -96,7 +102,7 @@ const info = (label, value) => console.log(`     ${label}:`, value);
           reserved_quantity:  0,
           warehouse_fee:      5.00,
           inbound_date:       new Date().toISOString(),
-          status_id:          testStatusId,
+          status_id:          inStockStatusId,
           created_by:         testUserId,
         }));
         
@@ -121,9 +127,92 @@ const info = (label, value) => console.log(`     ${label}:`, value);
       results.failed++;
     }
     
-    // ─── 3. updateWarehouseInventoryQuantityBulk ──────────────────────────────
+    // ─── 3. updateWarehouseInventoryQuantityBulk — with warehouseId (adjust qty API path) ──
     try {
-      console.log(`\n${LOG} [updateWarehouseInventoryQuantityBulk]`);
+      console.log(`\n${LOG} [updateWarehouseInventoryQuantityBulk] with warehouseId`);
+      
+      if (insertedIds.length === 0) throw new Error('No inserted records to update');
+      
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        
+        // qty > 0 → inStock
+        const updates = insertedIds.map((id, i) => ({
+          id,
+          warehouseId:       testWarehouseId,
+          warehouseQuantity: 200 + (i * 25),
+          reservedQuantity:  10 + (i * 5),
+          statusId:          inStockStatusId,
+        }));
+        
+        const updated = await updateWarehouseInventoryQuantityBulk(
+          updates, testUserId, client
+        );
+        
+        await client.query('COMMIT');
+        
+        info('Updated count', updated.length);
+        updated.forEach((row) => {
+          info(`  id=${row.id}`, `qty=${row.warehouse_quantity}, reserved=${row.reserved_quantity}, status=${row.status_id}`);
+        });
+        pass('updateWarehouseInventoryQuantityBulk — with warehouseId');
+        results.passed++;
+      } catch (err) {
+        await client.query('ROLLBACK');
+        throw err;
+      } finally {
+        client.release();
+      }
+    } catch (error) {
+      fail('updateWarehouseInventoryQuantityBulk — with warehouseId', error);
+      results.failed++;
+    }
+    
+    // ─── 3a. updateWarehouseInventoryQuantityBulk — without warehouseId (allocation confirm path) ──
+    try {
+      console.log(`\n${LOG} [updateWarehouseInventoryQuantityBulk] without warehouseId`);
+      
+      if (insertedIds.length === 0) throw new Error('No inserted records to update');
+      
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        
+        // qty = 0 → outOfStock to test status transition
+        const updates = insertedIds.map((id) => ({
+          id,
+          warehouseQuantity: 0,
+          reservedQuantity:  0,
+          statusId:          outOfStockStatusId,
+        }));
+        
+        const updated = await updateWarehouseInventoryQuantityBulk(
+          updates, testUserId, client
+        );
+        
+        await client.query('COMMIT');
+        
+        info('Updated count', updated.length);
+        updated.forEach((row) => {
+          info(`  id=${row.id}`, `qty=${row.warehouse_quantity}, status=${row.status_id}`);
+        });
+        pass('updateWarehouseInventoryQuantityBulk — without warehouseId');
+        results.passed++;
+      } catch (err) {
+        await client.query('ROLLBACK');
+        throw err;
+      } finally {
+        client.release();
+      }
+    } catch (error) {
+      fail('updateWarehouseInventoryQuantityBulk — without warehouseId', error);
+      results.failed++;
+    }
+    
+    // ─── 3b. updateWarehouseInventoryQuantityBulk — status transition (qty > 0 → inStock) ──
+    try {
+      console.log(`\n${LOG} [updateWarehouseInventoryQuantityBulk] status transition qty > 0 → inStock`);
       
       if (insertedIds.length === 0) throw new Error('No inserted records to update');
       
@@ -133,21 +222,27 @@ const info = (label, value) => console.log(`     ${label}:`, value);
         
         const updates = insertedIds.map((id, i) => ({
           id,
-          warehouseQuantity: 200 + (i * 25),
-          reservedQuantity:  10 + (i * 5),
+          warehouseId:       testWarehouseId,
+          warehouseQuantity: 50 + (i * 10),
+          reservedQuantity:  0,
+          statusId:          inStockStatusId,
         }));
         
         const updated = await updateWarehouseInventoryQuantityBulk(
-          updates, testWarehouseId, testUserId, client
+          updates, testUserId, client
         );
         
         await client.query('COMMIT');
         
         info('Updated count', updated.length);
         updated.forEach((row) => {
-          info(`  id=${row.id}`, `qty=${row.warehouse_quantity}, reserved=${row.reserved_quantity}`);
+          info(`  id=${row.id}`, `qty=${row.warehouse_quantity}, status=${row.status_id}`);
         });
-        pass('updateWarehouseInventoryQuantityBulk');
+        
+        const allInStock = updated.every((r) => r.status_id === inStockStatusId);
+        if (!allInStock) throw new Error('Expected all rows to have inStockStatusId');
+        
+        pass('updateWarehouseInventoryQuantityBulk — status transition inStock');
         results.passed++;
       } catch (err) {
         await client.query('ROLLBACK');
@@ -156,7 +251,7 @@ const info = (label, value) => console.log(`     ${label}:`, value);
         client.release();
       }
     } catch (error) {
-      fail('updateWarehouseInventoryQuantityBulk', error);
+      fail('updateWarehouseInventoryQuantityBulk — status transition inStock', error);
       results.failed++;
     }
     
@@ -172,7 +267,7 @@ const info = (label, value) => console.log(`     ${label}:`, value);
         
         const updates = insertedIds.map((id) => ({
           id,
-          statusId: altStatusId,
+          statusId: outOfStockStatusId,
         }));
         
         const updated = await updateWarehouseInventoryStatusBulk(
@@ -218,8 +313,8 @@ const info = (label, value) => console.log(`     ${label}:`, value);
         
         await client.query('COMMIT');
         
-        info('Updated id', updated?.id);
-        info('inbound_date', updated?.inbound_date);
+        info('Updated id',    updated?.id);
+        info('inbound_date',  updated?.inbound_date);
         info('warehouse_fee', updated?.warehouse_fee);
         pass('updateWarehouseInventoryMetadata');
         results.passed++;
@@ -253,9 +348,9 @@ const info = (label, value) => console.log(`     ${label}:`, value);
         
         await client.query('COMMIT');
         
-        info('Updated id', updated?.id);
+        info('Updated id',              updated?.id);
         info('inbound_date (unchanged)', updated?.inbound_date);
-        info('warehouse_fee', updated?.warehouse_fee);
+        info('warehouse_fee',           updated?.warehouse_fee);
         pass('updateWarehouseInventoryMetadata — partial');
         results.passed++;
       } catch (err) {
@@ -283,6 +378,8 @@ const info = (label, value) => console.log(`     ${label}:`, value);
           id,
           outboundDate:      new Date().toISOString(),
           warehouseQuantity: 0,
+          reservedQuantity:  0,
+          statusId:          outOfStockStatusId,
         }));
         
         const updated = await updateWarehouseInventoryOutboundBulk(
@@ -293,7 +390,7 @@ const info = (label, value) => console.log(`     ${label}:`, value);
         
         info('Updated count', updated.length);
         updated.forEach((row) => {
-          info(`  id=${row.id}`, `qty=${row.warehouse_quantity}, outbound=${row.outbound_date}`);
+          info(`  id=${row.id}`, `qty=${row.warehouse_quantity}, outbound=${row.outbound_date}, status=${row.status_id}`);
         });
         pass('updateWarehouseInventoryOutboundBulk');
         results.passed++;
@@ -319,7 +416,7 @@ const info = (label, value) => console.log(`     ${label}:`, value);
       });
       
       info('Total records', result.pagination.totalRecords);
-      info('Page count', result.data.length);
+      info('Page count',    result.data.length);
       console.dir(result.data.slice(0, 2), { depth: null, colors: true });
       pass('getPaginatedWarehouseInventory — no filters');
       results.passed++;
@@ -339,7 +436,7 @@ const info = (label, value) => console.log(`     ${label}:`, value);
       });
       
       info('Total records', result.pagination.totalRecords);
-      info('Page count', result.data.length);
+      info('Page count',    result.data.length);
       pass('getPaginatedWarehouseInventory — search filter');
       results.passed++;
     } catch (error) {
