@@ -2,29 +2,32 @@
  * @file inventory-allocation-repository.js
  * @description Database access layer for inventory allocation records.
  *
- * Follows the established repo pattern:
- *  - Query constants and factories imported from inventory-allocation-queries.js
+ * Follows the canonical repository pattern:
+ *  - All SQL lives in inventory-allocation-queries.js — never inlined here
  *  - All errors normalized through handleDbError before bubbling up
  *  - No success logging — middleware and globalErrorHandler own that layer
+ *  - Not-found checks live outside try blocks
  *
- * Exception: getMismatchedAllocationIds uses logSystemWarn for detected
- * mismatches — this is a notable business event, not a success log.
+ * Exception: getMismatchedAllocationIds emits logSystemWarn on detected
+ * mismatches — this is a security-notable business event, not a success log.
  *
  * Exports:
  *  - insertInventoryAllocationsBulk    — bulk upsert with conflict resolution
- *  - updateInventoryAllocationStatus   — bulk status update by allocation id array
- *  - getMismatchedAllocationIds        — CTE validation of allocation ownership
- *  - getInventoryAllocationReview      — full CTE-based allocation review by order
- *  - getPaginatedInventoryAllocations  — CTE-based paginated list with filtering
- *  - getAllocationsByOrderId           — fetch allocations by order with optional id filter
- *  - getAllocationStatuses             — fetch allocation statuses by order/item ids
+ *  - updateInventoryAllocationStatus   — bulk status update by allocation ID array
+ *  - getMismatchedAllocationIds        — CTE-based validation of allocation ownership
+ *  - getInventoryAllocationReview      — full CTE review fetch scoped by order and warehouse
+ *  - getPaginatedInventoryAllocations  — CTE-based paginated list with ACL-scoped filtering
+ *                                        and dedicated count query for correct aggregated row count
+ *  - getAllocationsByOrderId           — fetch allocations by order with optional ID filter
+ *  - getAllocationStatuses             — fetch allocation status codes by order and item IDs
  *  - skuHasActiveAllocations          — EXISTS check for active SKU allocations
  */
 
 'use strict';
 
 const { bulkInsert } = require('../utils/db/write-utils');
-const { query, paginateResults } = require('../database/db');
+const { query } = require('../database/db');
+const { paginateQuery } = require('../utils/db/pagination/pagination-helpers');
 const { validateBulkInsertRows } = require('../utils/validation/bulk-insert-row-validator');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { logDbQueryError, logBulkInsertError } = require('../utils/db-logger');
@@ -44,7 +47,12 @@ const {
   INVENTORY_ALLOCATION_BY_ORDER_BASE,
   INVENTORY_ALLOCATION_STATUSES_BASE,
   SKU_ACTIVE_ALLOCATIONS_QUERY,
+  INVENTORY_ALLOCATION_COUNT_QUERY,
 } = require('./queries/inventory-allocation-queries');
+const { resolveSort } = require('../utils/query/sort-resolver');
+const { SORTABLE_FIELDS } = require('../utils/sort-field-mapping');
+
+const CONTEXT = 'inventory-allocation-repository';
 
 // ─── Insert / Upsert ──────────────────────────────────────────────────────────
 
@@ -61,7 +69,7 @@ const {
  * @throws  {AppError}               Normalized database error if the insert fails.
  */
 const insertInventoryAllocationsBulk = async (allocations, client) => {
-  const context = 'inventory-allocation-repository/insertInventoryAllocationsBulk';
+  const context = `${CONTEXT}/insertInventoryAllocationsBulk`;
   
   const rows = allocations.map((item) => [
     item.order_item_id              ?? null,
@@ -127,7 +135,7 @@ const updateInventoryAllocationStatus = async (
   { statusId, userId, allocationIds },
   client
 ) => {
-  const context = 'inventory-allocation-repository/updateInventoryAllocationStatus';
+  const context = `${CONTEXT}/updateInventoryAllocationStatus`;
   const params  = [statusId, userId, allocationIds];
   
   try {
@@ -167,7 +175,7 @@ const updateInventoryAllocationStatus = async (
 const getMismatchedAllocationIds = async (orderId, allocationIds, client) => {
   if (!allocationIds?.length) return [];
   
-  const context = 'inventory-allocation-repository/getMismatchedAllocationIds';
+  const context = `${CONTEXT}/getMismatchedAllocationIds`;
   const params  = [orderId, allocationIds];
   
   try {
@@ -221,7 +229,7 @@ const getInventoryAllocationReview = async (
   allocationIds,
   client
 ) => {
-  const context = 'inventory-allocation-repository/getInventoryAllocationReview';
+  const context = `${CONTEXT}/getInventoryAllocationReview`;
   const params  = [orderId, warehouseIds, allocationIds];
   
   try {
@@ -249,33 +257,38 @@ const getInventoryAllocationReview = async (
  *
  * Uses a two-level CTE — raw allocation filters applied in the inner CTE,
  * order-level filters applied in the outer WHERE. Params are concatenated
- * in the same order: [...rawAllocParams, ...outerParams].
+ * as [...rawAllocParams, ...outerParams] with a single shared paramIndexRef
+ * so $N placeholders sequence correctly across both clause sets.
  *
- * sortBy must be a raw DB column validated against
- * INVENTORY_ALLOCATION_PAGINATED_SORT_WHITELIST before interpolation.
+ * Sort is resolved via `resolveSort` before being passed to `paginateQuery`.
+ * A dedicated `countQuery` is provided to correctly count aggregated order
+ * rows rather than raw allocation rows.
  *
- * @param {Object}       options
- * @param {Object}       [options.filters={}]              - Field filters.
- * @param {number}       [options.page=1]                  - Page number (1-based).
- * @param {number}       [options.limit=10]                - Records per page.
- * @param {string}       [options.sortBy='o.created_at']   - Whitelisted DB column.
- * @param {'ASC'|'DESC'} [options.sortOrder='DESC']        - Sort direction.
+ * @param {object}       options
+ * @param {object}       [options.filters={}]               - Field filters (see buildInventoryAllocationFilter).
+ * @param {number}       [options.page=1]                   - Page number (1-based).
+ * @param {number}       [options.limit=10]                 - Records per page.
+ * @param {string}       [options.sortBy='orderDate']       - camelCase sort map key (resolved via inventoryAllocationSortMap).
+ * @param {'ASC'|'DESC'} [options.sortOrder='DESC']         - Sort direction.
  *
- * @returns {Promise<Object>} Paginated result with rows and pagination metadata.
- * @throws  {AppError}        Normalized database error if the query fails.
+ * @returns {Promise<PaginatedResult<InventoryAllocationRow>>}
+ * @throws  {AppError} Normalized database error if the query fails.
  */
 const getPaginatedInventoryAllocations = async ({
                                                   filters   = {},
                                                   page      = 1,
                                                   limit     = 10,
-                                                  sortBy    = 'o.created_at',
+                                                  sortBy    = 'orderDate',
                                                   sortOrder = 'DESC',
                                                 }) => {
-  const context = 'inventory-allocation-repository/getPaginatedInventoryAllocations';
+  const context = `${CONTEXT}/getPaginatedInventoryAllocations`;
   
-  if (!INVENTORY_ALLOCATION_PAGINATED_SORT_WHITELIST.has(sortBy)) {
-    sortBy = 'o.created_at';
-  }
+  const sortConfig = resolveSort({
+    sortBy,
+    sortOrder,
+    moduleKey: 'inventoryAllocationSortMap',
+    defaultSort: SORTABLE_FIELDS.inventoryAllocationSortMap.defaultNaturalSort,
+  });
   
   const {
     rawAllocWhereClause,
@@ -284,17 +297,29 @@ const getPaginatedInventoryAllocations = async ({
     outerParams,
   } = buildInventoryAllocationFilter(filters);
   
-  // ORDER BY is appended after whitelist validation — not injectable since
-  // sortBy is constrained to the whitelist above.
-  const queryText = `${INVENTORY_ALLOCATION_BASE_QUERY(rawAllocWhereClause, outerWhereClause)} ORDER BY ${sortBy} ${sortOrder}`;
-  const params    = [...rawAllocParams, ...outerParams];
+  const params = [...rawAllocParams, ...outerParams];
+  
+  const baseQuery = INVENTORY_ALLOCATION_BASE_QUERY(
+    rawAllocWhereClause,
+    outerWhereClause
+  );
+  
+  const countQueryText = INVENTORY_ALLOCATION_COUNT_QUERY(
+    rawAllocWhereClause,
+    outerWhereClause
+  );
   
   try {
-    return await paginateResults({
-      dataQuery: queryText,
+    return await paginateQuery({
+      queryText: baseQuery,
       params,
       page,
       limit,
+      sortBy:       sortConfig.sortBy,
+      sortOrder:    sortConfig.sortOrder,
+      whitelistSet: INVENTORY_ALLOCATION_PAGINATED_SORT_WHITELIST,
+      countQuery:   countQueryText,
+      meta:         { filters, sortBy, sortOrder },
     });
   } catch (error) {
     throw handleDbError(error, {
@@ -302,9 +327,7 @@ const getPaginatedInventoryAllocations = async ({
       message: 'Failed to fetch paginated inventory allocations.',
       meta:    { filters, page, limit, sortBy, sortOrder },
       logFn:   (err) => logDbQueryError(
-        queryText,
-        params,
-        err,
+        baseQuery, params, err,
         { context, filters, page, limit }
       ),
     });
@@ -327,7 +350,7 @@ const getPaginatedInventoryAllocations = async ({
  * @throws  {AppError}               Normalized database error if the query fails.
  */
 const getAllocationsByOrderId = async (orderId, allocationIds = [], client = null) => {
-  const context = 'inventory-allocation-repository/getAllocationsByOrderId';
+  const context = `${CONTEXT}/getAllocationsByOrderId`;
   
   let sql    = INVENTORY_ALLOCATION_BY_ORDER_BASE;
   /** @type {(string | string[])[]} */
@@ -367,7 +390,7 @@ const getAllocationsByOrderId = async (orderId, allocationIds = [], client = nul
  * @throws  {AppError}               Normalized database error if the query fails.
  */
 const getAllocationStatuses = async (orderId, orderItemIds = [], client = null) => {
-  const context = 'inventory-allocation-repository/getAllocationStatuses';
+  const context = `${CONTEXT}/getAllocationStatuses`;
   
   let sql      = INVENTORY_ALLOCATION_STATUSES_BASE;
   /** @type {(string | string[])[]} */
@@ -407,7 +430,7 @@ const getAllocationStatuses = async (orderId, orderItemIds = [], client = null) 
  * @throws  {AppError}         If the query fails.
  */
 const skuHasActiveAllocations = async (skuId, activeAllocationStatusIds, client = null) => {
-  const context = 'inventory-allocation-repository/skuHasActiveAllocations';
+  const context = `${CONTEXT}/skuHasActiveAllocations`;
   
   return existsQuery(
     SKU_ACTIVE_ALLOCATIONS_QUERY,

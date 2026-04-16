@@ -3,12 +3,15 @@
  * @description Transformers for inventory allocation records.
  *
  * Exports:
- *   - extractOrderItemIdsByType                  – partitions order items into SKU and packaging IDs
- *   - transformAllocationResultToInsertRows       – converts allocation results into DB insert rows
- *   - transformAllocationReviewData              – builds minimal review summary from raw allocations
- *   - transformInventoryAllocationReviewRows     – transforms review rows into header + items shape
+ *   - extractOrderItemIdsByType                    – partitions order items into SKU and packaging IDs
+ *   - transformAllocationResultToInsertRows        – converts allocation results into DB insert rows
+ *   - transformAllocationReviewData                – builds minimal review summary from raw allocations
+ *   - transformInventoryAllocationReviewRows       – transforms review rows into header + items shape
  *   - transformPaginatedInventoryAllocationResults – transforms paginated allocation result set
- *   - transformOrderAllocationResponse           – builds final allocation response shape
+ *   - transformOrderAllocationResponse             – builds final allocation response shape
+ *
+ * Internal helpers (not exported):
+ *   - transformInventoryAllocationRow — single-row transformer used by the paginated transformer
  *
  * All functions are pure — no logging, no AppError, no side effects.
  */
@@ -19,10 +22,6 @@ const { getFullName }                   = require('../utils/person-utils');
 const { getProductDisplayName }         = require('../utils/display-name-utils');
 const { formatPackagingMaterialLabel }  = require('../utils/packaging-material-utils');
 const { cleanObject }                   = require('../utils/object-utils');
-const {
-  getBatchSummary,
-  getWarehouseInventoryList,
-}                                       = require('../utils/inventory-utils');
 const { transformPageResult }           = require('../utils/transformer-utils');
 
 /**
@@ -123,8 +122,31 @@ const transformInventoryAllocationReviewRows = (rows = []) => {
   });
   
   const items = rows.map((row) => {
-    const batch  = getBatchSummary(row);
-    const wiList = getWarehouseInventoryList(row);
+    const warehouseInventoryList = (
+      row.batch_type === 'product'
+        ? row.product_batch?.warehouse_inventory
+        : row.batch_type === 'packaging_material'
+          ? row.packaging_material_batch?.warehouse_inventory
+          : []
+    ) ?? [];
+    
+    const batch =
+      row.batch_type === 'product'
+        ? {
+          type:            'product',
+          lotNumber:       row.product_batch?.lot_number,
+          expiryDate:      row.product_batch?.expiry_date,
+          manufactureDate: row.product_batch?.manufacture_date,
+        }
+        : row.batch_type === 'packaging_material'
+          ? {
+            type:            'packaging_material',
+            lotNumber:       row.packaging_material_batch?.lot_number,
+            expiryDate:      row.packaging_material_batch?.expiry_date,
+            manufactureDate: row.packaging_material_batch?.manufacture_date,
+            snapshotName:    row.packaging_material_batch?.material_snapshot_name,
+          }
+          : { type: row.batch_type ?? 'unknown' };
     
     return cleanObject({
       allocationId:         row.allocation_id,
@@ -140,21 +162,27 @@ const transformInventoryAllocationReviewRows = (rows = []) => {
       
       createdBy: {
         id:       row.allocation_created_by,
-        fullName: getFullName(row.allocation_created_by_firstname, row.allocation_created_by_lastname),
+        fullName: getFullName(
+          row.allocation_created_by_firstname,
+          row.allocation_created_by_lastname
+        ),
       },
       updatedBy: {
         id:       row.allocation_updated_by,
-        fullName: getFullName(row.allocation_updated_by_firstname, row.allocation_updated_by_lastname),
+        fullName: getFullName(
+          row.allocation_updated_by_firstname,
+          row.allocation_updated_by_lastname
+        ),
       },
       
       orderItem: {
-        id:               row.order_item_id,
-        orderId:          row.order_id,
-        quantityOrdered:  row.quantity_ordered,
-        statusId:         row.item_status_id,
-        statusName:       row.item_status_name,
-        statusCode:       row.item_status_code,
-        statusDate:       row.item_status_date,
+        id:              row.order_item_id,
+        orderId:         row.order_id,
+        quantityOrdered: row.quantity_ordered,
+        statusId:        row.item_status_id,
+        statusName:      row.item_status_name,
+        statusCode:      row.item_status_code,
+        statusDate:      row.item_status_date,
       },
       
       product: row.product_id
@@ -191,9 +219,9 @@ const transformInventoryAllocationReviewRows = (rows = []) => {
         }
         : null,
       
-      warehouseInventoryList: wiList.map((wi) =>
+      warehouseInventoryList: warehouseInventoryList.map((wi) =>
         cleanObject({
-          id:               wi.warehouse_inventory_id,
+          id:                wi.warehouse_inventory_id,
           warehouseQuantity: wi.warehouse_quantity,
           reservedQuantity:  wi.reserved_quantity,
           statusName:        wi.inventory_status_name,
@@ -227,7 +255,13 @@ const transformInventoryAllocationRow = (row) =>
       code: row.order_status_code,
     },
     customer: {
-      fullName: getFullName(row.customer_firstname, row.customer_lastname),
+      type:        row.customer_type,
+      firstname:   row.customer_firstname,
+      lastname:    row.customer_lastname,
+      companyName: row.customer_company_name,
+      customerName: row.customer_type === 'company'
+        ? row.customer_company_name
+        : getFullName(row.customer_firstname, row.customer_lastname),
     },
     paymentMethod: row.payment_method   ?? null,
     paymentStatus: {
@@ -236,10 +270,16 @@ const transformInventoryAllocationRow = (row) =>
     },
     deliveryMethod: row.delivery_method ?? null,
     
-    orderCreatedAt: row.created_at,
-    orderCreatedBy: getFullName(row.created_by_firstname, row.created_by_lastname),
-    orderUpdatedAt: row.updated_at,
-    orderUpdatedBy: getFullName(row.updated_by_firstname, row.updated_by_lastname),
+    orderCreatedBy: {
+      firstname: row.created_by_firstname,
+      lastname:  row.created_by_lastname,
+      fullName:  getFullName(row.created_by_firstname, row.created_by_lastname),
+    },
+    orderUpdatedBy: {
+      firstname: row.updated_by_firstname,
+      lastname:  row.updated_by_lastname,
+      fullName:  getFullName(row.updated_by_firstname, row.updated_by_lastname),
+    },
     
     itemCount: {
       total:     row.total_items    ?? 0,
@@ -271,8 +311,7 @@ const transformInventoryAllocationRow = (row) =>
  * @returns {Promise<PaginatedResult<InventoryAllocationRow>>}
  */
 const transformPaginatedInventoryAllocationResults = (paginatedResult) =>
-  /** @type {Promise<PaginatedResult<InventoryAllocationRow>>} */
-  (transformPageResult(paginatedResult, transformInventoryAllocationRow));
+  transformPageResult(paginatedResult, transformInventoryAllocationRow);
 
 /**
  * Builds the final order allocation response shape from the business result.

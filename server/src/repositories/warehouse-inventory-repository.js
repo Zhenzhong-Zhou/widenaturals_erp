@@ -30,13 +30,9 @@ const {
 } = require('../database/db');
 const { paginateQuery } = require('../utils/db/pagination/pagination-helpers');
 const { bulkInsert } = require('../utils/db/write-utils');
-const AppError = require('../utils/AppError');
 const {
-  logSystemInfo,
-  logSystemException,
   logSystemWarn,
 } = require('../utils/logging/system-logger');
-const { logError } = require('../utils/logging/logger-helper');
 const { existsQuery } = require('./utils/repository-helper');
 const { buildWarehouseInventoryFilter } = require('../utils/sql/build-warehouse-inventory-filter');
 const { resolveSort } = require('../utils/query/sort-resolver');
@@ -50,6 +46,7 @@ const {
   WAREHOUSE_INVENTORY_CONFLICT_COLUMNS,
   WAREHOUSE_INVENTORY_UPDATE_STRATEGIES,
   UPDATE_WAREHOUSE_INVENTORY_QUANTITY_QUERY,
+  UPDATE_WAREHOUSE_INVENTORY_QUANTITY_WITH_WAREHOUSE_QUERY,
   UPDATE_WAREHOUSE_INVENTORY_STATUS_QUERY,
   UPDATE_WAREHOUSE_INVENTORY_METADATA_QUERY,
   UPDATE_WAREHOUSE_INVENTORY_OUTBOUND_QUERY,
@@ -59,7 +56,11 @@ const {
   WAREHOUSE_SUMMARY_QUERY,
   WAREHOUSE_SUMMARY_BY_STATUS_QUERY,
   WAREHOUSE_PRODUCT_SUMMARY_QUERY,
-  WAREHOUSE_PACKAGING_SUMMARY_QUERY
+  WAREHOUSE_PACKAGING_SUMMARY_QUERY,
+  GET_WAREHOUSE_INVENTORY_QUANTITIES_QUERY,
+  ALLOCATABLE_BATCHES_SORT,
+  buildAllocatableBatchesQuery,
+  SKU_HAS_INVENTORY_QUERY,
 } = require('./queries/warehouse-inventory-queries');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const {
@@ -192,19 +193,25 @@ const insertWarehouseInventoryBulk = async (inventoryRecords, client, meta = {})
 // ── Update quantity (bulk) ──────────────────────────────────────────
 
 /**
- * Bulk updates warehouse and reserved quantities for the given inventory record IDs.
- * Scoped to a single warehouse — records not matching warehouseId are silently skipped.
+ * Bulk updates warehouse quantity, reserved quantity, and inventory status
+ * for a set of warehouse_inventory records.
  *
- * @param {WarehouseInventoryQuantityUpdate[]} updates
- * @param {string}   warehouseId
- * @param {string}   updatedBy
- * @param {PoolClient} client
- * @returns {Promise<WarehouseInventoryRow[]>}
- * @throws {AppError} Normalized database error if any update fails.
+ * Each update row may optionally include a `warehouseId` to scope the UPDATE
+ * to a specific warehouse — used by the adjust quantity API as an atomic ACL
+ * guard. Omitting `warehouseId` matches by primary key only — used by the
+ * allocation confirm flow where warehouse scope is enforced upstream.
+ *
+ * Records that do not match the WHERE condition are silently skipped —
+ * callers should assert the returned row count if strict coverage is required.
+ *
+ * @param {WarehouseInventoryQuantityUpdate[]} updates    - Per-row update inputs.
+ * @param {string}                             updatedBy  - UUID of the acting user.
+ * @param {import('pg').PoolClient}            client     - Transaction client.
+ * @returns {Promise<WarehouseInventoryRow[]>} Updated rows from RETURNING *.
+ * @throws  {AppError} Normalized database error if any update fails.
  */
 const updateWarehouseInventoryQuantityBulk = async (
   updates,
-  warehouseId,
   updatedBy,
   client
 ) => {
@@ -216,17 +223,25 @@ const updateWarehouseInventoryQuantityBulk = async (
   
   try {
     for (const update of updates) {
-      const params = [
-        update.warehouseQuantity,
-        update.reservedQuantity,
-        updatedBy,
-        update.id,
-        warehouseId,
-      ];
+      const withWarehouse = Boolean(update.warehouseId);
       
-      const { rows } = await query(
-        UPDATE_WAREHOUSE_INVENTORY_QUANTITY_QUERY, params, client
-      );
+      const queryText = withWarehouse
+        ? UPDATE_WAREHOUSE_INVENTORY_QUANTITY_WITH_WAREHOUSE_QUERY
+        : UPDATE_WAREHOUSE_INVENTORY_QUANTITY_QUERY;
+      
+      const params = withWarehouse
+        ? [update.warehouseQuantity, update.reservedQuantity, update.statusId, updatedBy, update.id, update.warehouseId]
+        : [update.warehouseQuantity, update.reservedQuantity, update.statusId, updatedBy, update.id];
+      
+      const { rows } = await query(queryText, params, client);
+      
+      if (!rows[0]) {
+        logSystemWarn('Warehouse inventory update matched no rows — possible warehouse ID mismatch or stale record', {
+          context,
+          inventoryId: update.id,
+          warehouseId: update.warehouseId ?? null,
+        });
+      }
       
       if (rows[0]) results.push(rows[0]);
     }
@@ -235,11 +250,11 @@ const updateWarehouseInventoryQuantityBulk = async (
   } catch (error) {
     throw handleDbError(error, {
       context,
-      message: 'Failed to bulk adjust warehouse inventory quantities.',
-      meta:    { warehouseId, updateCount: updates.length },
+      message: 'Failed to bulk update warehouse inventory quantities.',
+      meta:    { updatedBy, updateCount: updates.length },
       logFn:   (err) => logDbQueryError(
         UPDATE_WAREHOUSE_INVENTORY_QUANTITY_QUERY, [], err,
-        { context, warehouseId, updateCount: updates.length }
+        { context, updatedBy, updateCount: updates.length }
       ),
     });
   }
@@ -603,305 +618,134 @@ const getWarehousePackagingSummary = async (warehouseId) => {
   }
 };
 
-// todo:
+/**
+ * Fetches warehouse inventory quantity snapshots for a set of (warehouse, batch) key pairs.
+ *
+ * Uses `unnest($1::uuid[], $2::uuid[])` to match exact pairs positionally —
+ * avoids dynamic SQL construction and correctly excludes cross-joins.
+ *
+ * If fewer rows are returned than keys provided, a warning is emitted for
+ * each missing pair — callers should use `assertInventoryCoverage` if
+ * missing records are unacceptable.
+ *
+ * @param {Array<{ warehouse_id: string, batch_id: string }>} keys     - Pairs to fetch.
+ * @param {import('pg').PoolClient}                           client   - Transaction client.
+ * @returns {Promise<WarehouseInventoryQuantityRow[]>}
+ * @throws  {AppError} Normalized database error if the query fails.
+ */
 const getWarehouseInventoryQuantities = async (keys, client) => {
-  const sql = `
-    SELECT id, warehouse_id, batch_id, warehouse_quantity, reserved_quantity, status_id
-    FROM warehouse_inventory
-    WHERE ${keys
-      .map(
-        (_, i) => `(warehouse_id = $${i * 2 + 1} AND batch_id = $${i * 2 + 2})`
-      )
-      .join(' OR ')}
-  `;
-  const params = keys.flatMap(({ warehouse_id, batch_id }) => [
-    warehouse_id,
-    batch_id,
-  ]);
-
+  const context = `${CONTEXT}/getWarehouseInventoryQuantities`;
+  
+  if (!Array.isArray(keys) || keys.length === 0) return [];
+  
+  const warehouseIds = keys.map((k) => k.warehouse_id);
+  const batchIds     = keys.map((k) => k.batch_id);
+  const params       = [warehouseIds, batchIds];
+  
   try {
-    const result = await query(sql, params, client);
-
+    const result = await query(
+      GET_WAREHOUSE_INVENTORY_QUANTITIES_QUERY,
+      params,
+      client
+    );
+    
     if (result.rows.length !== keys.length) {
       const missingKeys = keys.filter(
         ({ warehouse_id, batch_id }) =>
           !result.rows.some(
             (row) =>
-              row.warehouse_id === warehouse_id && row.batch_id === batch_id
+              row.warehouse_id === warehouse_id &&
+              row.batch_id     === batch_id
           )
       );
-      logSystemWarn('Missing warehouse_inventory records detected', {
-        context:
-          'warehouse-inventory-repository/getWarehouseInventoryQuantities',
+      
+      logSystemWarn('Some warehouse_inventory records not found', {
+        context,
         missingKeys,
         expected: keys.length,
-        found: result.rows.length,
+        found:    result.rows.length,
       });
     }
-
-    if (result.rows.length !== keys.length) {
-      logSystemWarn('Some warehouse_inventory records not found', {
-        context:
-          'warehouse-inventory-repository/getWarehouseInventoryQuantities',
-        expected: keys.length,
-        found: result.rows.length,
-      });
-    }
-
+    
     return result.rows;
   } catch (error) {
-    logSystemException(
-      error,
-      'Failed to fetch multiple warehouse_inventory records',
-      {
-        context:
-          'warehouse-inventory-repository/getWarehouseInventoryQuantities',
-        keys,
-      }
-    );
-    throw AppError.databaseError('Failed to fetch warehouse inventory records');
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to fetch warehouse inventory quantities.',
+      meta:    { keyCount: keys.length },
+      logFn:   (err) => logDbQueryError(
+        GET_WAREHOUSE_INVENTORY_QUANTITIES_QUERY,
+        params,
+        err,
+        { context, keyCount: keys.length }
+      ),
+    });
   }
 };
 
 /**
- * Fetches allocatable inventory batches from a specific warehouse.
+ * Fetches allocatable inventory batches from a specific warehouse for a set of
+ * SKU IDs and packaging material IDs.
  *
- * This query retrieves batch-level inventory records from `warehouse_inventory`
- * and joins related batch metadata from `batch_registry`, `product_batches`,
- * and `packaging_material_batches`. The result provides a unified batch view
- * regardless of whether the batch belongs to:
+ * Only batches meeting all of the following conditions are returned:
+ *  - belong to the specified warehouse
+ *  - have positive warehouse quantity (`warehouse_quantity > 0`)
+ *  - match the specified inventory status ID (typically `inventory_in_stock`)
+ *  - match at least one of the provided SKU IDs or packaging material IDs
  *
- * - a product SKU
- * - a packaging material
+ * Results are ordered by the specified allocation strategy:
+ *  - `fefo` (default) — `expiry_date ASC NULLS LAST`
+ *  - `fifo`           — `inbound_date ASC NULLS LAST`
  *
- * Only batches that meet the following conditions are returned:
- * - belong to the specified warehouse
- * - have positive available quantity (`warehouse_quantity > 0`)
- * - match the specified inventory status (e.g., `inventory_in_stock`)
- * - match the provided SKU IDs or packaging material IDs
+ * Ordering is applied via a whitelisted static query — `options.strategy` is
+ * never interpolated directly into SQL.
  *
- * Allocation strategies can optionally be applied to control batch ordering:
- *
- * - **FIFO**: sorts by `inbound_date`
- * - **FEFO**: sorts by `expiry_date`
- *
- * The ordering determines how batches are consumed during inventory allocation.
- *
- * @param {Object} allocationFilter - Filter criteria for the allocation query.
- * @param {string[]} allocationFilter.skuIds - List of SKU IDs eligible for allocation.
- * @param {string[]} allocationFilter.packagingMaterialIds - List of packaging material IDs eligible for allocation.
- * @param {string} allocationFilter.warehouseId - Warehouse ID to fetch inventory from.
- * @param {string} allocationFilter.inventoryStatusId - Inventory status ID (e.g. `inventory_in_stock`).
- *
- * @param {Object} [options={}] - Optional allocation configuration.
- * @param {'fifo'|'fefo'} [options.strategy] - Batch ordering strategy applied before allocation.
- *
- * @param {Object} [client] - Optional PostgreSQL client used for transactional execution.
- *
- * @returns {Promise<Array<Object>>} Resolves to a list of allocatable batch records.
- *
- * Each returned row contains:
- * - `batch_id`
- * - `warehouse_id`
- * - `warehouse_name`
- * - `warehouse_quantity`
- * - `reserved_quantity`
- * - `expiry_date`
- * - `lot_number`
- * - `batch_type`
- * - `sku_id` (if product batch)
- * - `packaging_material_id` (if packaging batch)
- *
- * @throws {AppError} If the database query fails.
+ * @param {object}   allocationFilter
+ * @param {string[]} allocationFilter.skuIds                - SKU UUIDs eligible for allocation.
+ * @param {string[]} allocationFilter.packagingMaterialIds  - Packaging material UUIDs eligible for allocation.
+ * @param {string}   allocationFilter.warehouseId           - Warehouse UUID to fetch inventory from.
+ * @param {string}   allocationFilter.inventoryStatusId     - Inventory status UUID (e.g. `inventory_in_stock`).
+ * @param {object}              [options={}]
+ * @param {'fefo'|'fifo'}       [options.strategy='fefo']   - Batch ordering strategy.
+ * @param {import('pg').PoolClient} client                  - Transaction client.
+ * @returns {Promise<AllocatableBatch[]>}
+ * @throws  {AppError} Normalized database error if the query fails.
  */
 const getAllocatableBatchesByWarehouse = async (
   allocationFilter = {},
   options = {},
   client
 ) => {
+  const context = `${CONTEXT}/getAllocatableBatchesByWarehouse`;
+  
   const {
-    skuIds = [],
+    skuIds               = [],
     packagingMaterialIds = [],
     warehouseId,
     inventoryStatusId,
   } = allocationFilter;
-
-  const orderByField =
-    options.strategy === 'fefo'
-      ? 'expiry_date'
-      : options.strategy === 'fifo'
-        ? 'inbound_date'
-        : null;
-
-  const orderByClause = orderByField ? `ORDER BY ${orderByField} ASC` : '';
-
-  const sql = `
-    SELECT
-      wi.batch_id,
-      wi.warehouse_id,
-      w.name AS warehouse_name,
-      wi.warehouse_quantity,
-      wi.reserved_quantity,
-      COALESCE(pb.expiry_date, pmb.expiry_date) AS expiry_date,
-      COALESCE(pb.lot_number, pmb.lot_number) AS lot_number,
-      br.batch_type,
-      pb.sku_id,
-      pm.id AS packaging_material_id
-    FROM warehouse_inventory wi
-    JOIN warehouses w ON wi.warehouse_id = w.id
-    JOIN batch_registry br ON wi.batch_id = br.id
-    LEFT JOIN product_batches pb ON br.product_batch_id = pb.id
-    LEFT JOIN packaging_material_batches pmb ON br.packaging_material_batch_id = pmb.id
-    LEFT JOIN packaging_material_suppliers pms ON pmb.packaging_material_supplier_id = pms.id
-    LEFT JOIN packaging_materials pm ON pms.packaging_material_id = pm.id
-    WHERE wi.warehouse_id = $1
-      AND wi.warehouse_quantity > 0
-      AND wi.status_id = $2
-      AND (
-        (pb.sku_id = ANY($3::uuid[]) AND pb.sku_id IS NOT NULL)
-        OR
-        (pm.id = ANY($4::uuid[]) AND pm.id IS NOT NULL)
-      )
-    ${orderByClause}
-  `;
-
+  
+  const orderByClause = ALLOCATABLE_BATCHES_SORT[options.strategy]
+    ?? ALLOCATABLE_BATCHES_SORT.fefo;
+  
+  const queryText = buildAllocatableBatchesQuery(orderByClause);
+  const params    = [warehouseId, inventoryStatusId, skuIds, packagingMaterialIds];
+  
   try {
-    const result = await query(
-      sql,
-      [warehouseId, inventoryStatusId, skuIds, packagingMaterialIds],
-      client
-    );
-
-    logSystemInfo('Fetched allocatable batches by warehouse', {
-      context: 'inventory-repository/getAllocatableBatchesByWarehouse',
-      warehouseId,
-      skuCount: skuIds.length,
-      packagingMaterialCount: packagingMaterialIds.length,
-      strategy: options.strategy ?? 'none',
-      rowCount: result?.rows?.length ?? 0,
-      severity: 'INFO',
-    });
-
+    const result = await query(queryText, params, client);
     return result.rows;
   } catch (error) {
-    logSystemException(error, 'Failed to fetch allocatable batches', {
-      context: 'inventory-repository/getAllocatableBatchesByWarehouse',
-      warehouseId,
-      skuIds,
-      packagingMaterialIds,
-      strategy: options.strategy ?? 'none',
-      severity: 'ERROR',
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to fetch allocatable warehouse inventory batches.',
+      meta:    { warehouseId, skuCount: skuIds.length, packagingMaterialCount: packagingMaterialIds.length },
+      logFn:   (err) => logDbQueryError(
+        queryText,
+        params,
+        err,
+        { context, warehouseId }
+      ),
     });
-
-    throw AppError.databaseError(
-      'Unable to retrieve allocatable warehouse inventory.'
-    );
-  }
-};
-
-/**
- * Retrieves recently inserted warehouse inventory records based on warehouse lot IDs.
- *
- * @param {string[]} warehouseLotIds - An array of warehouse lot IDs.
- * @returns {Promise<Array<{
- *   warehouse_id: string,
- *   warehouse_name: string,
- *   total_records: number,
- *   inventory_records: Array<{
- *     warehouse_lot_id: string,
- *     inventory_id: string,
- *     location_id: string,
- *     quantity: number,
- *     product_name: string,
- *     identifier: string,
- *     inserted_quantity: number,
- *     available_quantity: number,
- *     lot_number: string,
- *     expiry_date: string | null,
- *     manufacture_date: string | null,
- *     inbound_date: string | null,
- *     inventory_created_at: string,
- *     inventory_created_by: string,
- *     inventory_updated_at: string,
- *     inventory_updated_by: string
- *   }>
- * }>>} - Returns an array of warehouse inventory records, grouped by warehouse, including product and lot details.
- * @throws {Error} - Throws an error if the database query fails.
- */
-const getRecentInsertWarehouseInventoryRecords = async (warehouseLotIds) => {
-  const queryText = `
-    WITH lots_data AS (
-      SELECT
-        wil.id AS warehouse_lot_id,
-        wil.warehouse_id,
-        wil.inventory_id,
-        i.location_id,
-        i.quantity AS inventory_qty,
-        wil.quantity AS lot_qty,
-        wil.reserved_quantity AS reserved_qty,
-        wil.lot_number,
-        wil.expiry_date,
-        wil.manufacture_date,
-        wil.created_at AS lot_created_at,
-        COALESCE(u1.firstname, '') || ' ' || COALESCE(u1.lastname, 'Unknown') AS lot_created_by,
-        wil.updated_at AS lot_updated_at,
-        COALESCE(u2.firstname, '') || ' ' || COALESCE(u2.lastname, 'Unknown') AS lot_updated_by,
-        wi.available_quantity,
-        p.product_name,
-        i.identifier,
-        i.product_id
-      FROM warehouse_inventory_lots wil
-      JOIN inventory i ON wil.inventory_id = i.id
-      JOIN warehouse_inventory wi ON wil.inventory_id = wi.inventory_id
-                                   AND wil.warehouse_id = wi.warehouse_id
-      LEFT JOIN users u1 ON wil.created_by = u1.id
-      LEFT JOIN users u2 ON wil.updated_by = u2.id
-      LEFT JOIN products p ON i.product_id = p.id
-      WHERE wil.id = ANY($1::uuid[])
-    )
-    SELECT
-      w.id AS warehouse_id,
-      w.name AS warehouse_name,
-      COUNT(ld.warehouse_lot_id) AS total_records,
-      json_agg(
-        jsonb_strip_nulls(
-          jsonb_build_object(
-            'warehouse_lot_id', ld.warehouse_lot_id,
-            'inventory_id', ld.inventory_id,
-            'location_id', ld.location_id,
-            'inventory_qty', ld.inventory_qty,
-            'lot_qty', ld.lot_qty,
-            'lot_reserved_quantity', ld.reserved_qty,
-            'inserted_quantity', i.quantity,
-            'available_quantity', ld.available_quantity,
-            'lot_number', ld.lot_number,
-            'expiry_date', ld.expiry_date,
-            'manufacture_date', ld.manufacture_date,
-            'inbound_date', i.inbound_date,
-            'lot_created_at', ld.lot_created_at,
-            'lot_created_by', ld.lot_created_by,
-            'lot_updated_at', ld.lot_updated_at,
-            'lot_updated_by', ld.lot_updated_by
-          ) ||
-          CASE
-            WHEN ld.product_id IS NOT NULL
-              THEN jsonb_build_object('product_name', ld.product_name)
-            ELSE jsonb_build_object('identifier', COALESCE(ld.identifier, 'Unknown Item'))
-          END
-        )
-      ) AS inventory_records
-    FROM lots_data ld
-    JOIN warehouses w ON ld.warehouse_id = w.id
-    JOIN inventory i ON ld.inventory_id = i.id
-    GROUP BY w.id, w.name;
-  `;
-
-  try {
-    const { rows } = await query(queryText, [warehouseLotIds]);
-    return rows;
-  } catch (error) {
-    logError('Error executing inventory query:', error);
-    throw error;
   }
 };
 
@@ -928,21 +772,10 @@ const getRecentInsertWarehouseInventoryRecords = async (warehouseLotIds) => {
  *   If the database query fails.
  */
 const skuHasInventory = async (skuId, client = null) => {
-  const context = 'warehouse-inventory-repository/skuHasInventory';
-
-  const queryText = `
-    SELECT 1
-    FROM warehouse_inventory wi
-    JOIN batch_registry br
-      ON wi.batch_id = br.id
-    JOIN product_batches pb
-      ON br.product_batch_id = pb.id
-    WHERE pb.sku_id = $1
-    LIMIT 1
-  `;
-
+  const context = `${CONTEXT}/skuHasInventory`;
+  
   return existsQuery(
-    queryText,
+    SKU_HAS_INVENTORY_QUERY,
     [skuId],
     context,
     'Failed to check SKU inventory dependency',
@@ -964,10 +797,7 @@ module.exports = {
   getWarehouseSummaryByStatus,
   getWarehouseProductSummary,
   getWarehousePackagingSummary,
-  
-  // todo:
   getWarehouseInventoryQuantities,
   getAllocatableBatchesByWarehouse,
-  getRecentInsertWarehouseInventoryRecords,
   skuHasInventory,
 };
