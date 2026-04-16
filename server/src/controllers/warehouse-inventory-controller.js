@@ -37,7 +37,7 @@ const getPaginatedWarehouseInventoryController = wrapAsyncHandler(async (req, re
   const { warehouseId } = req.params;
   const user = req.auth.user;
   
-  const { items, pagination } = await fetchPaginatedWarehouseInventoryService({
+  const { data, pagination } = await fetchPaginatedWarehouseInventoryService({
     filters: { ...filters, warehouseId },
     page,
     limit,
@@ -49,7 +49,8 @@ const getPaginatedWarehouseInventoryController = wrapAsyncHandler(async (req, re
   res.status(200).json({
     success:    true,
     message:    'Warehouse inventory retrieved successfully.',
-    payload:    { items, pagination },
+    data,
+    pagination,
     traceId:    req.traceId,
   });
 });
