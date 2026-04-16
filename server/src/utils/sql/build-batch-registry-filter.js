@@ -2,15 +2,15 @@
  * @file build-batch-registry-filter.js
  * @description SQL WHERE clause builders for batch registry queries.
  *
- * Two cooperating builders — one for inventory scope filtering (lookup),
+ * Two cooperating builders — one for warehouse inventory scope filtering (lookup),
  * one for full paginated filtering with date ranges and keyword search.
  *
  * Both are pure functions — no DB access, no logging, no side effects on inputs.
  * Joi middleware validates inputs upstream; no defensive try/catch needed here.
  *
  * Exports:
- *  - buildBatchRegistryInventoryScopeFilter — WHERE clause for inventory scope lookup
- *  - buildBatchRegistryFilter               — WHERE clause for paginated list
+ *  - buildBatchRegistryInventoryScopeFilter — WHERE clause scoped to warehouse inventory availability
+ *  - buildBatchRegistryFilter               — WHERE clause for paginated batch registry list
  */
 
 'use strict';
@@ -27,19 +27,18 @@ const { addKeywordIlikeGroup } = require('./sql-helpers');
  * Builds a parameterised WHERE clause scoped to inventory availability.
  *
  * Used by getBatchRegistryLookup to surface batches not yet placed in a
- * specific warehouse or location. Conditions use NOT EXISTS subqueries
- * rather than joins to avoid row multiplication from multi-location batches.
+ * specific warehouse. Conditions use NOT EXISTS subqueries rather than
+ * joins to avoid row multiplication from batches placed in multiple warehouses.
  *
- * @param {Object}  [filters={}]
- * @param {string}  [filters.batchType]    - Filter by batch type ('product' | 'packaging_material').
- * @param {string}  [filters.warehouseId]  - Exclude batches already in this warehouse.
- * @param {string}  [filters.locationId]   - Exclude batches already in this location.
+ * @param {object} [filters={}]
+ * @param {string} [filters.batchType]   - Filter by batch type (`'product'` or `'packaging_material'`).
+ * @param {string} [filters.warehouseId] - Exclude batches already assigned to this warehouse UUID.
  *
  * @returns {{ whereClause: string, params: Array }} Parameterised WHERE clause and bound values.
  */
 const buildBatchRegistryInventoryScopeFilter = (filters = {}) => {
-  const conditions  = ['1=1'];
-  const params      = [];
+  const conditions    = ['1=1'];
+  const params        = [];
   const paramIndexRef = { value: 1 };
   
   if (filters.batchType) {
@@ -49,27 +48,14 @@ const buildBatchRegistryInventoryScopeFilter = (filters = {}) => {
   }
   
   if (filters.warehouseId) {
-    // NOT EXISTS avoids row multiplication from batches placed in multiple locations.
     conditions.push(`
       NOT EXISTS (
         SELECT 1 FROM warehouse_inventory wi
-        WHERE wi.batch_id = br.id
+        WHERE wi.batch_id    = br.id
           AND wi.warehouse_id = $${paramIndexRef.value}
       )
     `);
     params.push(filters.warehouseId);
-    paramIndexRef.value++;
-  }
-  
-  if (filters.locationId) {
-    conditions.push(`
-      NOT EXISTS (
-        SELECT 1 FROM location_inventory li
-        WHERE li.batch_id = br.id
-          AND li.location_id = $${paramIndexRef.value}
-      )
-    `);
-    params.push(filters.locationId);
     paramIndexRef.value++;
   }
   

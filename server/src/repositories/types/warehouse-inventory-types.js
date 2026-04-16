@@ -84,9 +84,11 @@
 
 /**
  * @typedef {object} WarehouseInventoryQuantityUpdate
- * @property {string} id
- * @property {number} warehouseQuantity
- * @property {number} reservedQuantity
+ * @property {string}      id                - warehouse_inventory row UUID
+ * @property {number}      warehouseQuantity  - updated warehouse quantity
+ * @property {number}      reservedQuantity   - updated reserved quantity
+ * @property {string}      statusId           - inventory status UUID (in-stock or out-of-stock)
+ * @property {string}      [warehouseId]      - warehouse UUID — required for adjust quantity API, omitted for allocation confirm
  */
 
 /**
@@ -249,4 +251,35 @@
  * @property {string}      total_reserved
  * @property {string}      total_available
  * @property {string|null} earliest_expiry
+ */
+
+/**
+ * @typedef {object} WarehouseInventoryQuantityRow
+ * @property {string} id
+ * @property {string} warehouse_id
+ * @property {string} batch_id
+ * @property {number} warehouse_quantity
+ * @property {number} reserved_quantity
+ * @property {string} status_id
+ */
+
+/**
+ * @typedef {object} AllocatableBatchRow
+ * @property {string} warehouse_inventory_id
+ * @property {string} batch_id
+ * @property {string} warehouse_id
+ * @property {string} warehouse_name
+ * @property {number} warehouse_quantity
+ * @property {number} reserved_quantity
+ * @property {string|null} expiry_date
+ * @property {string|null} lot_number
+ * @property {string|null} inbound_date
+ * @property {string} batch_type
+ * @property {string|null} sku_id
+ * @property {string|null} packaging_material_id
+ */
+
+/**
+ * @typedef {object} SkuHasInventoryRow
+ * @property {1} '?column?'
  */

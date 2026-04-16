@@ -118,23 +118,22 @@ const buildSkuProductCardFilters = (filters = {}) => {
 /**
  * Builds a parameterised SQL WHERE clause for the SKU dropdown/lookup query.
  *
- * When allowAllSkus is false, productStatusId is required and active status
- * filtering is enforced on both the product and SKU rows.
+ * When `allowAllSkus` is false, `productStatusId` is required and active status
+ * filtering is enforced on both the product and SKU rows. Stock availability
+ * is checked against warehouse inventory only.
  *
- * @param {string}   productStatusId        - Active status UUID; required when allowAllSkus is false.
- * @param {Object}   [filters={}]           - Field filters keyed by skuProductCards sort map.
- * @param {Function} [keywordHandler]       - Custom keyword condition factory.
- * @param {Object}   [options={}]
- * @param {boolean}  [options.allowAllSkus] - If true, skips status enforcement.
- * @param {boolean}  [options.requireAvailableStock]
- * @param {string}   [options.requireAvailableStockFrom] - 'warehouse' | 'location' | 'both'
- * @param {string}   [options.batchStatusId]
- * @param {string}   [options.inventoryStatusId]
- * @param {string}   [options.warehouseId]
- * @param {string}   [options.locationId]
+ * @param {string}   productStatusId               - Active status UUID; required when allowAllSkus is false.
+ * @param {object}   [filters={}]                  - Field filters keyed by skuProductCards sort map.
+ * @param {Function} [keywordHandler]              - Custom keyword condition factory.
+ * @param {object}   [options={}]
+ * @param {boolean}  [options.allowAllSkus]        - If true, skips status and stock enforcement.
+ * @param {boolean}  [options.requireAvailableStock] - If true, enforces warehouse stock EXISTS check.
+ * @param {string}   [options.batchStatusId]       - UUID to filter by product batch status.
+ * @param {string}   [options.inventoryStatusId]   - UUID to filter by warehouse inventory status.
+ * @param {string}   [options.warehouseId]         - UUID to scope stock check to a specific warehouse.
  *
  * @returns {{ whereClause: string, params: Array }}
- * @throws  {AppError} Validation error if productStatusId is absent when required.
+ * @throws  {AppError} `validationError` — if productStatusId is absent when allowAllSkus is false.
  */
 const buildWhereClauseAndParams = (
   productStatusId,
@@ -142,11 +141,10 @@ const buildWhereClauseAndParams = (
   keywordHandler,
   options = {}
 ) => {
-  const stockSource = options.requireAvailableStockFrom ?? 'warehouse';
-  const fieldMap    = SORTABLE_FIELDS.skuProductCards;
-  const conditions  = [];
-  const params      = [];
-  let paramIndex    = 1;
+  const fieldMap   = SORTABLE_FIELDS.skuProductCards;
+  const conditions = [];
+  const params     = [];
+  let paramIndex   = 1;
   
   if (!options.allowAllSkus) {
     if (!productStatusId) {
@@ -189,74 +187,36 @@ const buildWhereClauseAndParams = (
     }
   }
   
-  // ─── Stock availability EXISTS clauses ────────────────────────────────────────
-  
-  const existsClauses = [];
+  // ─── Stock availability EXISTS clause ─────────────────────────────────────────
   
   if (options.requireAvailableStock && !options.allowAllSkus) {
-    if (stockSource === 'warehouse' || stockSource === 'both') {
-      let clause = `
-        EXISTS (
-          SELECT 1
-          FROM warehouse_inventory wi
-          JOIN batch_registry br       ON br.id = wi.batch_id
-          JOIN product_batches pb      ON br.product_batch_id = pb.id
-          WHERE pb.sku_id = s.id
-            AND wi.warehouse_quantity > 0
-      `;
-      
-      if (options.batchStatusId) {
-        clause += ` AND pb.status_id = $${paramIndex++}`;
-        params.push(options.batchStatusId);
-      }
-      
-      if (options.inventoryStatusId) {
-        clause += ` AND wi.status_id = $${paramIndex++}`;
-        params.push(options.inventoryStatusId);
-      }
-      
-      if (options.warehouseId) {
-        clause += ` AND wi.warehouse_id = $${paramIndex++}`;
-        params.push(options.warehouseId);
-      }
-      
-      clause += `)`;
-      existsClauses.push(clause);
+    let clause = `
+      EXISTS (
+        SELECT 1
+        FROM warehouse_inventory wi
+        JOIN batch_registry br  ON br.id = wi.batch_id
+        JOIN product_batches pb ON br.product_batch_id = pb.id
+        WHERE pb.sku_id = s.id
+          AND wi.warehouse_quantity > 0
+    `;
+    
+    if (options.batchStatusId) {
+      clause += ` AND pb.status_id = $${paramIndex++}`;
+      params.push(options.batchStatusId);
     }
     
-    if (stockSource === 'location' || stockSource === 'both') {
-      let clause = `
-        EXISTS (
-          SELECT 1
-          FROM location_inventory li
-          JOIN batch_registry br       ON br.id = li.batch_id
-          JOIN product_batches pb      ON br.product_batch_id = pb.id
-          WHERE pb.sku_id = s.id
-            AND li.location_quantity > 0
-      `;
-      
-      if (options.batchStatusId) {
-        clause += ` AND pb.status_id = $${paramIndex++}`;
-        params.push(options.batchStatusId);
-      }
-      
-      if (options.inventoryStatusId) {
-        clause += ` AND li.status_id = $${paramIndex++}`;
-        params.push(options.inventoryStatusId);
-      }
-      
-      if (options.locationId) {
-        clause += ` AND li.location_id = $${paramIndex++}`;
-        params.push(options.locationId);
-      }
-      
-      clause += `)`;
-      existsClauses.push(clause);
+    if (options.inventoryStatusId) {
+      clause += ` AND wi.status_id = $${paramIndex++}`;
+      params.push(options.inventoryStatusId);
     }
-  }
-  
-  if (existsClauses.length > 0) {
-    conditions.push(`(${existsClauses.join(' OR ')})`);
+    
+    if (options.warehouseId) {
+      clause += ` AND wi.warehouse_id = $${paramIndex++}`;
+      params.push(options.warehouseId);
+    }
+    
+    clause += `)`;
+    conditions.push(clause);
   }
   
   const whereClause = conditions.length > 0 ? conditions.join(' AND ') : '1=1';

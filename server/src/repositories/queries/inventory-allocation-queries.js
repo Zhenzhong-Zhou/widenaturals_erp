@@ -6,18 +6,19 @@
  * constants with conditional appends in the repository — both are documented here.
  *
  * Exports:
- *  - INVENTORY_ALLOCATION_INSERT_COLUMNS       — ordered column list for bulk insert
- *  - INVENTORY_ALLOCATION_CONFLICT_COLUMNS     — upsert conflict target columns
- *  - INVENTORY_ALLOCATION_UPDATE_STRATEGIES    — conflict update strategies
- *  - INVENTORY_ALLOCATION_EXTRA_UPDATES        — extra SET clauses for conflict update
- *  - INVENTORY_ALLOCATION_UPDATE_STATUS_QUERY  — update status by id array
- *  - INVENTORY_ALLOCATION_MISMATCHED_IDS_QUERY — CTE to find mismatched allocation ids
- *  - INVENTORY_ALLOCATION_REVIEW_QUERY         — CTE-based full allocation review
- *  - INVENTORY_ALLOCATION_PAGINATED_SORT_WHITELIST — valid sort fields for paginated query
- *  - INVENTORY_ALLOCATION_BASE_QUERY           — base CTE for paginated allocations
- *  - INVENTORY_ALLOCATION_BY_ORDER_BASE        — base query for getAllocationsByOrderId
- *  - INVENTORY_ALLOCATION_STATUSES_BASE        — base query for getAllocationStatuses
- *  - SKU_ACTIVE_ALLOCATIONS_QUERY              — exists check for active SKU allocations
+ *  - INVENTORY_ALLOCATION_INSERT_COLUMNS           — ordered column list for bulk insert
+ *  - INVENTORY_ALLOCATION_CONFLICT_COLUMNS         — upsert conflict target columns
+ *  - INVENTORY_ALLOCATION_UPDATE_STRATEGIES        — conflict update strategies
+ *  - INVENTORY_ALLOCATION_EXTRA_UPDATES            — extra SET clauses for conflict update
+ *  - INVENTORY_ALLOCATION_UPDATE_STATUS_QUERY      — update status by id array
+ *  - INVENTORY_ALLOCATION_MISMATCHED_IDS_QUERY     — CTE to find mismatched allocation ids
+ *  - INVENTORY_ALLOCATION_REVIEW_QUERY             — CTE-based full allocation review
+ *  - INVENTORY_ALLOCATION_PAGINATED_SORT_WHITELIST — valid sort columns for paginated query
+ *  - INVENTORY_ALLOCATION_BASE_QUERY               — base CTE for paginated allocations
+ *  - INVENTORY_ALLOCATION_COUNT_QUERY              — lean CTE count query aligned with outer WHERE
+ *  - INVENTORY_ALLOCATION_BY_ORDER_BASE            — base query for getAllocationsByOrderId
+ *  - INVENTORY_ALLOCATION_STATUSES_BASE            — base query for getAllocationStatuses
+ *  - SKU_ACTIVE_ALLOCATIONS_QUERY                  — exists check for active SKU allocations
  */
 
 'use strict';
@@ -174,8 +175,11 @@ const INVENTORY_ALLOCATION_REVIEW_QUERY = `
     LEFT JOIN warehouses w          ON w.id = wi.warehouse_id
     JOIN input_ids x ON TRUE
     WHERE
-      COALESCE(cardinality(x.warehouse_ids), 0) = 0
-      OR wi.warehouse_id = ANY(x.warehouse_ids)
+      wi.batch_id = ANY(SELECT batch_id FROM selected_allocations)
+      AND (
+        COALESCE(cardinality(x.warehouse_ids), 0) = 0
+        OR wi.warehouse_id = ANY(x.warehouse_ids)
+      )
     GROUP BY wi.batch_id
   )
   SELECT
@@ -277,14 +281,15 @@ const INVENTORY_ALLOCATION_REVIEW_QUERY = `
 
 // ─── Paginated Allocations ────────────────────────────────────────────────────
 
-// Valid sort fields — raw DB columns since no sort map is registered for this domain.
-// sortBy must be validated against this set before being interpolated into the query.
+// Sort columns resolved from SORTABLE_FIELDS.inventoryAllocationSortMap.
+// Validation is performed by paginateQuery via buildPaginatedQuery.
 const INVENTORY_ALLOCATION_PAGINATED_SORT_WHITELIST = new Set(
   Object.values(SORTABLE_FIELDS.inventoryAllocationSortMap)
 );
 
-// CTE-based paginated query — ORDER BY is appended by the repository after
-// whitelist validation. Params are split: rawAllocParams first, outerParams after.
+// CTE-based paginated list query. ORDER BY / LIMIT / OFFSET are appended by
+// paginateQuery. Filter builder returns two WHERE clauses and two param arrays;
+// repository concatenates them as [...rawAllocParams, ...outerParams].
 const INVENTORY_ALLOCATION_BASE_QUERY = (
   rawAllocWhereClause,
   outerWhereClause
@@ -328,15 +333,17 @@ const INVENTORY_ALLOCATION_BASE_QUERY = (
     FROM order_items oi
     GROUP BY oi.order_id
   )
-  SELECT
+   SELECT
     o.id                            AS order_id,
     o.order_number,
     ot.name                         AS order_type,
     ot.category                     AS order_category,
     os.name                         AS order_status_name,
     os.code                         AS order_status_code,
+    c.customer_type,
     c.firstname                     AS customer_firstname,
     c.lastname                      AS customer_lastname,
+    c.company_name                  AS customer_company_name,
     pm.name                         AS payment_method,
     ps.name                         AS payment_status_name,
     ps.code                         AS payment_status_code,
@@ -369,6 +376,32 @@ const INVENTORY_ALLOCATION_BASE_QUERY = (
   LEFT JOIN order_status os           ON os.id = o.order_status_id
   LEFT JOIN users u1                  ON u1.id = o.created_by
   LEFT JOIN users u2                  ON u2.id = o.updated_by
+  WHERE ${outerWhereClause}
+`;
+
+// Lean count query — mirrors the outer WHERE clause's JOIN dependencies
+// (sales_orders + customers for keyword/paymentStatusId) but drops display-only
+// JOINs and aggregation columns. COUNT(*) is correct at the aa-row level since
+// raw_alloc groups by order_id.
+const INVENTORY_ALLOCATION_COUNT_QUERY = (
+  rawAllocWhereClause,
+  outerWhereClause
+) => `
+  WITH raw_alloc AS (
+    SELECT
+      oi.order_id,
+      MIN(ia.allocated_at)   AS allocated_at,
+      MIN(ia.created_at)     AS allocated_created_at
+    FROM inventory_allocations ia
+    JOIN order_items oi ON oi.id = ia.order_item_id
+    WHERE ${rawAllocWhereClause}
+    GROUP BY oi.order_id
+  )
+  SELECT COUNT(*) AS count
+  FROM raw_alloc aa
+  JOIN orders o              ON o.id = aa.order_id
+  LEFT JOIN sales_orders so  ON so.id = o.id
+  LEFT JOIN customers c      ON c.id = so.customer_id
   WHERE ${outerWhereClause}
 `;
 
@@ -430,6 +463,7 @@ module.exports = {
   INVENTORY_ALLOCATION_REVIEW_QUERY,
   INVENTORY_ALLOCATION_PAGINATED_SORT_WHITELIST,
   INVENTORY_ALLOCATION_BASE_QUERY,
+  INVENTORY_ALLOCATION_COUNT_QUERY,
   INVENTORY_ALLOCATION_BY_ORDER_BASE,
   INVENTORY_ALLOCATION_STATUSES_BASE,
   SKU_ACTIVE_ALLOCATIONS_QUERY,
