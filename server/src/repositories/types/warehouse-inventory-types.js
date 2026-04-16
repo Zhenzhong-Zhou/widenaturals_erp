@@ -13,6 +13,111 @@
  * @property {boolean} [forceEmptyResult]
  */
 
+// ─── Transformer Output Types ─────────────────────────────────────────────────
+
+/**
+ * @typedef {Object} WarehouseInventoryStatus
+ * @property {string}      id
+ * @property {string}      name
+ * @property {string|null} date
+ */
+
+/**
+ * @typedef {Object} WarehouseInventoryBase
+ * @property {string}                    id
+ * @property {string}                    batchId
+ * @property {string}                    batchType
+ * @property {number}                    warehouseQuantity
+ * @property {number}                    reservedQuantity
+ * @property {number}                    availableQuantity
+ * @property {string}                    warehouseFee
+ * @property {string|null}              inboundDate
+ * @property {string|null}              outboundDate
+ * @property {string|null}              lastMovementAt
+ * @property {WarehouseInventoryStatus}  status
+ */
+
+/**
+ * @typedef {Object} ProductBatchInfo
+ * @property {string}      id
+ * @property {string}      lotNumber
+ * @property {string|null} expiryDate
+ */
+
+/**
+ * @typedef {Object} SkuInfo
+ * @property {string}      id
+ * @property {string}      sku
+ * @property {string|null} barcode
+ * @property {string|null} sizeLabel
+ * @property {string|null} countryCode
+ * @property {string|null} marketRegion
+ */
+
+/**
+ * @typedef {Object} ProductDetail
+ * @property {string}      id
+ * @property {string}      name
+ * @property {string|null} brand
+ */
+
+/**
+ * @typedef {Object} ManufacturerInfo
+ * @property {string} id
+ * @property {string} name
+ */
+
+/**
+ * @typedef {Object} ProductInfo
+ * @property {ProductBatchInfo}  batch
+ * @property {SkuInfo}           sku
+ * @property {ProductDetail}     product
+ * @property {ManufacturerInfo}  manufacturer
+ */
+
+/**
+ * @typedef {Object} PackagingBatchInfo
+ * @property {string}      id
+ * @property {string}      lotNumber
+ * @property {string|null} displayName
+ * @property {string|null} expiryDate
+ */
+
+/**
+ * @typedef {Object} PackagingMaterialInfo
+ * @property {string} id
+ * @property {string} code
+ */
+
+/**
+ * @typedef {Object} SupplierInfo
+ * @property {string} id
+ * @property {string} name
+ */
+
+/**
+ * @typedef {Object} PackagingInfo
+ * @property {PackagingBatchInfo}     batch
+ * @property {PackagingMaterialInfo}  material
+ * @property {SupplierInfo}           supplier
+ */
+
+/**
+ * @typedef {WarehouseInventoryBase & { batchType: 'product', productInfo: ProductInfo, packagingInfo: null }} ProductWarehouseInventoryRecord
+ */
+
+/**
+ * @typedef {WarehouseInventoryBase & { batchType: 'packaging_material', productInfo: null, packagingInfo: PackagingInfo }} PackagingWarehouseInventoryRecord
+ */
+
+/**
+ * @typedef {WarehouseInventoryBase & { batchType: string, productInfo: null, packagingInfo: null }} UnknownWarehouseInventoryRecord
+ */
+
+/**
+ * @typedef {ProductWarehouseInventoryRecord | PackagingWarehouseInventoryRecord | UnknownWarehouseInventoryRecord} WarehouseInventoryRecord
+ */
+
 /**
  * @typedef {object} WarehouseInventoryRow
  * @property {string}      id
@@ -21,7 +126,7 @@
  * @property {number}      warehouse_quantity
  * @property {number}      reserved_quantity
  * @property {number}      available_quantity
- * @property {number}      warehouse_fee
+ * @property {string}      warehouse_fee
  * @property {string}      inbound_date
  * @property {string|null} outbound_date
  * @property {string|null} last_movement_at
@@ -50,23 +155,6 @@
  * @property {string|null} packaging_material_code
  * @property {string|null} supplier_id
  * @property {string|null} supplier_name
- */
-
-/**
- * @typedef {object} WarehouseInventoryRecord
- * @property {string}      id
- * @property {string}      batchId
- * @property {string}      batchType
- * @property {number}      warehouseQuantity
- * @property {number}      reservedQuantity
- * @property {number}      availableQuantity
- * @property {number}      warehouseFee
- * @property {string}      inboundDate
- * @property {string|null} outboundDate
- * @property {string|null} lastMovementAt
- * @property {object}      status
- * @property {object}      productInfo
- * @property {object}      packagingInfo
  */
 
 /**
