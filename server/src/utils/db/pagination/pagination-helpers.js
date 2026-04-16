@@ -32,14 +32,18 @@ const { validateSortingConfig } = require('../../query/sort-validator');
  * SORTING RULES:
  * - Cannot mix rawOrderBy with dynamic sorting
  * - whitelistSet is required for dynamic sorting
- * - defaultSort is recommended to ensure deterministic ordering
+ * - defaultSort is strongly recommended; otherwise callers should provide sortBy
  *
  * PAGINATION:
  * - Converts page → offset internally
  * - Uses LIMIT/OFFSET with parameter binding
  *
  * COUNT BEHAVIOR:
- * - Executes COUNT query by default
+ * - Executes COUNT query by default unless skipCount = true
+ * - Supports two COUNT modes:
+ *   1) Custom count query via countQuery
+ *   2) Generated count query via tableName + joins + whereClause
+ * - If skipCount = false and countQuery is not provided, tableName is required
  * - If skipCount = true:
  *   - totalRecords and totalPages will be null
  *   - improves performance for large datasets
@@ -50,7 +54,7 @@ const { validateSortingConfig } = require('../../query/sort-validator');
  *
  * @param {Object} options
  * @param {string} options.queryText - Base SELECT query (without ORDER BY / LIMIT / OFFSET)
- * @param {string} options.tableName - Table used for COUNT query
+ * @param {string} [options.tableName] - Table used for generated COUNT query when countQuery is not provided
  * @param {string[]} [options.joins=[]] - JOIN clauses (trusted SQL)
  * @param {string} [options.whereClause='1=1'] - WHERE clause (trusted SQL)
  * @param {any[]} [options.params=[]] - Query parameters
@@ -69,7 +73,8 @@ const { validateSortingConfig } = require('../../query/sort-validator');
  * @param {import('pg').Pool|import('pg').PoolClient} [options.clientOrPool]
  * @param {Object} [options.meta={}] - Additional metadata for logging
  *
- * @param {boolean} [options.skipCount=false] - Skip COUNT query
+ * @param {boolean} [options.skipCount=false] - Skip COUNT query entirely
+ * @param {string} [options.countQuery] - Optional custom COUNT query; overrides generated count query
  *
  * @returns {Promise<{
  *   data: any[],
@@ -101,6 +106,7 @@ const paginateQuery = async ({
                                meta = {},
                                skipCount = false,
                                defaultSort,
+                               countQuery,
                              }) => {
   const context = 'pagination-helpers/paginateQuery';
   
@@ -118,6 +124,17 @@ const paginateQuery = async ({
   
   if (!queryText || typeof queryText !== 'string') {
     throw AppError.validationError('Invalid queryText', { context });
+  }
+  
+  if (countQuery != null && typeof countQuery !== 'string') {
+    throw AppError.validationError('Invalid countQuery', { context });
+  }
+  
+  if (!countQuery && (!tableName || typeof tableName !== 'string')) {
+    throw AppError.validationError(
+      'tableName is required when countQuery is not provided.',
+      { context }
+    );
   }
   
   //--------------------------------------------------
@@ -172,7 +189,7 @@ const paginateQuery = async ({
   //--------------------------------------------------
   // Build count query
   //--------------------------------------------------
-  const countQueryText = generateCountQuery(
+  const countQueryText = countQuery || generateCountQuery(
     tableName,
     joins,
     whereClause

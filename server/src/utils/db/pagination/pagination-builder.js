@@ -150,7 +150,7 @@ const buildPaginatedQuery = ({
                                additionalSorts = [],
                                rawOrderBy,
                                paramIndex,
-                               defaultSort = 'id',
+                               defaultSort,
                                whitelistSet,
                              }) => {
   const context = 'pagination/buildPaginatedQuery';
@@ -194,6 +194,10 @@ const buildPaginatedQuery = ({
   // Resolve primary sort
   //--------------------------------------------------
   const primarySort = sortBy || defaultSort;
+  
+  if (!primarySort) {
+    throw AppError.validationError('Missing sortBy/defaultSort', { context });
+  }
   
   //--------------------------------------------------
   // Build ORDER BY

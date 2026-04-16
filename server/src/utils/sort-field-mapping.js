@@ -629,45 +629,29 @@ const SORTABLE_FIELDS = {
     defaultNaturalSort: 'o.created_at',
   },
   inventoryAllocationSortMap: {
-    // Allocation-level summary fields (FROM alloc_agg aa)
-    allocationStatus: 'aa.allocation_summary_status', // derived field
-    allocationStatusCodes: 'aa.allocation_status_codes', // raw code array
-    allocationStatuses: 'aa.allocation_statuses', // raw label string
-    allocatedAt: 'aa.allocated_at',
-    allocatedCreatedAt: 'aa.allocated_created_at',
-
-    // Warehouse display info (FROM alloc_agg aa)
-    warehouseNames: 'aa.warehouse_names',
-
-    // Order-level fields (FROM orders o)
-    orderNumber: 'o.order_number',
-    orderDate: 'o.created_at',
-    orderType: 'ot.name',
-    orderStatus: 'os.name',
-    orderStatusDate: 'o.status_date',
-
-    // Customer
-    customerName: `c.firstname`, // or use a concat if you have a full name
-    customerFirstName: 'c.firstname',
-    customerLastName: 'c.lastname',
-
-    // Payment-related
-    paymentMethod: 'pm.name',
-    paymentStatus: 'ps.name',
-    deliveryMethod: 'dm.method_name',
-
-    // Audit fields
-    orderCreatedAt: 'o.created_at',
-    orderUpdatedAt: 'o.updated_at', // not selected, optional
-    orderCreatedByFirstName: 'u.firstname',
-    orderCreatedByLastName: 'u.lastname',
-
-    // Item counts
-    totalItems: 'ic.total_items',
-    allocatedItems: 'aa.allocated_items',
-
-    // Fallback default
-    defaultNaturalSort: 'o.created_at',
+    allocationStatus:      'aa.allocation_summary_status',
+    allocationStatuses:    'aa.allocation_statuses',
+    allocatedAt:           'aa.allocated_at',
+    allocatedCreatedAt:    'aa.allocated_created_at',
+    warehouseNames:        'aa.warehouse_names',
+    allocatedItems:        'aa.allocated_items',
+    orderNumber:           'o.order_number',
+    orderDate:             'o.created_at',
+    orderType:             'ot.name',
+    orderStatus:           'os.name',
+    customerName:          `CASE WHEN c.customer_type = 'company' THEN c.company_name ELSE c.firstname || ' ' || c.lastname END`,
+    customerFirstName:     'c.firstname',
+    customerLastName:      'c.lastname',
+    customerCompanyName:   'c.company_name',
+    paymentMethod:         'pm.name',
+    paymentStatus:         'ps.name',
+    deliveryMethod:        'dm.method_name',
+    createdByFirstName:    'u1.firstname',
+    createdByLastName:     'u1.lastname',
+    updatedByFirstName:    'u2.firstname',
+    updatedByLastName:     'u2.lastname',
+    totalItems:            'ic.total_items',
+    defaultNaturalSort:    'o.created_at',
   },
   outboundShipmentSortMap: {
     // Shipment-level fields (FROM outbound_shipments os)
