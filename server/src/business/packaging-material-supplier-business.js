@@ -22,7 +22,7 @@ const evaluatePackagingMaterialSupplierLookupAccessControl =
     context: 'packaging-material-supplier-lookup',
     permissionsMap: {
       canViewAllStatuses: PERMISSIONS.VIEW_ALL_PACKAGING_MATERIAL_SUPPLIERS,
-      canViewArchived:    PERMISSIONS.VIEW_ARCHIVED_PACKAGING_MATERIAL_SUPPLIERS,
+      canViewArchived: PERMISSIONS.VIEW_ARCHIVED_PACKAGING_MATERIAL_SUPPLIERS,
     },
   });
 
@@ -44,20 +44,20 @@ const enforcePackagingMaterialSupplierLookupVisibilityRules = (
   activeStatusId
 ) => {
   const adjusted = { ...filters };
-  
+
   if (!userAccess.canViewAllStatuses) {
     adjusted.enforceActiveOnly = true;
-    adjusted.activeStatusId    = activeStatusId;
+    adjusted.activeStatusId = activeStatusId;
   } else {
     delete adjusted.enforceActiveOnly;
     delete adjusted.activeStatusId;
   }
-  
+
   // Archived records excluded by default — elevated users may opt in explicitly.
   adjusted.includeArchived = userAccess.canViewArchived
     ? filters.includeArchived === true
     : false;
-  
+
   return adjusted;
 };
 
@@ -74,9 +74,9 @@ const enrichPackagingMaterialSupplierLookupWithActiveFlag = (
 ) => {
   return {
     ...row,
-    isActive:    row.status_id === activeStatusId,
+    isActive: row.status_id === activeStatusId,
     isPreferred: row.is_preferred ?? false,
-    isArchived:  row.is_archived === true,
+    isArchived: row.is_archived === true,
   };
 };
 

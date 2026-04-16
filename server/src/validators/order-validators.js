@@ -161,15 +161,15 @@ const orderQuerySchema = paginationSchema
   .concat(createdDateRangeSchema)
   .concat(statusDateRangeSchema)
   .keys({
-    keyword:       validateOptionalString('Keyword'),
-    orderNumber:   validateOptionalString('Order number'),
+    keyword: validateOptionalString('Keyword'),
+    orderNumber: validateOptionalString('Order number'),
     orderCategory: validateOptionalString('Order Category'),
-    orderTypeId:   validateOptionalUUID('Order Type ID'),
+    orderTypeId: validateOptionalUUID('Order Type ID'),
     orderStatusId: validateOptionalUUID('Order Status ID'),
-    customerType:  validateOptionalString('Customer Type'),
-    customerName:  validateOptionalString('Customer Name'),
-    createdBy:     validateOptionalUUID('Created By'),
-    updatedBy:     validateOptionalUUID('Updated By'),
+    customerType: validateOptionalString('Customer Type'),
+    customerName: validateOptionalString('Customer Name'),
+    createdBy: validateOptionalUUID('Created By'),
+    updatedBy: validateOptionalUUID('Updated By'),
   });
 
 /**

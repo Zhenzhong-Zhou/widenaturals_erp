@@ -31,28 +31,28 @@ const CONTEXT = 'manufacturer-business';
  */
 const evaluateManufacturerVisibilityAccessControl = async (user) => {
   const context = `${CONTEXT}/evaluateManufacturerVisibilityAccessControl`;
-  
+
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     const canViewAllManufacturers =
       isRoot ||
       permissions.includes(
         MANUFACTURER_CONSTANTS.PERMISSIONS.VIEW_ALL_MANUFACTURERS_VISIBILITY
       );
-    
+
     const canViewArchived =
       canViewAllManufacturers ||
       permissions.includes(
         MANUFACTURER_CONSTANTS.PERMISSIONS.VIEW_ARCHIVED_MANUFACTURERS
       );
-    
+
     const canViewInactive =
       canViewAllManufacturers ||
       permissions.includes(
         MANUFACTURER_CONSTANTS.PERMISSIONS.VIEW_INACTIVE_MANUFACTURERS
       );
-    
+
     return {
       canViewAllManufacturers,
       canViewArchived,
@@ -65,7 +65,7 @@ const evaluateManufacturerVisibilityAccessControl = async (user) => {
       'Failed to evaluate manufacturer visibility access control',
       { context, userId: user?.id }
     );
-    
+
     throw AppError.businessError(
       'Unable to evaluate manufacturer visibility access control.'
     );
@@ -82,10 +82,10 @@ const evaluateManufacturerVisibilityAccessControl = async (user) => {
  */
 const evaluateManufacturerLookupSearchCapabilities = async (user) => {
   const context = `${CONTEXT}/evaluateManufacturerLookupSearchCapabilities`;
-  
+
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     return {
       canSearchStatus:
         isRoot ||
@@ -104,7 +104,7 @@ const evaluateManufacturerLookupSearchCapabilities = async (user) => {
       'Failed to evaluate manufacturer lookup search capabilities',
       { context, userId: user?.id }
     );
-    
+
     throw AppError.businessError(
       'Unable to evaluate manufacturer lookup search capabilities.'
     );

@@ -47,82 +47,87 @@ const { addIlikeFilter } = require('./sql-helpers');
 const buildPackagingMaterialSupplierFilter = (filters = {}) => {
   const normalizedFilters = normalizeDateRangeFilters(
     normalizeDateRangeFilters(filters, 'createdAfter', 'createdBefore'),
-    'updatedAfter', 'updatedBefore'
+    'updatedAfter',
+    'updatedBefore'
   );
-  
-  const conditions    = ['1=1'];
-  const params        = [];
+
+  const conditions = ['1=1'];
+  const params = [];
   const paramIndexRef = { value: 1 };
-  
-  const includeArchived   = normalizedFilters.includeArchived === true;
+
+  const includeArchived = normalizedFilters.includeArchived === true;
   const enforceActiveOnly = normalizedFilters.enforceActiveOnly === true;
-  
+
   // ─── Archive / Status ────────────────────────────────────────────────────────
-  
+
   if (!includeArchived) {
     conditions.push(`s.is_archived = FALSE`);
   }
-  
+
   if (enforceActiveOnly && normalizedFilters.activeStatusId) {
     conditions.push(`s.status_id = $${paramIndexRef.value}`);
     params.push(normalizedFilters.activeStatusId);
     paramIndexRef.value++;
   }
-  
+
   // ─── Relationship ────────────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.ids?.length) {
     conditions.push(`pms.id = ANY($${paramIndexRef.value}::uuid[])`);
     params.push(normalizedFilters.ids);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.packagingMaterialId) {
     conditions.push(`pms.packaging_material_id = $${paramIndexRef.value}`);
     params.push(normalizedFilters.packagingMaterialId);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.supplierId) {
     conditions.push(`pms.supplier_id = $${paramIndexRef.value}`);
     params.push(normalizedFilters.supplierId);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.isPreferred !== undefined) {
     conditions.push(`pms.is_preferred = $${paramIndexRef.value}`);
     params.push(normalizedFilters.isPreferred);
     paramIndexRef.value++;
   }
-  
+
   // ─── Pricing ─────────────────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.minCost !== undefined) {
     conditions.push(`pms.contract_unit_cost >= $${paramIndexRef.value}`);
     params.push(normalizedFilters.minCost);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.maxCost !== undefined) {
     conditions.push(`pms.contract_unit_cost <= $${paramIndexRef.value}`);
     params.push(normalizedFilters.maxCost);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.currency) {
     conditions.push(`pms.currency = $${paramIndexRef.value}`);
     params.push(normalizedFilters.currency);
     paramIndexRef.value++;
   }
-  
+
   // ─── Text ────────────────────────────────────────────────────────────────────
-  
+
   paramIndexRef.value = addIlikeFilter(
-    conditions, params, paramIndexRef.value, normalizedFilters.note, 'pms.note'
+    conditions,
+    params,
+    paramIndexRef.value,
+    normalizedFilters.note,
+    'pms.note'
   );
-  
+
   // ─── Keyword (must remain last before audit) ─────────────────────────────────
-  
+
   // Same $N referenced three times — single param covers all columns.
   if (normalizedFilters.keyword) {
     conditions.push(`(
@@ -133,39 +138,41 @@ const buildPackagingMaterialSupplierFilter = (filters = {}) => {
     params.push(`%${normalizedFilters.keyword}%`);
     paramIndexRef.value++;
   }
-  
+
   // ─── Audit ──────────────────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.createdBy) {
     conditions.push(`pms.created_by = $${paramIndexRef.value}`);
     params.push(normalizedFilters.createdBy);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.updatedBy) {
     conditions.push(`pms.updated_by = $${paramIndexRef.value}`);
     params.push(normalizedFilters.updatedBy);
     paramIndexRef.value++;
   }
-  
+
   // ─── Date Range ─────────────────────────────────────────────────────────────
-  
+
   applyDateRangeConditions({
-    conditions, params,
-    column:        'pms.created_at',
-    after:         normalizedFilters.createdAfter,
-    before:        normalizedFilters.createdBefore,
+    conditions,
+    params,
+    column: 'pms.created_at',
+    after: normalizedFilters.createdAfter,
+    before: normalizedFilters.createdBefore,
     paramIndexRef,
   });
-  
+
   applyDateRangeConditions({
-    conditions, params,
-    column:        'pms.updated_at',
-    after:         normalizedFilters.updatedAfter,
-    before:        normalizedFilters.updatedBefore,
+    conditions,
+    params,
+    column: 'pms.updated_at',
+    after: normalizedFilters.updatedAfter,
+    before: normalizedFilters.updatedBefore,
     paramIndexRef,
   });
-  
+
   return {
     whereClause: conditions.join(' AND '),
     params,

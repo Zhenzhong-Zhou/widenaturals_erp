@@ -16,10 +16,10 @@
 
 'use strict';
 
-const { paginateQuery }    = require('../utils/db/pagination/pagination-helpers');
-const { query }            = require('../database/db');
-const { handleDbError }    = require('../utils/errors/error-handlers');
-const { logDbQueryError }  = require('../utils/db-logger');
+const { paginateQuery } = require('../utils/db/pagination/pagination-helpers');
+const { query } = require('../database/db');
+const { handleDbError } = require('../utils/errors/error-handlers');
+const { logDbQueryError } = require('../utils/db-logger');
 const {
   buildPricingJoinFilters,
   buildPricingExportFilters,
@@ -33,8 +33,8 @@ const {
   PRICING_BY_SKU_QUERY,
   PRICING_BY_GROUP_AND_SKU_BATCH_QUERY,
 } = require('./queries/pricing-queries');
-const { resolveSort }      = require('../utils/query/sort-resolver');
-const { SORTABLE_FIELDS }  = require('../utils/sort-field-mapping');
+const { resolveSort } = require('../utils/query/sort-resolver');
+const { SORTABLE_FIELDS } = require('../utils/sort-field-mapping');
 
 const CONTEXT = 'pricing-repository';
 
@@ -56,44 +56,48 @@ const CONTEXT = 'pricing-repository';
  * @throws  {AppError} Normalized database error if the query fails.
  */
 const getPaginatedPricingJoin = async ({
-                                         filters   = {},
-                                         page      = 1,
-                                         limit     = 20,
-                                         sortBy    = 'productName',
-                                         sortOrder = 'ASC',
-                                       }) => {
-  const context                 = `${CONTEXT}/getPaginatedPricingJoin`;
+  filters = {},
+  page = 1,
+  limit = 20,
+  sortBy = 'productName',
+  sortOrder = 'ASC',
+}) => {
+  const context = `${CONTEXT}/getPaginatedPricingJoin`;
   const { whereClause, params } = buildPricingJoinFilters(filters);
-  const queryText               = buildPricingJoinQuery(whereClause);
-  
+  const queryText = buildPricingJoinQuery(whereClause);
+
   const sortConfig = resolveSort({
     sortBy,
     sortOrder,
-    moduleKey:   'pricingJoinSortMap',
+    moduleKey: 'pricingJoinSortMap',
     defaultSort: SORTABLE_FIELDS.pricingJoinSortMap.defaultNaturalSort,
   });
-  
+
   try {
     return await paginateQuery({
-      tableName:    PRICING_JOIN_TABLE,
-      joins:        PRICING_JOIN_JOINS,
+      tableName: PRICING_JOIN_TABLE,
+      joins: PRICING_JOIN_JOINS,
       whereClause,
       queryText,
       params,
       page,
       limit,
-      sortBy:       sortConfig.sortBy,
-      sortOrder:    sortConfig.sortOrder,
+      sortBy: sortConfig.sortBy,
+      sortOrder: sortConfig.sortOrder,
       whitelistSet: PRICING_JOIN_SORT_WHITELIST,
     });
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch paginated pricing join records.',
-      meta:    { filters, page, limit },
-      logFn:   (err) => logDbQueryError(
-        queryText, params, err, { context, filters, page, limit }
-      ),
+      meta: { filters, page, limit },
+      logFn: (err) =>
+        logDbQueryError(queryText, params, err, {
+          context,
+          filters,
+          page,
+          limit,
+        }),
     });
   }
 };
@@ -112,10 +116,10 @@ const getPaginatedPricingJoin = async ({
  * @throws  {AppError} Normalized database error if the query fails.
  */
 const exportAllPricingRecords = async ({ filters = {} } = {}) => {
-  const context                 = `${CONTEXT}/exportAllPricingRecords`;
+  const context = `${CONTEXT}/exportAllPricingRecords`;
   const { whereClause, params } = buildPricingExportFilters(filters);
-  const queryText               = buildPricingExportQuery(whereClause);
-  
+  const queryText = buildPricingExportQuery(whereClause);
+
   try {
     const { rows } = await query(queryText, params);
     return rows;
@@ -123,10 +127,9 @@ const exportAllPricingRecords = async ({ filters = {} } = {}) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to export pricing records.',
-      meta:    { filters },
-      logFn:   (err) => logDbQueryError(
-        queryText, params, err, { context, filters }
-      ),
+      meta: { filters },
+      logFn: (err) =>
+        logDbQueryError(queryText, params, err, { context, filters }),
     });
   }
 };
@@ -144,7 +147,7 @@ const exportAllPricingRecords = async ({ filters = {} } = {}) => {
  */
 const getPricingBySkuId = async (skuId) => {
   const context = `${CONTEXT}/getPricingBySkuId`;
-  
+
   try {
     const { rows } = await query(PRICING_BY_SKU_QUERY, [skuId]);
     return rows;
@@ -152,10 +155,9 @@ const getPricingBySkuId = async (skuId) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch pricing groups for SKU.',
-      meta:    { skuId },
-      logFn:   (err) => logDbQueryError(
-        PRICING_BY_SKU_QUERY, [skuId], err, { context, skuId }
-      ),
+      meta: { skuId },
+      logFn: (err) =>
+        logDbQueryError(PRICING_BY_SKU_QUERY, [skuId], err, { context, skuId }),
     });
   }
 };
@@ -175,23 +177,28 @@ const getPricingBySkuId = async (skuId) => {
  */
 const getPricesByGroupAndSkuBatch = async (pairs, client = null) => {
   if (!pairs?.length) return [];
-  
-  const context         = `${CONTEXT}/getPricesByGroupAndSkuBatch`;
+
+  const context = `${CONTEXT}/getPricesByGroupAndSkuBatch`;
   const pricingGroupIds = pairs.map((p) => p.pricing_group_id);
-  const skuIds          = pairs.map((p) => p.sku_id);
-  const params          = [pricingGroupIds, skuIds];
-  
+  const skuIds = pairs.map((p) => p.sku_id);
+  const params = [pricingGroupIds, skuIds];
+
   try {
-    const { rows } = await query(PRICING_BY_GROUP_AND_SKU_BATCH_QUERY, params, client);
+    const { rows } = await query(
+      PRICING_BY_GROUP_AND_SKU_BATCH_QUERY,
+      params,
+      client
+    );
     return rows;
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch prices for group/SKU pairs.',
-      meta:    { pairCount: pairs.length },
-      logFn:   (err) => logDbQueryError(
-        PRICING_BY_GROUP_AND_SKU_BATCH_QUERY, params, err, { context }
-      ),
+      meta: { pairCount: pairs.length },
+      logFn: (err) =>
+        logDbQueryError(PRICING_BY_GROUP_AND_SKU_BATCH_QUERY, params, err, {
+          context,
+        }),
     });
   }
 };

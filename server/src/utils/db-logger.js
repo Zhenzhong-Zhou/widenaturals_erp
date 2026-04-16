@@ -23,9 +23,12 @@
 
 'use strict';
 
-const { logSystemInfo, logSystemException } = require('./logging/system-logger');
-const { logWarn, logError }                 = require('./logging/logger-helper');
-const { maskSensitiveParams }               = require('./masking/mask-sensitive-params');
+const {
+  logSystemInfo,
+  logSystemException,
+} = require('./logging/system-logger');
+const { logWarn, logError } = require('./logging/logger-helper');
+const { maskSensitiveParams } = require('./masking/mask-sensitive-params');
 
 // -----------------------------------------------------------------------------
 // Context helper
@@ -41,7 +44,7 @@ const { maskSensitiveParams }               = require('./masking/mask-sensitive-
  */
 const withDbContext = (meta = {}) => ({
   traceId: 'system',
-  layer:   'database',
+  layer: 'database',
   ...meta,
 });
 
@@ -74,7 +77,7 @@ const logDbConnect = () => {
 const logDbConnectionError = (error) => {
   logSystemException(error, 'Database connection error', {
     context: 'database',
-    crash:   true,
+    crash: true,
   });
 };
 
@@ -140,9 +143,9 @@ const buildQueryMeta = (query, params, durationMs, extraMeta = {}) => ({
  * @returns {object}
  */
 const buildQueryErrorMeta = (query, params, error, extraMeta = {}) => ({
-  query:        truncateQuery(query),
-  params:       maskSensitiveParams(params),
-  errorName:    error.name,
+  query: truncateQuery(query),
+  params: maskSensitiveParams(params),
+  errorName: error.name,
   errorMessage: error.message,
   // Include stack in non-production only — stacks are verbose and should
   // never appear in production log streams.
@@ -215,20 +218,20 @@ const logDbQueryError = (query, params, error, meta = {}) => {
  */
 const logDbTransactionEvent = (action, txId, meta = {}) => {
   const { warn: isWarn, ...restMeta } = meta;
-  
+
   const logMeta = withDbContext({
     context: 'transaction',
     txId,
     action,
     ...restMeta,
   });
-  
+
   // Escalate to warn for unexpected rollbacks or caller-flagged events.
   if (isWarn) {
     logWarn(`Transaction ${action}`, null, logMeta);
     return;
   }
-  
+
   logSystemInfo(`Transaction ${action}`, logMeta);
 };
 
@@ -246,17 +249,21 @@ const logDbTransactionEvent = (action, txId, meta = {}) => {
  * @param {object}          [meta={}]  - Additional context.
  * @returns {void}
  */
-const logPaginatedQueryError = (error, dataQuery, countQuery, params, meta = {}) => {
+const logPaginatedQueryError = (
+  error,
+  dataQuery,
+  countQuery,
+  params,
+  meta = {}
+) => {
   logError(
     error,
     null,
     withDbContext(
-      buildQueryErrorMeta(
-        { dataQuery, countQuery },
-        params,
-        error,
-        { context: 'paginate', ...meta }
-      )
+      buildQueryErrorMeta({ dataQuery, countQuery }, params, error, {
+        context: 'paginate',
+        ...meta,
+      })
     )
   );
 };
@@ -272,14 +279,7 @@ const logPaginatedQueryError = (error, dataQuery, countQuery, params, meta = {})
  * @param {object}   [meta={}] - Additional context.
  * @returns {void}
  */
-const logLockRowError = (
-  error,
-  query,
-  params,
-  table,
-  lockMode,
-  meta = {}
-) => {
+const logLockRowError = (error, query, params, table, lockMode, meta = {}) => {
   logError(
     error,
     null,
@@ -304,13 +304,7 @@ const logLockRowError = (
  * @param {object}   [meta={}] - Additional context.
  * @returns {void}
  */
-const logLockRowsError = (
-  error,
-  query,
-  params,
-  table,
-  meta = {}
-) => {
+const logLockRowsError = (error, query, params, table, meta = {}) => {
   logError(
     error,
     null,
@@ -334,13 +328,7 @@ const logLockRowsError = (
  * @param {object}   [meta={}] - Additional context.
  * @returns {void}
  */
-const logBulkInsertError = (
-  error,
-  table,
-  params,
-  rowCount,
-  meta = {}
-) => {
+const logBulkInsertError = (error, table, params, rowCount, meta = {}) => {
   logError(
     error,
     null,

@@ -10,10 +10,12 @@
 
 'use strict';
 
-const express                          = require('express');
-const { createResetPasswordRateLimiter } = require('../middlewares/rate-limiter');
-const validate                         = require('../middlewares/validate');
-const { changePasswordSchema }         = require('../validators/auth/password-change');
+const express = require('express');
+const {
+  createResetPasswordRateLimiter,
+} = require('../middlewares/rate-limiter');
+const validate = require('../middlewares/validate');
+const { changePasswordSchema } = require('../validators/auth/password-change');
 const {
   logoutController,
   changePasswordController,
@@ -27,10 +29,7 @@ const router = express.Router();
  * @access protected
  * @permission authenticated
  */
-router.post(
-  '/logout',
-  logoutController
-);
+router.post('/logout', logoutController);
 
 /**
  * @route POST /auth/change-password
@@ -53,7 +52,9 @@ router.post(
  * @todo Not yet implemented.
  */
 router.post('/forgot-password', (req, res) => {
-  res.status(501).json({ message: 'Forgot password route not implemented yet.' });
+  res
+    .status(501)
+    .json({ message: 'Forgot password route not implemented yet.' });
 });
 
 /**
@@ -63,7 +64,9 @@ router.post('/forgot-password', (req, res) => {
  * @todo Not yet implemented.
  */
 router.post('/verify-reset-token', (req, res) => {
-  res.status(501).json({ message: 'Verify reset token route not implemented yet.' });
+  res
+    .status(501)
+    .json({ message: 'Verify reset token route not implemented yet.' });
 });
 
 module.exports = router;

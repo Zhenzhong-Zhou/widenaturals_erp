@@ -22,7 +22,9 @@ const {
   getWarehouseItemSummaryController,
 } = require('../controllers/warehouse-inventory-controller');
 const validate = require('../middlewares/validate');
-const { warehouseIdParamSchema } = require('../validators/warehouse-validators');
+const {
+  warehouseIdParamSchema,
+} = require('../validators/warehouse-validators');
 const {
   warehouseInventoryQuerySchema,
   createWarehouseInventoryBulkSchema,
@@ -31,11 +33,15 @@ const {
   inventoryIdParamSchema,
   updateWarehouseInventoryMetadataSchema,
   recordWarehouseInventoryOutboundSchema,
-  warehouseItemSummaryQuerySchema
+  warehouseItemSummaryQuerySchema,
 } = require('../validators/warehouse-inventory-validators');
 const createQueryNormalizationMiddleware = require('../middlewares/normalize-query');
-const { inventoryActivityLogQuerySchema } = require('../validators/inventory-activity-log-validators');
-const { getPaginatedActivityLogController } = require('../controllers/inventory-activity-log-controller');
+const {
+  inventoryActivityLogQuerySchema,
+} = require('../validators/inventory-activity-log-validators');
+const {
+  getPaginatedActivityLogController,
+} = require('../controllers/inventory-activity-log-controller');
 
 const router = express.Router();
 
@@ -55,12 +61,12 @@ router.get(
   validate(warehouseInventoryQuerySchema, 'query'),
   createQueryNormalizationMiddleware(
     'warehouseInventorySortMap',
-    [],                                          // arrayKeys
-    ['hasReserved'],                             // booleanKeys
+    [], // arrayKeys
+    ['hasReserved'], // booleanKeys
     warehouseInventoryQuerySchema,
-    {},                                          // filterDefaults
-    [],                                          // dateRangeKeys
-    ['lowStockThreshold', 'expiringWithinDays']  // numericKeys
+    {}, // filterDefaults
+    [], // dateRangeKeys
+    ['lowStockThreshold', 'expiringWithinDays'] // numericKeys
   ),
   getPaginatedWarehouseInventoryController
 );

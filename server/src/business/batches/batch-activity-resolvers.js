@@ -1,5 +1,7 @@
 const { getStatusId } = require('../../config/status-cache');
-const { getBatchActivityTypeId } = require('../../cache/batch-activity-type-cache');
+const {
+  getBatchActivityTypeId,
+} = require('../../cache/batch-activity-type-cache');
 
 /**
  * Lazily initialized lifecycle → activity mapping.
@@ -23,11 +25,12 @@ const getBatchActivityMap = () => {
   if (!BATCH_ACTIVITY_MAP) {
     BATCH_ACTIVITY_MAP = Object.freeze({
       [getStatusId('batch_received')]: getBatchActivityTypeId('BATCH_RECEIVED'),
-      [getStatusId('batch_quarantined')]: getBatchActivityTypeId('BATCH_QUARANTINED'),
-      [getStatusId('batch_released')]: getBatchActivityTypeId('BATCH_RELEASED')
+      [getStatusId('batch_quarantined')]:
+        getBatchActivityTypeId('BATCH_QUARANTINED'),
+      [getStatusId('batch_released')]: getBatchActivityTypeId('BATCH_RELEASED'),
     });
   }
-  
+
   return BATCH_ACTIVITY_MAP;
 };
 
@@ -54,10 +57,9 @@ const getBatchActivityMap = () => {
  */
 const resolveBatchActivityType = (activityMap, statusId) => {
   if (!statusId) return null;
-  
+
   return (
-    activityMap[statusId] ??
-    getBatchActivityTypeId('BATCH_STATUS_CHANGED')
+    activityMap[statusId] ?? getBatchActivityTypeId('BATCH_STATUS_CHANGED')
   );
 };
 
@@ -74,7 +76,7 @@ const resolveBatchActivityType = (activityMap, statusId) => {
  */
 const getBatchActivityType = (statusId) => {
   const activityMap = getBatchActivityMap();
-  
+
   return resolveBatchActivityType(activityMap, statusId);
 };
 

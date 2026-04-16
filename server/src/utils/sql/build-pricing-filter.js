@@ -37,30 +37,30 @@
  * @returns {{ whereClause: string, params: Array }}
  */
 const buildPricingJoinFilters = (filters = {}) => {
-  const conditions    = ['1=1'];
-  const params        = [];
+  const conditions = ['1=1'];
+  const params = [];
   const paramIndexRef = { value: 1 };
-  
+
   if (filters.pricingGroupId) {
     conditions.push(`p.pricing_group_id = $${paramIndexRef.value++}`);
     params.push(filters.pricingGroupId);
   }
-  
+
   if (filters.pricingTypeId) {
     conditions.push(`pg.pricing_type_id = $${paramIndexRef.value++}`);
     params.push(filters.pricingTypeId);
   }
-  
+
   if (filters.skuId) {
     conditions.push(`s.id = $${paramIndexRef.value++}`);
     params.push(filters.skuId);
   }
-  
+
   if (filters.productId) {
     conditions.push(`pr.id = $${paramIndexRef.value++}`);
     params.push(filters.productId);
   }
-  
+
   if (filters.search) {
     conditions.push(`(
       s.sku     ILIKE $${paramIndexRef.value} OR
@@ -70,22 +70,22 @@ const buildPricingJoinFilters = (filters = {}) => {
     params.push(`%${filters.search}%`);
     paramIndexRef.value++;
   }
-  
+
   if (filters.brand) {
     conditions.push(`pr.brand = $${paramIndexRef.value++}`);
     params.push(filters.brand);
   }
-  
+
   if (filters.category) {
     conditions.push(`pr.category = $${paramIndexRef.value++}`);
     params.push(filters.category);
   }
-  
+
   if (filters.countryCode) {
     conditions.push(`s.country_code = $${paramIndexRef.value++}`);
     params.push(filters.countryCode);
   }
-  
+
   return { whereClause: conditions.join('\n  AND '), params };
 };
 
@@ -107,35 +107,35 @@ const buildPricingJoinFilters = (filters = {}) => {
  * @returns {{ whereClause: string, params: Array }}
  */
 const buildPricingExportFilters = (filters = {}) => {
-  const conditions    = ['1=1'];
-  const params        = [];
+  const conditions = ['1=1'];
+  const params = [];
   const paramIndexRef = { value: 1 };
-  
+
   if (filters.pricingTypeId) {
     conditions.push(`pg.pricing_type_id = $${paramIndexRef.value++}`);
     params.push(filters.pricingTypeId);
   }
-  
+
   if (filters.countryCode) {
     conditions.push(`pg.country_code = $${paramIndexRef.value++}`);
     params.push(filters.countryCode);
   }
-  
+
   if (filters.statusId) {
     conditions.push(`pg.status_id = $${paramIndexRef.value++}`);
     params.push(filters.statusId);
   }
-  
+
   if (filters.brand) {
     conditions.push(`pr.brand = $${paramIndexRef.value++}`);
     params.push(filters.brand);
   }
-  
+
   if (filters.productId) {
     conditions.push(`pr.id = $${paramIndexRef.value++}`);
     params.push(filters.productId);
   }
-  
+
   return { whereClause: conditions.join('\n  AND '), params };
 };
 

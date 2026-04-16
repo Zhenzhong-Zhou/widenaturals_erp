@@ -172,10 +172,7 @@ exports.seed = async function (knex) {
     updated_by: null,
   }));
 
-  await knex('customers')
-    .insert(records)
-    .onConflict('email')
-    .ignore();
+  await knex('customers').insert(records).onConflict('email').ignore();
 
   console.log(`Seeded ${records.length} customers.`);
 };

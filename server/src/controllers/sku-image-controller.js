@@ -48,12 +48,12 @@ const {
  */
 const uploadSkuImagesController = wrapAsyncHandler(async (req, res) => {
   const { skus } = req.body;
-  const user     = req.auth.user;
-  
-  const result        = await saveBulkSkuImagesService(skus, user);
-  const successCount  = result.filter((r) => r.success).length;
-  const failureCount  = result.length - successCount;
-  
+  const user = req.auth.user;
+
+  const result = await saveBulkSkuImagesService(skus, user);
+  const successCount = result.filter((r) => r.success).length;
+  const failureCount = result.length - successCount;
+
   res.status(200).json({
     success: true,
     message: 'SKU image upload batch completed.',
@@ -62,7 +62,7 @@ const uploadSkuImagesController = wrapAsyncHandler(async (req, res) => {
       successCount,
       failureCount,
     },
-    data:    result,
+    data: result,
     traceId: req.traceId,
   });
 });
@@ -79,12 +79,12 @@ const uploadSkuImagesController = wrapAsyncHandler(async (req, res) => {
  */
 const updateSkuImagesController = wrapAsyncHandler(async (req, res) => {
   const { skus } = req.body;
-  const user     = req.auth.user;
-  
-  const result        = await updateBulkSkuImagesService(skus, user);
-  const successCount  = result.filter((r) => r.success).length;
-  const failureCount  = result.length - successCount;
-  
+  const user = req.auth.user;
+
+  const result = await updateBulkSkuImagesService(skus, user);
+  const successCount = result.filter((r) => r.success).length;
+  const failureCount = result.length - successCount;
+
   res.status(200).json({
     success: true,
     message: 'SKU image update batch completed.',
@@ -93,7 +93,7 @@ const updateSkuImagesController = wrapAsyncHandler(async (req, res) => {
       successCount,
       failureCount,
     },
-    data:    result,
+    data: result,
     traceId: req.traceId,
   });
 });

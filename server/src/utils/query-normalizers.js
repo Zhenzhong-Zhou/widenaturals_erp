@@ -20,11 +20,11 @@
 // Defined once so all functions stay in sync if limits ever change.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const LIMIT_MIN            = 1;
-const LIMIT_MAX            = 100;
-const PAGE_MIN             = 1;
-const OFFSET_MIN           = 0;
-const DEFAULT_LIMIT_PAGE   = 10;
+const LIMIT_MIN = 1;
+const LIMIT_MAX = 100;
+const PAGE_MIN = 1;
+const OFFSET_MIN = 0;
+const DEFAULT_LIMIT_PAGE = 10;
 const DEFAULT_LIMIT_OFFSET = 50;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -51,20 +51,26 @@ const DEFAULT_LIMIT_OFFSET = 50;
  */
 const normalizeParamArray = (value) => {
   if (value === undefined || value === null) return undefined;
-  
+
   if (Array.isArray(value)) {
-    return value.filter(Boolean).map((v) => String(v).trim()).filter(Boolean);
+    return value
+      .filter(Boolean)
+      .map((v) => String(v).trim())
+      .filter(Boolean);
   }
-  
+
   if (typeof value === 'string') {
     // Split on comma for multi-value params (e.g. '?status=active,archived')
     return value.includes(',')
-      ? value.split(',').map((v) => v.trim()).filter(Boolean)
+      ? value
+          .split(',')
+          .map((v) => v.trim())
+          .filter(Boolean)
       : value.trim()
         ? [value.trim()]
         : undefined; // empty string after trim → treat as absent
   }
-  
+
   // Numeric or other scalar — coerce and wrap
   return [String(value).trim()];
 };
@@ -92,15 +98,18 @@ const normalizeParamArray = (value) => {
  * @returns {{ page: number, limit: number, offset: number, sortOrder: 'ASC'|'DESC' }}
  */
 const normalizePageParams = (query = {}) => {
-  const page  = Math.max(PAGE_MIN,  parseInt(query.page,  10) || PAGE_MIN);
-  const limit = Math.min(LIMIT_MAX, Math.max(LIMIT_MIN, parseInt(query.limit, 10) || DEFAULT_LIMIT_PAGE));
-  
+  const page = Math.max(PAGE_MIN, parseInt(query.page, 10) || PAGE_MIN);
+  const limit = Math.min(
+    LIMIT_MAX,
+    Math.max(LIMIT_MIN, parseInt(query.limit, 10) || DEFAULT_LIMIT_PAGE)
+  );
+
   // offset is always derived — never read from query in page-based mode.
   // Reading query.offset here would cause page and offset to disagree.
   const offset = (page - 1) * limit;
-  
+
   const sortOrder = normalizeSortOrder(query.sortOrder);
-  
+
   return { page, limit, offset, sortOrder };
 };
 
@@ -128,11 +137,14 @@ const normalizePageParams = (query = {}) => {
  * @returns {{ offset: number, limit: number, sortOrder: 'ASC'|'DESC' }}
  */
 const normalizeOffsetParams = (query = {}) => {
-  const limit  = Math.min(LIMIT_MAX, Math.max(LIMIT_MIN, parseInt(query.limit,  10) || DEFAULT_LIMIT_OFFSET));
-  const offset = Math.max(OFFSET_MIN,                    parseInt(query.offset, 10) || OFFSET_MIN);
-  
+  const limit = Math.min(
+    LIMIT_MAX,
+    Math.max(LIMIT_MIN, parseInt(query.limit, 10) || DEFAULT_LIMIT_OFFSET)
+  );
+  const offset = Math.max(OFFSET_MIN, parseInt(query.offset, 10) || OFFSET_MIN);
+
   const sortOrder = normalizeSortOrder(query.sortOrder);
-  
+
   return { offset, limit, sortOrder };
 };
 
@@ -156,7 +168,7 @@ const normalizeOffsetParams = (query = {}) => {
  */
 const normalizeFilterKeys = (rawFilters) => {
   if (!rawFilters || typeof rawFilters !== 'object') return {};
-  
+
   return Object.fromEntries(
     Object.entries(rawFilters).map(([key, value]) => [key.trim(), value])
   );

@@ -16,7 +16,9 @@
 const { query } = require('../database/db');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { logDbQueryError } = require('../utils/db-logger');
-const { BATCH_ACTIVITY_TYPE_SELECT } = require('./queries/batch-activity-type-queries');
+const {
+  BATCH_ACTIVITY_TYPE_SELECT,
+} = require('./queries/batch-activity-type-queries');
 
 // ─── Queries ──────────────────────────────────────────────────────────────────
 
@@ -34,7 +36,7 @@ const { BATCH_ACTIVITY_TYPE_SELECT } = require('./queries/batch-activity-type-qu
  */
 const getBatchActivityTypes = async (client = null) => {
   const context = 'batch-activity-type-repository/getBatchActivityTypes';
-  
+
   try {
     const result = await query(BATCH_ACTIVITY_TYPE_SELECT, [], client);
     return result.rows;
@@ -42,13 +44,9 @@ const getBatchActivityTypes = async (client = null) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to retrieve batch activity types.',
-      meta:    { table: 'batch_activity_types' },
-      logFn:   (err) => logDbQueryError(
-        BATCH_ACTIVITY_TYPE_SELECT,
-        [],
-        err,
-        { context }
-      ),
+      meta: { table: 'batch_activity_types' },
+      logFn: (err) =>
+        logDbQueryError(BATCH_ACTIVITY_TYPE_SELECT, [], err, { context }),
     });
   }
 };

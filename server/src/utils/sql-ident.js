@@ -95,21 +95,17 @@ const validateIdentifier = (name, type = 'identifier') => {
       `Invalid ${type}: expected string, received ${typeof name}`
     );
   }
-  
+
   const trimmed = name.trim();
-  
+
   if (!trimmed) {
-    throw AppError.validationError(
-      `Invalid ${type}: cannot be empty`
-    );
+    throw AppError.validationError(`Invalid ${type}: cannot be empty`);
   }
-  
+
   if (!isSafeIdent(trimmed)) {
-    throw AppError.validationError(
-      `Invalid ${type}: "${name}"`
-    );
+    throw AppError.validationError(`Invalid ${type}: "${name}"`);
   }
-  
+
   return trimmed;
 };
 
@@ -144,20 +140,23 @@ const q = (identifier) => {
       meta: { identifier },
     });
   }
-  
+
   // Support qualified identifiers (e.g. 's.id', 'public.users').
   // Each segment is validated and quoted independently.
   const parts = identifier.trim().split('.');
-  
+
   for (const part of parts) {
     if (!isSafeIdent(part)) {
-      throw AppError.validationError(`Invalid SQL identifier: "${identifier}"`, {
-        context: 'sql-ident/q',
-        meta: { identifier },
-      });
+      throw AppError.validationError(
+        `Invalid SQL identifier: "${identifier}"`,
+        {
+          context: 'sql-ident/q',
+          meta: { identifier },
+        }
+      );
     }
   }
-  
+
   return parts.map((p) => `"${p}"`).join('.');
 };
 
@@ -180,7 +179,7 @@ const q = (identifier) => {
 const qualify = (schema, table) => {
   // Validate both segments explicitly — no silent fallbacks.
   const safeSchema = validateIdentifier(schema, 'schema');
-  const safeTable  = validateIdentifier(table,  'table');
+  const safeTable = validateIdentifier(table, 'table');
   return `${q(safeSchema)}.${q(safeTable)}`;
 };
 
@@ -217,30 +216,30 @@ const qualify = (schema, table) => {
  */
 const safeOrderBy = (column, direction = 'ASC', whitelistSet) => {
   const context = 'sql-ident/safeOrderBy';
-  
+
   if (!(whitelistSet instanceof Set) || whitelistSet.size === 0) {
     throw AppError.validationError('Invalid ORDER BY whitelist', { context });
   }
-  
+
   if (!column || !whitelistSet.has(column)) {
     throw AppError.validationError('Invalid ORDER BY column', {
       context,
       meta: { column },
     });
   }
-  
+
   const dir =
     typeof direction === 'string' && direction.toUpperCase() === 'DESC'
       ? 'DESC'
       : 'ASC';
-  
+
   // Column came from the whitelist — quote each segment individually.
   // Supports both simple ('name') and qualified ('p.name') forms.
   const quoted = column
     .split('.')
     .map((part) => `"${part}"`)
     .join('.');
-  
+
   return `${quoted} ${dir}`;
 };
 
@@ -364,13 +363,13 @@ const assertAllowed = (schema, table) => {
       `assertAllowed: schema is required. Allowed schemas: ${Object.keys(ALLOWED).join(', ')}`
     );
   }
-  
+
   if (!ALLOWED[schema]) {
     throw AppError.validationError(
       `Schema not allowed: "${schema}". Allowed: ${Object.keys(ALLOWED).join(', ')}`
     );
   }
-  
+
   if (!ALLOWED[schema].has(table)) {
     throw AppError.validationError(`Table not allowed: "${schema}"."${table}"`);
   }

@@ -1,8 +1,5 @@
 const Joi = require('joi');
-const {
-  validateUUID,
-  optionalIsoDate
-} = require('../general-validators');
+const { validateUUID, optionalIsoDate } = require('../general-validators');
 
 //------------------------------------------------------------
 // Shared lifecycle field validators
@@ -30,11 +27,7 @@ const {
  * The schema is instantiated once at module load time
  * and reused across requests.
  */
-const lifecycleNotes = Joi.string()
-  .trim()
-  .max(2000)
-  .allow(null);
-
+const lifecycleNotes = Joi.string().trim().max(2000).allow(null);
 
 /**
  * Joi schema for updating lifecycle status.
@@ -62,11 +55,10 @@ const lifecycleNotes = Joi.string()
 const lifecycleStatusUpdateSchema = Joi.object({
   // Target lifecycle status identifier
   status_id: validateUUID('Status ID').required(),
-  
+
   // Optional lifecycle comment
   notes: lifecycleNotes,
 }).unknown(false);
-
 
 /**
  * Joi schema for receiving a batch into warehouse inventory.
@@ -94,11 +86,10 @@ const lifecycleStatusUpdateSchema = Joi.object({
 const lifecycleReceiveSchema = Joi.object({
   // Optional warehouse intake timestamp
   received_at: optionalIsoDate('Received At'),
-  
+
   // Optional intake comment
   notes: lifecycleNotes,
 }).unknown(false);
-
 
 //------------------------------------------------------------
 // Export shared lifecycle validators

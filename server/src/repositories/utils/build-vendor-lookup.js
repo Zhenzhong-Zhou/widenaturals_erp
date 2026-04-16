@@ -12,7 +12,9 @@
 
 'use strict';
 
-const { paginateQueryByOffset } = require('../../utils/db/pagination/pagination-helpers');
+const {
+  paginateQueryByOffset,
+} = require('../../utils/db/pagination/pagination-helpers');
 const { handleDbError } = require('../../utils/errors/error-handlers');
 const { logDbQueryError } = require('../../utils/db-logger');
 
@@ -37,44 +39,45 @@ const { logDbQueryError } = require('../../utils/db-logger');
  * @throws  {AppError}        Normalized database error if the query fails.
  */
 const buildVendorLookup = async ({
-                                   context,
-                                   tableName,
-                                   joins,
-                                   whereClause,
-                                   queryParams,
-                                   queryText,
-                                   sortBy,
-                                   sortWhitelist,
-                                   additionalSorts,
-                                   limit,
-                                   offset,
-                                   filters,
-                                 }) => {
+  context,
+  tableName,
+  joins,
+  whereClause,
+  queryParams,
+  queryText,
+  sortBy,
+  sortWhitelist,
+  additionalSorts,
+  limit,
+  offset,
+  filters,
+}) => {
   try {
     return await paginateQueryByOffset({
       tableName,
       joins,
       whereClause,
       queryText,
-      params:          queryParams,
+      params: queryParams,
       offset,
       limit,
       sortBy,
-      sortOrder:       'ASC',
+      sortOrder: 'ASC',
       additionalSorts,
-      whitelistSet:    sortWhitelist,
+      whitelistSet: sortWhitelist,
     });
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch vendor lookup.',
-      meta:    { filters, limit, offset },
-      logFn:   (err) => logDbQueryError(
-        queryText,
-        queryParams,
-        err,
-        { context, filters, limit, offset }
-      ),
+      meta: { filters, limit, offset },
+      logFn: (err) =>
+        logDbQueryError(queryText, queryParams, err, {
+          context,
+          filters,
+          limit,
+          offset,
+        }),
     });
   }
 };

@@ -15,26 +15,28 @@
 
 'use strict';
 
-const MAX_LIMITS                         = require('../utils/constants/general/max-limits');
-const { validateBulkInputSize }          = require('../utils/validation/bulk-input-validator');
-const AppError                           = require('../utils/AppError');
+const MAX_LIMITS = require('../utils/constants/general/max-limits');
+const {
+  validateBulkInputSize,
+} = require('../utils/validation/bulk-input-validator');
+const AppError = require('../utils/AppError');
 const {
   insertCustomerRecords,
   getEnrichedCustomersByIds,
   getPaginatedCustomers,
-}                                        = require('../repositories/customer-repository');
-const { withTransaction }                = require('../database/db');
+} = require('../repositories/customer-repository');
+const { withTransaction } = require('../database/db');
 const {
   transformEnrichedCustomers,
   transformPaginatedCustomerResults,
-}                                        = require('../transformers/customer-transformer');
+} = require('../transformers/customer-transformer');
 const {
   prepareCustomersForInsert,
   filterCustomerForViewer,
   evaluateCustomerLookupAccessControl,
   enforceCustomerLookupVisibilityRules,
-}                                        = require('../business/customer-business');
-const { getStatusId }                    = require('../config/status-cache');
+} = require('../business/customer-business');
+const { getStatusId } = require('../config/status-cache');
 
 /**
  * Creates one or more customer records with preparation, bulk insert, and permission filtering.
@@ -58,7 +60,7 @@ const createCustomersService = async (
   purpose = 'insert_response'
 ) => {
   const createdBy = user.id;
-  
+
   return withTransaction(async (client) => {
     try {
       validateBulkInputSize(
@@ -66,24 +68,28 @@ const createCustomersService = async (
         MAX_LIMITS.BULK_INPUT_LIMITS.MAX_UI_INSERT_SIZE,
         'customers'
       );
-      
+
       const activeStatusId = getStatusId('general_active');
-      
+
       if (!activeStatusId) {
         throw AppError.notFoundError('Active status ID not found.');
       }
-      
-      const preparedCustomers = prepareCustomersForInsert(customers, createdBy, activeStatusId);
-      const inserted          = await insertCustomerRecords(preparedCustomers, client);
-      
+
+      const preparedCustomers = prepareCustomersForInsert(
+        customers,
+        createdBy,
+        activeStatusId
+      );
+      const inserted = await insertCustomerRecords(preparedCustomers, client);
+
       if (!Array.isArray(inserted) || inserted.length === 0) {
         throw AppError.databaseError('No customer records were inserted.');
       }
-      
-      const insertedIds     = inserted.map((row) => row.id);
-      const rawResult       = await getEnrichedCustomersByIds(insertedIds, client);
+
+      const insertedIds = inserted.map((row) => row.id);
+      const rawResult = await getEnrichedCustomersByIds(insertedIds, client);
       const enrichedRecords = transformEnrichedCustomers(rawResult);
-      
+
       // filterCustomerForViewer is async — run concurrently, not sequentially.
       return Promise.all(
         enrichedRecords.map((customer) =>
@@ -92,7 +98,7 @@ const createCustomersService = async (
       );
     } catch (error) {
       if (error instanceof AppError) throw error;
-      
+
       throw AppError.serviceError('Unable to create customer records.', {
         meta: { error: error.message },
       });
@@ -120,25 +126,25 @@ const createCustomersService = async (
  * @throws {AppError} Wraps unexpected errors as `AppError.serviceError`.
  */
 const fetchPaginatedCustomersService = async ({
-                                                filters   = {},
-                                                user,
-                                                page      = 1,
-                                                limit     = 10,
-                                                sortBy    = 'createdAt',
-                                                sortOrder = 'DESC',
-                                              }) => {
+  filters = {},
+  user,
+  page = 1,
+  limit = 10,
+  sortBy = 'createdAt',
+  sortOrder = 'DESC',
+}) => {
   try {
     // 1. Evaluate user access control scope.
     const userAccess = await evaluateCustomerLookupAccessControl(user);
-    
+
     // 2. Apply visibility rules — restricts filters based on access level.
-    const activeStatusId   = getStatusId('customer_active');
-    const adjustedFilters  = enforceCustomerLookupVisibilityRules(
+    const activeStatusId = getStatusId('customer_active');
+    const adjustedFilters = enforceCustomerLookupVisibilityRules(
       filters,
       userAccess,
       activeStatusId
     );
-    
+
     // 3. Fetch paginated records with adjusted filters.
     const rawResult = await getPaginatedCustomers({
       filters: adjustedFilters,
@@ -147,12 +153,12 @@ const fetchPaginatedCustomersService = async ({
       sortBy,
       sortOrder,
     });
-    
+
     // 4. Transform for UI consumption.
     return transformPaginatedCustomerResults(rawResult);
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
+
     throw AppError.serviceError('Unable to fetch customer list.', {
       meta: { error: error.message },
     });

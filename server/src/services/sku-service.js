@@ -21,7 +21,7 @@
 
 'use strict';
 
-const { getStatusId }                    = require('../config/status-cache');
+const { getStatusId } = require('../config/status-cache');
 const {
   getPaginatedSkuProductCards,
   insertSkusBulk,
@@ -33,14 +33,14 @@ const {
   updateSkuMetadata,
   updateSkuDimensions,
   updateSkuIdentity,
-}                                        = require('../repositories/sku-repository');
+} = require('../repositories/sku-repository');
 const {
   transformPaginatedSkuProductCardResult,
   transformSkuRecord,
   transformPaginatedSkuListResults,
   transformSkuDetail,
-}                                        = require('../transformers/sku-transformer');
-const AppError                           = require('../utils/AppError');
+} = require('../transformers/sku-transformer');
+const AppError = require('../utils/AppError');
 const {
   validateSkuList,
   prepareSkuInsertPayloads,
@@ -49,28 +49,30 @@ const {
   sliceSkuForUser,
   applySkuProductCardVisibilityRules,
   assertSkuEditAllowed,
-}                                        = require('../business/sku-business');
+} = require('../business/sku-business');
 const { withTransaction } = require('../database/db');
 const { lockRows, lockRow } = require('../utils/db/lock-modes');
-const { getOrCreateBaseCodesBulk }       = require('./sku-code-base-service');
-const { generateSKU }                    = require('../utils/sku-generator');
-const { checkStatusExists }              = require('../repositories/status-repository');
-const { getSkuImagesBySkuId }            = require('../repositories/sku-image-repository');
-const { getPricingBySkuId }              = require('../repositories/pricing-repository');
-const { getComplianceBySkuId }           = require('../repositories/compliance-record-repository');
+const { getOrCreateBaseCodesBulk } = require('./sku-code-base-service');
+const { generateSKU } = require('../utils/sku-generator');
+const { checkStatusExists } = require('../repositories/status-repository');
+const { getSkuImagesBySkuId } = require('../repositories/sku-image-repository');
+const { getPricingBySkuId } = require('../repositories/pricing-repository');
+const {
+  getComplianceBySkuId,
+} = require('../repositories/compliance-record-repository');
 const {
   evaluateComplianceViewAccessControl,
   sliceComplianceRecordsForUser,
-}                                        = require('../business/compliance-record-business');
+} = require('../business/compliance-record-business');
 const {
   evaluateSkuImageViewAccessControl,
   sliceSkuImagesForUser,
-}                                        = require('../business/sku-image-buiness');
+} = require('../business/sku-image-buiness');
 const {
   evaluatePricingViewAccessControl,
   slicePricingForUser,
-}                                        = require('../business/pricing-business');
-const { SKU_EDIT_TYPE }                  = require('../utils/constants/domain/sku-constants');
+} = require('../business/pricing-business');
+const { SKU_EDIT_TYPE } = require('../utils/constants/domain/sku-constants');
 
 const CONTEXT = 'sku-service';
 
@@ -90,22 +92,22 @@ const CONTEXT = 'sku-service';
  * @throws {AppError} Wraps unexpected errors as `AppError.serviceError`.
  */
 const fetchPaginatedSkuProductCardsService = async ({
-                                                      filters   = {},
-                                                      page      = 1,
-                                                      limit     = 10,
-                                                      sortBy,
-                                                      sortOrder,
-                                                      user,
-                                                    }) => {
+  filters = {},
+  page = 1,
+  limit = 10,
+  sortBy,
+  sortOrder,
+  user,
+}) => {
   const context = `${CONTEXT}/fetchPaginatedSkuProductCardsService`;
-  
+
   try {
     // 1. Evaluate ACL — determines which statuses the user can see.
     const acl = await evaluateSkuStatusAccessControl(user);
-    
+
     // 2. Apply ACL to filters before SQL (CRITICAL).
     const adjustedFilters = applySkuProductCardVisibilityRules(filters, acl);
-    
+
     // 3. Execute repository query.
     const rawResult = await getPaginatedSkuProductCards({
       page,
@@ -114,14 +116,14 @@ const fetchPaginatedSkuProductCardsService = async ({
       sortOrder,
       filters: adjustedFilters,
     });
-    
+
     return transformPaginatedSkuProductCardResult(rawResult);
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
+
     throw AppError.serviceError('Unable to fetch SKU product cards.', {
       context,
-      meta: { error: error.message }
+      meta: { error: error.message },
     });
   }
 };
@@ -141,31 +143,37 @@ const fetchPaginatedSkuProductCardsService = async ({
  * @throws {AppError} Wraps unexpected errors as `AppError.serviceError`.
  */
 const fetchPaginatedSkusService = async ({
-                                           filters   = {},
-                                           page      = 1,
-                                           limit     = 10,
-                                           sortBy    = 'createdAt',
-                                           sortOrder = 'DESC',
-                                         }) => {
+  filters = {},
+  page = 1,
+  limit = 10,
+  sortBy = 'createdAt',
+  sortOrder = 'DESC',
+}) => {
   const context = `${CONTEXT}/fetchPaginatedSkusService`;
-  
+
   try {
-    const rawResult = await getPaginatedSkus({ filters, page, limit, sortBy, sortOrder });
-    
+    const rawResult = await getPaginatedSkus({
+      filters,
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+    });
+
     if (!rawResult || rawResult.data.length === 0) {
       return {
-        data:       [],
+        data: [],
         pagination: { page, limit, totalRecords: 0, totalPages: 0 },
       };
     }
-    
+
     return transformPaginatedSkuListResults(rawResult);
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
+
     throw AppError.serviceError('Unable to fetch SKU records.', {
       context,
-      meta: { error: error.message }
+      meta: { error: error.message },
     });
   }
 };
@@ -185,59 +193,64 @@ const fetchPaginatedSkusService = async ({
  */
 const fetchSkuDetailsService = async (skuId, user) => {
   const context = `${CONTEXT}/fetchSkuDetailsService`;
-  
+
   try {
     // 1. Fetch base SKU record.
     const skuRow = await getSkuDetailsById(skuId);
-    
+
     if (!skuRow) {
       throw AppError.notFoundError(`SKU not found: ${skuId}`);
     }
-    
+
     // 2. Apply SKU-level visibility rules.
     const skuAccess = await evaluateSkuStatusAccessControl(user);
-    const safeSku   = sliceSkuForUser(skuRow, skuAccess);
-    
+    const safeSku = sliceSkuForUser(skuRow, skuAccess);
+
     if (!safeSku) {
-      throw AppError.authorizationError('You do not have permission to view this SKU.');
+      throw AppError.authorizationError(
+        'You do not have permission to view this SKU.'
+      );
     }
-    
+
     // 3. Fetch and filter images.
     const imageAccess = await evaluateSkuImageViewAccessControl(user);
-    const imagesRaw   = await getSkuImagesBySkuId(skuId);
-    const safeImages  = sliceSkuImagesForUser(imagesRaw, imageAccess);
-    
+    const imagesRaw = await getSkuImagesBySkuId(skuId);
+    const safeImages = sliceSkuImagesForUser(imagesRaw, imageAccess);
+
     // 4. Fetch and filter pricing (optional — gated by access).
     const pricingAccess = await evaluatePricingViewAccessControl(user);
-    let safePricing     = [];
-    
+    let safePricing = [];
+
     if (pricingAccess.canViewAllValidPricing) {
       const pricingRows = await getPricingBySkuId(skuId);
-      safePricing       = slicePricingForUser(pricingRows, pricingAccess);
+      safePricing = slicePricingForUser(pricingRows, pricingAccess);
     }
-    
+
     // 5. Fetch and filter compliance records (optional — gated by access).
-    const complianceAccess    = await evaluateComplianceViewAccessControl(user);
+    const complianceAccess = await evaluateComplianceViewAccessControl(user);
     let safeComplianceRecords = [];
-    
+
     if (complianceAccess.canViewCompliance) {
-      const complianceRows      = await getComplianceBySkuId(skuId);
-      safeComplianceRecords     = sliceComplianceRecordsForUser(complianceRows, complianceAccess);
+      const complianceRows = await getComplianceBySkuId(skuId);
+      safeComplianceRecords = sliceComplianceRecordsForUser(
+        complianceRows,
+        complianceAccess
+      );
     }
-    
+
     // 6. Build final response DTO.
     return transformSkuDetail({
-      sku:               safeSku,
-      images:            safeImages,
-      pricing:           safePricing,
+      sku: safeSku,
+      images: safeImages,
+      pricing: safePricing,
       complianceRecords: safeComplianceRecords,
     });
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
+
     throw AppError.serviceError('Unable to fetch SKU detail.', {
       context,
-      meta: { error: error.message }
+      meta: { error: error.message },
     });
   }
 };
@@ -260,39 +273,45 @@ const fetchSkuDetailsService = async (skuId, user) => {
  */
 const createSkusService = async (skuList, user) => {
   const context = `${CONTEXT}/createSkusService`;
-  
+
   try {
     return await withTransaction(async (client) => {
-      const userId         = user.id;
+      const userId = user.id;
       const lastUsedCodeMap = new Map();
-      
+
       if (!Array.isArray(skuList) || skuList.length === 0) {
         throw AppError.validationError('No SKUs provided for creation.');
       }
-      
+
       validateSkuList(skuList);
-      
-      const activeStatusId   = getStatusId('general_active');
+
+      const activeStatusId = getStatusId('general_active');
       const inactiveStatusId = getStatusId('general_inactive');
-      
+
       // 1. Lock all related product rows.
       const uniqueProductIds = [...new Set(skuList.map((s) => s.product_id))];
-      const lockedProducts   = await lockRows(client, 'products', uniqueProductIds, 'FOR UPDATE', { context });
-      
+      const lockedProducts = await lockRows(
+        client,
+        'products',
+        uniqueProductIds,
+        'FOR UPDATE',
+        { context }
+      );
+
       if (!lockedProducts?.length) {
         throw AppError.notFoundError('No matching products found to lock.');
       }
-      
+
       // 2. Resolve or create base codes for all brand/category pairs.
       const basePairs = skuList.map((s) => ({
-        brandCode:    s.brand_code,
+        brandCode: s.brand_code,
         categoryCode: s.category_code,
-        statusId:     activeStatusId,
+        statusId: activeStatusId,
         userId,
       }));
-      
+
       await getOrCreateBaseCodesBulk(basePairs, client);
-      
+
       // 3. Generate SKU codes — uses lastUsedCodeMap to minimise DB lookups.
       const generatedSkus = [];
       for (const s of skuList) {
@@ -306,36 +325,49 @@ const createSkusService = async (skuList, user) => {
         );
         generatedSkus.push(skuCode);
       }
-      
+
       // 4. Pre-check for duplicates before insertion.
       for (let i = 0; i < skuList.length; i++) {
         const s = skuList[i];
-        
-        const exists = await checkSkuExists(generatedSkus[i], s.product_id, client);
+
+        const exists = await checkSkuExists(
+          generatedSkus[i],
+          s.product_id,
+          client
+        );
         if (exists) {
-          throw AppError.conflictError(`SKU already exists: ${generatedSkus[i]}`);
+          throw AppError.conflictError(
+            `SKU already exists: ${generatedSkus[i]}`
+          );
         }
-        
+
         if (s.barcode) {
           const barcodeExists = await checkBarcodeExists(s.barcode, client);
           if (barcodeExists) {
-            throw AppError.conflictError(`Barcode already in use: ${s.barcode}`);
+            throw AppError.conflictError(
+              `Barcode already in use: ${s.barcode}`
+            );
           }
         }
       }
-      
+
       // 5. Prepare and insert in bulk.
-      const insertPayloads = prepareSkuInsertPayloads(skuList, generatedSkus, inactiveStatusId, userId);
-      const insertedSkus   = await insertSkusBulk(insertPayloads, client);
-      
+      const insertPayloads = prepareSkuInsertPayloads(
+        skuList,
+        generatedSkus,
+        inactiveStatusId,
+        userId
+      );
+      const insertedSkus = await insertSkusBulk(insertPayloads, client);
+
       return transformSkuRecord(insertedSkus, generatedSkus);
     });
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
+
     throw AppError.serviceError('Unable to create SKUs.', {
       context,
-      meta: { error: error.message }
+      meta: { error: error.message },
     });
   }
 };
@@ -356,27 +388,32 @@ const createSkusService = async (skuList, user) => {
  */
 const updateSkuMetadataService = async ({ skuId, payload, user }) => {
   const context = `${CONTEXT}/updateSkuMetadataService`;
-  
+
   try {
     return await withTransaction(async (client) => {
       const userId = user.id;
-      
-      const sku = await lockRow(client, 'skus', skuId, 'FOR UPDATE', { context });
+
+      const sku = await lockRow(client, 'skus', skuId, 'FOR UPDATE', {
+        context,
+      });
       if (!sku) throw AppError.notFoundError('SKU not found.');
-      
+
       await assertSkuEditAllowed(sku, SKU_EDIT_TYPE.METADATA, user, client);
-      
+
       const updated = await updateSkuMetadata(skuId, payload, userId, client);
-      if (!updated) throw AppError.conflictError('Concurrent update detected — SKU metadata not updated.');
-      
+      if (!updated)
+        throw AppError.conflictError(
+          'Concurrent update detected — SKU metadata not updated.'
+        );
+
       return updated;
     });
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
+
     throw AppError.serviceError('Unable to update SKU metadata.', {
       context,
-      meta: { error: error.message }
+      meta: { error: error.message },
     });
   }
 };
@@ -398,32 +435,39 @@ const updateSkuMetadataService = async ({ skuId, payload, user }) => {
  */
 const updateSkuStatusService = async ({ skuId, statusId, user }) => {
   const context = `${CONTEXT}/updateSkuStatusService`;
-  
+
   try {
     return await withTransaction(async (client) => {
       const userId = user.id;
-      
-      const sku = await lockRow(client, 'skus', skuId, 'FOR UPDATE', { context });
+
+      const sku = await lockRow(client, 'skus', skuId, 'FOR UPDATE', {
+        context,
+      });
       if (!sku) throw AppError.notFoundError('SKU not found.');
-      
+
       const statusExists = await checkStatusExists(statusId, client);
-      if (!statusExists) throw AppError.validationError('Invalid or inactive status ID.');
-      
-      if (sku.status_id === statusId) throw AppError.validationError('SKU is already in this status.');
-      
+      if (!statusExists)
+        throw AppError.validationError('Invalid or inactive status ID.');
+
+      if (sku.status_id === statusId)
+        throw AppError.validationError('SKU is already in this status.');
+
       assertValidSkuStatusTransition(sku.status_id, statusId);
-      
+
       const updated = await updateSkuStatus(skuId, statusId, userId, client);
-      if (!updated) throw AppError.conflictError('Concurrent update detected — SKU status not updated.');
-      
+      if (!updated)
+        throw AppError.conflictError(
+          'Concurrent update detected — SKU status not updated.'
+        );
+
       return updated;
     });
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
+
     throw AppError.serviceError('Unable to update SKU status.', {
       context,
-      meta: { error: error.message }
+      meta: { error: error.message },
     });
   }
 };
@@ -444,27 +488,32 @@ const updateSkuStatusService = async ({ skuId, statusId, user }) => {
  */
 const updateSkuDimensionsService = async ({ skuId, payload, user }) => {
   const context = `${CONTEXT}/updateSkuDimensionsService`;
-  
+
   try {
     return await withTransaction(async (client) => {
       const userId = user.id;
-      
-      const sku = await lockRow(client, 'skus', skuId, 'FOR UPDATE', { context });
+
+      const sku = await lockRow(client, 'skus', skuId, 'FOR UPDATE', {
+        context,
+      });
       if (!sku) throw AppError.notFoundError('SKU not found.');
-      
+
       await assertSkuEditAllowed(sku, SKU_EDIT_TYPE.DIMENSIONS, user, client);
-      
+
       const updated = await updateSkuDimensions(skuId, payload, userId, client);
-      if (!updated) throw AppError.conflictError('Concurrent update detected — SKU dimensions not updated.');
-      
+      if (!updated)
+        throw AppError.conflictError(
+          'Concurrent update detected — SKU dimensions not updated.'
+        );
+
       return updated;
     });
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
+
     throw AppError.serviceError('Unable to update SKU dimensions.', {
       context,
-      meta: { error: error.message }
+      meta: { error: error.message },
     });
   }
 };
@@ -485,27 +534,32 @@ const updateSkuDimensionsService = async ({ skuId, payload, user }) => {
  */
 const updateSkuIdentityService = async ({ skuId, payload, user }) => {
   const context = `${CONTEXT}/updateSkuIdentityService`;
-  
+
   try {
     return await withTransaction(async (client) => {
       const userId = user.id;
-      
-      const sku = await lockRow(client, 'skus', skuId, 'FOR UPDATE', { context });
+
+      const sku = await lockRow(client, 'skus', skuId, 'FOR UPDATE', {
+        context,
+      });
       if (!sku) throw AppError.notFoundError('SKU not found.');
-      
+
       await assertSkuEditAllowed(sku, SKU_EDIT_TYPE.IDENTITY, user, client);
-      
+
       const updated = await updateSkuIdentity(skuId, payload, userId, client);
-      if (!updated) throw AppError.conflictError('Concurrent update detected — SKU identity not updated.');
-      
+      if (!updated)
+        throw AppError.conflictError(
+          'Concurrent update detected — SKU identity not updated.'
+        );
+
       return updated;
     });
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
+
     throw AppError.serviceError('Unable to update SKU identity.', {
       context,
-      meta: { error: error.message }
+      meta: { error: error.message },
     });
   }
 };

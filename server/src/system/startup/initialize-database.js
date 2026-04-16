@@ -56,26 +56,26 @@ const createDatabaseAndInitialize = async () => {
   // ensures loadEnv() has already run before we read vars
   //--------------------------------------------------
   const { env } = loadEnv();
-  
+
   const targetDatabase = process.env.DB_NAME;
   if (!targetDatabase) {
     throw new Error('DB_NAME environment variable is missing');
   }
-  
+
   //--------------------------------------------------
   // Resolve knex at call time using current NODE_ENV
   // — avoids hardcoding 'development' at module level
   //--------------------------------------------------
   const environment = process.env.NODE_ENV || 'development';
   const knex = require('knex')(require('../../../knexfile')[environment]);
-  
+
   const adminConnectionConfig = {
     ...getConnectionConfig(),
     database: 'postgres', // connect to admin DB to check/create target DB
   };
-  
+
   const adminPool = new Pool(adminConnectionConfig);
-  
+
   try {
     logSystemInfo('Starting database initialization', {
       context: CONTEXT,
@@ -83,7 +83,7 @@ const createDatabaseAndInitialize = async () => {
       env,
       environment,
     });
-    
+
     //--------------------------------------------------
     // Step 0 — Verify Postgres major version
     // Must run before any schema or migration work
@@ -93,34 +93,35 @@ const createDatabaseAndInitialize = async () => {
       () => checkPostgresVersion(),
       { context: CONTEXT }
     );
-    
+
     //--------------------------------------------------
     // Step 1 — Ensure DB connectivity with retry
     // Handles transient failures on container startup
     //--------------------------------------------------
     await runStartupStep(
       'Ensure database connection',
-      () => retryDatabaseConnection(adminConnectionConfig, {
-        retries:     5,
-        baseDelayMs: 500,
-        maxDelayMs:  5000,
-        context:     CONTEXT,
-      }),
+      () =>
+        retryDatabaseConnection(adminConnectionConfig, {
+          retries: 5,
+          baseDelayMs: 500,
+          maxDelayMs: 5000,
+          context: CONTEXT,
+        }),
       { context: CONTEXT }
     );
-    
+
     //--------------------------------------------------
     // Step 2 — Check if target database exists
     //--------------------------------------------------
     const result = await runStartupStep(
       'Check database existence',
-      () => adminPool.query(
-        'SELECT 1 FROM pg_database WHERE datname = $1',
-        [targetDatabase]
-      ),
+      () =>
+        adminPool.query('SELECT 1 FROM pg_database WHERE datname = $1', [
+          targetDatabase,
+        ]),
       { context: CONTEXT }
     );
-    
+
     //--------------------------------------------------
     // Step 3 — Create database if missing
     //--------------------------------------------------
@@ -136,42 +137,36 @@ const createDatabaseAndInitialize = async () => {
         targetDatabase,
       });
     }
-    
+
     //--------------------------------------------------
     // Step 4 — Run migrations
     // Uses environment-resolved knex config
     //--------------------------------------------------
-    await runStartupStep(
-      'Run migrations',
-      () => knex.migrate.latest(),
-      { context: CONTEXT }
-    );
-    
+    await runStartupStep('Run migrations', () => knex.migrate.latest(), {
+      context: CONTEXT,
+    });
+
     //--------------------------------------------------
     // Step 5 — Run seeds
     //--------------------------------------------------
-    await runStartupStep(
-      'Run seeds',
-      () => knex.seed.run(),
-      { context: CONTEXT }
-    );
-    
+    await runStartupStep('Run seeds', () => knex.seed.run(), {
+      context: CONTEXT,
+    });
+
     logSystemInfo('Database initialization completed successfully', {
       context: CONTEXT,
       targetDatabase,
     });
-    
   } catch (error) {
     logSystemException(error, 'Database initialization failed', {
       context: CONTEXT,
       targetDatabase,
       errorCode: error.code,
     });
-    
+
     // Re-throw — let the caller (server.js) own the exit decision.
     // Do NOT call handleExit here — server.js runStartupStep handles it.
     throw error;
-    
   } finally {
     // Always clean up pool and knex regardless of success or failure
     await adminPool.end().catch(() => {});

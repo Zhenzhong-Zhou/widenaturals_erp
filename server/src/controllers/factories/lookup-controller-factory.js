@@ -35,43 +35,49 @@ const { wrapAsyncHandler } = require('../../middlewares/async-handler');
  *   successMessage: 'Successfully retrieved SKU lookup',
  * });
  */
-const createLookupController = ({ service, successMessage, passUser = true }) => {
+const createLookupController = ({
+  service,
+  successMessage,
+  passUser = true,
+}) => {
   // Fail fast — catch misconfiguration at startup, not per request.
   if (typeof service !== 'function') {
     throw new Error('[createLookupController] service must be a function');
   }
-  
+
   if (!successMessage || typeof successMessage !== 'string') {
-    throw new Error('[createLookupController] successMessage must be a non-empty string');
+    throw new Error(
+      '[createLookupController] successMessage must be a non-empty string'
+    );
   }
-  
+
   const handler = async (req, res) => {
     // req.normalizedQuery is written by createQueryNormalizationMiddleware.
     // If absent, the pipeline is misconfigured — fail loudly rather than silently falling back.
     if (!req.normalizedQuery) {
       throw new Error(
         '[createLookupController] req.normalizedQuery is undefined. ' +
-        'Ensure createQueryNormalizationMiddleware runs before this controller.'
+          'Ensure createQueryNormalizationMiddleware runs before this controller.'
       );
     }
-    
+
     const user = req.auth.user; // guaranteed by authorize middleware
-    
+
     const {
       filters = {},
       options = {},
-      limit   = 50,
-      offset  = 0,
+      limit = 50,
+      offset = 0,
     } = req.normalizedQuery;
-    
+
     // Some services don't need user (e.g. public or filter-only lookups).
     const result = passUser
       ? await service(user, { filters, options, limit, offset })
       : await service({ filters, options, limit, offset });
-    
+
     // Guard against malformed service output.
     const { items = [], hasMore = false } = result || {};
-    
+
     return res.status(200).json({
       success: true,
       message: successMessage,
@@ -81,7 +87,7 @@ const createLookupController = ({ service, successMessage, passUser = true }) =>
       hasMore,
     });
   };
-  
+
   return wrapAsyncHandler(handler);
 };
 

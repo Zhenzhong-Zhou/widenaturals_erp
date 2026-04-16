@@ -23,7 +23,7 @@ exports.up = async function (knex) {
     table.uuid('created_by').references('id').inTable('users');
     table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
     table.uuid('updated_by').references('id').inTable('users');
- 
+
     // Recommended indexes
     table.index(['type', 'compliance_id'], 'idx_compliance_type_id');
   });
@@ -34,7 +34,7 @@ exports.up = async function (knex) {
     ADD CONSTRAINT unique_compliance_type_id
     UNIQUE (type, compliance_id)
   `);
-  
+
   await knex.raw(`
   ALTER TABLE compliance_records
   ADD CONSTRAINT compliance_records_type_check
@@ -54,11 +54,7 @@ exports.up = async function (knex) {
   await knex.schema.createTable('sku_compliance_links', (table) => {
     table.uuid('id').primary().defaultTo(knex.raw('uuid_generate_v4()'));
 
-    table
-      .uuid('sku_id')
-      .notNullable()
-      .references('id')
-      .inTable('skus');
+    table.uuid('sku_id').notNullable().references('id').inTable('skus');
     table
       .uuid('compliance_record_id')
       .notNullable()
@@ -69,10 +65,9 @@ exports.up = async function (knex) {
     table.uuid('created_by').references('id').inTable('users');
 
     // Ensure one SKU links to one compliance document only once
-    table.unique(
-      ['sku_id', 'compliance_record_id'],
-      { indexName: 'unique_sku_compliance_link' },
-    );
+    table.unique(['sku_id', 'compliance_record_id'], {
+      indexName: 'unique_sku_compliance_link',
+    });
 
     table.index(['sku_id'], 'idx_sku_compliance_sku');
     table.index(['compliance_record_id'], 'idx_sku_compliance_record');

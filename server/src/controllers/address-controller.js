@@ -49,17 +49,17 @@ const createAddressController = wrapAsyncHandler(async (req, res) => {
     });
   }
 
-  const user      = req.auth.user;
-  const isBulk    = addresses.length > 1;
-  
+  const user = req.auth.user;
+  const isBulk = addresses.length > 1;
+
   const result = await createAddressService(addresses, user);
-  
+
   res.status(201).json({
     success: true,
     message: isBulk
       ? 'Bulk addresses created successfully.'
       : 'Address created successfully.',
-    data:    isBulk ? result : result[0],
+    data: isBulk ? result : result[0],
     traceId: req.traceId,
   });
 });
@@ -76,7 +76,7 @@ const createAddressController = wrapAsyncHandler(async (req, res) => {
  */
 const getPaginatedAddressesController = wrapAsyncHandler(async (req, res) => {
   const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
-  
+
   const { data, pagination } = await fetchPaginatedAddressesService({
     filters,
     page,
@@ -84,7 +84,7 @@ const getPaginatedAddressesController = wrapAsyncHandler(async (req, res) => {
     sortBy,
     sortOrder,
   });
-  
+
   res.status(200).json({
     success: true,
     message: 'Addresses retrieved successfully.',

@@ -47,15 +47,17 @@ const {
  */
 const buildWarehouseInventoryFilter = (filters = {}) => {
   const normalizedFilters = normalizeDateRangeFilters(
-    filters, 'inboundDateAfter', 'inboundDateBefore'
+    filters,
+    'inboundDateAfter',
+    'inboundDateBefore'
   );
-  
-  const conditions    = ['1=1'];
-  const params        = [];
+
+  const conditions = ['1=1'];
+  const params = [];
   const paramIndexRef = { value: 1 };
 
-// ─── Warehouse scope ────────────────────────────────────────────────────────
-  
+  // ─── Warehouse scope ────────────────────────────────────────────────────────
+
   if (normalizedFilters.warehouseId) {
     conditions.push(`wi.warehouse_id = $${paramIndexRef.value++}`);
     params.push(normalizedFilters.warehouseId);
@@ -63,69 +65,69 @@ const buildWarehouseInventoryFilter = (filters = {}) => {
     conditions.push(`wi.warehouse_id = ANY($${paramIndexRef.value++}::uuid[])`);
     params.push(normalizedFilters.warehouseIds);
   }
-  
+
   // ─── Exact-match filters ─────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.statusId) {
     conditions.push(`wi.status_id = $${paramIndexRef.value++}`);
     params.push(normalizedFilters.statusId);
   }
-  
+
   if (normalizedFilters.batchType) {
     conditions.push(`br.batch_type = $${paramIndexRef.value++}`);
     params.push(normalizedFilters.batchType);
   }
-  
+
   if (normalizedFilters.skuId) {
     conditions.push(`pb.sku_id = $${paramIndexRef.value++}`);
     params.push(normalizedFilters.skuId);
   }
-  
+
   if (normalizedFilters.productId) {
     conditions.push(`p.id = $${paramIndexRef.value++}`);
     params.push(normalizedFilters.productId);
   }
-  
+
   if (normalizedFilters.packagingMaterialId) {
     conditions.push(`pm.id = $${paramIndexRef.value++}`);
     params.push(normalizedFilters.packagingMaterialId);
   }
-  
+
   if (normalizedFilters.lowStockThreshold != null) {
     conditions.push(
       `(wi.warehouse_quantity - wi.reserved_quantity) <= $${paramIndexRef.value++}`
     );
     params.push(normalizedFilters.lowStockThreshold);
   }
-  
+
   if (normalizedFilters.expiringWithinDays != null) {
     conditions.push(
       `COALESCE(pb.expiry_date, pmb.expiry_date) <= (CURRENT_DATE + $${paramIndexRef.value++} * INTERVAL '1 day')`
     );
     params.push(normalizedFilters.expiringWithinDays);
   }
-  
+
   // ─── Date range ──────────────────────────────────────────────────────────────
-  
+
   applyDateRangeConditions({
     conditions,
     params,
-    column:        'wi.inbound_date',
-    after:         normalizedFilters.inboundDateAfter,
-    before:        normalizedFilters.inboundDateBefore,
+    column: 'wi.inbound_date',
+    after: normalizedFilters.inboundDateAfter,
+    before: normalizedFilters.inboundDateBefore,
     paramIndexRef,
   });
-  
+
   // ─── Boolean filter ──────────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.hasReserved === true) {
     conditions.push('wi.reserved_quantity > 0');
   } else if (normalizedFilters.hasReserved === false) {
     conditions.push('wi.reserved_quantity = 0');
   }
-  
+
   // ─── Search (must remain last) ──────────────────────────────────────────────
-  
+
   if (normalizedFilters.search) {
     conditions.push(`(
       pb.lot_number           ILIKE $${paramIndexRef.value} OR
@@ -138,7 +140,7 @@ const buildWarehouseInventoryFilter = (filters = {}) => {
     params.push(`%${normalizedFilters.search}%`);
     paramIndexRef.value++;
   }
-  
+
   return {
     whereClause: conditions.join(' AND '),
     params,

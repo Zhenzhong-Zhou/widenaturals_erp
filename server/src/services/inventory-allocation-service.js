@@ -29,22 +29,22 @@
 
 'use strict';
 
-const { withTransaction }              = require('../database/db');
+const { withTransaction } = require('../database/db');
 const { lockRows } = require('../utils/db/lock-modes');
 const {
   fetchOrderMetadata,
   updateOrderStatus,
   getInventoryAllocationsByOrderId,
-}                                                = require('../repositories/order-repository');
+} = require('../repositories/order-repository');
 const {
   validateStatusTransitionByCategory,
-}                                                = require('../business/order-business');
+} = require('../business/order-business');
 const {
   getOrderItemsByOrderId,
   updateOrderItemStatusesByOrderId,
   updateOrderItemStatus,
-}                                                = require('../repositories/order-item-repository');
-const AppError                                   = require('../utils/AppError');
+} = require('../repositories/order-item-repository');
+const AppError = require('../utils/AppError');
 const {
   extractOrderItemIdsByType,
   transformAllocationResultToInsertRows,
@@ -52,13 +52,13 @@ const {
   transformInventoryAllocationReviewRows,
   transformOrderAllocationResponse,
   transformPaginatedInventoryAllocationResults,
-}                                                = require('../transformers/inventory-allocation-transformer');
-const { getStatusId }                            = require('../config/status-cache');
+} = require('../transformers/inventory-allocation-transformer');
+const { getStatusId } = require('../config/status-cache');
 const {
   getAllocatableBatchesByWarehouse,
   getWarehouseInventoryQuantities,
   updateWarehouseInventoryQuantityBulk,
-}                                                = require('../repositories/warehouse-inventory-repository');
+} = require('../repositories/warehouse-inventory-repository');
 const {
   allocateBatchesForOrderItems,
   computeAllocationStatusPerItem,
@@ -69,7 +69,7 @@ const {
   evaluateInventoryAllocationVisibility,
   applyInventoryAllocationVisibilityRules,
   dedupeWarehouseBatchKeys,
-}                                                = require('../business/inventory-allocation-business');
+} = require('../business/inventory-allocation-business');
 const {
   insertInventoryAllocationsBulk,
   getMismatchedAllocationIds,
@@ -77,23 +77,25 @@ const {
   updateInventoryAllocationStatus,
   getPaginatedInventoryAllocations,
   getAllocationStatuses,
-}                                                = require('../repositories/inventory-allocations-repository');
-const { logSystemWarn }                          = require('../utils/logging/system-logger');
+} = require('../repositories/inventory-allocations-repository');
+const { logSystemWarn } = require('../utils/logging/system-logger');
 const {
   getOrderStatusByCode,
   getOrderStatusesByCodes,
-}                                                = require('../repositories/order-status-repository');
+} = require('../repositories/order-status-repository');
 const {
   getInventoryActionTypeId,
-}                                                = require('../repositories/inventory-action-type-repository');
+} = require('../repositories/inventory-action-type-repository');
 const {
   getInventoryAllocationStatusId,
-}                                                = require('../repositories/inventory-allocation-status-repository');
-const { insertInventoryActivityLogBulk } = require('../repositories/inventory-activity-log-repository');
+} = require('../repositories/inventory-allocation-status-repository');
+const {
+  insertInventoryActivityLogBulk,
+} = require('../repositories/inventory-activity-log-repository');
 const {
   buildAllocationConfirmLogEntries,
   assertWarehouseAccess,
-  enforceWarehouseScope
+  enforceWarehouseScope,
 } = require('../business/warehouse-inventory-business');
 
 const CONTEXT = 'inventory-allocation-service';
@@ -127,38 +129,38 @@ const allocateInventoryForOrderService = async (
   { strategy = 'fefo', warehouseId, allowPartial = false }
 ) => {
   const context = `${CONTEXT}/allocateInventoryForOrderService`;
-  
+
   if (!warehouseId) {
     throw AppError.validationError('Warehouse ID is required for allocation.');
   }
-  
+
   // Enforce warehouse access before entering the transaction.
   const assignedWarehouseIds = await assertWarehouseAccess(user);
   enforceWarehouseScope(assignedWarehouseIds, warehouseId);
-  
+
   try {
     return await withTransaction(async (client) => {
       const userId = user.id;
-      
+
       // Lock order row before reading metadata.
       await lockRows(client, 'orders', [rawOrderId], 'FOR UPDATE', {
         context: `${context}/lockOrderRow`,
       });
-      
+
       const orderMetadata = await fetchOrderMetadata(rawOrderId, client);
       const {
         order_status_category: currentStatusCategory,
-        order_status_code:     currentStatusCode,
-        order_category:        orderCategory,
-        order_id:              orderId,
+        order_status_code: currentStatusCode,
+        order_category: orderCategory,
+        order_id: orderId,
       } = orderMetadata;
-      
+
       const {
-        id:       nextStatusId,
+        id: nextStatusId,
         category: nextStatusCategory,
-        code:     resolvedNextStatusCode,
+        code: resolvedNextStatusCode,
       } = await getOrderStatusByCode('ORDER_ALLOCATING', client);
-      
+
       validateStatusTransitionByCategory(
         orderCategory,
         currentStatusCategory,
@@ -166,112 +168,156 @@ const allocateInventoryForOrderService = async (
         currentStatusCode,
         resolvedNextStatusCode
       );
-      
+
       const orderItemsMetadata = await getOrderItemsByOrderId(orderId, client);
-      const orderItemIds       = orderItemsMetadata.map((item) => item.order_item_id);
-      const orderItemMap       = new Map(
+      const orderItemIds = orderItemsMetadata.map((item) => item.order_item_id);
+      const orderItemMap = new Map(
         orderItemsMetadata.map((item) => [item.order_item_id, item])
       );
-      
+
       // Lock order_items rows before validating statuses.
       await lockRows(client, 'order_items', orderItemIds, 'FOR UPDATE', {
         context: `${context}/lockOrderItems`,
       });
-      
+
       if (!orderItemsMetadata.length) {
-        throw AppError.notFoundError(`No order items found for order ID: ${orderId}`);
+        throw AppError.notFoundError(
+          `No order items found for order ID: ${orderId}`
+        );
       }
-      
+
       const ALLOCATABLE_ITEM_STATUSES = ['ORDER_CONFIRMED'];
       const invalidItems = orderItemsMetadata.filter(
         (item) => !ALLOCATABLE_ITEM_STATUSES.includes(item.order_item_code)
       );
-      
+
       if (invalidItems.length > 0) {
         throw AppError.validationError(
           `Allocation blocked. Invalid item statuses: ${invalidItems.map((i) => i.order_item_id).join(', ')}`
         );
       }
-      
-      const { skuIds, packagingMaterialIds } = extractOrderItemIdsByType(orderItemsMetadata);
-      const inStockStatusId                  = getStatusId('inventory_in_stock');
-      
+
+      const { skuIds, packagingMaterialIds } =
+        extractOrderItemIdsByType(orderItemsMetadata);
+      const inStockStatusId = getStatusId('inventory_in_stock');
+
       const batches = await getAllocatableBatchesByWarehouse(
-        { skuIds, packagingMaterialIds, warehouseId, inventoryStatusId: inStockStatusId },
+        {
+          skuIds,
+          packagingMaterialIds,
+          warehouseId,
+          inventoryStatusId: inStockStatusId,
+        },
         { strategy },
         client
       );
-      
+
       // Lock warehouse_inventory rows before reading quantities.
       const warehouseInventoryLockConditions = batches.map((batch) => ({
         warehouse_id: batch.warehouse_id,
-        batch_id:     batch.batch_id,
+        batch_id: batch.batch_id,
       }));
-      
-      await lockRows(client, 'warehouse_inventory', warehouseInventoryLockConditions, 'FOR UPDATE', {
-        context: `${context}/lockWarehouseInventory`,
-      });
-      
-      const allocationResult = allocateBatchesForOrderItems(orderItemsMetadata, batches, strategy);
-      
-      const missingBatchItems = allocationResult.filter(
-        (item) => !item.allocated.allocatedBatches || item.allocated.allocatedBatches.length === 0
+
+      await lockRows(
+        client,
+        'warehouse_inventory',
+        warehouseInventoryLockConditions,
+        'FOR UPDATE',
+        {
+          context: `${context}/lockWarehouseInventory`,
+        }
       );
-      
+
+      const allocationResult = allocateBatchesForOrderItems(
+        orderItemsMetadata,
+        batches,
+        strategy
+      );
+
+      const missingBatchItems = allocationResult.filter(
+        (item) =>
+          !item.allocated.allocatedBatches ||
+          item.allocated.allocatedBatches.length === 0
+      );
+
       if (missingBatchItems.length > 0) {
         const items = missingBatchItems.map((item) => {
-          const meta                   = orderItemMap.get(item.order_item_id);
+          const meta = orderItemMap.get(item.order_item_id);
           const { itemCode, itemName } = resolveOrderItemDisplay(meta);
-          return { itemCode, itemName, requestedQuantity: item.quantity_ordered };
+          return {
+            itemCode,
+            itemName,
+            requestedQuantity: item.quantity_ordered,
+          };
         });
-        
+
         throw AppError.validationError(
           'No inventory batches are available in the selected warehouse for some items.',
           { code: 'NO_WAREHOUSE_INVENTORY', details: { items } }
         );
       }
-      
+
       const insufficientItems = allocationResult
         .filter((item) => item.allocated.allocatedTotal < item.quantity_ordered)
         .map((item) => {
-          const meta                   = orderItemMap.get(item.order_item_id);
+          const meta = orderItemMap.get(item.order_item_id);
           const { itemCode, itemName } = resolveOrderItemDisplay(meta);
-          const firstBatch             = item.allocated.allocatedBatches?.[0];
-          
+          const firstBatch = item.allocated.allocatedBatches?.[0];
+
           return {
             itemCode,
             itemName,
-            warehouseName:     firstBatch?.warehouse_name ?? null,
-            lotNumber:         firstBatch?.lot_number     ?? null,
+            warehouseName: firstBatch?.warehouse_name ?? null,
+            lotNumber: firstBatch?.lot_number ?? null,
             requestedQuantity: item.quantity_ordered,
             allocatedQuantity: item.allocated.allocatedTotal,
-            missingQuantity:   item.quantity_ordered - item.allocated.allocatedTotal,
+            missingQuantity:
+              item.quantity_ordered - item.allocated.allocatedTotal,
           };
         });
-      
+
       if (insufficientItems.length > 0 && !allowPartial) {
         throw AppError.validationError(
           'Some items cannot be fully allocated due to insufficient inventory.',
-          { code: 'INSUFFICIENT_INVENTORY', details: { items: insufficientItems, canAllowPartial: true } }
+          {
+            code: 'INSUFFICIENT_INVENTORY',
+            details: { items: insufficientItems, canAllowPartial: true },
+          }
         );
       }
-      
-      const inventoryAllocationStatusPendingId = getStatusId('inventory_allocation_init');
-      const allocations = transformAllocationResultToInsertRows(allocationResult, {
-        status_id:  inventoryAllocationStatusPendingId,
-        created_by: userId,
+
+      const inventoryAllocationStatusPendingId = getStatusId(
+        'inventory_allocation_init'
+      );
+      const allocations = transformAllocationResultToInsertRows(
+        allocationResult,
+        {
+          status_id: inventoryAllocationStatusPendingId,
+          created_by: userId,
+        }
+      );
+
+      const rawAllocations = await insertInventoryAllocationsBulk(
+        allocations,
+        client
+      );
+
+      await updateOrderStatus(client, {
+        orderId,
+        newStatusId: nextStatusId,
+        updatedBy: userId,
       });
-      
-      const rawAllocations = await insertInventoryAllocationsBulk(allocations, client);
-      
-      await updateOrderStatus(client, { orderId, newStatusId: nextStatusId, updatedBy: userId });
-      await updateOrderItemStatusesByOrderId(client, { orderId, newStatusId: nextStatusId, updatedBy: userId });
-      
+      await updateOrderItemStatusesByOrderId(client, {
+        orderId,
+        newStatusId: nextStatusId,
+        updatedBy: userId,
+      });
+
       return transformAllocationReviewData(rawAllocations, orderId);
     });
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
+
     throw AppError.serviceError('Unable to allocate inventory for order.');
   }
 };
@@ -303,18 +349,25 @@ const reviewInventoryAllocationService = async (
   allocationIds
 ) => {
   const context = `${CONTEXT}/reviewInventoryAllocationService`;
-  
+
   try {
-    const access          = await evaluateInventoryAllocationVisibility(user);
-    const adjustedFilters = applyInventoryAllocationVisibilityRules({ warehouseIds }, access);
-    
+    const access = await evaluateInventoryAllocationVisibility(user);
+    const adjustedFilters = applyInventoryAllocationVisibilityRules(
+      { warehouseIds },
+      access
+    );
+
     if (adjustedFilters.forceEmptyResult) return null;
-    
+
     const scopedWarehouseIds = adjustedFilters.warehouseIds ?? [];
-    
+
     if (allocationIds.length > 0) {
-      const mismatches = await getMismatchedAllocationIds(orderId, allocationIds, null);
-      
+      const mismatches = await getMismatchedAllocationIds(
+        orderId,
+        allocationIds,
+        null
+      );
+
       if (mismatches.length > 0) {
         // Warn on mismatched IDs — security-notable event, not an unexpected error.
         logSystemWarn('Mismatched allocation IDs found during review', {
@@ -322,28 +375,30 @@ const reviewInventoryAllocationService = async (
           orderId,
           mismatches,
         });
-        
+
         throw AppError.validationError(
           'Some allocation IDs do not belong to the order.',
           { mismatches }
         );
       }
     }
-    
+
     const rawReviewData = await getInventoryAllocationReview(
       orderId,
       scopedWarehouseIds,
       allocationIds,
       null
     );
-    
+
     if (!rawReviewData || rawReviewData.length === 0) return null;
-    
+
     return transformInventoryAllocationReviewRows(rawReviewData);
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
-    throw AppError.serviceError('Unable to retrieve inventory allocation review.');
+
+    throw AppError.serviceError(
+      'Unable to retrieve inventory allocation review.'
+    );
   }
 };
 
@@ -369,24 +424,30 @@ const reviewInventoryAllocationService = async (
  * @throws {AppError} Wraps unexpected errors as `serviceError`.
  */
 const fetchPaginatedInventoryAllocationsService = async ({
-                                                           filters   = {},
-                                                           page      = 1,
-                                                           limit     = 10,
-                                                           sortBy    = 'orderDate',
-                                                           sortOrder = 'DESC',
-                                                           user,
-                                                         }) => {
+  filters = {},
+  page = 1,
+  limit = 10,
+  sortBy = 'orderDate',
+  sortOrder = 'DESC',
+  user,
+}) => {
   const context = `${CONTEXT}/fetchPaginatedInventoryAllocationsService`;
-  
+
   try {
     const access = await evaluateInventoryAllocationVisibility(user);
-    
-    const adjustedFilters = applyInventoryAllocationVisibilityRules(filters, access);
-    
+
+    const adjustedFilters = applyInventoryAllocationVisibilityRules(
+      filters,
+      access
+    );
+
     if (adjustedFilters.forceEmptyResult) {
-      return { data: [], pagination: { page, limit, totalRecords: 0, totalPages: 0 } };
+      return {
+        data: [],
+        pagination: { page, limit, totalRecords: 0, totalPages: 0 },
+      };
     }
-    
+
     const rawResult = await getPaginatedInventoryAllocations({
       filters: adjustedFilters,
       page,
@@ -394,15 +455,18 @@ const fetchPaginatedInventoryAllocationsService = async ({
       sortBy,
       sortOrder,
     });
-    
+
     if (!rawResult?.data?.length) {
-      return { data: [], pagination: { page, limit, totalRecords: 0, totalPages: 0 } };
+      return {
+        data: [],
+        pagination: { page, limit, totalRecords: 0, totalPages: 0 },
+      };
     }
-    
+
     return transformPaginatedInventoryAllocationResults(rawResult);
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
+
     throw AppError.serviceError(
       'Unable to retrieve inventory allocation records at this time.',
       {
@@ -443,99 +507,138 @@ const fetchPaginatedInventoryAllocationsService = async ({
  */
 const confirmInventoryAllocationService = async (user, rawOrderId) => {
   const context = `${CONTEXT}/confirmInventoryAllocationService`;
-  
+
   try {
     return await withTransaction(async (client) => {
       const userId = user.id;
-      
+
       // 1. Lock order and order items rows before any reads.
       await lockRows(client, 'orders', [rawOrderId], 'FOR UPDATE', {
         context: `${context}/lockOrder`,
       });
-      
-      const orderItemsMetadata = await getOrderItemsByOrderId(rawOrderId, client);
-      const orderItemIds       = orderItemsMetadata.map((item) => item.order_item_id);
-      
+
+      const orderItemsMetadata = await getOrderItemsByOrderId(
+        rawOrderId,
+        client
+      );
+      const orderItemIds = orderItemsMetadata.map((item) => item.order_item_id);
+
       await lockRows(client, 'order_items', orderItemIds, 'FOR UPDATE', {
         context: `${context}/lockOrderItems`,
         orderId: rawOrderId,
       });
-      
+
       if (!orderItemsMetadata.length) {
-        throw AppError.notFoundError(`No order items found for order ID: ${rawOrderId}`);
+        throw AppError.notFoundError(
+          `No order items found for order ID: ${rawOrderId}`
+        );
       }
-      
+
       // 2. Validate each allocation status can transition to ALLOC_CONFIRMED.
-      const allocationStatuses = await getAllocationStatuses(rawOrderId, orderItemIds, client);
-      
+      const allocationStatuses = await getAllocationStatuses(
+        rawOrderId,
+        orderItemIds,
+        client
+      );
+
       allocationStatuses.forEach(({ allocation_status_code: code }) => {
         validateAllocationStatusTransition(code, 'ALLOC_CONFIRMED');
       });
-      
+
       const orderId = allocationStatuses[0]?.order_id;
-      
+
       // 3. Fetch allocations and compute per-item allocation status.
-      const inventoryAllocationDetails = await getInventoryAllocationsByOrderId(orderId, client);
-      const allocationResults          = computeAllocationStatusPerItem(
+      const inventoryAllocationDetails = await getInventoryAllocationsByOrderId(
+        orderId,
+        client
+      );
+      const allocationResults = computeAllocationStatusPerItem(
         orderItemsMetadata,
         inventoryAllocationDetails
       );
-      
-      const uniqueStatusCodes = [...new Set(allocationResults.map((res) => res.allocationStatus))];
-      const statusList        = await getOrderStatusesByCodes(uniqueStatusCodes, client);
-      const statusCodeToIdMap = Object.fromEntries(statusList.map(({ code, id }) => [code, id]));
-      
+
+      const uniqueStatusCodes = [
+        ...new Set(allocationResults.map((res) => res.allocationStatus)),
+      ];
+      const statusList = await getOrderStatusesByCodes(
+        uniqueStatusCodes,
+        client
+      );
+      const statusCodeToIdMap = Object.fromEntries(
+        statusList.map(({ code, id }) => [code, id])
+      );
+
       // 4. Update order item statuses based on allocation results.
       for (const { orderItemId, allocationStatus } of allocationResults) {
         const newStatusId = statusCodeToIdMap[allocationStatus];
-        await updateOrderItemStatus(client, { orderItemId, newStatusId, updatedBy: userId });
+        await updateOrderItemStatus(client, {
+          orderItemId,
+          newStatusId,
+          updatedBy: userId,
+        });
       }
-      
+
       // 5. Update order status if fully allocated.
-      const hasUnallocatedItems = allocationResults.some((res) => !res.isMatched);
-      
+      const hasUnallocatedItems = allocationResults.some(
+        (res) => !res.isMatched
+      );
+
       if (!hasUnallocatedItems) {
         const orderStatusCode = allocationResults[0].allocationStatus;
-        const orderStatusId   = statusCodeToIdMap[orderStatusCode];
-        await updateOrderStatus(client, { orderId: rawOrderId, newStatusId: orderStatusId, updatedBy: userId });
+        const orderStatusId = statusCodeToIdMap[orderStatusCode];
+        await updateOrderStatus(client, {
+          orderId: rawOrderId,
+          newStatusId: orderStatusId,
+          updatedBy: userId,
+        });
       }
-      
+
       // 6. Lock warehouse_inventory rows before reading quantities.
       const keys = dedupeWarehouseBatchKeys(inventoryAllocationDetails);
       await lockRows(client, 'warehouse_inventory', keys, 'FOR UPDATE', {
         context: `${context}/lockWarehouseInventory`,
         orderId: rawOrderId,
       });
-      
-      const warehouseBatchInfo  = await getWarehouseInventoryQuantities(keys, client);
-      const inStockStatusId     = getStatusId('inventory_in_stock');
-      const outOfStockStatusId  = getStatusId('inventory_out_of_stock');
-      
+
+      const warehouseBatchInfo = await getWarehouseInventoryQuantities(
+        keys,
+        client
+      );
+      const inStockStatusId = getStatusId('inventory_in_stock');
+      const outOfStockStatusId = getStatusId('inventory_out_of_stock');
+
       // 7. Compute updated reserved quantities and inventory statuses.
       const updates = updateReservedQuantitiesFromAllocations(
         inventoryAllocationDetails,
         warehouseBatchInfo,
         { inStockStatusId, outOfStockStatusId }
       );
-      
+
       // 8. Apply bulk warehouse inventory updates.
       const updateInputs = updates.map((row) => ({
-        id:                row.id,
+        id: row.id,
         warehouseQuantity: row.warehouse_quantity,
-        reservedQuantity:  row.reserved_quantity,
-        statusId:          row.status_id,
+        reservedQuantity: row.reserved_quantity,
+        statusId: row.status_id,
       }));
-      
-      const updatedWarehouseRecords = await updateWarehouseInventoryQuantityBulk(
-        updateInputs,
-        userId,
+
+      const updatedWarehouseRecords =
+        await updateWarehouseInventoryQuantityBulk(
+          updateInputs,
+          userId,
+          client
+        );
+
+      // 9. Resolve confirmed and partial allocation IDs and update statuses.
+      const confirmedStatusId = await getInventoryAllocationStatusId(
+        'ALLOC_CONFIRMED',
         client
       );
-      
-      // 9. Resolve confirmed and partial allocation IDs and update statuses.
-      const confirmedStatusId = await getInventoryAllocationStatusId('ALLOC_CONFIRMED', client);
-      const partialStatusId   = await getInventoryAllocationStatusId('ALLOC_PARTIAL', client);
-      
+      const partialStatusId = await getInventoryAllocationStatusId(
+        'ALLOC_PARTIAL',
+        client
+      );
+
       const fullyMatchedItemIds = new Set(
         allocationResults.filter((r) => r.isMatched).map((r) => r.orderItemId)
       );
@@ -543,7 +646,7 @@ const confirmInventoryAllocationService = async (user, rawOrderId) => {
         .filter((detail) => fullyMatchedItemIds.has(detail.order_item_id))
         .map((detail) => detail.allocation_id)
         .filter(Boolean);
-      
+
       const partiallyMatchedItemIds = new Set(
         allocationResults.filter((r) => !r.isMatched).map((r) => r.orderItemId)
       );
@@ -551,55 +654,70 @@ const confirmInventoryAllocationService = async (user, rawOrderId) => {
         .filter((detail) => partiallyMatchedItemIds.has(detail.order_item_id))
         .map((detail) => detail.allocation_id)
         .filter(Boolean);
-      
+
       if (cleanFullyAllocatedIds.length > 0) {
         await updateInventoryAllocationStatus(
-          { statusId: confirmedStatusId, userId, allocationIds: cleanFullyAllocatedIds },
+          {
+            statusId: confirmedStatusId,
+            userId,
+            allocationIds: cleanFullyAllocatedIds,
+          },
           client
         );
       }
-      
+
       if (cleanPartialOrUnmatchedIds.length > 0) {
         await updateInventoryAllocationStatus(
-          { statusId: partialStatusId, userId, allocationIds: cleanPartialOrUnmatchedIds },
+          {
+            statusId: partialStatusId,
+            userId,
+            allocationIds: cleanPartialOrUnmatchedIds,
+          },
           client
         );
       }
-      
+
       // 10. Build and insert inventory activity logs.
-      const inventoryActionTypeId = await getInventoryActionTypeId('reserve', client);
-      
+      const inventoryActionTypeId = await getInventoryActionTypeId(
+        'reserve',
+        client
+      );
+
       const inventoryActivityLogs = buildAllocationConfirmLogEntries(
         updates,
         warehouseBatchInfo,
         {
-          orderId:      rawOrderId,
-          performedBy:  userId,
+          orderId: rawOrderId,
+          performedBy: userId,
           actionTypeId: inventoryActionTypeId,
         }
       );
-      
+
       const logInsertResult = await insertInventoryActivityLogBulk(
         inventoryActivityLogs,
         client,
         { context }
       );
-      
+
       // 11. Build and return final response.
       const rawResult = buildOrderAllocationResult({
         orderId: rawOrderId,
-        inventoryAllocations:    inventoryAllocationDetails.map(({ allocation_id }) => ({ allocation_id })),
-        warehouseUpdateIds:      updatedWarehouseRecords.map((r) => ({ id: r.id })),
-        inventoryLogIds:         logInsertResult.map((r) => String(r.id)),
+        inventoryAllocations: inventoryAllocationDetails.map(
+          ({ allocation_id }) => ({ allocation_id })
+        ),
+        warehouseUpdateIds: updatedWarehouseRecords.map((r) => ({ id: r.id })),
+        inventoryLogIds: logInsertResult.map((r) => String(r.id)),
         allocationResults,
       });
-      
+
       return transformOrderAllocationResponse(rawResult);
     });
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
-    throw AppError.serviceError('Unable to confirm inventory allocation for this order.');
+
+    throw AppError.serviceError(
+      'Unable to confirm inventory allocation for this order.'
+    );
   }
 };
 

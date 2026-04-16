@@ -27,17 +27,16 @@ const CONTEXT = 'packaging-material-business';
  */
 const evaluatePackagingMaterialLookupAccessControl = async (user) => {
   const context = `${CONTEXT}/evaluatePackagingMaterialLookupAccessControl`;
-  
+
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     return {
       canViewArchived:
         isRoot ||
         permissions.includes(PERMISSIONS.VIEW_ARCHIVED_PACKAGING_MATERIALS),
       canViewAllStatuses:
-        isRoot ||
-        permissions.includes(PERMISSIONS.VIEW_ALL_PACKAGING_STATUSES),
+        isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_PACKAGING_STATUSES),
       canViewHiddenSalesMaterials:
         isRoot ||
         permissions.includes(PERMISSIONS.VIEW_HIDDEN_SALES_PACKAGING_MATERIALS),
@@ -48,7 +47,7 @@ const evaluatePackagingMaterialLookupAccessControl = async (user) => {
       'Failed to evaluate packaging material lookup access control',
       { context, userId: user?.id }
     );
-    
+
     throw AppError.businessError(
       'Unable to evaluate access control for packaging material lookup.'
     );
@@ -73,25 +72,25 @@ const enforcePackagingMaterialVisibilityRules = (
   activeStatusId
 ) => {
   const adjusted = { ...filters };
-  
+
   if (!userAccess.canViewAllStatuses) {
     if (!activeStatusId) {
       throw AppError.validationError(
         'Missing activeStatusId for restricted status view.'
       );
     }
-    
+
     // Pin to active and unarchived records for restricted users.
     delete adjusted.statusId;
     adjusted.restrictToActiveStatus = true;
-    adjusted._activeStatusId        = activeStatusId;
-    adjusted.restrictToUnarchived   = true;
+    adjusted._activeStatusId = activeStatusId;
+    adjusted.restrictToUnarchived = true;
   } else {
     // Elevated access — remove forced restrictions, retain caller-provided filters.
     delete adjusted._activeStatusId;
     delete adjusted.restrictToUnarchived;
   }
-  
+
   return adjusted;
 };
 
@@ -105,7 +104,7 @@ const enforcePackagingMaterialVisibilityRules = (
 const enrichPackagingMaterialOption = (row, activeStatusId) => {
   return {
     ...row,
-    isActive:   row.status_id === activeStatusId,
+    isActive: row.status_id === activeStatusId,
     isArchived: row.is_archived === true,
   };
 };

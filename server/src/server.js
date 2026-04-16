@@ -38,28 +38,46 @@ const {
 // Core helpers
 const AppError = require('./utils/AppError');
 const { runStartupStep } = require('./system/lifecycle/run-startup-step');
-const { setServer, registerShutdownHook } = require('./system/lifecycle/on-exit');
+const {
+  setServer,
+  registerShutdownHook,
+} = require('./system/lifecycle/on-exit');
 
 // Application
 const app = require('./app');
 
 // Startup initializers
-const { createDatabaseAndInitialize } = require('./system/startup/initialize-database');
+const {
+  createDatabaseAndInitialize,
+} = require('./system/startup/initialize-database');
 const { initializeRootAdmin } = require('./config/initialize-root');
 
 // Cache initializers
 const { initAllStatusCaches } = require('./config/status-cache');
-const { initSkuOperationalStatusCache } = require('./config/sku-operational-status-cache');
-const { initBatchActivityTypeCache } = require('./cache/batch-activity-type-cache');
+const {
+  initSkuOperationalStatusCache,
+} = require('./config/sku-operational-status-cache');
+const {
+  initBatchActivityTypeCache,
+} = require('./cache/batch-activity-type-cache');
 
 // Runtime services
 const { monitorPool } = require('./database/db');
-const { startPoolMonitoring, stopPoolMonitoring } = require('./system/monitoring/pool-monitor');
-const { startHealthCheck, stopHealthCheck } = require('./system/health/health-check');
+const {
+  startPoolMonitoring,
+  stopPoolMonitoring,
+} = require('./system/monitoring/pool-monitor');
+const {
+  startHealthCheck,
+  stopHealthCheck,
+} = require('./system/health/health-check');
 
 // Backup
 const { runBackup } = require('./system/backup/jobs/run-backup');
-const { startBackupScheduler, stopBackupScheduler } = require('./system/backup/jobs/backup-scheduler');
+const {
+  startBackupScheduler,
+  stopBackupScheduler,
+} = require('./system/backup/jobs/backup-scheduler');
 
 // Constants
 const { ONE_MINUTE } = require('./utils/constants/general/time');
@@ -71,9 +89,7 @@ const { ONE_MINUTE } = require('./utils/constants/general/time');
 // Only import cron setup when it will actually be used, but do it up front so
 // dynamic require() calls don't hide dependency errors until runtime.
 const cronSetup =
-  process.env.USE_CRON_BACKUP === 'true'
-    ? require('./tasks/cron-setup')
-    : null;
+  process.env.USE_CRON_BACKUP === 'true' ? require('./tasks/cron-setup') : null;
 
 // ---------------------------------------------------------------------------
 
@@ -99,24 +115,22 @@ const startServer = async () => {
   // Validate environment — fail fast before any I/O
   // ---------------------------------------------------------------------------
   const PORT = process.env.PORT;
-  
+
   if (!PORT) {
     const error = new AppError('PORT environment variable is missing');
     logMissingEnvVar('PORT', error);
     throw error;
   }
-  
+
   try {
     // -------------------------------------------------------------------------
     // 1. Database
     // Must succeed before caches or admin init, both of which query the DB.
     // -------------------------------------------------------------------------
-    await runStartupStep(
-      'Initialize database',
-      createDatabaseAndInitialize,
-      { context: CONTEXT }
-    );
-    
+    await runStartupStep('Initialize database', createDatabaseAndInitialize, {
+      context: CONTEXT,
+    });
+
     // -------------------------------------------------------------------------
     // 2. Caches
     // Populated from DB rows; grouped into one step to keep startup logs clean.
@@ -130,24 +144,22 @@ const startServer = async () => {
       },
       { context: CONTEXT }
     );
-    
+
     // -------------------------------------------------------------------------
     // 3. Root admin
     // Upserts the built-in admin account; safe to re-run on every boot.
     // -------------------------------------------------------------------------
-    await runStartupStep(
-      'Initialize root admin',
-      initializeRootAdmin,
-      { context: CONTEXT }
-    );
-    
+    await runStartupStep('Initialize root admin', initializeRootAdmin, {
+      context: CONTEXT,
+    });
+
     // -------------------------------------------------------------------------
     // 4. Create HTTP server (not yet listening)
     // Server is registered with the lifecycle module here so that on-exit can
     // call server.close() even if the listen step below never completes.
     // -------------------------------------------------------------------------
     let server;
-    
+
     await runStartupStep(
       'Create HTTP server',
       () => {
@@ -156,7 +168,7 @@ const startServer = async () => {
       },
       { context: CONTEXT }
     );
-    
+
     // -------------------------------------------------------------------------
     // 5. Health check
     // Registered before the server starts listening so the endpoint is ready
@@ -167,13 +179,13 @@ const startServer = async () => {
       () => {
         const interval =
           parseInt(process.env.HEALTH_CHECK_INTERVAL, 10) || ONE_MINUTE;
-        
+
         startHealthCheck(interval);
         registerShutdownHook(() => stopHealthCheck());
       },
       { context: CONTEXT }
     );
-    
+
     // -------------------------------------------------------------------------
     // 6. Pool monitor
     // Logs DB connection-pool saturation at a fixed cadence; purely observational.
@@ -186,7 +198,7 @@ const startServer = async () => {
       },
       { context: CONTEXT }
     );
-    
+
     // -------------------------------------------------------------------------
     // 7. Start listening
     // Traffic is accepted only after all services above are ready.
@@ -205,7 +217,7 @@ const startServer = async () => {
         }),
       { context: CONTEXT }
     );
-    
+
     // -------------------------------------------------------------------------
     // 8. Backup schedule (lowest priority — a failure here is recoverable)
     //
@@ -223,12 +235,12 @@ const startServer = async () => {
           cronSetup.setupCronJobs();
         } else {
           startBackupScheduler();
-          
+
           registerShutdownHook(async () => {
             // Stop the scheduler before the final backup to avoid a race
             // between a scheduled run and this explicit shutdown run.
             stopBackupScheduler();
-            
+
             try {
               await runBackup();
             } catch (error) {
@@ -243,9 +255,8 @@ const startServer = async () => {
       },
       { context: CONTEXT }
     );
-    
+
     return server;
-    
   } catch (error) {
     logSystemException(error, 'Failed to start server', { context: CONTEXT });
     throw error;
@@ -253,5 +264,5 @@ const startServer = async () => {
 };
 
 module.exports = {
-  startServer
+  startServer,
 };

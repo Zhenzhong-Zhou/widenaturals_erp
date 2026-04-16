@@ -54,27 +54,30 @@ const CONTEXT = 'pricing-group-service';
  * @throws {AppError} serviceError if an unexpected error occurs.
  */
 const fetchPaginatedPricingGroupsService = async ({
-                                                    filters   = {},
-                                                    page      = 1,
-                                                    limit     = 20,
-                                                    sortBy    = 'pricingTypeName',
-                                                    sortOrder = 'ASC',
-                                                    user,
-                                                  }) => {
+  filters = {},
+  page = 1,
+  limit = 20,
+  sortBy = 'pricingTypeName',
+  sortOrder = 'ASC',
+  user,
+}) => {
   const context = `${CONTEXT}/fetchPaginatedPricingGroupsService`;
-  
+
   try {
     // 1. Resolve visibility access control scope.
     const acl = await evaluatePricingGroupVisibility(user);
-    
+
     // 2. Apply visibility rules to filters (CRITICAL — must run before query).
     const adjustedFilters = applyPricingGroupVisibilityRules(filters, acl);
-    
+
     // 3. Return empty shape immediately — no permission to view.
     if (adjustedFilters.forceEmptyResult) {
-      return { data: [], pagination: { page, limit, totalRecords: 0, totalPages: 0 } };
+      return {
+        data: [],
+        pagination: { page, limit, totalRecords: 0, totalPages: 0 },
+      };
     }
-    
+
     // 4. Query raw paginated rows.
     const rawResult = await getPaginatedPricingGroups({
       filters: adjustedFilters,
@@ -83,12 +86,15 @@ const fetchPaginatedPricingGroupsService = async ({
       sortBy,
       sortOrder,
     });
-    
+
     // 5. Return empty shape immediately — no records to process.
     if (!rawResult || rawResult.data.length === 0) {
-      return { data: [], pagination: { page, limit, totalRecords: 0, totalPages: 0 } };
+      return {
+        data: [],
+        pagination: { page, limit, totalRecords: 0, totalPages: 0 },
+      };
     }
-    
+
     // 6. Transform for UI consumption.
     return transformPricingGroupList(rawResult);
   } catch (error) {
@@ -114,10 +120,11 @@ const fetchPaginatedPricingGroupsService = async ({
  */
 const fetchPricingGroupByIdService = async (pricingGroupId) => {
   const context = `${CONTEXT}/fetchPricingGroupByIdService`;
-  
+
   try {
     const row = await getPricingGroupById(pricingGroupId);
-    if (!row) throw AppError.notFoundError('Pricing group not found.', { context });
+    if (!row)
+      throw AppError.notFoundError('Pricing group not found.', { context });
     return transformPricingGroupDetail(row);
   } catch (error) {
     if (error instanceof AppError) throw error;

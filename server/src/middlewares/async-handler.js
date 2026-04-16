@@ -30,7 +30,7 @@ const wrapAsyncHandler = (fn) => {
       `wrapAsyncHandler expected a function, received: ${typeof fn}`
     );
   }
-  
+
   // Return a standard Express handler. Promise.resolve() handles both async
   // functions (which return a promise) and sync functions (which return a
   // plain value) uniformly — any rejection or throw routes to next(err).
@@ -40,5 +40,5 @@ const wrapAsyncHandler = (fn) => {
 };
 
 module.exports = {
-  wrapAsyncHandler
+  wrapAsyncHandler,
 };

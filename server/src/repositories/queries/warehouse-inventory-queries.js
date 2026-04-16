@@ -168,13 +168,13 @@ const WAREHOUSE_INVENTORY_CONFLICT_COLUMNS = ['warehouse_id', 'batch_id'];
 /** @type {Record<string, string>} */
 const WAREHOUSE_INVENTORY_UPDATE_STRATEGIES = {
   warehouse_quantity: 'overwrite',
-  reserved_quantity:  'overwrite',
-  warehouse_fee:      'overwrite',
-  inbound_date:       'overwrite',
-  status_id:          'overwrite',
-  status_date:        'overwrite',
-  updated_at:         'overwrite',
-  updated_by:         'overwrite',
+  reserved_quantity: 'overwrite',
+  warehouse_fee: 'overwrite',
+  inbound_date: 'overwrite',
+  status_id: 'overwrite',
+  status_date: 'overwrite',
+  updated_at: 'overwrite',
+  updated_by: 'overwrite',
 };
 
 // ── Update queries ──────────────────────────────────────────────────
@@ -525,5 +525,5 @@ module.exports = {
   GET_WAREHOUSE_INVENTORY_QUANTITIES_QUERY,
   ALLOCATABLE_BATCHES_SORT,
   buildAllocatableBatchesQuery,
-  SKU_HAS_INVENTORY_QUERY
+  SKU_HAS_INVENTORY_QUERY,
 };

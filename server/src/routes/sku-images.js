@@ -9,15 +9,15 @@
 
 'use strict';
 
-const express                        = require('express');
-const { authorize }                  = require('../middlewares/authorize');
-const { createUploadMiddleware }     = require('../middlewares/multer-config');
-const validate                       = require('../middlewares/validate');
+const express = require('express');
+const { authorize } = require('../middlewares/authorize');
+const { createUploadMiddleware } = require('../middlewares/multer-config');
+const validate = require('../middlewares/validate');
 const {
   parseSkuImageJson,
   attachUploadedFilesToSkus,
 } = require('../middlewares/sku-image-upload');
-const PERMISSION_KEYS                    = require('../utils/constants/domain/permission-keys');
+const PERMISSION_KEYS = require('../utils/constants/domain/permission-keys');
 const {
   bulkSkuImageUploadSchema,
   bulkSkuImageUpdateSchema,
@@ -40,8 +40,8 @@ router.post(
   '/upload',
   authorize([PERMISSION_KEYS.SKUS.UPLOAD_IMAGE]),
   createUploadMiddleware('array', 'files'), // accepts multipart/form-data file array
-  parseSkuImageJson,                        // parses JSON fields from multipart body
-  attachUploadedFilesToSkus,                // maps uploaded files to their SKU entries
+  parseSkuImageJson, // parses JSON fields from multipart body
+  attachUploadedFilesToSkus, // maps uploaded files to their SKU entries
   validate(bulkSkuImageUploadSchema, 'body'),
   uploadSkuImagesController
 );
@@ -58,8 +58,8 @@ router.post(
   '/update',
   authorize([PERMISSION_KEYS.SKUS.UPDATE_IMAGE]),
   createUploadMiddleware('array', 'files'), // accepts multipart/form-data file array
-  parseSkuImageJson,                        // parses JSON fields from multipart body
-  attachUploadedFilesToSkus,                // maps uploaded files to their SKU entries
+  parseSkuImageJson, // parses JSON fields from multipart body
+  attachUploadedFilesToSkus, // maps uploaded files to their SKU entries
   validate(bulkSkuImageUpdateSchema, 'body'),
   updateSkuImagesController
 );

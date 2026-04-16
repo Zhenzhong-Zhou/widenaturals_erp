@@ -39,7 +39,7 @@ const CONTEXT = 'sort-resolver';
  */
 const getSortMapForModule = (moduleKey) => {
   const sortMap = SORTABLE_FIELDS[moduleKey];
-  
+
   if (!sortMap || typeof sortMap !== 'object') {
     throw AppError.validationError(
       `Invalid or unregistered sort module key: "${moduleKey}"`,
@@ -49,7 +49,7 @@ const getSortMapForModule = (moduleKey) => {
       }
     );
   }
-  
+
   return sortMap;
 };
 
@@ -85,26 +85,29 @@ const getSortMapForModule = (moduleKey) => {
  * sanitizeSortBy('unknown', 'products')
  * // → null (warns on 'unknown', no fallback provided)
  */
-const sanitizeSortBy = (sortByRaw = '', moduleKey = null, defaultSort = null) => {
+const sanitizeSortBy = (
+  sortByRaw = '',
+  moduleKey = null,
+  defaultSort = null
+) => {
   const sortMap = getSortMapForModule(moduleKey);
   const requestedKeys = normalizeParamArray(sortByRaw) ?? [];
-  
-  const validKeys = requestedKeys
-    .filter((key) => {
-      const isValid = key in sortMap;
-      if (!isValid) {
-        logSystemWarn(`Unmapped sortBy key: "${key}"`, {
-          context: `${CONTEXT}/sanitizeSortBy`,
-          meta: { key, moduleKey },
-        });
-      }
-      return isValid;
-    });
-  
+
+  const validKeys = requestedKeys.filter((key) => {
+    const isValid = key in sortMap;
+    if (!isValid) {
+      logSystemWarn(`Unmapped sortBy key: "${key}"`, {
+        context: `${CONTEXT}/sanitizeSortBy`,
+        meta: { key, moduleKey },
+      });
+    }
+    return isValid;
+  });
+
   if (validKeys.length > 0) {
     return validKeys.join(', ');
   }
-  
+
   return defaultSort ?? null;
 };
 
@@ -140,34 +143,35 @@ const sanitizeSortBy = (sortByRaw = '', moduleKey = null, defaultSort = null) =>
  * // → { sortBy: 'o.created_at', sortOrder: 'ASC', additionalSorts: [{ column: 'o.id', direction: 'ASC' }] }
  */
 const resolveSort = ({
-                       sortBy,
-                       sortOrder   = 'ASC',
-                       moduleKey,
-                       defaultSort = null,
-                     }) => {
+  sortBy,
+  sortOrder = 'ASC',
+  moduleKey,
+  defaultSort = null,
+}) => {
   // getSortMapForModule throws on unrecognized moduleKey — no need to re-check here.
   const sortMap = getSortMapForModule(moduleKey);
-  
-  const normalizedOrder = String(sortOrder).toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
-  
+
+  const normalizedOrder =
+    String(sortOrder).toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+
   // Resolve the request key to a DB column via the sort map.
   const resolved = sortMap[sortBy];
-  
+
   if (resolved) {
     return {
-      sortBy:          resolved,
-      sortOrder:       normalizedOrder,
+      sortBy: resolved,
+      sortOrder: normalizedOrder,
       additionalSorts: [],
     };
   }
-  
+
   // sortBy was unmapped — fall back to defaultSort.
   // defaultSort must be fully qualified (e.g. 'a.created_at') to avoid
   // column ambiguity in aliased multi-table queries.
   const fallbackSorts = Array.isArray(defaultSort)
     ? defaultSort
     : [defaultSort].filter(Boolean);
-  
+
   if (!fallbackSorts.length) {
     throw AppError.validationError(
       `Unmapped sortBy key with no fallback: "${sortBy}"`,
@@ -177,15 +181,15 @@ const resolveSort = ({
       }
     );
   }
-  
+
   const [primary, ...rest] = fallbackSorts;
-  
+
   return {
-    sortBy:    primary,
+    sortBy: primary,
     sortOrder: normalizedOrder,
     // Additional columns provide deterministic tie-breaking for multi-column sorts.
     additionalSorts: rest.map((col) => ({
-      column:    col,
+      column: col,
       direction: 'ASC',
     })),
   };

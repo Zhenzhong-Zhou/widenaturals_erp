@@ -21,7 +21,9 @@
 
 const { bulkInsert } = require('../utils/db/write-utils');
 const { query } = require('../database/db');
-const { validateBulkInsertRows } = require('../utils/validation/bulk-insert-row-validator');
+const {
+  validateBulkInsertRows,
+} = require('../utils/validation/bulk-insert-row-validator');
 const AppError = require('../utils/AppError');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { logDbQueryError, logBulkInsertError } = require('../utils/db-logger');
@@ -64,55 +66,67 @@ const {
  */
 const insertOrderItemsBulk = async (orderId, orderItems, client) => {
   if (!Array.isArray(orderItems) || orderItems.length === 0) return [];
-  
+
   const context = 'order-item-repository/insertOrderItemsBulk';
-  
+
   // ─── Validate Item Types ────────────────────────────────────────────────────
   // Validation is before any IO — must not be inside the try block.
-  
+
   const invalidItems = orderItems.filter(
     (item) =>
       (item.sku_id && item.packaging_material_id) ||
       (!item.sku_id && !item.packaging_material_id)
   );
-  
+
   if (invalidItems.length > 0) {
     throw AppError.validationError(
       'Each order item must have exactly one of sku_id or packaging_material_id.',
       { context, meta: { invalidCount: invalidItems.length } }
     );
   }
-  
+
   const mapToRow = (item) => [
     orderId,
-    item.sku_id                 ?? null,
-    item.packaging_material_id  ?? null,
+    item.sku_id ?? null,
+    item.packaging_material_id ?? null,
     item.quantity_ordered,
-    item.price_id               ?? null,
-    item.price                  ?? null,
-    item.subtotal               ?? (item.price ?? 0) * item.quantity_ordered,
+    item.price_id ?? null,
+    item.price ?? null,
+    item.subtotal ?? (item.price ?? 0) * item.quantity_ordered,
     item.status_id,
-    item.metadata               ?? null,
-    null,                               // updated_at — null at insert time
-    item.created_by             ?? null,
-    item.updated_by             ?? null,
+    item.metadata ?? null,
+    null, // updated_at — null at insert time
+    item.created_by ?? null,
+    item.updated_by ?? null,
   ];
-  
-  const skuItems      = orderItems.filter((item) => item.sku_id && !item.packaging_material_id);
-  const packagingItems = orderItems.filter((item) => !item.sku_id && item.packaging_material_id);
-  
+
+  const skuItems = orderItems.filter(
+    (item) => item.sku_id && !item.packaging_material_id
+  );
+  const packagingItems = orderItems.filter(
+    (item) => !item.sku_id && item.packaging_material_id
+  );
+
   // ─── Validate Row Lengths ───────────────────────────────────────────────────
-  
-  if (skuItems.length)       validateBulkInsertRows(skuItems.map(mapToRow),       ORDER_ITEM_INSERT_COLUMNS.length);
-  if (packagingItems.length) validateBulkInsertRows(packagingItems.map(mapToRow), ORDER_ITEM_INSERT_COLUMNS.length);
-  
+
+  if (skuItems.length)
+    validateBulkInsertRows(
+      skuItems.map(mapToRow),
+      ORDER_ITEM_INSERT_COLUMNS.length
+    );
+  if (packagingItems.length)
+    validateBulkInsertRows(
+      packagingItems.map(mapToRow),
+      ORDER_ITEM_INSERT_COLUMNS.length
+    );
+
   // ─── Insert ─────────────────────────────────────────────────────────────────
-  
+
   try {
     const results = [];
-    
+
     if (skuItems.length) {
-      const rows   = skuItems.map(mapToRow);
+      const rows = skuItems.map(mapToRow);
       const result = await bulkInsert(
         'order_items',
         ORDER_ITEM_INSERT_COLUMNS,
@@ -124,9 +138,9 @@ const insertOrderItemsBulk = async (orderId, orderItems, client) => {
       );
       results.push(...result);
     }
-    
+
     if (packagingItems.length) {
-      const rows   = packagingItems.map(mapToRow);
+      const rows = packagingItems.map(mapToRow);
       const result = await bulkInsert(
         'order_items',
         ORDER_ITEM_INSERT_COLUMNS,
@@ -134,24 +148,24 @@ const insertOrderItemsBulk = async (orderId, orderItems, client) => {
         ORDER_ITEM_PACKAGING_CONFLICT_COLUMNS,
         ORDER_ITEM_UPDATE_STRATEGIES,
         client,
-        { context: `${context}:packaging`, extraUpdates: ORDER_ITEM_EXTRA_UPDATES }
+        {
+          context: `${context}:packaging`,
+          extraUpdates: ORDER_ITEM_EXTRA_UPDATES,
+        }
       );
       results.push(...result);
     }
-    
+
     return results;
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to bulk insert order items.',
-      meta:    { orderItemCount: orderItems.length },
-      logFn:   (err) => logBulkInsertError(
-        err,
-        'order_items',
-        [],
-        orderItems.length,
-        { context }
-      ),
+      meta: { orderItemCount: orderItems.length },
+      logFn: (err) =>
+        logBulkInsertError(err, 'order_items', [], orderItems.length, {
+          context,
+        }),
     });
   }
 };
@@ -171,7 +185,7 @@ const insertOrderItemsBulk = async (orderId, orderItems, client) => {
  */
 const findOrderItemsByOrderId = async (orderId) => {
   const context = 'order-item-repository/findOrderItemsByOrderId';
-  
+
   try {
     const { rows } = await query(ORDER_ITEM_FIND_BY_ORDER_QUERY, [orderId]);
     return rows;
@@ -179,13 +193,12 @@ const findOrderItemsByOrderId = async (orderId) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch order items.',
-      meta:    { orderId },
-      logFn:   (err) => logDbQueryError(
-        ORDER_ITEM_FIND_BY_ORDER_QUERY,
-        [orderId],
-        err,
-        { context, orderId }
-      ),
+      meta: { orderId },
+      logFn: (err) =>
+        logDbQueryError(ORDER_ITEM_FIND_BY_ORDER_QUERY, [orderId], err, {
+          context,
+          orderId,
+        }),
     });
   }
 };
@@ -213,22 +226,26 @@ const updateOrderItemStatusesByOrderId = async (
   { orderId, newStatusId, updatedBy }
 ) => {
   const context = 'order-item-repository/updateOrderItemStatusesByOrderId';
-  const values  = [newStatusId, updatedBy, orderId];
-  
+  const values = [newStatusId, updatedBy, orderId];
+
   try {
-    const result = await query(ORDER_ITEM_UPDATE_STATUS_BY_ORDER, values, client);
+    const result = await query(
+      ORDER_ITEM_UPDATE_STATUS_BY_ORDER,
+      values,
+      client
+    );
     return result.rows;
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to update order item statuses by order.',
-      meta:    { orderId, newStatusId },
-      logFn:   (err) => logDbQueryError(
-        ORDER_ITEM_UPDATE_STATUS_BY_ORDER,
-        values,
-        err,
-        { context, orderId, newStatusId }
-      ),
+      meta: { orderId, newStatusId },
+      logFn: (err) =>
+        logDbQueryError(ORDER_ITEM_UPDATE_STATUS_BY_ORDER, values, err, {
+          context,
+          orderId,
+          newStatusId,
+        }),
     });
   }
 };
@@ -255,8 +272,8 @@ const updateOrderItemStatus = async (
   { orderItemId, newStatusId, updatedBy }
 ) => {
   const context = 'order-item-repository/updateOrderItemStatus';
-  const values  = [newStatusId, updatedBy, orderItemId];
-  
+  const values = [newStatusId, updatedBy, orderItemId];
+
   try {
     const result = await query(ORDER_ITEM_UPDATE_STATUS_BY_ID, values, client);
     return result.rows[0] ?? null;
@@ -264,13 +281,13 @@ const updateOrderItemStatus = async (
     throw handleDbError(error, {
       context,
       message: 'Failed to update order item status.',
-      meta:    { orderItemId, newStatusId },
-      logFn:   (err) => logDbQueryError(
-        ORDER_ITEM_UPDATE_STATUS_BY_ID,
-        values,
-        err,
-        { context, orderItemId, newStatusId }
-      ),
+      meta: { orderItemId, newStatusId },
+      logFn: (err) =>
+        logDbQueryError(ORDER_ITEM_UPDATE_STATUS_BY_ID, values, err, {
+          context,
+          orderItemId,
+          newStatusId,
+        }),
     });
   }
 };
@@ -290,21 +307,24 @@ const updateOrderItemStatus = async (
  */
 const getOrderItemsByOrderId = async (orderId, client) => {
   const context = 'order-item-repository/getOrderItemsByOrderId';
-  
+
   try {
-    const result = await query(ORDER_ITEM_GET_BY_ORDER_QUERY, [orderId], client);
+    const result = await query(
+      ORDER_ITEM_GET_BY_ORDER_QUERY,
+      [orderId],
+      client
+    );
     return result.rows;
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch order items by order ID.',
-      meta:    { orderId },
-      logFn:   (err) => logDbQueryError(
-        ORDER_ITEM_GET_BY_ORDER_QUERY,
-        [orderId],
-        err,
-        { context, orderId }
-      ),
+      meta: { orderId },
+      logFn: (err) =>
+        logDbQueryError(ORDER_ITEM_GET_BY_ORDER_QUERY, [orderId], err, {
+          context,
+          orderId,
+        }),
     });
   }
 };
@@ -325,21 +345,24 @@ const getOrderItemsByOrderId = async (orderId, client) => {
  */
 const validateFullAllocationForFulfillment = async (orderId, client = null) => {
   const context = 'order-item-repository/validateFullAllocationForFulfillment';
-  
+
   try {
-    const { rows } = await query(ORDER_ITEM_VALIDATE_ALLOCATION_QUERY, [orderId], client);
+    const { rows } = await query(
+      ORDER_ITEM_VALIDATE_ALLOCATION_QUERY,
+      [orderId],
+      client
+    );
     return rows[0] ?? null;
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to validate order item allocations for fulfillment.',
-      meta:    { orderId },
-      logFn:   (err) => logDbQueryError(
-        ORDER_ITEM_VALIDATE_ALLOCATION_QUERY,
-        [orderId],
-        err,
-        { context, orderId }
-      ),
+      meta: { orderId },
+      logFn: (err) =>
+        logDbQueryError(ORDER_ITEM_VALIDATE_ALLOCATION_QUERY, [orderId], err, {
+          context,
+          orderId,
+        }),
     });
   }
 };
@@ -356,9 +379,13 @@ const validateFullAllocationForFulfillment = async (orderId, client = null) => {
  * @returns {Promise<boolean>} True if at least one active order exists for the SKU.
  * @throws  {AppError}         Normalized database error if the query fails.
  */
-const skuHasActiveOrders = async (skuId, activeOrderStatusIds, client = null) => {
+const skuHasActiveOrders = async (
+  skuId,
+  activeOrderStatusIds,
+  client = null
+) => {
   const context = 'order-item-repository/skuHasActiveOrders';
-  
+
   return existsQuery(
     ORDER_ITEM_SKU_ACTIVE_ORDERS_QUERY,
     [skuId, activeOrderStatusIds],

@@ -98,19 +98,18 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
  */
 const pool = new Pool({
   ...connectionConfig,
-  
+
   // Maximum number of active clients in the pool
   max: DB_POOL_MAX,
-  
+
   // Time (ms) a client can remain idle before being closed
   idleTimeoutMillis: getEnvNumber('DB_IDLE_TIMEOUT', 30000),
-  
+
   // Max time (ms) to wait for a new connection before throwing error
   connectionTimeoutMillis: getEnvNumber('DB_CONN_TIMEOUT', 2000),
-  
+
   // Optional but highly recommended for observability
-  application_name:
-    `${process.env.DB_APP_NAME ?? 'wide-erp-api'}:${process.env.NODE_ENV}`,
+  application_name: `${process.env.DB_APP_NAME ?? 'wide-erp-api'}:${process.env.NODE_ENV}`,
 });
 
 /**
@@ -198,15 +197,15 @@ const query = async (
       const localClient = client ?? (await pool.connect());
       const shouldRelease = !client;
       const startTime = Date.now();
-      
+
       try {
         const result = await localClient.query(text, params);
-        
+
         const duration = Date.now() - startTime;
         if (duration > SLOW_QUERY_THRESHOLD_MS) {
           logDbSlowQuery(text, params, duration, meta);
         }
-        
+
         return result;
       } catch (error) {
         throw handleDbError(error, {
@@ -214,7 +213,10 @@ const query = async (
           message: 'Database query failed',
           meta,
           logFn: (err) =>
-            logDbQueryError(text, params, err, { context: 'db/query', ...meta }),
+            logDbQueryError(text, params, err, {
+              context: 'db/query',
+              ...meta,
+            }),
         });
       } finally {
         // Only release if we acquired the client; skip on connect failure
@@ -243,7 +245,7 @@ const getClient = async () => {
   } catch (error) {
     const message = 'Failed to acquire a database client';
     const context = 'db/getClient';
-    
+
     throw handleDbError(error, {
       context,
       message,
@@ -281,36 +283,38 @@ const withTransaction = async (callback, options = {}) => {
   if (typeof callback !== 'function') {
     throw AppError.validationError('Transaction callback must be a function');
   }
-  
+
   const { isolationLevel = 'READ COMMITTED', timeoutMs = 5000 } = options;
-  
+
   // Validate against allowlist — isolationLevel is interpolated into SQL.
   if (!ISOLATION_LEVELS.has(isolationLevel)) {
-    throw AppError.validationError(`Invalid isolation level: ${isolationLevel}`);
+    throw AppError.validationError(
+      `Invalid isolation level: ${isolationLevel}`
+    );
   }
-  
+
   // timeoutMs is interpolated into SQL; must be a safe non-negative integer.
   if (!Number.isInteger(timeoutMs) || timeoutMs < 0) {
     throw AppError.validationError('timeoutMs must be a non-negative integer');
   }
-  
+
   const client = await getClient();
   const txId = generateTraceId();
   const context = 'db/withTransaction';
-  
+
   try {
     await client.query(`BEGIN ISOLATION LEVEL ${isolationLevel}`);
     logDbTransactionEvent('BEGIN', txId, { isolationLevel });
-    
+
     if (timeoutMs > 0) {
       await client.query(`SET LOCAL statement_timeout = ${timeoutMs}`);
     }
-    
+
     const result = await callback(client, txId);
-    
+
     await client.query('COMMIT');
     logDbTransactionEvent('COMMIT', txId);
-    
+
     return result;
   } catch (error) {
     try {
@@ -325,7 +329,7 @@ const withTransaction = async (callback, options = {}) => {
         severity: 'critical',
       });
     }
-    
+
     throw handleDbError(error, {
       context,
       message: 'Transaction failed',
@@ -358,20 +362,20 @@ const withTransaction = async (callback, options = {}) => {
  */
 const testConnection = async () => {
   const context = 'db/testConnection/healthcheck';
-  
+
   try {
     await query('SELECT 1', [], null, {
       retries: 0,
       baseDelay: 0,
       meta: { context },
     });
-    
+
     logSystemInfo('Database connection is healthy.', { context });
-    
+
     return true;
   } catch (error) {
     const message = 'Database connection test failed';
-    
+
     throw handleDbError(error, {
       context,
       message,
@@ -409,15 +413,14 @@ const testConnection = async () => {
  * @returns {PoolMetrics}
  */
 const monitorPool = () => {
-  const totalClients    = pool.totalCount;
-  const idleClients     = pool.idleCount;
+  const totalClients = pool.totalCount;
+  const idleClients = pool.idleCount;
   const waitingRequests = pool.waitingCount;
-  
+
   // Avoid division by zero when the pool has no clients yet.
-  const utilization = DB_POOL_MAX > 0
-    ? (totalClients - idleClients) / DB_POOL_MAX
-    : 0;
-  
+  const utilization =
+    DB_POOL_MAX > 0 ? (totalClients - idleClients) / DB_POOL_MAX : 0;
+
   return {
     totalClients,
     idleClients,
@@ -443,37 +446,37 @@ let closingPromise = null;
  */
 const closePool = async () => {
   const context = 'db/closePool/shutdown';
-  
+
   if (poolClosed) {
     logSystemWarn('Pool already closed.', { context });
     return;
   }
-  
+
   // Closing already in progress — reuse the same promise so concurrent
   // callers don't race to call pool.end() twice.
   if (closingPromise) {
     return closingPromise;
   }
-  
+
   closingPromise = (async () => {
     logSystemInfo('Closing database connection pool...', { context });
-    
+
     try {
       await pool.end();
-      
+
       poolClosed = true;
-      
+
       logSystemInfo('Database connection pool closed.', { context });
     } catch (error) {
       logSystemException(error, 'Error closing database connection pool', {
         context,
         severity: 'critical',
       });
-      
+
       // Do NOT rethrow — shutdown must remain safe regardless of pool errors.
     }
   })();
-  
+
   return closingPromise;
 };
 
@@ -509,7 +512,7 @@ const retryDatabaseConnection = async (config, options = {}) => {
   if (!config || typeof config !== 'object') {
     throw new Error('retryDatabaseConnection: "config" must be a valid object');
   }
-  
+
   const {
     retries = 5,
     baseDelayMs = 500,
@@ -517,7 +520,7 @@ const retryDatabaseConnection = async (config, options = {}) => {
     connectTimeoutMs = 3000,
     context = 'db/retryDatabaseConnection',
   } = options;
-  
+
   // Exponential backoff with jitter: caps at maxDelayMs, adds up to 200ms of
   // random jitter to prevent thundering herd on simultaneous startup.
   const computeDelay = (attempt) => {
@@ -525,32 +528,32 @@ const retryDatabaseConnection = async (config, options = {}) => {
     const jitter = Math.floor(Math.random() * 200);
     return exp + jitter;
   };
-  
+
   for (let attempt = 1; attempt <= retries; attempt++) {
     const client = new Client({
       ...config,
       connectionTimeoutMillis: connectTimeoutMs,
     });
-    
+
     try {
       await client.connect();
-      
+
       logSystemInfo('Database connection successful', {
         context,
         attempt,
         retries,
         status: 'connected',
       });
-      
+
       await client.end();
       return;
     } catch (error) {
       // Always close the client regardless of success or failure.
       await client.end().catch(() => {});
-      
+
       if (attempt === retries) {
         const message = 'Database connection failed after retries';
-        
+
         throw handleDbError(error, {
           context,
           message,
@@ -563,7 +566,7 @@ const retryDatabaseConnection = async (config, options = {}) => {
             }),
         });
       }
-      
+
       const delayMs = computeDelay(attempt);
       logRetryWarning(attempt, retries, error, delayMs);
       await sleep(delayMs);

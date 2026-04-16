@@ -14,7 +14,10 @@ const {
   resolveUserPermissionContext,
 } = require('../services/permission-service');
 const { logSystemException } = require('../utils/logging/system-logger');
-const { enforceActiveOnlyVisibilityRules, enrichWithActiveFlag } = require('./lookup-visibility');
+const {
+  enforceActiveOnlyVisibilityRules,
+  enrichWithActiveFlag,
+} = require('./lookup-visibility');
 
 const CONTEXT = 'product-business';
 
@@ -29,18 +32,18 @@ const CONTEXT = 'product-business';
  */
 const validateProductStatusTransition = (currentStatusId, newStatusId) => {
   const allowedTransitions = {
-    PENDING:      ['ACTIVE', 'INACTIVE'],
-    ACTIVE:       ['INACTIVE', 'DISCONTINUED', 'ARCHIVED'],
-    INACTIVE:     ['ACTIVE'],
+    PENDING: ['ACTIVE', 'INACTIVE'],
+    ACTIVE: ['INACTIVE', 'DISCONTINUED', 'ARCHIVED'],
+    INACTIVE: ['ACTIVE'],
     DISCONTINUED: ['ARCHIVED'],
-    ARCHIVED:     [],
+    ARCHIVED: [],
   };
-  
+
   const currentCode = getStatusNameById(currentStatusId);
-  const nextCode    = getStatusNameById(newStatusId);
-  
+  const nextCode = getStatusNameById(newStatusId);
+
   if (!currentCode || !nextCode) return false;
-  
+
   return (allowedTransitions[currentCode] ?? []).includes(nextCode);
 };
 
@@ -55,15 +58,15 @@ const validateProductStatusTransition = (currentStatusId, newStatusId) => {
  */
 const assertValidProductStatusTransition = (currentStatusId, newStatusId) => {
   const current = getStatusNameById(currentStatusId);
-  const next    = getStatusNameById(newStatusId);
-  
+  const next = getStatusNameById(newStatusId);
+
   if (!current || !next) {
     throw AppError.validationError('Unknown status ID(s).', {
       currentStatusId,
       newStatusId,
     });
   }
-  
+
   if (!validateProductStatusTransition(currentStatusId, newStatusId)) {
     throw AppError.validationError(`Invalid transition: ${current} → ${next}`);
   }
@@ -84,33 +87,38 @@ const filterUpdatableProductFields = (updates = {}) => {
   if (!updates || typeof updates !== 'object' || Array.isArray(updates)) {
     throw AppError.validationError('Invalid product update payload.');
   }
-  
+
   const allowedFields = [
-    'name', 'series', 'brand', 'category',
-    'description', 'updated_by', 'updated_at',
+    'name',
+    'series',
+    'brand',
+    'category',
+    'description',
+    'updated_by',
+    'updated_at',
   ];
-  
+
   const forbiddenFields = ['status_id', 'status', 'created_by', 'created_at'];
-  
+
   for (const key of Object.keys(updates)) {
     if (forbiddenFields.includes(key)) {
       throw AppError.validationError(
         `Field "${key}" cannot be modified through this operation. ` +
-        'Use the appropriate workflow (e.g., status update service).'
+          'Use the appropriate workflow (e.g., status update service).'
       );
     }
   }
-  
+
   const filtered = Object.fromEntries(
     Object.entries(updates).filter(([key]) => allowedFields.includes(key))
   );
-  
+
   if (Object.keys(filtered).length === 0) {
     throw AppError.validationError(
       'No valid editable product fields provided for update.'
     );
   }
-  
+
   return filtered;
 };
 
@@ -126,7 +134,7 @@ const validateProductList = (products) => {
   if (!Array.isArray(products) || products.length === 0) {
     throw AppError.validationError('No products provided for creation.');
   }
-  
+
   for (const p of products) {
     if (!p.name || !p.brand || !p.category) {
       throw AppError.validationError(
@@ -149,16 +157,16 @@ const validateProductList = (products) => {
  */
 const prepareProductInsertPayloads = (products, userId) => {
   const inactiveStatusId = getStatusId('general_inactive');
-  
+
   return products.map((p) => ({
-    name:        p.name.trim(),
-    series:      p.series?.trim() ?? null,
-    brand:       p.brand.trim().toUpperCase(),
-    category:    p.category.trim().toUpperCase(),
+    name: p.name.trim(),
+    series: p.series?.trim() ?? null,
+    brand: p.brand.trim().toUpperCase(),
+    category: p.category.trim().toUpperCase(),
     description: p.description ?? null,
-    status_id:   inactiveStatusId,
-    created_by:  userId,
-    updated_by:  null, // remains NULL on insert per repository convention
+    status_id: inactiveStatusId,
+    created_by: userId,
+    updated_by: null, // remains NULL on insert per repository convention
   }));
 };
 
@@ -171,10 +179,10 @@ const prepareProductInsertPayloads = (products, userId) => {
  */
 const evaluateProductLookupAccessControl = async (user) => {
   const context = `${CONTEXT}/evaluateProductLookupAccessControl`;
-  
+
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     return {
       canViewAllStatuses:
         isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_PRODUCTS),
@@ -186,7 +194,7 @@ const evaluateProductLookupAccessControl = async (user) => {
       context,
       userId: user?.id,
     });
-    
+
     throw AppError.businessError(
       'Unable to evaluate access control for product lookup.'
     );

@@ -9,9 +9,9 @@
 const {
   resolveUserPermissionContext,
 } = require('../services/permission-service');
-const { getStatusId }        = require('../config/status-cache');
+const { getStatusId } = require('../config/status-cache');
 const { logSystemException } = require('../utils/logging/system-logger');
-const AppError               = require('../utils/AppError');
+const AppError = require('../utils/AppError');
 
 const CONTEXT = 'warehouse-business';
 
@@ -28,28 +28,28 @@ const CONTEXT = 'warehouse-business';
  */
 const resolveWarehouseFiltersByPermission = async (user, rawFilters = {}) => {
   const context = `${CONTEXT}/resolveWarehouseFiltersByPermission`;
-  
+
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     const canViewAllStatuses =
       isRoot || permissions.includes('view_all_warehouse_statuses');
     const canViewArchived =
       isRoot || permissions.includes('view_archived_warehouses');
-    
+
     const resolvedFilters = { ...rawFilters };
-    
+
     if (canViewAllStatuses) {
       delete resolvedFilters.statusId;
     } else if (!resolvedFilters.statusId) {
       resolvedFilters.statusId = getStatusId('warehouse_active');
     }
-    
+
     // Default to excluding archived records for users without archive permission.
     if (!canViewArchived && resolvedFilters.isArchived === undefined) {
       resolvedFilters.isArchived = false;
     }
-    
+
     return resolvedFilters;
   } catch (err) {
     logSystemException(
@@ -57,7 +57,7 @@ const resolveWarehouseFiltersByPermission = async (user, rawFilters = {}) => {
       'Failed to resolve warehouse filters by permission',
       { context, userId: user?.id }
     );
-    
+
     throw AppError.businessError(
       'Failed to resolve warehouse filters by permission.'
     );

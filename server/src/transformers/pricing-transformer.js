@@ -18,26 +18,26 @@ const { getProductDisplayName } = require('../utils/display-name-utils');
  * @returns {PricingJoinRecord}
  */
 const transformPricingJoinRow = (row) => ({
-  pricingId:       row.pricing_id,
-  pricingGroupId:  row.pricing_group_id,
-  pricingTypeId:   row.pricing_type_id,
+  pricingId: row.pricing_id,
+  pricingGroupId: row.pricing_group_id,
+  pricingTypeId: row.pricing_type_id,
   pricingTypeName: row.pricing_type_name,
   pricingTypeCode: row.pricing_type_code,
-  countryCode:     row.country_code      ?? null,
-  price:           parseFloat(row.price),
-  validFrom:       row.valid_from,
-  validTo:         row.valid_to          ?? null,
-  status:          makeStatus(row),
-  skuId:           row.sku_id,
-  sku:             row.sku,
-  barcode:         row.barcode,
-  sizeLabel:       row.size_label        ?? null,
-  skuCountryCode:  row.sku_country_code  ?? null,
-  productId:       row.product_id,
-  productName:     row.product_name,
-  brand:           row.brand             ?? null,
-  category:        row.category          ?? null,
-  displayName:     getProductDisplayName(row),
+  countryCode: row.country_code ?? null,
+  price: parseFloat(row.price),
+  validFrom: row.valid_from,
+  validTo: row.valid_to ?? null,
+  status: makeStatus(row),
+  skuId: row.sku_id,
+  sku: row.sku,
+  barcode: row.barcode,
+  sizeLabel: row.size_label ?? null,
+  skuCountryCode: row.sku_country_code ?? null,
+  productId: row.product_id,
+  productName: row.product_name,
+  brand: row.brand ?? null,
+  category: row.category ?? null,
+  displayName: getProductDisplayName(row),
 });
 
 /**
@@ -55,31 +55,31 @@ const transformPricingJoinList = (paginatedResult) =>
  */
 const transformPricingExportRow = (row) => ({
   // Product
-  productName:     row.product_name,
-  brand:           row.brand             ?? null,
-  category:        row.category          ?? null,
-  
+  productName: row.product_name,
+  brand: row.brand ?? null,
+  category: row.category ?? null,
+
   // SKU
-  sku:             row.sku,
-  barcode:         row.barcode,
-  sizeLabel:       row.size_label        ?? null,
-  skuCountryCode:  row.sku_country_code  ?? null,
-  
+  sku: row.sku,
+  barcode: row.barcode,
+  sizeLabel: row.size_label ?? null,
+  skuCountryCode: row.sku_country_code ?? null,
+
   // Pricing Type
   pricingTypeName: row.pricing_type_name,
   pricingTypeCode: row.pricing_type_code,
-  
+
   // Geography & Price
-  countryCode:     row.country_code      ?? null,
-  price:           parseFloat(row.price),
-  validFrom:       row.valid_from,
-  validTo:         row.valid_to          ?? null,
-  
+  countryCode: row.country_code ?? null,
+  price: parseFloat(row.price),
+  validFrom: row.valid_from,
+  validTo: row.valid_to ?? null,
+
   // Status
-  statusName:      row.status_name,
-  
+  statusName: row.status_name,
+
   // Audit
-  audit:           compactAudit(makeAudit(row)),
+  audit: compactAudit(makeAudit(row)),
 });
 
 /**
@@ -92,20 +92,21 @@ const transformPricingExport = (rows) => rows.map(transformPricingExportRow);
  * @param {PricingBySkuRow} row
  * @returns {PricingBySkuRecord}
  */
-const transformPricingBySkuRow = (row) => cleanObject({
-  pricingId:          row.pricing_id,
-  skuId:              row.sku_id,
-  pricingGroupId:     row.pricing_group_id,
-  pricingTypeId:      row.pricing_type_id,
-  priceTypeName:      row.price_type_name,
-  priceTypeCode:      row.price_type_code,
-  countryCode:        row.country_code          ?? null,
-  price:              parseFloat(row.price),
-  validFrom:          row.valid_from,
-  validTo:            row.valid_to              ?? null,
-  status:             makeStatus(row),
-  audit:              compactAudit(makeAudit(row)),
-});
+const transformPricingBySkuRow = (row) =>
+  cleanObject({
+    pricingId: row.pricing_id,
+    skuId: row.sku_id,
+    pricingGroupId: row.pricing_group_id,
+    pricingTypeId: row.pricing_type_id,
+    priceTypeName: row.price_type_name,
+    priceTypeCode: row.price_type_code,
+    countryCode: row.country_code ?? null,
+    price: parseFloat(row.price),
+    validFrom: row.valid_from,
+    validTo: row.valid_to ?? null,
+    status: makeStatus(row),
+    audit: compactAudit(makeAudit(row)),
+  });
 
 /**
  * @param {PricingBySkuRow[]} rows

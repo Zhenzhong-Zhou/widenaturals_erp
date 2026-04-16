@@ -11,8 +11,8 @@
  * Used by `classifyRole` to determine role-level access flags.
  */
 const ROLE_TIERS = Object.freeze({
-  ROOT:   ['root', 'root_admin', 'super_admin'],
-  ADMIN:  ['admin'],
+  ROOT: ['root', 'root_admin', 'super_admin'],
+  ADMIN: ['admin'],
   SYSTEM: ['system', 'automation'],
 });
 
@@ -28,18 +28,18 @@ const ROLE_TIERS = Object.freeze({
 const classifyRole = (role = {}) => {
   if (!role || typeof role.name !== 'string') {
     return {
-      isRootRole:   false,
-      isAdminRole:  false,
+      isRootRole: false,
+      isAdminRole: false,
       isSystemRole: false,
     };
   }
-  
+
   const name = role.name.toLowerCase().trim();
-  
-  const isRootRole   = ROLE_TIERS.ROOT.includes(name);
-  const isAdminRole  = isRootRole || ROLE_TIERS.ADMIN.includes(name);
+
+  const isRootRole = ROLE_TIERS.ROOT.includes(name);
+  const isAdminRole = isRootRole || ROLE_TIERS.ADMIN.includes(name);
   const isSystemRole = ROLE_TIERS.SYSTEM.includes(name);
-  
+
   return {
     isRootRole,
     isAdminRole,

@@ -10,11 +10,11 @@
 
 'use strict';
 
-const express                            = require('express');
-const { authorize }                      = require('../middlewares/authorize');
-const validate                           = require('../middlewares/validate');
+const express = require('express');
+const { authorize } = require('../middlewares/authorize');
+const validate = require('../middlewares/validate');
 const createQueryNormalizationMiddleware = require('../middlewares/normalize-query');
-const PERMISSION_KEYS                        = require('../utils/constants/domain/permission-keys');
+const PERMISSION_KEYS = require('../utils/constants/domain/permission-keys');
 const {
   productQuerySchema,
   productIdParamSchema,
@@ -45,10 +45,10 @@ router.get(
   authorize([PERMISSION_KEYS.PRODUCTS.VIEW]),
   validate(productQuerySchema, 'query'),
   createQueryNormalizationMiddleware(
-    'productSortMap',    // moduleKey — drives allowed sortBy fields
-    ['statusIds'],       // arrayKeys — normalized as UUID arrays
-    [],                  // booleanKeys — none client-controlled
-    productQuerySchema   // filterKeysOrSchema — extracts filter keys from schema
+    'productSortMap', // moduleKey — drives allowed sortBy fields
+    ['statusIds'], // arrayKeys — normalized as UUID arrays
+    [], // booleanKeys — none client-controlled
+    productQuerySchema // filterKeysOrSchema — extracts filter keys from schema
   ),
   getPaginatedProductsController
 );

@@ -8,10 +8,14 @@
 
 'use strict';
 
-const { paginateQueryByOffset } = require('../utils/db/pagination/pagination-helpers');
+const {
+  paginateQueryByOffset,
+} = require('../utils/db/pagination/pagination-helpers');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { logDbQueryError } = require('../utils/db-logger');
-const { buildPackagingMaterialsFilter } = require('../utils/sql/build-packaging-material-filter');
+const {
+  buildPackagingMaterialsFilter,
+} = require('../utils/sql/build-packaging-material-filter');
 const {
   PM_TABLE,
   PM_SORT_WHITELIST,
@@ -32,36 +36,41 @@ const {
  * @throws  {AppError}        Normalized database error if the query fails.
  */
 const getPackagingMaterialsForSalesOrderLookup = async ({
-                                                          filters = {},
-                                                          limit   = 50,
-                                                          offset  = 0,
-                                                        }) => {
-  const context = 'packaging-material-repository/getPackagingMaterialsForSalesOrderLookup';
-  
+  filters = {},
+  limit = 50,
+  offset = 0,
+}) => {
+  const context =
+    'packaging-material-repository/getPackagingMaterialsForSalesOrderLookup';
+
   const { whereClause, params } = buildPackagingMaterialsFilter(filters);
   const queryText = buildPmLookupQuery(whereClause);
-  
+
   try {
     return await paginateQueryByOffset({
-      tableName:    PM_TABLE,
-      joins:        [],
+      tableName: PM_TABLE,
+      joins: [],
       whereClause,
       queryText,
       params,
       offset,
       limit,
-      sortBy:       'pm.name',
-      sortOrder:    'ASC',
+      sortBy: 'pm.name',
+      sortOrder: 'ASC',
       whitelistSet: PM_SORT_WHITELIST,
     });
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch packaging materials lookup.',
-      meta:    { filters, limit, offset },
-      logFn:   (err) => logDbQueryError(
-        queryText, params, err, { context, filters, limit, offset }
-      ),
+      meta: { filters, limit, offset },
+      logFn: (err) =>
+        logDbQueryError(queryText, params, err, {
+          context,
+          filters,
+          limit,
+          offset,
+        }),
     });
   }
 };

@@ -55,18 +55,16 @@ const SENSITIVE_KEYWORDS = [
  */
 const isSensitiveField = (key) => {
   if (!key || typeof key !== 'string') return false;
-  
+
   const normalizedKey = key.toLowerCase();
-  
+
   // Exact match (fast path)
   if (SENSITIVE_FIELDS.has(normalizedKey)) {
     return true;
   }
-  
+
   // Partial match (fallback)
-  return SENSITIVE_KEYWORDS.some((keyword) =>
-    normalizedKey.includes(keyword)
-  );
+  return SENSITIVE_KEYWORDS.some((keyword) => normalizedKey.includes(keyword));
 };
 
 module.exports = {

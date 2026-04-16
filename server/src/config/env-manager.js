@@ -44,7 +44,7 @@ const ENV_CONTEXT = 'env-loader';
 const loadAndValidateEnv = () => {
   try {
     const env = loadEnv();
-    
+
     const environmentGroups = {
       general: [
         { envVar: 'NODE_ENV', required: true },
@@ -53,7 +53,7 @@ const loadAndValidateEnv = () => {
         { envVar: 'LOG_LEVEL', required: true },
         { envVar: 'PASSWORD_PEPPER', required: true },
       ],
-      
+
       jwt: [
         {
           envVar: 'JWT_ACCESS_SECRET',
@@ -69,8 +69,7 @@ const loadAndValidateEnv = () => {
         },
         {
           envVar: 'TOKEN_PEPPER',
-          secret: () =>
-            loadSecret('token_pepper', 'TOKEN_PEPPER'),
+          secret: () => loadSecret('token_pepper', 'TOKEN_PEPPER'),
           required: true,
         },
         {
@@ -84,40 +83,73 @@ const loadAndValidateEnv = () => {
           validate: (v) => Number.isInteger(+v) && +v > 0,
         },
       ],
-      
+
       db: [
-        { envVar: 'DB_HOST',     required: true },
-        { envVar: 'DB_PORT',     required: true,  validate: (v) => Number.isInteger(+v) && +v > 0 },
-        { envVar: 'DB_NAME',     required: true },
-        { envVar: 'DB_USER',     required: true },
+        { envVar: 'DB_HOST', required: true },
         {
-          envVar:  'DB_PASSWORD',
-          secret:  () => loadSecret('db_password', 'DB_PASSWORD'),
+          envVar: 'DB_PORT',
+          required: true,
+          validate: (v) => Number.isInteger(+v) && +v > 0,
+        },
+        { envVar: 'DB_NAME', required: true },
+        { envVar: 'DB_USER', required: true },
+        {
+          envVar: 'DB_PASSWORD',
+          secret: () => loadSecret('db_password', 'DB_PASSWORD'),
           required: true,
         },
-        { envVar: 'REQUIRED_PG_VERSION', required: true,  validate: (v) => Number.isInteger(+v) && +v > 0 },
-        { envVar: 'DB_APP_NAME',         required: false },
-        { envVar: 'DB_POOL_MAX',         required: false, validate: (v) => Number.isInteger(+v) && +v > 0 },
-        { envVar: 'DB_IDLE_TIMEOUT',     required: false, validate: (v) => Number.isInteger(+v) && +v >= 0 },
-        { envVar: 'DB_CONN_TIMEOUT',     required: false, validate: (v) => Number.isInteger(+v) && +v >= 0 },
+        {
+          envVar: 'REQUIRED_PG_VERSION',
+          required: true,
+          validate: (v) => Number.isInteger(+v) && +v > 0,
+        },
+        { envVar: 'DB_APP_NAME', required: false },
+        {
+          envVar: 'DB_POOL_MAX',
+          required: false,
+          validate: (v) => Number.isInteger(+v) && +v > 0,
+        },
+        {
+          envVar: 'DB_IDLE_TIMEOUT',
+          required: false,
+          validate: (v) => Number.isInteger(+v) && +v >= 0,
+        },
+        {
+          envVar: 'DB_CONN_TIMEOUT',
+          required: false,
+          validate: (v) => Number.isInteger(+v) && +v >= 0,
+        },
       ],
-      
+
       monitoring: [
-        { envVar: 'POOL_MONITOR_INTERVAL', required: false, validate: (v) => Number.isInteger(+v) && +v >= 0 },
-        { envVar: 'SLOW_QUERY_THRESHOLD',  required: false, validate: (v) => Number.isInteger(+v) && +v >= 0 },
+        {
+          envVar: 'POOL_MONITOR_INTERVAL',
+          required: false,
+          validate: (v) => Number.isInteger(+v) && +v >= 0,
+        },
+        {
+          envVar: 'SLOW_QUERY_THRESHOLD',
+          required: false,
+          validate: (v) => Number.isInteger(+v) && +v >= 0,
+        },
       ],
-      
+
       backup: [
         { envVar: 'USE_CRON_BACKUP', required: false, default: 'false' },
-        { envVar: 'BACKUP_DIR',      required: false },
-        { envVar: 'MAX_BACKUPS',     required: false, validate: (v) => Number.isInteger(+v) && +v > 0 },
+        { envVar: 'BACKUP_DIR', required: false },
         {
-          envVar:  'BACKUP_ENCRYPTION_KEY',
-          secret:  () => loadSecret('backup_encryption_key', 'BACKUP_ENCRYPTION_KEY'),
+          envVar: 'MAX_BACKUPS',
+          required: false,
+          validate: (v) => Number.isInteger(+v) && +v > 0,
+        },
+        {
+          envVar: 'BACKUP_ENCRYPTION_KEY',
+          secret: () =>
+            loadSecret('backup_encryption_key', 'BACKUP_ENCRYPTION_KEY'),
           required: true,
         },
       ],
-      
+
       rootAdmin: [
         { envVar: 'ROOT_ADMIN_EMAIL', required: true },
         {
@@ -127,7 +159,7 @@ const loadAndValidateEnv = () => {
           required: true,
         },
       ],
-      
+
       aws: [
         { envVar: 'AWS_REGION', required: true },
         { envVar: 'AWS_ACCESS_KEY_ID', required: true },
@@ -139,7 +171,7 @@ const loadAndValidateEnv = () => {
         },
         { envVar: 'AWS_S3_BUCKET_NAME', required: true },
       ],
-      
+
       cors: [
         { envVar: 'ALLOWED_ORIGINS', required: true },
         { envVar: 'ALLOWED_HEADERS', required: true },
@@ -147,36 +179,39 @@ const loadAndValidateEnv = () => {
         { envVar: 'ALLOW_CREDENTIALS', required: true },
         { envVar: 'OPTIONS_SUCCESS_STATUS', required: true },
       ],
-      
+
       media: [
         {
           envVar: 'ALLOWED_IMAGE_HOSTS',
           required: true,
           validate: (v) =>
             typeof v === 'string' &&
-            v.split(',').map((h) => h.trim()).filter(Boolean).length > 0,
+            v
+              .split(',')
+              .map((h) => h.trim())
+              .filter(Boolean).length > 0,
         },
       ],
-      
+
       csrf: [
         { envVar: 'CSRF_TESTING', required: false },
         { envVar: 'COOKIE_SECURE', required: true },
         { envVar: 'COOKIE_SAMESITE', required: true },
       ],
-      
+
       rateLimit: [
         { envVar: 'RATE_LIMIT_WINDOW_MS', required: false },
         { envVar: 'RATE_LIMIT_MAX', required: false },
       ],
     };
-    
+
     validateEnv(environmentGroups);
-    
+
     logSystemInfo('Environment loading completed successfully', {
       context: ENV_CONTEXT,
       env: env.env,
     });
-    
+
     return env;
   } catch (error) {
     // Bootstrap configuration failures are non-recoverable.
@@ -184,7 +219,7 @@ const loadAndValidateEnv = () => {
     logSystemCrash(error, 'Environment validation failed', {
       context: ENV_CONTEXT,
     });
-    
+
     throw error;
   }
 };

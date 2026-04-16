@@ -15,11 +15,16 @@
 
 'use strict';
 
-const { paginateQuery, paginateQueryByOffset } = require('../utils/db/pagination/pagination-helpers');
-const { query }           = require('../database/db');
-const { handleDbError }   = require('../utils/errors/error-handlers');
+const {
+  paginateQuery,
+  paginateQueryByOffset,
+} = require('../utils/db/pagination/pagination-helpers');
+const { query } = require('../database/db');
+const { handleDbError } = require('../utils/errors/error-handlers');
 const { logDbQueryError } = require('../utils/db-logger');
-const { buildPricingGroupFilters } = require('../utils/sql/build-pricing-group-filter');
+const {
+  buildPricingGroupFilters,
+} = require('../utils/sql/build-pricing-group-filter');
 const {
   PRICING_GROUP_TABLE,
   PRICING_GROUP_JOINS,
@@ -56,44 +61,48 @@ const CONTEXT = 'pricing-group-repository';
  * @throws  {AppError} Normalized database error if the query fails.
  */
 const getPaginatedPricingGroups = async ({
-                                     filters = {},
-                                     page = 1,
-                                     limit = 20,
-                                     sortBy    = 'pricingTypeName',
-                                     sortOrder = 'ASC',
-                                   }) => {
-  const context                 = `${CONTEXT}/getPaginatedPricingGroups`;
+  filters = {},
+  page = 1,
+  limit = 20,
+  sortBy = 'pricingTypeName',
+  sortOrder = 'ASC',
+}) => {
+  const context = `${CONTEXT}/getPaginatedPricingGroups`;
   const { whereClause, params } = buildPricingGroupFilters(filters);
-  const queryText               = buildPricingGroupPaginatedQuery(whereClause);
-  
+  const queryText = buildPricingGroupPaginatedQuery(whereClause);
+
   const sortConfig = resolveSort({
     sortBy,
     sortOrder,
-    moduleKey:   'pricingGroupSortMap',
+    moduleKey: 'pricingGroupSortMap',
     defaultSort: SORTABLE_FIELDS.pricingGroupSortMap.defaultNaturalSort,
   });
-  
+
   try {
     return await paginateQuery({
-      tableName:    PRICING_GROUP_TABLE,
-      joins:        PRICING_GROUP_JOINS,
+      tableName: PRICING_GROUP_TABLE,
+      joins: PRICING_GROUP_JOINS,
       whereClause,
       queryText,
       params,
       page,
       limit,
-      sortBy:       sortConfig.sortBy,
-      sortOrder:    sortConfig.sortOrder,
+      sortBy: sortConfig.sortBy,
+      sortOrder: sortConfig.sortOrder,
       whitelistSet: PRICING_GROUP_SORT_WHITELIST,
     });
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch pricing group list.',
-      meta:    { filters, page, limit },
-      logFn:   (err) => logDbQueryError(
-        queryText, params, err, { context, filters, page, limit }
-      ),
+      meta: { filters, page, limit },
+      logFn: (err) =>
+        logDbQueryError(queryText, params, err, {
+          context,
+          filters,
+          page,
+          limit,
+        }),
     });
   }
 };
@@ -111,9 +120,9 @@ const getPaginatedPricingGroups = async ({
  */
 const getPricingGroupById = async (pricingGroupId) => {
   const context = `${CONTEXT}/getPricingGroupById`;
-  
+
   const params = [pricingGroupId];
-  
+
   try {
     const { rows } = await query(PRICING_GROUP_BY_ID_QUERY, params);
     return rows[0] ?? null;
@@ -121,10 +130,12 @@ const getPricingGroupById = async (pricingGroupId) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch pricing group by ID.',
-      meta:    { pricingGroupId },
-      logFn:   (err) => logDbQueryError(
-        PRICING_GROUP_BY_ID_QUERY, params, err, { context, pricingGroupId }
-      ),
+      meta: { pricingGroupId },
+      logFn: (err) =>
+        logDbQueryError(PRICING_GROUP_BY_ID_QUERY, params, err, {
+          context,
+          pricingGroupId,
+        }),
     });
   }
 };
@@ -141,34 +152,42 @@ const getPricingGroupById = async (pricingGroupId) => {
  * @returns {Promise<Object>} Paginated result with rows and pagination metadata.
  * @throws  {AppError} Normalized database error if the query fails.
  */
-const getPaginatedPricingGroupLookup = async ({ filters = {}, limit = 50, offset = 0 }) => {
-  const context                 = `${CONTEXT}/getPricingGroupLookup`;
+const getPaginatedPricingGroupLookup = async ({
+  filters = {},
+  limit = 50,
+  offset = 0,
+}) => {
+  const context = `${CONTEXT}/getPricingGroupLookup`;
   const { whereClause, params } = buildPricingGroupFilters(filters);
-  const queryText               = buildPricingGroupLookupQuery(whereClause);
-  
+  const queryText = buildPricingGroupLookupQuery(whereClause);
+
   try {
     return await paginateQueryByOffset({
-      tableName:       PRICING_GROUP_LOOKUP_TABLE,
-      joins:           PRICING_GROUP_LOOKUP_JOINS,
+      tableName: PRICING_GROUP_LOOKUP_TABLE,
+      joins: PRICING_GROUP_LOOKUP_JOINS,
       whereClause,
       queryText,
       params,
       offset,
       limit,
-      sortBy:          'pt.name',
-      sortOrder:       'ASC',
+      sortBy: 'pt.name',
+      sortOrder: 'ASC',
       additionalSorts: PRICING_GROUP_LOOKUP_ADDITIONAL_SORTS,
-      whitelistSet:    PRICING_GROUP_LOOKUP_SORT_WHITELIST,
-      sortMap:         PRICING_GROUP_LOOKUP_SORT_MAP,
+      whitelistSet: PRICING_GROUP_LOOKUP_SORT_WHITELIST,
+      sortMap: PRICING_GROUP_LOOKUP_SORT_MAP,
     });
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch pricing group lookup.',
-      meta:    { filters, limit, offset },
-      logFn:   (err) => logDbQueryError(
-        queryText, params, err, { context, filters, limit, offset }
-      ),
+      meta: { filters, limit, offset },
+      logFn: (err) =>
+        logDbQueryError(queryText, params, err, {
+          context,
+          filters,
+          limit,
+          offset,
+        }),
     });
   }
 };

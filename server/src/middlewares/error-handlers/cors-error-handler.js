@@ -10,8 +10,8 @@
 
 'use strict';
 
-const AppError        = require('../../utils/AppError');
-const { logError }    = require('../../utils/logging/logger-helper');
+const AppError = require('../../utils/AppError');
+const { logError } = require('../../utils/logging/logger-helper');
 const { ERROR_TYPES } = require('../../utils/constants/error-constants');
 
 const CONTEXT = 'middleware/cors-error-handler';
@@ -32,9 +32,9 @@ const corsErrorHandler = (err, req, res, next) => {
   if (!(err instanceof AppError) || err.type !== ERROR_TYPES.CORS) {
     return next(err);
   }
-  
+
   logError(err, req, { context: CONTEXT });
-  
+
   res.status(err.status).json(err.toJSON());
 };
 

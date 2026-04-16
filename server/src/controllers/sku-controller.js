@@ -52,27 +52,29 @@ const {
  * Reads from req.normalizedQuery — populated by createQueryNormalizationMiddleware.
  * Requires: auth middleware, query normalizer, VIEW_SKU_PRODUCT_CARDS permission.
  */
-const getPaginatedSkuProductCardsController = wrapAsyncHandler(async (req, res) => {
-  const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
-  const user = req.auth.user;
-  
-  const { data, pagination } = await fetchPaginatedSkuProductCardsService({
-    filters,
-    page,
-    limit,
-    sortBy,
-    sortOrder,
-    user,
-  });
-  
-  res.status(200).json({
-    success:   true,
-    message:   'SKU product cards retrieved successfully.',
-    data,
-    pagination,
-    traceId:   req.traceId,
-  });
-});
+const getPaginatedSkuProductCardsController = wrapAsyncHandler(
+  async (req, res) => {
+    const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
+    const user = req.auth.user;
+
+    const { data, pagination } = await fetchPaginatedSkuProductCardsService({
+      filters,
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+      user,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'SKU product cards retrieved successfully.',
+      data,
+      pagination,
+      traceId: req.traceId,
+    });
+  }
+);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /api/v1/skus
@@ -86,7 +88,7 @@ const getPaginatedSkuProductCardsController = wrapAsyncHandler(async (req, res) 
  */
 const getPaginatedSkusController = wrapAsyncHandler(async (req, res) => {
   const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
-  
+
   const { data, pagination } = await fetchPaginatedSkusService({
     filters,
     page,
@@ -94,13 +96,13 @@ const getPaginatedSkusController = wrapAsyncHandler(async (req, res) => {
     sortBy,
     sortOrder,
   });
-  
+
   res.status(200).json({
-    success:   true,
-    message:   'SKUs retrieved successfully.',
+    success: true,
+    message: 'SKUs retrieved successfully.',
     data,
     pagination,
-    traceId:   req.traceId,
+    traceId: req.traceId,
   });
 });
 
@@ -116,14 +118,14 @@ const getPaginatedSkusController = wrapAsyncHandler(async (req, res) => {
  */
 const createSkusController = wrapAsyncHandler(async (req, res) => {
   const { skus } = req.body;
-  const user     = req.auth.user;
-  
+  const user = req.auth.user;
+
   const result = await createSkusService(skus, user);
-  
+
   res.status(201).json({
     success: true,
     message: 'SKUs created successfully.',
-    data:    result,
+    data: result,
     traceId: req.traceId,
   });
 });
@@ -140,10 +142,10 @@ const createSkusController = wrapAsyncHandler(async (req, res) => {
  */
 const getSkuDetailsController = wrapAsyncHandler(async (req, res) => {
   const { skuId } = req.params;
-  const user      = req.auth.user;
-  
+  const user = req.auth.user;
+
   const data = await fetchSkuDetailsService(skuId, user);
-  
+
   res.status(200).json({
     success: true,
     message: 'SKU details retrieved successfully.',
@@ -163,14 +165,18 @@ const getSkuDetailsController = wrapAsyncHandler(async (req, res) => {
  */
 const updateSkuMetadataController = wrapAsyncHandler(async (req, res) => {
   const { skuId } = req.params;
-  const user      = req.auth.user;
-  
-  const result = await updateSkuMetadataService({ skuId, payload: req.body, user });
-  
+  const user = req.auth.user;
+
+  const result = await updateSkuMetadataService({
+    skuId,
+    payload: req.body,
+    user,
+  });
+
   res.status(200).json({
     success: true,
     message: 'SKU metadata updated successfully.',
-    data:    result,
+    data: result,
     traceId: req.traceId,
   });
 });
@@ -185,16 +191,16 @@ const updateSkuMetadataController = wrapAsyncHandler(async (req, res) => {
  * Requires: auth middleware, Joi body validation, UPDATE_SKU_STATUS permission.
  */
 const updateSkuStatusController = wrapAsyncHandler(async (req, res) => {
-  const { skuId }    = req.params;
+  const { skuId } = req.params;
   const { statusId } = req.body;
-  const user         = req.auth.user;
-  
+  const user = req.auth.user;
+
   const result = await updateSkuStatusService({ skuId, statusId, user });
-  
+
   res.status(200).json({
     success: true,
     message: 'SKU status updated successfully.',
-    data:    result,
+    data: result,
     traceId: req.traceId,
   });
 });
@@ -210,14 +216,18 @@ const updateSkuStatusController = wrapAsyncHandler(async (req, res) => {
  */
 const updateSkuDimensionsController = wrapAsyncHandler(async (req, res) => {
   const { skuId } = req.params;
-  const user      = req.auth.user;
-  
-  const result = await updateSkuDimensionsService({ skuId, payload: req.body, user });
-  
+  const user = req.auth.user;
+
+  const result = await updateSkuDimensionsService({
+    skuId,
+    payload: req.body,
+    user,
+  });
+
   res.status(200).json({
     success: true,
     message: 'SKU dimensions updated successfully.',
-    data:    result,
+    data: result,
     traceId: req.traceId,
   });
 });
@@ -233,14 +243,18 @@ const updateSkuDimensionsController = wrapAsyncHandler(async (req, res) => {
  */
 const updateSkuIdentityController = wrapAsyncHandler(async (req, res) => {
   const { skuId } = req.params;
-  const user      = req.auth.user;
-  
-  const result = await updateSkuIdentityService({ skuId, payload: req.body, user });
-  
+  const user = req.auth.user;
+
+  const result = await updateSkuIdentityService({
+    skuId,
+    payload: req.body,
+    user,
+  });
+
   res.status(200).json({
     success: true,
     message: 'SKU identity updated successfully.',
-    data:    result,
+    data: result,
     traceId: req.traceId,
   });
 });

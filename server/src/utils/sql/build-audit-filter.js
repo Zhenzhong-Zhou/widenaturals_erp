@@ -21,13 +21,19 @@
  * @param {string}            [filters.createdBy] - Filter by creator UUID.
  * @param {string}            [filters.updatedBy] - Filter by updater UUID.
  */
-const applyAuditConditions = (conditions, params, paramIndexRef, filters, alias) => {
+const applyAuditConditions = (
+  conditions,
+  params,
+  paramIndexRef,
+  filters,
+  alias
+) => {
   if (filters.createdBy) {
     conditions.push(`${alias}.created_by = $${paramIndexRef.value}`);
     params.push(filters.createdBy);
     paramIndexRef.value++;
   }
-  
+
   if (filters.updatedBy) {
     conditions.push(`${alias}.updated_by = $${paramIndexRef.value}`);
     params.push(filters.updatedBy);

@@ -27,16 +27,16 @@
  * @returns {{ whereClause: string, params: Array }} Parameterised WHERE clause and bound values.
  */
 const buildFulfillmentFilter = (filters = {}) => {
-  const conditions    = ['1=1'];
-  const params        = [];
+  const conditions = ['1=1'];
+  const params = [];
   const paramIndexRef = { value: 1 };
-  
+
   if (filters.orderId) {
     conditions.push(`oi.order_id = $${paramIndexRef.value}`);
     params.push(filters.orderId);
     paramIndexRef.value++;
   }
-  
+
   if (filters.fulfillmentIds) {
     // Scalar wrapped in array for consistent ANY pattern.
     const ids = Array.isArray(filters.fulfillmentIds)
@@ -46,7 +46,7 @@ const buildFulfillmentFilter = (filters = {}) => {
     params.push(ids);
     paramIndexRef.value++;
   }
-  
+
   if (filters.allocationIds) {
     // Scalar wrapped in array for consistent ANY pattern.
     const ids = Array.isArray(filters.allocationIds)
@@ -56,7 +56,7 @@ const buildFulfillmentFilter = (filters = {}) => {
     params.push(ids);
     paramIndexRef.value++;
   }
-  
+
   return {
     whereClause: conditions.join(' AND '),
     params,

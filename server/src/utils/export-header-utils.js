@@ -41,14 +41,14 @@ const processHeaders = (data) => {
   if (!Array.isArray(data) || data.length === 0) {
     throw new Error('processHeaders requires a non-empty array');
   }
-  
+
   const columnMap = Object.keys(data[0])
     .filter((key) => key !== 'id' && !isUUID(data[0][key]))
     .reduce((acc, key) => {
       acc[formatHeader(key)] = key;
       return acc;
     }, {});
-  
+
   return {
     formattedHeaders: Object.keys(columnMap),
     columnMap,

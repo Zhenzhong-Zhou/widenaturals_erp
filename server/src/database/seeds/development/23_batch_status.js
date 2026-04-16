@@ -25,7 +25,8 @@ exports.seed = async function (knex) {
     },
     {
       name: 'received',
-      description: 'Batch physically received from supplier but not yet verified',
+      description:
+        'Batch physically received from supplier but not yet verified',
       is_active: true,
     },
     {

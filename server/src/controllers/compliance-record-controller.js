@@ -34,25 +34,27 @@ const {
  * Reads from req.normalizedQuery — populated by createQueryNormalizationMiddleware.
  * Requires: auth middleware, query normalizer, VIEW_COMPLIANCE_RECORDS permission.
  */
-const getPaginatedComplianceRecordsController = wrapAsyncHandler(async (req, res) => {
-  const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
-  
-  const { data, pagination } = await fetchPaginatedComplianceRecordsService({
-    filters,
-    page,
-    limit,
-    sortBy,
-    sortOrder,
-  });
-  
-  res.status(200).json({
-    success: true,
-    message: 'Compliance records retrieved successfully.',
-    data,
-    pagination,
-    traceId: req.traceId,
-  });
-});
+const getPaginatedComplianceRecordsController = wrapAsyncHandler(
+  async (req, res) => {
+    const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
+
+    const { data, pagination } = await fetchPaginatedComplianceRecordsService({
+      filters,
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Compliance records retrieved successfully.',
+      data,
+      pagination,
+      traceId: req.traceId,
+    });
+  }
+);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Exports

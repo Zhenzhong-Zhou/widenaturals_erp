@@ -10,16 +10,16 @@ exports.seed = async function (knex) {
     .whereNotNull('br.product_batch_id')
     .select('wi.id')
     .limit(1);
-  
+
   if (existingInventory.length > 0) {
     console.log(
       'Skipping product inventory seed: product batches already in use.'
     );
     return;
   }
-  
+
   console.log('Seeding warehouse_inventory...');
-  
+
   const systemUserId = await fetchDynamicValue(
     knex,
     'users',
@@ -28,28 +28,28 @@ exports.seed = async function (knex) {
     'id'
   );
   if (!systemUserId) throw new Error('System user not found');
-  
+
   const warehouses = await knex('warehouses').select('id', 'code');
   const statuses = await knex('inventory_status').select('id', 'name');
   const skus = await knex('skus as s')
     .join('products as p', 's.product_id', 'p.id')
     .select('s.id', 'p.name', 's.size_label', 's.country_code');
-  
+
   const warehouseMap = Object.fromEntries(warehouses.map((w) => [w.code, w]));
   const statusMap = Object.fromEntries(statuses.map((s) => [s.name, s.id]));
   const skuMap = new Map(
     skus.map((s) => [`${s.name}__${s.size_label}__${s.country_code}`, s.id])
   );
-  
+
   const batches = await knex('batch_registry as br')
     .join('product_batches as pb', 'br.product_batch_id', 'pb.id')
     .select('br.id as batch_id', 'pb.lot_number', 'pb.sku_id');
-  
+
   const batchMap = new Map();
   for (const b of batches) {
     batchMap.set(`${b.lot_number}__${b.sku_id}`, b.batch_id);
   }
-  
+
   const lotSeedData = {
     'WH-WNI-CA01': [
       // Canaherb
@@ -527,17 +527,17 @@ exports.seed = async function (knex) {
       },
     ],
   };
-  
+
   const warehouseInventoryEntries = [];
   const skipped = [];
-  
+
   for (const [warehouseCode, lots] of Object.entries(lotSeedData)) {
     const warehouse = warehouseMap[warehouseCode];
     if (!warehouse) {
       console.warn(`Missing warehouse for "${warehouseCode}"`);
       continue;
     }
-    
+
     for (const lot of lots) {
       const productKey = `${lot.product_name || lot.product}__${lot.size_label}__${lot.country_code}`;
       const skuId = skuMap.get(productKey);
@@ -545,7 +545,7 @@ exports.seed = async function (knex) {
         console.warn(`No SKU found for key: ${productKey}`);
         continue;
       }
-      
+
       const batchKey = `${lot.lot_number}__${skuId}`;
       const batchId = batchMap.get(batchKey);
       if (!batchId) {
@@ -554,18 +554,18 @@ exports.seed = async function (knex) {
         );
         continue;
       }
-      
+
       const statusId = statusMap[lot.status];
       if (!statusId) {
         throw new Error(`Missing inventory_status for "${lot.status}"`);
       }
-      
+
       const quantity = lot.warehouse_quantity;
       if (typeof quantity !== 'number' || quantity < 0) {
         skipped.push({ warehouseCode, lot_number: lot.lot_number, quantity });
         continue;
       }
-      
+
       warehouseInventoryEntries.push({
         id: knex.raw('uuid_generate_v4()'),
         warehouse_id: warehouse.id,
@@ -585,25 +585,25 @@ exports.seed = async function (knex) {
       });
     }
   }
-  
+
   if (skipped.length > 0) {
     console.warn(`Skipped ${skipped.length} lots with invalid quantities.`);
   }
-  
+
   if (warehouseInventoryEntries.length === 0) {
     console.warn('No warehouse_inventory records to insert.');
     return;
   }
-  
+
   await knex('warehouse_inventory')
     .insert(warehouseInventoryEntries)
     .onConflict(['warehouse_id', 'batch_id'])
     .ignore();
-  
+
   console.log(
     `Inserted ${warehouseInventoryEntries.length} warehouse_inventory records.`
   );
-  
+
   // Fetch inserted rows for activity log
   const insertedRows = await knex('warehouse_inventory')
     .select('id', 'warehouse_quantity', 'status_id', 'created_by', 'created_at')
@@ -611,7 +611,7 @@ exports.seed = async function (knex) {
       ['warehouse_id', 'batch_id'],
       warehouseInventoryEntries.map((e) => [e.warehouse_id, e.batch_id])
     );
-  
+
   const initialLoadActionId = await fetchDynamicValue(
     knex,
     'inventory_action_types',
@@ -622,7 +622,7 @@ exports.seed = async function (knex) {
   if (!initialLoadActionId) {
     throw new Error('Initial-load action type not found.');
   }
-  
+
   const activityLogEntries = insertedRows.map((row) => {
     const logData = {
       warehouse_inventory_id: row.id,
@@ -641,14 +641,14 @@ exports.seed = async function (knex) {
       created_at: row.created_at,
       created_by: row.created_by ?? systemUserId,
     };
-    
+
     return {
       id: knex.raw('uuid_generate_v4()'),
       ...logData,
       checksum: generateChecksum(logData),
     };
   });
-  
+
   if (activityLogEntries.length > 0) {
     await knex('inventory_activity_log').insert(activityLogEntries);
     console.log(

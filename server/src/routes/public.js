@@ -6,9 +6,9 @@
 
 'use strict';
 
-const express                      = require('express');
-const { createHealthRateLimiter }  = require('../middlewares/rate-limiter');
-const noStoreMiddleware            = require('../middlewares/no-store');
+const express = require('express');
+const { createHealthRateLimiter } = require('../middlewares/rate-limiter');
+const noStoreMiddleware = require('../middlewares/no-store');
 const {
   getWelcomeMessageController,
   getHealthStatusController,
@@ -21,11 +21,7 @@ const router = express.Router();
  * @description Returns a static welcome message confirming the API is reachable.
  * @access public
  */
-router.get(
-  '/welcome',
-  noStoreMiddleware,
-  getWelcomeMessageController
-);
+router.get('/welcome', noStoreMiddleware, getWelcomeMessageController);
 
 /**
  * @route GET /public/health

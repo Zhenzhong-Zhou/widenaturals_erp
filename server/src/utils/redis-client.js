@@ -16,10 +16,7 @@
  */
 
 const Redis = require('ioredis');
-const {
-  logSystemInfo,
-  logSystemError,
-} = require('./logging/system-logger');
+const { logSystemInfo, logSystemError } = require('./logging/system-logger');
 
 const CONTEXT = 'system/redis-client';
 
@@ -37,9 +34,9 @@ const createRedisClient = () => {
     port: Number(process.env.REDIS_PORT) || 6379,
     username: process.env.REDIS_USERNAME,
     password: process.env.REDIS_PASSWORD,
-    
+
     tls: process.env.NODE_ENV === 'production' ? {} : undefined,
-    
+
     lazyConnect: true,
     maxRetriesPerRequest: 3,
     enableOfflineQueue: false,
@@ -63,26 +60,26 @@ const connectRedis = async () => {
   if (redisClient?.status === 'ready') {
     return redisClient;
   }
-  
+
   //--------------------------------------------------
   // Connection in progress
   //--------------------------------------------------
   if (connectingPromise) {
     return connectingPromise;
   }
-  
+
   //--------------------------------------------------
   // Create new client
   //--------------------------------------------------
   redisClient = createRedisClient();
-  
+
   //--------------------------------------------------
   // Attach event listeners ONCE per instance
   //--------------------------------------------------
   redisClient.once('connect', () => {
     logSystemInfo('Redis connected', { context: CONTEXT });
   });
-  
+
   redisClient.on('error', (err) => {
     logSystemError('Redis error', {
       context: CONTEXT,
@@ -90,7 +87,7 @@ const connectRedis = async () => {
       stack: err.stack,
     });
   });
-  
+
   //--------------------------------------------------
   // Controlled connection attempt
   //--------------------------------------------------
@@ -104,14 +101,14 @@ const connectRedis = async () => {
         message: error.message,
         stack: error.stack,
       });
-      
+
       redisClient = null;
       throw error;
     } finally {
       connectingPromise = null;
     }
   })();
-  
+
   return connectingPromise;
 };
 
@@ -124,7 +121,7 @@ const connectRedis = async () => {
  */
 const disconnectRedis = async () => {
   if (!redisClient) return;
-  
+
   try {
     //--------------------------------------------------
     // Only quit if connection is active

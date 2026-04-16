@@ -40,25 +40,27 @@ const {
  * Reads from req.normalizedQuery — populated by createQueryNormalizationMiddleware.
  * Requires: auth middleware, query normalizer, VIEW_LOCATION_TYPES permission.
  */
-const getPaginatedLocationTypesController = wrapAsyncHandler(async (req, res) => {
-  const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
-  
-  const { data, pagination } = await fetchPaginatedLocationTypesService({
-    filters,
-    page,
-    limit,
-    sortBy,
-    sortOrder,
-  });
-  
-  res.status(200).json({
-    success: true,
-    message: 'Location types retrieved successfully.',
-    data,
-    pagination,
-    traceId: req.traceId,
-  });
-});
+const getPaginatedLocationTypesController = wrapAsyncHandler(
+  async (req, res) => {
+    const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
+
+    const { data, pagination } = await fetchPaginatedLocationTypesService({
+      filters,
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Location types retrieved successfully.',
+      data,
+      pagination,
+      traceId: req.traceId,
+    });
+  }
+);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /api/v1/location-types/:locationTypeId
@@ -73,9 +75,9 @@ const getPaginatedLocationTypesController = wrapAsyncHandler(async (req, res) =>
  */
 const getLocationTypeDetailsController = wrapAsyncHandler(async (req, res) => {
   const { locationTypeId } = req.params;
-  
+
   const data = await fetchLocationTypeDetailsService(locationTypeId);
-  
+
   res.status(200).json({
     success: true,
     message: 'Location type details retrieved successfully.',

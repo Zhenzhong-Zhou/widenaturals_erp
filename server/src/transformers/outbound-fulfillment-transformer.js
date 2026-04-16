@@ -17,11 +17,13 @@
 
 'use strict';
 
-const { cleanObject }                  = require('../utils/object-utils');
-const { getFullName }                  = require('../utils/person-utils');
-const { transformPageResult }          = require('../utils/transformer-utils');
-const { getProductDisplayName }        = require('../utils/display-name-utils');
-const { formatPackagingMaterialLabel } = require('../utils/packaging-material-utils');
+const { cleanObject } = require('../utils/object-utils');
+const { getFullName } = require('../utils/person-utils');
+const { transformPageResult } = require('../utils/transformer-utils');
+const { getProductDisplayName } = require('../utils/display-name-utils');
+const {
+  formatPackagingMaterialLabel,
+} = require('../utils/packaging-material-utils');
 
 /**
  * Transforms the minimal result of an initial outbound fulfillment creation.
@@ -36,27 +38,27 @@ const { formatPackagingMaterialLabel } = require('../utils/packaging-material-ut
  * @returns {Object}
  */
 const transformFulfillmentResult = ({
-                                      orderId,
-                                      shipmentRow,
-                                      fulfillmentRowsWithStatus,
-                                      shipmentBatchRow,
-                                      orderStatusRow,
-                                      orderItemStatusRow,
-                                    }) => {
+  orderId,
+  shipmentRow,
+  fulfillmentRowsWithStatus,
+  shipmentBatchRow,
+  orderStatusRow,
+  orderItemStatusRow,
+}) => {
   const fulfillmentRow = fulfillmentRowsWithStatus?.[0] ?? null;
-  
+
   return cleanObject({
     orderId,
     orderStatus: {
-      id:        orderStatusRow?.order_status_id ?? null,
-      updatedAt: orderStatusRow?.status_date     ?? null,
+      id: orderStatusRow?.order_status_id ?? null,
+      updatedAt: orderStatusRow?.status_date ?? null,
     },
     shipment: {
-      id:      shipmentRow?.id     ?? null,
+      id: shipmentRow?.id ?? null,
       batchId: shipmentBatchRow?.id ?? null,
     },
     fulfillment: {
-      id:       fulfillmentRow?.id        ?? null,
+      id: fulfillmentRow?.id ?? null,
       statusId: fulfillmentRow?.status_id ?? null,
     },
     statusUpdates: {
@@ -73,39 +75,39 @@ const transformFulfillmentResult = ({
  * @returns {Object}
  */
 const transformAdjustedFulfillmentResult = ({
-                                              orderId,
-                                              orderNumber,
-                                              fulfillments,
-                                              shipmentId,
-                                              warehouseInventoryIds,
-                                              orderStatusRow,
-                                              orderItemStatusRow,
-                                              inventoryAllocationStatusRow,
-                                              orderFulfillmentStatusRow,
-                                              shipmentStatusRow,
-                                              logMetadata,
-                                            }) => ({
+  orderId,
+  orderNumber,
+  fulfillments,
+  shipmentId,
+  warehouseInventoryIds,
+  orderStatusRow,
+  orderItemStatusRow,
+  inventoryAllocationStatusRow,
+  orderFulfillmentStatusRow,
+  shipmentStatusRow,
+  logMetadata,
+}) => ({
   order: {
-    id:     orderId,
+    id: orderId,
     number: orderNumber,
   },
   shipment: {
-    id:       shipmentId,
+    id: shipmentId,
     statuses: shipmentStatusRow,
   },
   fulfillments: fulfillments.map((f) => ({
-    id:       f.fulfillment_id,
+    id: f.fulfillment_id,
     statusId: f.status_id,
   })),
   inventory: {
     updatedWarehouseIds: warehouseInventoryIds,
   },
   statuses: {
-    order:        orderStatusRow,
-    orderItems:   orderItemStatusRow,
-    allocations:  inventoryAllocationStatusRow,
+    order: orderStatusRow,
+    orderItems: orderItemStatusRow,
+    allocations: inventoryAllocationStatusRow,
     fulfillments: orderFulfillmentStatusRow,
-    shipments:    shipmentStatusRow,
+    shipments: shipmentStatusRow,
   },
   logs: logMetadata,
 });
@@ -120,11 +122,11 @@ const transformOutboundShipmentRow = (row) =>
   cleanObject({
     shipmentId: row.shipment_id,
     order: {
-      id:     row.order_id,
+      id: row.order_id,
       number: row.order_number,
     },
     warehouse: {
-      id:   row.warehouse_id,
+      id: row.warehouse_id,
       name: row.warehouse_name ?? null,
     },
     deliveryMethod: row.delivery_method
@@ -134,26 +136,32 @@ const transformOutboundShipmentRow = (row) =>
       ? { id: row.tracking_number_id, number: row.tracking_number }
       : null,
     status: {
-      id:   row.status_id,
+      id: row.status_id,
       code: row.status_code,
       name: row.status_name,
     },
     dates: {
-      shippedAt:        row.shipped_at              ?? null,
-      expectedDelivery: row.expected_delivery_date  ?? null,
+      shippedAt: row.shipped_at ?? null,
+      expectedDelivery: row.expected_delivery_date ?? null,
     },
-    notes:           row.notes           ?? null,
+    notes: row.notes ?? null,
     shipmentDetails: row.shipment_details ?? null,
     audit: {
       createdAt: row.created_at,
       createdBy: {
-        id:       row.created_by,
-        fullName: getFullName(row.created_by_firstname, row.created_by_lastname),
+        id: row.created_by,
+        fullName: getFullName(
+          row.created_by_firstname,
+          row.created_by_lastname
+        ),
       },
       updatedAt: row.updated_at,
       updatedBy: {
-        id:       row.updated_by,
-        fullName: getFullName(row.updated_by_firstname, row.updated_by_lastname),
+        id: row.updated_by,
+        fullName: getFullName(
+          row.updated_by_firstname,
+          row.updated_by_lastname
+        ),
       },
     },
   });
@@ -180,178 +188,197 @@ const transformPaginatedOutboundShipmentResults = (paginatedResult) =>
  */
 const transformShipmentDetailsRows = (rows) => {
   if (!rows || !rows.length) return null;
-  
+
   const first = rows[0];
-  
+
   const header = {
     shipmentId: first.shipment_id,
-    orderId:    first.order_id,
+    orderId: first.order_id,
     warehouse: {
-      id:   first.warehouse_id,
+      id: first.warehouse_id,
       name: first.warehouse_name,
     },
     deliveryMethod: first.delivery_method_id
       ? {
-        id:            first.delivery_method_id,
-        name:          first.delivery_method_name,
-        isPickup:      first.delivery_method_is_pickup,
-        estimatedTime: first.delivery_method_estimated_time,
-      }
+          id: first.delivery_method_id,
+          name: first.delivery_method_name,
+          isPickup: first.delivery_method_is_pickup,
+          estimatedTime: first.delivery_method_estimated_time,
+        }
       : null,
     status: {
-      id:   first.shipment_status_id,
+      id: first.shipment_status_id,
       code: first.shipment_status_code,
       name: first.shipment_status_name,
     },
-    shippedAt:            first.shipped_at,
+    shippedAt: first.shipped_at,
     expectedDeliveryDate: first.expected_delivery_date,
-    notes:                first.shipment_notes,
-    details:              first.shipment_details,
+    notes: first.shipment_notes,
+    details: first.shipment_details,
     audit: {
       createdAt: first.created_at,
       createdBy: {
-        id:   first.created_by,
-        name: getFullName(first.shipment_created_by_firstname, first.shipment_created_by_lastname),
+        id: first.created_by,
+        name: getFullName(
+          first.shipment_created_by_firstname,
+          first.shipment_created_by_lastname
+        ),
       },
       updatedAt: first.updated_at,
       updatedBy: {
-        id:   first.updated_by,
-        name: getFullName(first.shipment_updated_by_firstname, first.shipment_updated_by_lastname),
+        id: first.updated_by,
+        name: getFullName(
+          first.shipment_updated_by_firstname,
+          first.shipment_updated_by_lastname
+        ),
       },
     },
     tracking: first.tracking_id
       ? {
-        id:          first.tracking_id,
-        number:      first.tracking_number,
-        carrier:     first.carrier,
-        serviceName: first.service_name,
-        bolNumber:   first.bol_number,
-        freightType: first.freight_type,
-        notes:       first.tracking_notes,
-        shippedDate: first.tracking_shipped_date,
-        status: {
-          id:   first.tracking_status_id,
-          name: first.tracking_status_name,
-        },
-      }
+          id: first.tracking_id,
+          number: first.tracking_number,
+          carrier: first.carrier,
+          serviceName: first.service_name,
+          bolNumber: first.bol_number,
+          freightType: first.freight_type,
+          notes: first.tracking_notes,
+          shippedDate: first.tracking_shipped_date,
+          status: {
+            id: first.tracking_status_id,
+            name: first.tracking_status_name,
+          },
+        }
       : null,
   };
-  
+
   const fulfillmentsMap = new Map();
-  
+
   for (const row of rows) {
     if (!row.fulfillment_id) continue;
-    
+
     if (!fulfillmentsMap.has(row.fulfillment_id)) {
       fulfillmentsMap.set(row.fulfillment_id, {
-        fulfillmentId:     row.fulfillment_id,
+        fulfillmentId: row.fulfillment_id,
         quantityFulfilled: row.quantity_fulfilled,
-        fulfilledAt:       row.fulfilled_at,
-        notes:             row.fulfillment_notes,
+        fulfilledAt: row.fulfilled_at,
+        notes: row.fulfillment_notes,
         status: {
-          id:   row.fulfillment_status_id,
+          id: row.fulfillment_status_id,
           code: row.fulfillment_status_code,
           name: row.fulfillment_status_name,
         },
         audit: {
           createdAt: row.fulfillment_created_at,
           createdBy: {
-            id:   row.fulfillment_created_by,
-            name: getFullName(row.fulfillment_created_by_firstname, row.fulfillment_created_by_lastname),
+            id: row.fulfillment_created_by,
+            name: getFullName(
+              row.fulfillment_created_by_firstname,
+              row.fulfillment_created_by_lastname
+            ),
           },
           updatedAt: row.fulfillment_updated_at,
           updatedBy: {
-            id:   row.fulfillment_updated_by,
-            name: getFullName(row.fulfillment_updated_by_firstname, row.fulfillment_updated_by_lastname),
+            id: row.fulfillment_updated_by,
+            name: getFullName(
+              row.fulfillment_updated_by_firstname,
+              row.fulfillment_updated_by_lastname
+            ),
           },
           fulfilledBy: row.fulfilled_by
             ? {
-              id:   row.fulfilled_by,
-              name: getFullName(row.fulfillment_fulfilled_by_firstname, row.fulfillment_fulfilled_by_lastname),
-            }
+                id: row.fulfilled_by,
+                name: getFullName(
+                  row.fulfillment_fulfilled_by_firstname,
+                  row.fulfillment_fulfilled_by_lastname
+                ),
+              }
             : null,
         },
         orderItem: row.order_item_id
           ? {
-            id:              row.order_item_id,
-            quantityOrdered: row.quantity_ordered,
-            ...(row.sku_id && row.product_id
-              ? {
-                sku: {
-                  id:       row.sku_id,
-                  code:     row.sku,
-                  barcode:  row.barcode,
-                  sizeLabel: row.size_label,
-                  region:   row.market_region,
-                  product: {
-                    id:       row.product_id,
-                    name:     getProductDisplayName(row),
-                    category: row.category,
-                  },
-                },
-              }
-              : row.packaging_material_id
+              id: row.order_item_id,
+              quantityOrdered: row.quantity_ordered,
+              ...(row.sku_id && row.product_id
                 ? {
-                  packagingMaterial: {
-                    id:   row.packaging_material_id,
-                    code: row.packaging_material_code,
-                    label: row.material_snapshot_name ||
-                      formatPackagingMaterialLabel({
-                        name:      row.packaging_material_name,
-                        size:      row.packaging_material_size,
-                        color:     row.packaging_material_color,
-                        unit:      row.packaging_material_unit,
-                        length_cm: row.packaging_material_length_cm,
-                        width_cm:  row.packaging_material_width_cm,
-                        height_cm: row.packaging_material_height_cm,
-                      }),
-                  },
-                }
-                : {}),
-          }
+                    sku: {
+                      id: row.sku_id,
+                      code: row.sku,
+                      barcode: row.barcode,
+                      sizeLabel: row.size_label,
+                      region: row.market_region,
+                      product: {
+                        id: row.product_id,
+                        name: getProductDisplayName(row),
+                        category: row.category,
+                      },
+                    },
+                  }
+                : row.packaging_material_id
+                  ? {
+                      packagingMaterial: {
+                        id: row.packaging_material_id,
+                        code: row.packaging_material_code,
+                        label:
+                          row.material_snapshot_name ||
+                          formatPackagingMaterialLabel({
+                            name: row.packaging_material_name,
+                            size: row.packaging_material_size,
+                            color: row.packaging_material_color,
+                            unit: row.packaging_material_unit,
+                            length_cm: row.packaging_material_length_cm,
+                            width_cm: row.packaging_material_width_cm,
+                            height_cm: row.packaging_material_height_cm,
+                          }),
+                      },
+                    }
+                  : {}),
+            }
           : null,
         batches: [],
       });
     }
-    
+
     if (row.shipment_batch_id) {
       const fulfillment = fulfillmentsMap.get(row.fulfillment_id);
-      
+
       const batch = {
         shipmentBatchId: row.shipment_batch_id,
         quantityShipped: row.quantity_shipped,
-        notes:           row.shipment_batch_notes,
+        notes: row.shipment_batch_notes,
         audit: {
           createdAt: row.shipment_batch_created_at,
           createdBy: {
-            id:   row.shipment_batch_created_by,
-            name: getFullName(row.shipment_batch_created_by_firstname, row.shipment_batch_created_by_lastname),
+            id: row.shipment_batch_created_by,
+            name: getFullName(
+              row.shipment_batch_created_by_firstname,
+              row.shipment_batch_created_by_lastname
+            ),
           },
         },
         batchRegistryId: row.batch_registry_id,
-        batchType:       row.batch_type,
+        batchType: row.batch_type,
       };
-      
+
       if (row.batch_type === 'product') {
         Object.assign(batch, {
-          lotNumber:  row.product_lot_number,
+          lotNumber: row.product_lot_number,
           expiryDate: row.product_expiry_date,
         });
       }
-      
+
       if (row.batch_type === 'packaging_material') {
         Object.assign(batch, {
-          lotNumber:  row.material_lot_number,
+          lotNumber: row.material_lot_number,
           expiryDate: row.material_expiry_date,
         });
       }
-      
+
       fulfillment.batches.push(batch);
     }
   }
-  
+
   return cleanObject({
-    shipment:     header,
+    shipment: header,
     fulfillments: Array.from(fulfillmentsMap.values()),
   });
 };
@@ -364,28 +391,28 @@ const transformShipmentDetailsRows = (rows) => {
  */
 const transformPickupCompletionResult = (statusResult) => {
   if (!statusResult) return {};
-  
+
   const {
     orderStatusRow,
     orderItemStatusRow,
     orderFulfillmentStatusRow,
     shipmentStatusRow,
   } = statusResult;
-  
+
   return cleanObject({
     order: orderStatusRow
       ? {
-        id:         orderStatusRow.id,
-        statusId:   orderStatusRow.order_status_id,
-        statusDate: orderStatusRow.status_date,
-      }
+          id: orderStatusRow.id,
+          statusId: orderStatusRow.order_status_id,
+          statusDate: orderStatusRow.status_date,
+        }
       : null,
     items: Array.isArray(orderItemStatusRow)
       ? orderItemStatusRow.map((item) => ({
-        id:         item.id,
-        statusId:   item.status_id,
-        statusDate: item.status_date,
-      }))
+          id: item.id,
+          statusId: item.status_id,
+          statusDate: item.status_date,
+        }))
       : [],
     fulfillments: Array.isArray(orderFulfillmentStatusRow)
       ? orderFulfillmentStatusRow.map((id) => ({ id }))
@@ -394,9 +421,9 @@ const transformPickupCompletionResult = (statusResult) => {
       ? shipmentStatusRow.map((id) => ({ id }))
       : [],
     summary: {
-      orderItemsCount:    orderItemStatusRow?.length      || 0,
-      fulfillmentsCount:  orderFulfillmentStatusRow?.length || 0,
-      shipmentCount:      shipmentStatusRow?.length        || 0,
+      orderItemsCount: orderItemStatusRow?.length || 0,
+      fulfillmentsCount: orderFulfillmentStatusRow?.length || 0,
+      shipmentCount: shipmentStatusRow?.length || 0,
     },
     meta: {
       updatedAt: new Date().toISOString(),

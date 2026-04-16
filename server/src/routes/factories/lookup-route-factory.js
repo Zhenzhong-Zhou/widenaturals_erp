@@ -12,9 +12,9 @@
 
 'use strict';
 
-const { authorize }                        = require('../../middlewares/authorize');
-const createQueryNormalizationMiddleware   = require('../../middlewares/normalize-query');
-const validate                             = require('../../middlewares/validate');
+const { authorize } = require('../../middlewares/authorize');
+const createQueryNormalizationMiddleware = require('../../middlewares/normalize-query');
+const validate = require('../../middlewares/validate');
 
 /**
  * @typedef {import('express').Router}         Router
@@ -90,12 +90,12 @@ const validate                             = require('../../middlewares/validate
  * });
  */
 const createLookupRoute = ({
-                             path,
-                             permission,
-                             schema,
-                             controller,
-                             config = {},
-                           }) => {
+  path,
+  permission,
+  schema,
+  controller,
+  config = {},
+}) => {
   // ---------------------------------------------------------
   // Fail fast — catch misconfiguration at startup, not per request.
   // These are programmer errors, not operational errors.
@@ -103,50 +103,50 @@ const createLookupRoute = ({
   if (!path) {
     throw new Error('[createLookupRoute] path is required');
   }
-  
+
   if (!Array.isArray(permission) || permission.length === 0) {
     throw new Error('[createLookupRoute] permission must be a non-empty array');
   }
-  
+
   if (!schema) {
     throw new Error('[createLookupRoute] schema is required');
   }
-  
+
   if (typeof controller !== 'function') {
     throw new Error('[createLookupRoute] controller must be a function');
   }
-  
+
   // ---------------------------------------------------------
   // Apply config defaults.
   // All keys are optional — callers only need to override what differs
   // from a standard keyword lookup with pagination.
   // ---------------------------------------------------------
   const {
-    arrayKeys        = [],
-    booleanKeys      = [],
-    filterKeysOrSchema       = [],
+    arrayKeys = [],
+    booleanKeys = [],
+    filterKeysOrSchema = [],
     includePagination = true,
-    includeSorting   = false,
+    includeSorting = false,
     optionBooleanKeys = [],
-    optionStringKeys       = [],
-    customHandlers   = [],
-    paginationMode     = 'offset',
+    optionStringKeys = [],
+    customHandlers = [],
+    paginationMode = 'offset',
   } = config;
-  
+
   // ---------------------------------------------------------
   // Assemble the middleware pipeline in execution order.
   // See JSDoc above for the full pipeline description.
   // ---------------------------------------------------------
   const handlers = [
     authorize(permission),
-    
+
     validate(
       schema,
       'query',
       { abortEarly: false, convert: true },
       'Invalid lookup query parameters.'
     ),
-    
+
     createQueryNormalizationMiddleware(
       null,
       arrayKeys,
@@ -160,14 +160,14 @@ const createLookupRoute = ({
       optionBooleanKeys,
       optionStringKeys
     ),
-    
+
     // Caller-supplied middleware (e.g. rate limiting, feature flags).
     // Runs after normalization so handlers have access to req.normalizedQuery.
     ...customHandlers,
-    
+
     controller,
   ];
-  
+
   return { path, handlers };
 };
 

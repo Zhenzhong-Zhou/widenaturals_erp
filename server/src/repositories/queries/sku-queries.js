@@ -132,9 +132,7 @@ const SKU_HAS_ANY_HISTORY_QUERY = `
 
 const TABLE_NAME = 'skus s';
 
-const BASE_JOINS = [
-  'LEFT JOIN products p ON s.product_id = p.id',
-];
+const BASE_JOINS = ['LEFT JOIN products p ON s.product_id = p.id'];
 
 const PRIVILEGED_JOINS = [
   ...BASE_JOINS,
@@ -171,10 +169,10 @@ const BASE_SELECT_FIELDS = [
 
 const PRIVILEGED_SELECT_FIELDS = [
   ...BASE_SELECT_FIELDS,
-  minUuid('p',      'status_id',           'product_status_id'),
-  minUuid('s',      'status_id',           'sku_status_id'),
+  minUuid('p', 'status_id', 'product_status_id'),
+  minUuid('s', 'status_id', 'sku_status_id'),
   minUuid('wi_sub', 'warehouse_status_id', 'warehouse_status_id'),
-  minUuid('pb_sub', 'batch_status_id',     'batch_status_id'),
+  minUuid('pb_sub', 'batch_status_id', 'batch_status_id'),
 ];
 
 // ─── SKU Product Cards ────────────────────────────────────────────────────────
@@ -185,7 +183,7 @@ const SKU_PRODUCT_CARD_JOINS = [
   'LEFT JOIN status sku_status             ON s.status_id = sku_status.id',
   'LEFT JOIN sku_compliance_links scl      ON scl.sku_id = s.id',
   'LEFT JOIN compliance_records cr         ON cr.id = scl.compliance_record_id',
-  
+
   `LEFT JOIN LATERAL (
     SELECT
       pg.id           AS pricing_group_id,
@@ -217,9 +215,9 @@ const SKU_PRODUCT_CARD_JOINS = [
       pg.created_at DESC
     LIMIT 1
   ) pr ON TRUE`,
-  
+
   'LEFT JOIN status ps                     ON ps.id = pr.status_id',
-  
+
   `LEFT JOIN LATERAL (
     SELECT si.image_url, si.alt_text
     FROM sku_images si
@@ -312,8 +310,8 @@ const SKU_LIST_SORT_WHITELIST = new Set(
 
 // Deterministic tie-breaking applied after the primary sort.
 const SKU_LIST_ADDITIONAL_SORTS = [
-  { column: 'p.name',       direction: 'ASC'  },
-  { column: 's.sku',        direction: 'ASC'  },
+  { column: 'p.name', direction: 'ASC' },
+  { column: 's.sku', direction: 'ASC' },
   { column: 's.created_at', direction: 'DESC' },
 ];
 

@@ -14,9 +14,13 @@
 
 'use strict';
 
-const { getPaginatedLocations }              = require('../repositories/location-repository');
-const { transformPaginatedLocationResults }  = require('../transformers/location-transformer');
-const AppError                               = require('../utils/AppError');
+const {
+  getPaginatedLocations,
+} = require('../repositories/location-repository');
+const {
+  transformPaginatedLocationResults,
+} = require('../transformers/location-transformer');
+const AppError = require('../utils/AppError');
 
 const CONTEXT = 'location-service';
 
@@ -36,23 +40,29 @@ const CONTEXT = 'location-service';
  * @throws {AppError} Wraps unexpected errors as `AppError.serviceError`.
  */
 const fetchPaginatedLocationsService = async ({
-                                                filters   = {},
-                                                page      = 1,
-                                                limit     = 10,
-                                                sortBy    = 'createdAt',
-                                                sortOrder = 'DESC',
-                                              }) => {
+  filters = {},
+  page = 1,
+  limit = 10,
+  sortBy = 'createdAt',
+  sortOrder = 'DESC',
+}) => {
   const context = `${CONTEXT}/fetchPaginatedLocationsService`;
-  
+
   try {
-    const rawResult = await getPaginatedLocations({ filters, page, limit, sortBy, sortOrder });
+    const rawResult = await getPaginatedLocations({
+      filters,
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+    });
     return transformPaginatedLocationResults(rawResult);
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
+
     throw AppError.serviceError('Unable to fetch locations.', {
       context,
-      meta: { error: error.message }
+      meta: { error: error.message },
     });
   }
 };

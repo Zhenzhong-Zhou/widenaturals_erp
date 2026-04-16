@@ -24,25 +24,22 @@
  */
 const sanitizeMessage = (message, maskIp = false) => {
   if (!message || typeof message !== 'string') return message;
-  
+
   let sanitized = message;
-  
+
   // =========================
   // Key-value secrets
   // e.g. password=xxx, token: xxx, access_token=xxx
   // =========================
   if (/(password|token)/i.test(sanitized)) {
     sanitized = sanitized
-      .replace(
-        /(password\s*[:=]\s*)["']?[^"'\s]+["']?/gi,
-        '$1****'
-      )
+      .replace(/(password\s*[:=]\s*)["']?[^"'\s]+["']?/gi, '$1****')
       .replace(
         /((access_?|refresh_?|auth_?)?token\s*[:=]\s*)["']?[^"'\s]+["']?/gi,
         '$1****'
       );
   }
-  
+
   // =========================
   // Bearer tokens
   // =========================
@@ -52,7 +49,7 @@ const sanitizeMessage = (message, maskIp = false) => {
       'Bearer ****'
     );
   }
-  
+
   // =========================
   // JWT tokens (3-part structure)
   // =========================
@@ -62,7 +59,7 @@ const sanitizeMessage = (message, maskIp = false) => {
       '***JWT***'
     );
   }
-  
+
   // =========================
   // Emails (partial masking for debugging usefulness)
   // =========================
@@ -72,7 +69,7 @@ const sanitizeMessage = (message, maskIp = false) => {
       '$1***@$2'
     );
   }
-  
+
   // =========================
   // IP masking (optional)
   // =========================
@@ -82,7 +79,7 @@ const sanitizeMessage = (message, maskIp = false) => {
       '***.***.***.***'
     );
   }
-  
+
   return sanitized;
 };
 

@@ -30,7 +30,7 @@ const {
   validateOptionalString,
   validateUUID,
   validatePositiveIntegerRequired,
-  requiredIsoDate
+  requiredIsoDate,
 } = require('./general-validators');
 
 // ── Param schema ────────────────────────────────────────────────────
@@ -52,64 +52,54 @@ const warehouseInventoryQuerySchema = paginationSchema
       .valid('product', 'packaging_material')
       .optional()
       .messages({
-        'string.base':  'Batch Type must be a string.',
-        'any.only':     'Batch Type must be one of: product, packaging_material.',
+        'string.base': 'Batch Type must be a string.',
+        'any.only': 'Batch Type must be one of: product, packaging_material.',
       }),
-    
+
     // --------------------------------------------------
     // Inventory status filter
     // --------------------------------------------------
     statusId: validateOptionalUUID('Inventory Status ID'),
-    
+
     // --------------------------------------------------
     // Product batch filters
     // --------------------------------------------------
-    skuId:     validateOptionalUUID('SKU ID'),
+    skuId: validateOptionalUUID('SKU ID'),
     productId: validateOptionalUUID('Product ID'),
-    
+
     // --------------------------------------------------
     // Packaging batch filter
     // --------------------------------------------------
     packagingMaterialId: validateOptionalUUID('Packaging Material ID'),
-    
+
     // --------------------------------------------------
     // Low stock and expiry alerts
     // --------------------------------------------------
-    lowStockThreshold: Joi.number()
-      .integer()
-      .min(0)
-      .optional()
-      .messages({
-        'number.base':    'Low Stock Threshold must be a number.',
-        'number.integer': 'Low Stock Threshold must be an integer.',
-        'number.min':     'Low Stock Threshold must be zero or greater.',
-      }),
-    
-    expiringWithinDays: Joi.number()
-      .integer()
-      .min(1)
-      .optional()
-      .messages({
-        'number.base':    'Expiring Within Days must be a number.',
-        'number.integer': 'Expiring Within Days must be an integer.',
-        'number.min':     'Expiring Within Days must be at least 1.',
-      }),
-    
+    lowStockThreshold: Joi.number().integer().min(0).optional().messages({
+      'number.base': 'Low Stock Threshold must be a number.',
+      'number.integer': 'Low Stock Threshold must be an integer.',
+      'number.min': 'Low Stock Threshold must be zero or greater.',
+    }),
+
+    expiringWithinDays: Joi.number().integer().min(1).optional().messages({
+      'number.base': 'Expiring Within Days must be a number.',
+      'number.integer': 'Expiring Within Days must be an integer.',
+      'number.min': 'Expiring Within Days must be at least 1.',
+    }),
+
     // --------------------------------------------------
     // Inbound date range
     // --------------------------------------------------
-    inboundDateAfter:  optionalIsoDate('Inbound Date After'),
+    inboundDateAfter: optionalIsoDate('Inbound Date After'),
     inboundDateBefore: optionalIsoDate('Inbound Date Before'),
-    
+
     // --------------------------------------------------
     // Reserved quantity boolean filter
     // --------------------------------------------------
-    hasReserved: Joi.boolean()
-      .optional()
-      .messages({
-        'boolean.base': 'Has Reserved must be a boolean.',
-      }),
-    
+    hasReserved: Joi.boolean().optional().messages({
+      'boolean.base': 'Has Reserved must be a boolean.',
+    }),
+
     // --------------------------------------------------
     // Keyword search (ACL-governed upstream)
     // --------------------------------------------------
@@ -121,18 +111,14 @@ const warehouseInventoryQuerySchema = paginationSchema
 // ── Body schema (POST create) ───────────────────────────────────────
 
 const createWarehouseInventoryRecordSchema = Joi.object({
-  batchId:           validateUUID('Batch Registry ID'),
+  batchId: validateUUID('Batch Registry ID'),
   warehouseQuantity: validatePositiveIntegerRequired(),
-  warehouseFee:      Joi.number()
-    .precision(2)
-    .min(0)
-    .optional()
-    .messages({
-      'number.base': 'Warehouse Fee must be a number.',
-      'number.min':  'Warehouse Fee must be zero or greater.',
-    }),
-  inboundDate:       optionalIsoDate('Inbound Date'),
-  statusId:          validateUUID('Inventory Status ID').optional(),
+  warehouseFee: Joi.number().precision(2).min(0).optional().messages({
+    'number.base': 'Warehouse Fee must be a number.',
+    'number.min': 'Warehouse Fee must be zero or greater.',
+  }),
+  inboundDate: optionalIsoDate('Inbound Date'),
+  statusId: validateUUID('Inventory Status ID').optional(),
 }).unknown(false);
 
 const createWarehouseInventoryBulkSchema = Joi.object({
@@ -150,26 +136,18 @@ const createWarehouseInventoryBulkSchema = Joi.object({
 // ── Body schema (PATCH quantities) ──────────────────────────────────
 
 const adjustQuantityItemSchema = Joi.object({
-  id:                validateUUID('Inventory ID').required(),
-  warehouseQuantity: Joi.number()
-    .integer()
-    .min(0)
-    .required()
-    .messages({
-      'number.base':    'Warehouse Quantity must be a number.',
-      'number.integer': 'Warehouse Quantity must be an integer.',
-      'number.min':     'Warehouse Quantity must be zero or greater.',
-      'any.required':   'Warehouse Quantity is required.',
-    }),
-  reservedQuantity: Joi.number()
-    .integer()
-    .min(0)
-    .default(0)
-    .messages({
-      'number.base':    'Reserved Quantity must be a number.',
-      'number.integer': 'Reserved Quantity must be an integer.',
-      'number.min':     'Reserved Quantity must be zero or greater.',
-    }),
+  id: validateUUID('Inventory ID').required(),
+  warehouseQuantity: Joi.number().integer().min(0).required().messages({
+    'number.base': 'Warehouse Quantity must be a number.',
+    'number.integer': 'Warehouse Quantity must be an integer.',
+    'number.min': 'Warehouse Quantity must be zero or greater.',
+    'any.required': 'Warehouse Quantity is required.',
+  }),
+  reservedQuantity: Joi.number().integer().min(0).default(0).messages({
+    'number.base': 'Reserved Quantity must be a number.',
+    'number.integer': 'Reserved Quantity must be an integer.',
+    'number.min': 'Reserved Quantity must be zero or greater.',
+  }),
 }).unknown(false);
 
 const adjustWarehouseInventoryQuantitySchema = Joi.object({
@@ -187,7 +165,7 @@ const adjustWarehouseInventoryQuantitySchema = Joi.object({
 // ── Body schema (PATCH statuses) ────────────────────────────────────
 
 const updateStatusItemSchema = Joi.object({
-  id:       validateUUID('Inventory ID').required(),
+  id: validateUUID('Inventory ID').required(),
   statusId: validateUUID('Inventory Status ID').required(),
 }).unknown(false);
 
@@ -207,35 +185,29 @@ const updateWarehouseInventoryStatusSchema = Joi.object({
 
 const updateWarehouseInventoryMetadataSchema = Joi.object({
   inboundDate: optionalIsoDate('Inbound Date'),
-  warehouseFee: Joi.number()
-    .precision(2)
-    .min(0)
-    .optional()
-    .messages({
-      'number.base': 'Warehouse Fee must be a number.',
-      'number.min':  'Warehouse Fee must be zero or greater.',
-    }),
-}).or('inboundDate', 'warehouseFee')
+  warehouseFee: Joi.number().precision(2).min(0).optional().messages({
+    'number.base': 'Warehouse Fee must be a number.',
+    'number.min': 'Warehouse Fee must be zero or greater.',
+  }),
+})
+  .or('inboundDate', 'warehouseFee')
   .unknown(false)
   .messages({
-    'object.missing': 'At least one of Inbound Date or Warehouse Fee is required.',
+    'object.missing':
+      'At least one of Inbound Date or Warehouse Fee is required.',
   });
 
 // ── Body schema (POST outbound) ─────────────────────────────────────
 
 const outboundItemSchema = Joi.object({
-  id:                validateUUID('Inventory ID').required(),
-  outboundDate:      requiredIsoDate('Outbound Date'),
-  warehouseQuantity: Joi.number()
-    .integer()
-    .min(0)
-    .required()
-    .messages({
-      'number.base':    'Warehouse Quantity must be a number.',
-      'number.integer': 'Warehouse Quantity must be an integer.',
-      'number.min':     'Warehouse Quantity must be zero or greater.',
-      'any.required':   'Warehouse Quantity is required.',
-    }),
+  id: validateUUID('Inventory ID').required(),
+  outboundDate: requiredIsoDate('Outbound Date'),
+  warehouseQuantity: Joi.number().integer().min(0).required().messages({
+    'number.base': 'Warehouse Quantity must be a number.',
+    'number.integer': 'Warehouse Quantity must be an integer.',
+    'number.min': 'Warehouse Quantity must be zero or greater.',
+    'any.required': 'Warehouse Quantity is required.',
+  }),
 }).unknown(false);
 
 const recordWarehouseInventoryOutboundSchema = Joi.object({
@@ -258,7 +230,7 @@ const warehouseItemSummaryQuerySchema = Joi.object({
     .optional()
     .messages({
       'string.base': 'Batch Type must be a string.',
-      'any.only':    'Batch Type must be one of: product, packaging_material.',
+      'any.only': 'Batch Type must be one of: product, packaging_material.',
     }),
 }).unknown(false);
 

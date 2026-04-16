@@ -9,7 +9,10 @@
 
 const { Pool } = require('pg');
 const AppError = require('../../utils/AppError');
-const { ERROR_TYPES, ERROR_CODES } = require('../../utils/constants/error-constants');
+const {
+  ERROR_TYPES,
+  ERROR_CODES,
+} = require('../../utils/constants/error-constants');
 const { getConnectionConfig } = require('../../config/db-config');
 const {
   logSystemInfo,
@@ -41,48 +44,60 @@ const checkPostgresVersion = async () => {
   // which is worse than a startup failure.
   const requiredEnv = process.env.REQUIRED_PG_VERSION;
   if (!requiredEnv) {
-    throw new AppError('REQUIRED_PG_VERSION environment variable is not set', 500, {
-      type:    ERROR_TYPES.SYSTEM,
-      code:    ERROR_CODES.CONFIGURATION_ERROR,
-      context: CONTEXT,
-    });
+    throw new AppError(
+      'REQUIRED_PG_VERSION environment variable is not set',
+      500,
+      {
+        type: ERROR_TYPES.SYSTEM,
+        code: ERROR_CODES.CONFIGURATION_ERROR,
+        context: CONTEXT,
+      }
+    );
   }
-  
+
   // Use a temporary connection to 'postgres' (always exists)
   // so this check works before the app database is created
   const tempPool = new Pool({
-    ...connectionConfig,    // reuse host/port/user/password
+    ...connectionConfig, // reuse host/port/user/password
     database: 'postgres',
   });
-  
+
   try {
     const result = await tempPool.query('SHOW server_version;');
-    const { server_version: full } = /** @type {{ server_version: string }} */ (result.rows[0]);
-    const actual   = parseInt(full, 10);
+    const { server_version: full } = /** @type {{ server_version: string }} */ (
+      result.rows[0]
+    );
+    const actual = parseInt(full, 10);
     const expected = parseInt(requiredEnv, 10);
-    
+
     if (isNaN(expected)) {
-      logSystemWarn('REQUIRED_PG_VERSION is not a valid number — skipping version check', {
-        context: CONTEXT,
-        value:   requiredEnv,
-      });
+      logSystemWarn(
+        'REQUIRED_PG_VERSION is not a valid number — skipping version check',
+        {
+          context: CONTEXT,
+          value: requiredEnv,
+        }
+      );
       return;
     }
-    
+
     if (actual !== expected) {
       throw new AppError(
         `Postgres version mismatch: expected ${expected}, got ${actual} (${full})`,
         500,
         {
-          type:    ERROR_TYPES.SYSTEM,
-          code:    ERROR_CODES.CONFIGURATION_ERROR,
+          type: ERROR_TYPES.SYSTEM,
+          code: ERROR_CODES.CONFIGURATION_ERROR,
           context: CONTEXT,
-          meta:    { expected, actual, full },
+          meta: { expected, actual, full },
         }
       );
     }
-    
-    logSystemInfo('Postgres version check passed', { context: CONTEXT, version: full });
+
+    logSystemInfo('Postgres version check passed', {
+      context: CONTEXT,
+      version: full,
+    });
   } finally {
     await tempPool.end();
   }

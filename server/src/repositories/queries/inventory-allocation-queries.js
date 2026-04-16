@@ -51,8 +51,8 @@ const INVENTORY_ALLOCATION_CONFLICT_COLUMNS = [
 
 const INVENTORY_ALLOCATION_UPDATE_STRATEGIES = {
   allocated_quantity: 'overwrite',
-  status_id:          'overwrite',
-  updated_by:         'overwrite',
+  status_id: 'overwrite',
+  updated_by: 'overwrite',
 };
 
 // Extra SET clauses applied on conflict — timestamps always refreshed.

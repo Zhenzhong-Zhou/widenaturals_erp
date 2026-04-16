@@ -19,8 +19,8 @@
 
 'use strict';
 
-const SKU_CODE_BASE_START  = 100;
-const SKU_CODE_BASE_STEP   = 100;
+const SKU_CODE_BASE_START = 100;
+const SKU_CODE_BASE_STEP = 100;
 
 // ─── Single Record ────────────────────────────────────────────────────────────
 
@@ -89,7 +89,7 @@ const SKU_CODE_BASE_LOOKUP_SORT_WHITELIST = new Set([
 
 const SKU_CODE_BASE_LOOKUP_ADDITIONAL_SORTS = [
   { column: 'scb.category_code', direction: 'ASC' },
-  { column: 'scb.base_code',     direction: 'ASC' },
+  { column: 'scb.base_code', direction: 'ASC' },
 ];
 
 /**

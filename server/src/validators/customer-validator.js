@@ -20,16 +20,21 @@ const {
  * @type {Joi.ObjectSchema}
  */
 const customerSchema = Joi.object({
-  firstname:     validateString('Firstname', 2, 50),
-  lastname:      validateString('Lastname', 2, 50),
-  email:         validateEmail,
-  phone_number:  validatePhoneNumber,
-  note:          Joi.string().max(500).allow('').optional(),
-  customer_type: Joi.string().valid('individual', 'company').default('individual'),
-  company_name:  Joi.string().max(255).optional().allow(null, '')
+  firstname: validateString('Firstname', 2, 50),
+  lastname: validateString('Lastname', 2, 50),
+  email: validateEmail,
+  phone_number: validatePhoneNumber,
+  note: Joi.string().max(500).allow('').optional(),
+  customer_type: Joi.string()
+    .valid('individual', 'company')
+    .default('individual'),
+  company_name: Joi.string()
+    .max(255)
+    .optional()
+    .allow(null, '')
     .when('customer_type', {
-      is:        'company',
-      then:      validateString('Customer Name', 2, 255),
+      is: 'company',
+      then: validateString('Customer Name', 2, 255),
       otherwise: validateOptionalString('Customer Name'),
     }),
 });
@@ -62,10 +67,10 @@ const customerArraySchema = createArraySchema(
  * @type {Joi.ObjectSchema}
  */
 const baseCustomerFields = Joi.object({
-  createdBy:       validateOptionalUUID('Created By'),
-  keyword:         validateKeyword('Customer keyword'),
-  customerType:    Joi.string().valid('individual', 'company').optional(),
-  customerName:    validateOptionalString('Customer Name'),
+  createdBy: validateOptionalUUID('Created By'),
+  keyword: validateKeyword('Customer keyword'),
+  customerType: Joi.string().valid('individual', 'company').optional(),
+  customerName: validateOptionalString('Customer Name'),
   onlyWithAddress: createBooleanFlag('onlyWithAddress'),
 });
 

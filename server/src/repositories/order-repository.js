@@ -65,27 +65,35 @@ const {
  */
 const insertOrder = async (orderData, client) => {
   const context = 'order-repository/insertOrder';
-  
+
   const {
     id,
     order_number,
     order_type_id,
     order_date,
     order_status_id,
-    note                = null,
+    note = null,
     shipping_address_id = null,
-    billing_address_id  = null,
+    billing_address_id = null,
     created_by,
-    updated_at          = null,
-    updated_by          = null,
+    updated_at = null,
+    updated_by = null,
   } = orderData;
-  
+
   const values = [
-    id, order_number, order_type_id, order_date, order_status_id,
-    note, shipping_address_id, billing_address_id, created_by,
-    updated_at, updated_by,
+    id,
+    order_number,
+    order_type_id,
+    order_date,
+    order_status_id,
+    note,
+    shipping_address_id,
+    billing_address_id,
+    created_by,
+    updated_at,
+    updated_by,
   ];
-  
+
   try {
     const { rows } = await query(ORDER_INSERT_QUERY, values, client);
     return rows[0]?.id;
@@ -93,10 +101,12 @@ const insertOrder = async (orderData, client) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to insert order.',
-      meta:    { order_number },
-      logFn:   (err) => logDbQueryError(
-        ORDER_INSERT_QUERY, values, err, { context, order_number }
-      ),
+      meta: { order_number },
+      logFn: (err) =>
+        logDbQueryError(ORDER_INSERT_QUERY, values, err, {
+          context,
+          order_number,
+        }),
     });
   }
 };
@@ -117,29 +127,29 @@ const insertOrder = async (orderData, client) => {
  * @throws  {AppError}        Normalized database error if the query fails.
  */
 const getPaginatedOrders = async ({
-                                    filters   = {},
-                                    page      = 1,
-                                    limit     = 10,
-                                    sortBy    = 'o.created_at',
-                                    sortOrder = 'DESC',
-                                  }) => {
+  filters = {},
+  page = 1,
+  limit = 10,
+  sortBy = 'o.created_at',
+  sortOrder = 'DESC',
+}) => {
   const context = 'order-repository/getPaginatedOrders';
-  
+
   const { whereClause, params } = buildOrderFilter(filters);
-  
+
   const sortConfig = resolveSort({
     sortBy,
     sortOrder,
     moduleKey: 'orderSortMap',
     defaultSort: SORTABLE_FIELDS.orderSortMap.defaultNaturalSort,
   });
-  
+
   const queryText = buildOrderPaginatedQuery(whereClause);
-  
+
   try {
     return await paginateQuery({
-      tableName:    ORDER_PAGINATED_TABLE,
-      joins:        ORDER_PAGINATED_JOINS,
+      tableName: ORDER_PAGINATED_TABLE,
+      joins: ORDER_PAGINATED_JOINS,
       whereClause,
       queryText,
       params,
@@ -153,10 +163,14 @@ const getPaginatedOrders = async ({
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch paginated orders.',
-      meta:    { filters, page, limit, sortBy, sortOrder },
-      logFn:   (err) => logDbQueryError(
-        queryText, params, err, { context, filters, page, limit }
-      ),
+      meta: { filters, page, limit, sortBy, sortOrder },
+      logFn: (err) =>
+        logDbQueryError(queryText, params, err, {
+          context,
+          filters,
+          page,
+          limit,
+        }),
     });
   }
 };
@@ -175,7 +189,7 @@ const getPaginatedOrders = async ({
  */
 const findOrderByIdWithDetails = async (orderId) => {
   const context = 'order-repository/findOrderByIdWithDetails';
-  
+
   try {
     const { rows } = await query(ORDER_FIND_BY_ID_QUERY, [orderId]);
     return rows[0] ?? null;
@@ -183,10 +197,12 @@ const findOrderByIdWithDetails = async (orderId) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch order details.',
-      meta:    { orderId },
-      logFn:   (err) => logDbQueryError(
-        ORDER_FIND_BY_ID_QUERY, [orderId], err, { context, orderId }
-      ),
+      meta: { orderId },
+      logFn: (err) =>
+        logDbQueryError(ORDER_FIND_BY_ID_QUERY, [orderId], err, {
+          context,
+          orderId,
+        }),
     });
   }
 };
@@ -212,11 +228,11 @@ const findOrderByIdWithDetails = async (orderId) => {
  */
 const updateOrderData = async (orderId, updateData, client) => {
   const context = 'order-repository/updateOrderData';
-  
+
   // ─── Fetch Existing Metadata ────────────────────────────────────────────────
-  
+
   let rows;
-  
+
   try {
     ({ rows } = await query(
       `SELECT metadata FROM orders WHERE id = $1`,
@@ -227,57 +243,58 @@ const updateOrderData = async (orderId, updateData, client) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch order metadata for update.',
-      meta:    { orderId },
-      logFn:   (err) => logDbQueryError(
-        'SELECT metadata FROM orders WHERE id = $1',
-        [orderId],
-        err,
-        { context, orderId }
-      ),
+      meta: { orderId },
+      logFn: (err) =>
+        logDbQueryError(
+          'SELECT metadata FROM orders WHERE id = $1',
+          [orderId],
+          err,
+          { context, orderId }
+        ),
     });
   }
-  
+
   // Not-found check is outside the try block — AppError.notFoundError must
   // not be caught and re-thrown as a databaseError.
   if (!rows.length) {
     throw AppError.notFoundError(`Order ${orderId} not found.`, { context });
   }
-  
+
   const existingMetadata = rows[0].metadata ?? {};
-  
+
   // ─── Merge Metadata ─────────────────────────────────────────────────────────
-  
+
   if (updateData.manual_price_overrides) {
     existingMetadata.manual_price_overrides = [
       ...(existingMetadata.manual_price_overrides ?? []),
       ...updateData.manual_price_overrides,
     ];
   }
-  
+
   // ─── Build Dynamic SET Clause ────────────────────────────────────────────────
-  
+
   const updateFields = [];
   const updateValues = [];
-  let   index        = 1;
-  
+  let index = 1;
+
   if (updateData.discount_id) {
     updateFields.push(`discount_id = $${index}`);
     updateValues.push(updateData.discount_id);
     index++;
   }
-  
+
   if (updateData.tax_amount !== undefined) {
     updateFields.push(`tax_amount = $${index}`);
     updateValues.push(updateData.tax_amount);
     index++;
   }
-  
+
   if (updateData.total_amount !== undefined) {
     updateFields.push(`total_amount = $${index}`);
     updateValues.push(updateData.total_amount);
     index++;
   }
-  
+
   if (updateData.status_id) {
     updateFields.push(`order_status_id = $${index}`);
     updateValues.push(updateData.status_id);
@@ -285,47 +302,50 @@ const updateOrderData = async (orderId, updateData, client) => {
     // Status change always refreshes status_date — no param needed.
     updateFields.push(`status_date = NOW()`);
   }
-  
+
   if (updateData.note) {
     updateFields.push(`note = $${index}`);
     updateValues.push(updateData.note);
     index++;
   }
-  
+
   // Metadata and timestamps are always updated.
   updateFields.push(`metadata = $${index}`);
   updateValues.push(existingMetadata);
   index++;
   updateFields.push(`updated_at = NOW()`);
-  
+
   if (updateData.updated_by) {
     updateFields.push(`updated_by = $${index}`);
     updateValues.push(updateData.updated_by);
     index++;
   }
-  
+
   updateValues.push(orderId);
-  
+
   const updateQuery = `
     UPDATE orders
     SET ${updateFields.join(', ')}
     WHERE id = $${index}
     RETURNING id
   `;
-  
+
   // ─── Execute Update ──────────────────────────────────────────────────────────
-  
+
   try {
-    const { rows: updatedRows } = await query(updateQuery, updateValues, client);
+    const { rows: updatedRows } = await query(
+      updateQuery,
+      updateValues,
+      client
+    );
     return updatedRows[0];
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to update order.',
-      meta:    { orderId },
-      logFn:   (err) => logDbQueryError(
-        updateQuery, updateValues, err, { context, orderId }
-      ),
+      meta: { orderId },
+      logFn: (err) =>
+        logDbQueryError(updateQuery, updateValues, err, { context, orderId }),
     });
   }
 };
@@ -349,26 +369,28 @@ const updateOrderData = async (orderId, updateData, client) => {
  */
 const fetchOrderMetadata = async (orderId, client) => {
   const context = 'order-repository/fetchOrderMetadata';
-  
+
   let rows;
-  
+
   try {
     ({ rows } = await query(ORDER_FETCH_METADATA_QUERY, [orderId], client));
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch order metadata.',
-      meta:    { orderId },
-      logFn:   (err) => logDbQueryError(
-        ORDER_FETCH_METADATA_QUERY, [orderId], err, { context, orderId }
-      ),
+      meta: { orderId },
+      logFn: (err) =>
+        logDbQueryError(ORDER_FETCH_METADATA_QUERY, [orderId], err, {
+          context,
+          orderId,
+        }),
     });
   }
-  
+
   if (!rows.length) {
     throw AppError.notFoundError(`Order ${orderId} not found.`, { context });
   }
-  
+
   return rows[0];
 };
 
@@ -389,10 +411,13 @@ const fetchOrderMetadata = async (orderId, client) => {
  * @returns {Promise<{ id: string, order_status_id: string, status_date: Date }|null>}
  * @throws  {AppError} Normalized database error if the update fails.
  */
-const updateOrderStatus = async (client, { orderId, newStatusId, updatedBy }) => {
+const updateOrderStatus = async (
+  client,
+  { orderId, newStatusId, updatedBy }
+) => {
   const context = 'order-repository/updateOrderStatus';
-  const values  = [newStatusId, updatedBy, orderId];
-  
+  const values = [newStatusId, updatedBy, orderId];
+
   try {
     const result = await query(ORDER_UPDATE_STATUS_QUERY, values, client);
     return result.rows[0] ?? null;
@@ -400,10 +425,13 @@ const updateOrderStatus = async (client, { orderId, newStatusId, updatedBy }) =>
     throw handleDbError(error, {
       context,
       message: 'Failed to update order status.',
-      meta:    { orderId, newStatusId },
-      logFn:   (err) => logDbQueryError(
-        ORDER_UPDATE_STATUS_QUERY, values, err, { context, orderId, newStatusId }
-      ),
+      meta: { orderId, newStatusId },
+      logFn: (err) =>
+        logDbQueryError(ORDER_UPDATE_STATUS_QUERY, values, err, {
+          context,
+          orderId,
+          newStatusId,
+        }),
     });
   }
 };
@@ -421,7 +449,7 @@ const updateOrderStatus = async (client, { orderId, newStatusId, updatedBy }) =>
  */
 const getInventoryAllocationsByOrderId = async (orderId, client) => {
   const context = 'order-repository/getInventoryAllocationsByOrderId';
-  
+
   try {
     const result = await query(ORDER_GET_ALLOCATIONS_QUERY, [orderId], client);
     return result.rows;
@@ -429,10 +457,12 @@ const getInventoryAllocationsByOrderId = async (orderId, client) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch order allocation details.',
-      meta:    { orderId },
-      logFn:   (err) => logDbQueryError(
-        ORDER_GET_ALLOCATIONS_QUERY, [orderId], err, { context, orderId }
-      ),
+      meta: { orderId },
+      logFn: (err) =>
+        logDbQueryError(ORDER_GET_ALLOCATIONS_QUERY, [orderId], err, {
+          context,
+          orderId,
+        }),
     });
   }
 };
@@ -452,18 +482,24 @@ const getInventoryAllocationsByOrderId = async (orderId, client) => {
  */
 const getSalesOrderShipmentMetadata = async (orderId, client = null) => {
   const context = 'order-repository/getSalesOrderShipmentMetadata';
-  
+
   try {
-    const { rows } = await query(ORDER_GET_SHIPMENT_METADATA_QUERY, [orderId], client);
+    const { rows } = await query(
+      ORDER_GET_SHIPMENT_METADATA_QUERY,
+      [orderId],
+      client
+    );
     return rows[0] ?? null;
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch sales order shipment metadata.',
-      meta:    { orderId },
-      logFn:   (err) => logDbQueryError(
-        ORDER_GET_SHIPMENT_METADATA_QUERY, [orderId], err, { context, orderId }
-      ),
+      meta: { orderId },
+      logFn: (err) =>
+        logDbQueryError(ORDER_GET_SHIPMENT_METADATA_QUERY, [orderId], err, {
+          context,
+          orderId,
+        }),
     });
   }
 };

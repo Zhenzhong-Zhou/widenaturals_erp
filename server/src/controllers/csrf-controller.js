@@ -37,18 +37,18 @@ const { wrapAsyncHandler } = require('../middlewares/async-handler');
  */
 const generateCsrfTokenController = wrapAsyncHandler((req, res) => {
   const csrfToken = req.csrfToken();
-  
+
   // Prevent token caching at every layer — browser, proxy, and CDN
   res.set({
     'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-    Pragma:          'no-cache',
-    Expires:         '0',
+    Pragma: 'no-cache',
+    Expires: '0',
   });
-  
+
   res.status(200).json({
-    success:   true,
+    success: true,
     csrfToken,
-    traceId:   req.traceId,
+    traceId: req.traceId,
   });
 });
 

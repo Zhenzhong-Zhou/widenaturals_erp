@@ -25,16 +25,14 @@
 
 'use strict';
 
-const {
-  query,
-} = require('../database/db');
+const { query } = require('../database/db');
 const { paginateQuery } = require('../utils/db/pagination/pagination-helpers');
 const { bulkInsert } = require('../utils/db/write-utils');
-const {
-  logSystemWarn,
-} = require('../utils/logging/system-logger');
+const { logSystemWarn } = require('../utils/logging/system-logger');
 const { existsQuery } = require('./utils/repository-helper');
-const { buildWarehouseInventoryFilter } = require('../utils/sql/build-warehouse-inventory-filter');
+const {
+  buildWarehouseInventoryFilter,
+} = require('../utils/sql/build-warehouse-inventory-filter');
 const { resolveSort } = require('../utils/query/sort-resolver');
 const { SORTABLE_FIELDS } = require('../utils/sort-field-mapping');
 const {
@@ -63,11 +61,10 @@ const {
   SKU_HAS_INVENTORY_QUERY,
 } = require('./queries/warehouse-inventory-queries');
 const { handleDbError } = require('../utils/errors/error-handlers');
+const { logDbQueryError, logBulkInsertError } = require('../utils/db-logger');
 const {
-  logDbQueryError,
-  logBulkInsertError
-} = require('../utils/db-logger');
-const { validateBulkInsertRows } = require('../utils/validation/bulk-insert-row-validator');
+  validateBulkInsertRows,
+} = require('../utils/validation/bulk-insert-row-validator');
 
 const CONTEXT = 'warehouse-inventory-repository';
 
@@ -87,46 +84,50 @@ const CONTEXT = 'warehouse-inventory-repository';
  * @throws {AppError} Normalized database error if the query fails.
  */
 const getPaginatedWarehouseInventory = async ({
-                                                filters   = {},
-                                                page      = 1,
-                                                limit     = 10,
-                                                sortBy    = 'inboundDate',
-                                                sortOrder = 'DESC',
-                                              }) => {
+  filters = {},
+  page = 1,
+  limit = 10,
+  sortBy = 'inboundDate',
+  sortOrder = 'DESC',
+}) => {
   const context = `${CONTEXT}/getPaginatedWarehouseInventory`;
-  
+
   const { whereClause, params } = buildWarehouseInventoryFilter(filters);
-  
+
   const sortConfig = resolveSort({
     sortBy,
     sortOrder,
-    moduleKey:   'warehouseInventorySortMap',
+    moduleKey: 'warehouseInventorySortMap',
     defaultSort: SORTABLE_FIELDS.warehouseInventorySortMap.defaultNaturalSort,
   });
-  
+
   const queryText = buildWarehouseInventoryPaginatedQuery(whereClause);
-  
+
   try {
     return await paginateQuery({
-      tableName:    WAREHOUSE_INVENTORY_TABLE,
-      joins:        WAREHOUSE_INVENTORY_JOINS,
+      tableName: WAREHOUSE_INVENTORY_TABLE,
+      joins: WAREHOUSE_INVENTORY_JOINS,
       whereClause,
       queryText,
       params,
       page,
       limit,
-      sortBy:       sortConfig.sortBy,
-      sortOrder:    sortConfig.sortOrder,
+      sortBy: sortConfig.sortBy,
+      sortOrder: sortConfig.sortOrder,
       whitelistSet: WAREHOUSE_INVENTORY_SORT_WHITELIST,
     });
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch paginated warehouse inventory records.',
-      meta:    { filters, page, limit, sortBy, sortOrder },
-      logFn:   (err) => logDbQueryError(
-        queryText, params, err, { context, filters, page, limit }
-      ),
+      meta: { filters, page, limit, sortBy, sortOrder },
+      logFn: (err) =>
+        logDbQueryError(queryText, params, err, {
+          context,
+          filters,
+          page,
+          limit,
+        }),
     });
   }
 };
@@ -142,27 +143,32 @@ const getPaginatedWarehouseInventory = async ({
  * @returns {Promise<WarehouseInventoryRow[]>}
  * @throws {AppError} Normalized database error if the insert fails.
  */
-const insertWarehouseInventoryBulk = async (inventoryRecords, client, meta = {}) => {
-  if (!Array.isArray(inventoryRecords) || inventoryRecords.length === 0) return [];
-  
+const insertWarehouseInventoryBulk = async (
+  inventoryRecords,
+  client,
+  meta = {}
+) => {
+  if (!Array.isArray(inventoryRecords) || inventoryRecords.length === 0)
+    return [];
+
   const context = `${CONTEXT}/insertWarehouseInventoryBulk`;
-  
+
   const rows = inventoryRecords.map((record) => [
     record.warehouse_id,
     record.batch_id,
     record.warehouse_quantity,
-    record.reserved_quantity   ?? 0,
-    record.warehouse_fee       ?? 0,
+    record.reserved_quantity ?? 0,
+    record.warehouse_fee ?? 0,
     record.inbound_date,
     record.status_id,
-    record.status_date         ?? null,
-    record.created_by          ?? null,
-    null,                                   // updated_at — null at insert time
-    null,                                   // updated_by — null at insert time
+    record.status_date ?? null,
+    record.created_by ?? null,
+    null, // updated_at — null at insert time
+    null, // updated_by — null at insert time
   ]);
-  
+
   validateBulkInsertRows(rows, WAREHOUSE_INVENTORY_INSERT_COLUMNS.length);
-  
+
   try {
     return await bulkInsert(
       'warehouse_inventory',
@@ -178,14 +184,12 @@ const insertWarehouseInventoryBulk = async (inventoryRecords, client, meta = {})
     throw handleDbError(error, {
       context,
       message: 'Failed to insert warehouse inventory records.',
-      meta:    { recordCount: inventoryRecords.length },
-      logFn:   (err) => logBulkInsertError(
-        err,
-        'warehouse_inventory',
-        rows,
-        rows.length,
-        { context, conflictColumns: WAREHOUSE_INVENTORY_CONFLICT_COLUMNS }
-      ),
+      meta: { recordCount: inventoryRecords.length },
+      logFn: (err) =>
+        logBulkInsertError(err, 'warehouse_inventory', rows, rows.length, {
+          context,
+          conflictColumns: WAREHOUSE_INVENTORY_CONFLICT_COLUMNS,
+        }),
     });
   }
 };
@@ -216,46 +220,64 @@ const updateWarehouseInventoryQuantityBulk = async (
   client
 ) => {
   if (!Array.isArray(updates) || updates.length === 0) return [];
-  
+
   const context = `${CONTEXT}/updateWarehouseInventoryQuantityBulk`;
-  
+
   const results = [];
-  
+
   try {
     for (const update of updates) {
       const withWarehouse = Boolean(update.warehouseId);
-      
+
       const queryText = withWarehouse
         ? UPDATE_WAREHOUSE_INVENTORY_QUANTITY_WITH_WAREHOUSE_QUERY
         : UPDATE_WAREHOUSE_INVENTORY_QUANTITY_QUERY;
-      
+
       const params = withWarehouse
-        ? [update.warehouseQuantity, update.reservedQuantity, update.statusId, updatedBy, update.id, update.warehouseId]
-        : [update.warehouseQuantity, update.reservedQuantity, update.statusId, updatedBy, update.id];
-      
+        ? [
+            update.warehouseQuantity,
+            update.reservedQuantity,
+            update.statusId,
+            updatedBy,
+            update.id,
+            update.warehouseId,
+          ]
+        : [
+            update.warehouseQuantity,
+            update.reservedQuantity,
+            update.statusId,
+            updatedBy,
+            update.id,
+          ];
+
       const { rows } = await query(queryText, params, client);
-      
+
       if (!rows[0]) {
-        logSystemWarn('Warehouse inventory update matched no rows — possible warehouse ID mismatch or stale record', {
-          context,
-          inventoryId: update.id,
-          warehouseId: update.warehouseId ?? null,
-        });
+        logSystemWarn(
+          'Warehouse inventory update matched no rows — possible warehouse ID mismatch or stale record',
+          {
+            context,
+            inventoryId: update.id,
+            warehouseId: update.warehouseId ?? null,
+          }
+        );
       }
-      
+
       if (rows[0]) results.push(rows[0]);
     }
-    
+
     return results;
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to bulk update warehouse inventory quantities.',
-      meta:    { updatedBy, updateCount: updates.length },
-      logFn:   (err) => logDbQueryError(
-        UPDATE_WAREHOUSE_INVENTORY_QUANTITY_QUERY, [], err,
-        { context, updatedBy, updateCount: updates.length }
-      ),
+      meta: { updatedBy, updateCount: updates.length },
+      logFn: (err) =>
+        logDbQueryError(UPDATE_WAREHOUSE_INVENTORY_QUANTITY_QUERY, [], err, {
+          context,
+          updatedBy,
+          updateCount: updates.length,
+        }),
     });
   }
 };
@@ -280,37 +302,36 @@ const updateWarehouseInventoryStatusBulk = async (
   client
 ) => {
   if (!Array.isArray(updates) || updates.length === 0) return [];
-  
+
   const context = `${CONTEXT}/updateWarehouseInventoryStatusBulk`;
-  
+
   const results = [];
-  
+
   try {
     for (const update of updates) {
-      const params = [
-        update.statusId,
-        updatedBy,
-        update.id,
-        warehouseId,
-      ];
-      
+      const params = [update.statusId, updatedBy, update.id, warehouseId];
+
       const { rows } = await query(
-        UPDATE_WAREHOUSE_INVENTORY_STATUS_QUERY, params, client
+        UPDATE_WAREHOUSE_INVENTORY_STATUS_QUERY,
+        params,
+        client
       );
-      
+
       if (rows[0]) results.push(rows[0]);
     }
-    
+
     return results;
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to bulk update warehouse inventory status.',
-      meta:    { warehouseId, updateCount: updates.length },
-      logFn:   (err) => logDbQueryError(
-        UPDATE_WAREHOUSE_INVENTORY_STATUS_QUERY, [], err,
-        { context, warehouseId, updateCount: updates.length }
-      ),
+      meta: { warehouseId, updateCount: updates.length },
+      logFn: (err) =>
+        logDbQueryError(UPDATE_WAREHOUSE_INVENTORY_STATUS_QUERY, [], err, {
+          context,
+          warehouseId,
+          updateCount: updates.length,
+        }),
     });
   }
 };
@@ -328,28 +349,34 @@ const updateWarehouseInventoryStatusBulk = async (
  */
 const updateWarehouseInventoryMetadata = async (update, client) => {
   const context = `${CONTEXT}/updateWarehouseInventoryMetadata`;
-  
+
   const params = [
-    update.inboundDate  ?? null,
+    update.inboundDate ?? null,
     update.warehouseFee ?? null,
     update.updatedBy,
     update.id,
     update.warehouseId,
   ];
-  
+
   try {
     const { rows } = await query(
-      UPDATE_WAREHOUSE_INVENTORY_METADATA_QUERY, params, client
+      UPDATE_WAREHOUSE_INVENTORY_METADATA_QUERY,
+      params,
+      client
     );
     return rows[0] || null;
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to update warehouse inventory metadata.',
-      meta:    { id: update.id, warehouseId: update.warehouseId },
-      logFn:   (err) => logDbQueryError(
-        UPDATE_WAREHOUSE_INVENTORY_METADATA_QUERY, params, err, { context }
-      ),
+      meta: { id: update.id, warehouseId: update.warehouseId },
+      logFn: (err) =>
+        logDbQueryError(
+          UPDATE_WAREHOUSE_INVENTORY_METADATA_QUERY,
+          params,
+          err,
+          { context }
+        ),
     });
   }
 };
@@ -374,11 +401,11 @@ const updateWarehouseInventoryOutboundBulk = async (
   client
 ) => {
   if (!Array.isArray(updates) || updates.length === 0) return [];
-  
+
   const context = `${CONTEXT}/updateWarehouseInventoryOutboundBulk`;
-  
+
   const results = [];
-  
+
   try {
     for (const update of updates) {
       const params = [
@@ -388,24 +415,28 @@ const updateWarehouseInventoryOutboundBulk = async (
         update.id,
         warehouseId,
       ];
-      
+
       const { rows } = await query(
-        UPDATE_WAREHOUSE_INVENTORY_OUTBOUND_QUERY, params, client
+        UPDATE_WAREHOUSE_INVENTORY_OUTBOUND_QUERY,
+        params,
+        client
       );
-      
+
       if (rows[0]) results.push(rows[0]);
     }
-    
+
     return results;
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to bulk record warehouse inventory outbound.',
-      meta:    { warehouseId, updateCount: updates.length },
-      logFn:   (err) => logDbQueryError(
-        UPDATE_WAREHOUSE_INVENTORY_OUTBOUND_QUERY, [], err,
-        { context, warehouseId, updateCount: updates.length }
-      ),
+      meta: { warehouseId, updateCount: updates.length },
+      logFn: (err) =>
+        logDbQueryError(UPDATE_WAREHOUSE_INVENTORY_OUTBOUND_QUERY, [], err, {
+          context,
+          warehouseId,
+          updateCount: updates.length,
+        }),
     });
   }
 };
@@ -424,22 +455,25 @@ const updateWarehouseInventoryOutboundBulk = async (
  */
 const fetchWarehouseInventoryStateByIds = async (ids, warehouseId, client) => {
   const context = `${CONTEXT}/fetchWarehouseInventoryStateByIds`;
-  
+
   const params = [ids, warehouseId];
-  
+
   try {
     const { rows } = await query(
-      FETCH_WAREHOUSE_INVENTORY_STATE_QUERY, params, client
+      FETCH_WAREHOUSE_INVENTORY_STATE_QUERY,
+      params,
+      client
     );
     return rows;
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch warehouse inventory state.',
-      meta:    { warehouseId, idCount: ids.length },
-      logFn:   (err) => logDbQueryError(
-        FETCH_WAREHOUSE_INVENTORY_STATE_QUERY, params, err, { context }
-      ),
+      meta: { warehouseId, idCount: ids.length },
+      logFn: (err) =>
+        logDbQueryError(FETCH_WAREHOUSE_INVENTORY_STATE_QUERY, params, err, {
+          context,
+        }),
     });
   }
 };
@@ -456,24 +490,34 @@ const fetchWarehouseInventoryStateByIds = async (ids, warehouseId, client) => {
  * @returns {Promise<{ batch_id: string }[]>}
  * @throws {AppError} Normalized database error if the query fails.
  */
-const findExistingInventoryByBatchIds = async (warehouseId, batchIds, client) => {
+const findExistingInventoryByBatchIds = async (
+  warehouseId,
+  batchIds,
+  client
+) => {
   const context = `${CONTEXT}/findExistingInventoryByBatchIds`;
-  
+
   const params = [warehouseId, batchIds];
-  
+
   try {
     const { rows } = await query(
-      FIND_EXISTING_INVENTORY_BY_BATCH_IDS_QUERY, params, client
+      FIND_EXISTING_INVENTORY_BY_BATCH_IDS_QUERY,
+      params,
+      client
     );
     return rows;
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to check existing inventory by batch IDs.',
-      meta:    { warehouseId, batchCount: batchIds.length },
-      logFn:   (err) => logDbQueryError(
-        FIND_EXISTING_INVENTORY_BY_BATCH_IDS_QUERY, params, err, { context }
-      ),
+      meta: { warehouseId, batchCount: batchIds.length },
+      logFn: (err) =>
+        logDbQueryError(
+          FIND_EXISTING_INVENTORY_BY_BATCH_IDS_QUERY,
+          params,
+          err,
+          { context }
+        ),
     });
   }
 };
@@ -491,9 +535,9 @@ const findExistingInventoryByBatchIds = async (warehouseId, batchIds, client) =>
  */
 const getWarehouseInventoryDetailById = async (inventoryId, warehouseId) => {
   const context = `${CONTEXT}/getWarehouseInventoryDetailById`;
-  
+
   const params = [inventoryId, warehouseId];
-  
+
   try {
     const { rows } = await query(WAREHOUSE_INVENTORY_DETAIL_QUERY, params);
     return rows[0] || null;
@@ -501,10 +545,11 @@ const getWarehouseInventoryDetailById = async (inventoryId, warehouseId) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch warehouse inventory detail.',
-      meta:    { inventoryId, warehouseId },
-      logFn:   (err) => logDbQueryError(
-        WAREHOUSE_INVENTORY_DETAIL_QUERY, params, err, { context }
-      ),
+      meta: { inventoryId, warehouseId },
+      logFn: (err) =>
+        logDbQueryError(WAREHOUSE_INVENTORY_DETAIL_QUERY, params, err, {
+          context,
+        }),
     });
   }
 };
@@ -522,7 +567,7 @@ const getWarehouseInventoryDetailById = async (inventoryId, warehouseId) => {
 const getWarehouseSummary = async (warehouseId) => {
   const context = `${CONTEXT}/getWarehouseSummary`;
   const params = [warehouseId];
-  
+
   try {
     const { rows } = await query(WAREHOUSE_SUMMARY_QUERY, params);
     return rows[0] || null;
@@ -530,10 +575,9 @@ const getWarehouseSummary = async (warehouseId) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch warehouse summary.',
-      meta:    { warehouseId },
-      logFn:   (err) => logDbQueryError(
-        WAREHOUSE_SUMMARY_QUERY, params, err, { context }
-      ),
+      meta: { warehouseId },
+      logFn: (err) =>
+        logDbQueryError(WAREHOUSE_SUMMARY_QUERY, params, err, { context }),
     });
   }
 };
@@ -548,7 +592,7 @@ const getWarehouseSummary = async (warehouseId) => {
 const getWarehouseSummaryByStatus = async (warehouseId) => {
   const context = `${CONTEXT}/getWarehouseSummaryByStatus`;
   const params = [warehouseId];
-  
+
   try {
     const { rows } = await query(WAREHOUSE_SUMMARY_BY_STATUS_QUERY, params);
     return rows;
@@ -556,10 +600,11 @@ const getWarehouseSummaryByStatus = async (warehouseId) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch warehouse summary by status.',
-      meta:    { warehouseId },
-      logFn:   (err) => logDbQueryError(
-        WAREHOUSE_SUMMARY_BY_STATUS_QUERY, params, err, { context }
-      ),
+      meta: { warehouseId },
+      logFn: (err) =>
+        logDbQueryError(WAREHOUSE_SUMMARY_BY_STATUS_QUERY, params, err, {
+          context,
+        }),
     });
   }
 };
@@ -576,7 +621,7 @@ const getWarehouseSummaryByStatus = async (warehouseId) => {
 const getWarehouseProductSummary = async (warehouseId) => {
   const context = `${CONTEXT}/getWarehouseProductSummary`;
   const params = [warehouseId];
-  
+
   try {
     const { rows } = await query(WAREHOUSE_PRODUCT_SUMMARY_QUERY, params);
     return rows;
@@ -584,10 +629,11 @@ const getWarehouseProductSummary = async (warehouseId) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch warehouse product summary.',
-      meta:    { warehouseId },
-      logFn:   (err) => logDbQueryError(
-        WAREHOUSE_PRODUCT_SUMMARY_QUERY, params, err, { context }
-      ),
+      meta: { warehouseId },
+      logFn: (err) =>
+        logDbQueryError(WAREHOUSE_PRODUCT_SUMMARY_QUERY, params, err, {
+          context,
+        }),
     });
   }
 };
@@ -602,7 +648,7 @@ const getWarehouseProductSummary = async (warehouseId) => {
 const getWarehousePackagingSummary = async (warehouseId) => {
   const context = `${CONTEXT}/getWarehousePackagingSummary`;
   const params = [warehouseId];
-  
+
   try {
     const { rows } = await query(WAREHOUSE_PACKAGING_SUMMARY_QUERY, params);
     return rows;
@@ -610,10 +656,11 @@ const getWarehousePackagingSummary = async (warehouseId) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch warehouse packaging summary.',
-      meta:    { warehouseId },
-      logFn:   (err) => logDbQueryError(
-        WAREHOUSE_PACKAGING_SUMMARY_QUERY, params, err, { context }
-      ),
+      meta: { warehouseId },
+      logFn: (err) =>
+        logDbQueryError(WAREHOUSE_PACKAGING_SUMMARY_QUERY, params, err, {
+          context,
+        }),
     });
   }
 };
@@ -635,50 +682,48 @@ const getWarehousePackagingSummary = async (warehouseId) => {
  */
 const getWarehouseInventoryQuantities = async (keys, client) => {
   const context = `${CONTEXT}/getWarehouseInventoryQuantities`;
-  
+
   if (!Array.isArray(keys) || keys.length === 0) return [];
-  
+
   const warehouseIds = keys.map((k) => k.warehouse_id);
-  const batchIds     = keys.map((k) => k.batch_id);
-  const params       = [warehouseIds, batchIds];
-  
+  const batchIds = keys.map((k) => k.batch_id);
+  const params = [warehouseIds, batchIds];
+
   try {
     const result = await query(
       GET_WAREHOUSE_INVENTORY_QUANTITIES_QUERY,
       params,
       client
     );
-    
+
     if (result.rows.length !== keys.length) {
       const missingKeys = keys.filter(
         ({ warehouse_id, batch_id }) =>
           !result.rows.some(
             (row) =>
-              row.warehouse_id === warehouse_id &&
-              row.batch_id     === batch_id
+              row.warehouse_id === warehouse_id && row.batch_id === batch_id
           )
       );
-      
+
       logSystemWarn('Some warehouse_inventory records not found', {
         context,
         missingKeys,
         expected: keys.length,
-        found:    result.rows.length,
+        found: result.rows.length,
       });
     }
-    
+
     return result.rows;
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch warehouse inventory quantities.',
-      meta:    { keyCount: keys.length },
-      logFn:   (err) => logDbQueryError(
-        GET_WAREHOUSE_INVENTORY_QUANTITIES_QUERY,
-        params,
-        err,
-        { context, keyCount: keys.length }
-      ),
+      meta: { keyCount: keys.length },
+      logFn: (err) =>
+        logDbQueryError(GET_WAREHOUSE_INVENTORY_QUANTITIES_QUERY, params, err, {
+          context,
+          keyCount: keys.length,
+        }),
     });
   }
 };
@@ -717,20 +762,20 @@ const getAllocatableBatchesByWarehouse = async (
   client
 ) => {
   const context = `${CONTEXT}/getAllocatableBatchesByWarehouse`;
-  
+
   const {
-    skuIds               = [],
+    skuIds = [],
     packagingMaterialIds = [],
     warehouseId,
     inventoryStatusId,
   } = allocationFilter;
-  
-  const orderByClause = ALLOCATABLE_BATCHES_SORT[options.strategy]
-    ?? ALLOCATABLE_BATCHES_SORT.fefo;
-  
+
+  const orderByClause =
+    ALLOCATABLE_BATCHES_SORT[options.strategy] ?? ALLOCATABLE_BATCHES_SORT.fefo;
+
   const queryText = buildAllocatableBatchesQuery(orderByClause);
-  const params    = [warehouseId, inventoryStatusId, skuIds, packagingMaterialIds];
-  
+  const params = [warehouseId, inventoryStatusId, skuIds, packagingMaterialIds];
+
   try {
     const result = await query(queryText, params, client);
     return result.rows;
@@ -738,13 +783,13 @@ const getAllocatableBatchesByWarehouse = async (
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch allocatable warehouse inventory batches.',
-      meta:    { warehouseId, skuCount: skuIds.length, packagingMaterialCount: packagingMaterialIds.length },
-      logFn:   (err) => logDbQueryError(
-        queryText,
-        params,
-        err,
-        { context, warehouseId }
-      ),
+      meta: {
+        warehouseId,
+        skuCount: skuIds.length,
+        packagingMaterialCount: packagingMaterialIds.length,
+      },
+      logFn: (err) =>
+        logDbQueryError(queryText, params, err, { context, warehouseId }),
     });
   }
 };
@@ -773,7 +818,7 @@ const getAllocatableBatchesByWarehouse = async (
  */
 const skuHasInventory = async (skuId, client = null) => {
   const context = `${CONTEXT}/skuHasInventory`;
-  
+
   return existsQuery(
     SKU_HAS_INVENTORY_QUERY,
     [skuId],

@@ -8,7 +8,7 @@ loadEnv();
 exports.up = async function (knex) {
   await knex.raw("SET timezone = 'UTC';");
   await knex.raw('CREATE EXTENSION IF NOT EXISTS "uuid-ossp";');
-  
+
   const dbName = process.env.DB_NAME;
   if (dbName) {
     await knex.raw(`ALTER DATABASE ?? SET timezone TO 'UTC'`, [dbName]);
@@ -23,7 +23,7 @@ exports.up = async function (knex) {
  */
 exports.down = async function (knex) {
   console.warn('Skipping DROP EXTENSION uuid-ossp (used by UUID columns).');
-  
+
   const dbName = process.env.DB_NAME;
   if (dbName) {
     await knex.raw('ALTER DATABASE ?? SET timezone TO DEFAULT', [dbName]);

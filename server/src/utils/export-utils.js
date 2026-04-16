@@ -20,7 +20,7 @@ const { formatHeader, processHeaders } = require('./export-header-utils');
 const AppError = require('../utils/AppError');
 const {
   logSystemException,
-  logSystemWarn
+  logSystemWarn,
 } = require('./logging/system-logger');
 const { generateTimestampedFilename } = require('./filename-utils');
 
@@ -39,10 +39,10 @@ const EXPORT_ROW_WARN_THRESHOLD = 10_000;
  */
 const exportToCSV = (data, timezone = 'PST') => {
   const context = 'export-utils/exportToCSV';
-  
+
   try {
     const { formattedHeaders, columnMap } = processHeaders(data);
-    
+
     const formattedData = data.map((row) => {
       const formattedRow = {};
       formattedHeaders.forEach((header) => {
@@ -53,10 +53,10 @@ const exportToCSV = (data, timezone = 'PST') => {
       });
       return formattedRow;
     });
-    
+
     const parser = new Parser({ fields: formattedHeaders });
     const csv = parser.parse(formattedData);
-    
+
     return Buffer.from(csv, 'utf-8');
   } catch (error) {
     logSystemException(error, 'CSV export failed', { context });
@@ -92,63 +92,69 @@ const exportToPDF = async (data, options = {}) => {
     summary = false,
     timezone = 'PST',
   } = options;
-  
+
   const context = 'export-utils/exportToPDF';
-  
+
   return new Promise((resolve, reject) => {
     try {
       if (!Array.isArray(data) || data.length === 0) {
         return resolve(Buffer.from('No data available', 'utf-8'));
       }
-      
+
       const doc = new PDFDocument({
         size: landscape ? 'A4' : 'LETTER',
         layout: landscape ? 'landscape' : 'portrait',
         margin: 50,
       });
-      
+
       const buffers = [];
-      
+
       doc.on('data', buffers.push.bind(buffers));
       doc.on('end', () => resolve(Buffer.concat(buffers)));
       doc.on('error', (err) => {
         logSystemException(err, 'PDF generation failed', { context });
-        reject(AppError.fileSystemError('PDF generation failed', { cause: err }));
+        reject(
+          AppError.fileSystemError('PDF generation failed', { cause: err })
+        );
       });
-      
+
       doc.fontSize(18).text(title, { align: 'center' }).moveDown(2);
-      
+
       const columnMap = Object.keys(data[0])
         .filter((key) => !isUUID(data[0][key]))
         .reduce((acc, key) => {
           acc[formatHeader(key)] = key;
           return acc;
         }, {});
-      
+
       const headers = Object.keys(columnMap);
-      
+
       if (summary) {
         data.forEach((row, index) => {
           doc
             .fontSize(fontSize + 1)
             .text(`Record ${index + 1}:`, { underline: true })
             .moveDown(0.5);
-          
-          Object.entries(columnMap).forEach(([formattedHeader, originalKey]) => {
-            const value = formatValue(row[originalKey] ?? 'N/A', timezone);
-            doc.fontSize(fontSize - 1).text(`${formattedHeader}: ${value}`);
-          });
-          
+
+          Object.entries(columnMap).forEach(
+            ([formattedHeader, originalKey]) => {
+              const value = formatValue(row[originalKey] ?? 'N/A', timezone);
+              doc.fontSize(fontSize - 1).text(`${formattedHeader}: ${value}`);
+            }
+          );
+
           doc.moveDown(1);
         });
-        
+
         // resolve is called via .on('end') — do not return a value here
         return doc.end();
       }
-      
+
       const maxWidth = landscape ? 750 : 500;
-      const columnWidths = headers.map(() => Math.floor(maxWidth / headers.length));
-      
+      const columnWidths = headers.map(() =>
+        Math.floor(maxWidth / headers.length)
+      );
+
       doc.fontSize(fontSize + 1).fillColor('black');
       headers.forEach((header, i) => {
         doc.text(header.padEnd(columnWidths[i] / 6, ' '), {
@@ -157,10 +163,10 @@ const exportToPDF = async (data, options = {}) => {
         });
       });
       doc.moveDown(1);
-      
+
       data.forEach((row, index) => {
         doc.text(' ', { continued: false });
-        
+
         headers.forEach((formattedHeader, i) => {
           const originalKey = columnMap[formattedHeader];
           const value = formatValue(row[originalKey] ?? 'N/A', timezone);
@@ -168,18 +174,20 @@ const exportToPDF = async (data, options = {}) => {
             typeof value === 'number'
               ? value.toString().padStart(columnWidths[i] / 6, ' ')
               : value;
-          
+
           doc.text(
             includeIndex && i === 0 ? `${index + 1}. ${textValue}` : textValue,
             { continued: i !== headers.length - 1 }
           );
         });
       });
-      
+
       doc.end();
     } catch (error) {
       logSystemException(error, 'PDF generation failed', { context });
-      reject(AppError.fileSystemError('PDF generation failed', { cause: error }));
+      reject(
+        AppError.fileSystemError('PDF generation failed', { cause: error })
+      );
     }
   });
 };
@@ -199,25 +207,27 @@ const exportToPDF = async (data, options = {}) => {
  */
 const exportToPlainText = (data, separator = ' | ', timezone = 'PST') => {
   const context = 'export-utils/exportToPlainText';
-  
+
   try {
     if (!Array.isArray(data) || data.length === 0) {
       return Buffer.from('No data available', 'utf-8');
     }
-    
+
     const { formattedHeaders, columnMap } = processHeaders(data);
-    
+
     let text = formattedHeaders.join(separator) + '\n';
     text += '-'.repeat(text.length) + '\n';
-    
+
     text += data
       .map((row) =>
         formattedHeaders
-          .map((header) => formatValue(row[columnMap[header]] ?? 'N/A', timezone))
+          .map((header) =>
+            formatValue(row[columnMap[header]] ?? 'N/A', timezone)
+          )
           .join(separator)
       )
       .join('\n');
-    
+
     return Buffer.from(text, 'utf-8');
   } catch (error) {
     logSystemException(error, 'Plain text export failed', { context });
@@ -241,10 +251,10 @@ const exportToPlainText = (data, separator = ' | ', timezone = 'PST') => {
  */
 const exportToXLSX = (data, sheetName = 'Export', timezone = 'UTC') => {
   const context = 'export-utils/exportToXLSX';
-  
+
   try {
     let worksheet;
-    
+
     if (!Array.isArray(data) || data.length === 0) {
       worksheet = XLSX.utils.aoa_to_sheet([['No data available']]);
     } else {
@@ -254,10 +264,10 @@ const exportToXLSX = (data, sheetName = 'Export', timezone = 'UTC') => {
       );
       worksheet = XLSX.utils.aoa_to_sheet([headers, ...formattedData]);
     }
-    
+
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
-    
+
     return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
   } catch (error) {
     logSystemException(error, 'XLSX export failed', { context });
@@ -285,7 +295,8 @@ const resolveExportMeta = (format, filename) => {
       return { contentType: 'text/plain', filename: `${filename}.txt` };
     case 'xlsx':
       return {
-        contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        contentType:
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         filename: `${filename}.xlsx`,
       };
     default:
@@ -316,19 +327,19 @@ const resolveExportMeta = (format, filename) => {
  * @throws {AppError} FileSystemError if generation fails
  */
 const exportData = async ({
-                            data,
-                            exportFormat,
-                            filename,
-                            title = '',
-                            landscape,
-                            summary,
-                          }) => {
+  data,
+  exportFormat,
+  filename,
+  title = '',
+  landscape,
+  summary,
+}) => {
   const context = 'export-utils/exportData';
   const format = exportFormat.toLowerCase();
-  
+
   // Timestamp applied here once — controller uses filename as-is
   const meta = resolveExportMeta(format, generateTimestampedFilename(filename));
-  
+
   if (!data || data.length === 0) {
     const emptyBuffer = await buildEmptyBuffer(format, landscape, summary);
     return {
@@ -337,7 +348,7 @@ const exportData = async ({
       filename: `empty_${meta.filename}`,
     };
   }
-  
+
   if (data.length > EXPORT_ROW_WARN_THRESHOLD) {
     logSystemWarn('Large export requested', {
       context,
@@ -345,12 +356,26 @@ const exportData = async ({
       rowCount: data.length,
     });
   }
-  
+
   try {
-    const fileBuffer = await buildBuffer(format, data, title, landscape, summary);
-    return { fileBuffer, contentType: meta.contentType, filename: meta.filename };
+    const fileBuffer = await buildBuffer(
+      format,
+      data,
+      title,
+      landscape,
+      summary
+    );
+    return {
+      fileBuffer,
+      contentType: meta.contentType,
+      filename: meta.filename,
+    };
   } catch (error) {
-    logSystemException(error, 'Export failed', { context, exportFormat, filename });
+    logSystemException(error, 'Export failed', {
+      context,
+      exportFormat,
+      filename,
+    });
     throw error;
   }
 };
@@ -367,10 +392,14 @@ const exportData = async ({
  */
 const buildBuffer = async (format, data, title, landscape, summary) => {
   switch (format) {
-    case 'csv':  return exportToCSV(data);
-    case 'pdf':  return exportToPDF(data, { title, landscape, summary });
-    case 'txt':  return exportToPlainText(data);
-    case 'xlsx': return exportToXLSX(data);
+    case 'csv':
+      return exportToCSV(data);
+    case 'pdf':
+      return exportToPDF(data, { title, landscape, summary });
+    case 'txt':
+      return exportToPlainText(data);
+    case 'xlsx':
+      return exportToXLSX(data);
   }
 };
 

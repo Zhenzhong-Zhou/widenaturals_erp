@@ -56,58 +56,58 @@ const buildPricingGroupFilters = (filters = {}) => {
     'updatedAfter',
     'updatedBefore'
   );
-  
-  const conditions    = ['1=1'];
-  const params        = [];
+
+  const conditions = ['1=1'];
+  const params = [];
   const paramIndexRef = { value: 1 };
-  
+
   if (normalizedFilters.pricingTypeId) {
     conditions.push(`pg.pricing_type_id = $${paramIndexRef.value++}`);
     params.push(normalizedFilters.pricingTypeId);
   }
-  
+
   if (normalizedFilters.statusId) {
     conditions.push(`pg.status_id = $${paramIndexRef.value++}`);
     params.push(normalizedFilters.statusId);
   }
-  
+
   if (normalizedFilters.countryCode) {
     conditions.push(`pg.country_code = $${paramIndexRef.value++}`);
     params.push(normalizedFilters.countryCode);
   }
-  
+
   if (normalizedFilters.brand) {
     conditions.push(`pr.brand = $${paramIndexRef.value++}`);
     params.push(normalizedFilters.brand);
   }
-  
+
   if (normalizedFilters.sizeLabel) {
     conditions.push(`s.size_label = $${paramIndexRef.value++}`);
     params.push(normalizedFilters.sizeLabel);
   }
-  
+
   if (normalizedFilters.priceMin != null) {
     conditions.push(`pg.price >= $${paramIndexRef.value++}`);
     params.push(normalizedFilters.priceMin);
   }
-  
+
   if (normalizedFilters.priceMax != null) {
     conditions.push(`pg.price <= $${paramIndexRef.value++}`);
     params.push(normalizedFilters.priceMax);
   }
-  
+
   // ─── Pricing Validity ──────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.validFrom) {
     conditions.push(`pg.valid_from >= $${paramIndexRef.value++}`);
     params.push(normalizedFilters.validFrom);
   }
-  
+
   if (normalizedFilters.validTo) {
     conditions.push(`pg.valid_to <= $${paramIndexRef.value++}`);
     params.push(normalizedFilters.validTo);
   }
-  
+
   if (normalizedFilters.validOn) {
     // Same $N referenced twice — single param checks both boundaries.
     conditions.push(`(
@@ -117,9 +117,9 @@ const buildPricingGroupFilters = (filters = {}) => {
     params.push(normalizedFilters.validOn);
     paramIndexRef.value++;
   }
-  
+
   // ─── EXISTS Subqueries (avoid COUNT aggregation interference) ─────────────
-  
+
   if (normalizedFilters.skuId) {
     conditions.push(`EXISTS (
       SELECT 1 FROM pricing p
@@ -128,7 +128,7 @@ const buildPricingGroupFilters = (filters = {}) => {
     )`);
     params.push(normalizedFilters.skuId);
   }
-  
+
   if (normalizedFilters.productId) {
     conditions.push(`EXISTS (
       SELECT 1 FROM pricing p
@@ -138,9 +138,9 @@ const buildPricingGroupFilters = (filters = {}) => {
     )`);
     params.push(normalizedFilters.productId);
   }
-  
+
   // ─── Keyword ───────────────────────────────────────────────────────────────
-  
+
   // Same $N referenced four times — single param covers all columns.
   if (normalizedFilters.keyword) {
     const kw = `%${String(normalizedFilters.keyword).trim()}%`;
@@ -153,27 +153,36 @@ const buildPricingGroupFilters = (filters = {}) => {
     params.push(kw);
     paramIndexRef.value++;
   }
-  
+
   // ─── Server-Injected Validity Enforcement ─────────────────────────────────
-  
-  if (normalizedFilters._restrictKeywordToValidOnly || normalizedFilters.currentlyValid) {
+
+  if (
+    normalizedFilters._restrictKeywordToValidOnly ||
+    normalizedFilters.currentlyValid
+  ) {
     conditions.push(`pg.valid_from <= NOW()`);
     conditions.push(`(pg.valid_to IS NULL OR pg.valid_to >= NOW())`);
   }
-  
+
   // ─── Audit ─────────────────────────────────────────────────────────────────
-  
+
   applyDateRangeConditions({
     conditions,
     params,
-    column:        'pg.created_at',
-    after:         normalizedFilters.createdAfter,
-    before:        normalizedFilters.createdBefore,
+    column: 'pg.created_at',
+    after: normalizedFilters.createdAfter,
+    before: normalizedFilters.createdBefore,
     paramIndexRef,
   });
-  
-  applyAuditConditions(conditions, params, paramIndexRef, normalizedFilters, 'pg');
-  
+
+  applyAuditConditions(
+    conditions,
+    params,
+    paramIndexRef,
+    normalizedFilters,
+    'pg'
+  );
+
   return {
     whereClause: conditions.join(' AND '),
     params,

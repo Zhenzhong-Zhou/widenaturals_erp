@@ -31,28 +31,28 @@ const CONTEXT = 'supplier-business';
  */
 const evaluateSupplierVisibilityAccessControl = async (user) => {
   const context = `${CONTEXT}/evaluateSupplierVisibilityAccessControl`;
-  
+
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     const canViewAllSuppliers =
       isRoot ||
       permissions.includes(
         SUPPLIER_CONSTANTS.PERMISSIONS.VIEW_ALL_SUPPLIERS_VISIBILITY
       );
-    
+
     const canViewArchived =
       canViewAllSuppliers ||
       permissions.includes(
         SUPPLIER_CONSTANTS.PERMISSIONS.VIEW_ARCHIVED_SUPPLIERS
       );
-    
+
     const canViewInactive =
       canViewAllSuppliers ||
       permissions.includes(
         SUPPLIER_CONSTANTS.PERMISSIONS.VIEW_INACTIVE_SUPPLIERS
       );
-    
+
     return {
       canViewAllSuppliers,
       canViewArchived,
@@ -65,7 +65,7 @@ const evaluateSupplierVisibilityAccessControl = async (user) => {
       'Failed to evaluate supplier visibility access control',
       { context, userId: user?.id }
     );
-    
+
     throw AppError.businessError(
       'Unable to evaluate supplier visibility access control.'
     );
@@ -81,10 +81,10 @@ const evaluateSupplierVisibilityAccessControl = async (user) => {
  */
 const evaluateSupplierLookupSearchCapabilities = async (user) => {
   const context = `${CONTEXT}/evaluateSupplierLookupSearchCapabilities`;
-  
+
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     return {
       canSearchStatus:
         isRoot ||
@@ -103,7 +103,7 @@ const evaluateSupplierLookupSearchCapabilities = async (user) => {
       'Failed to evaluate supplier lookup search capabilities',
       { context, userId: user?.id }
     );
-    
+
     throw AppError.businessError(
       'Unable to evaluate supplier lookup search capabilities.'
     );

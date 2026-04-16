@@ -44,9 +44,7 @@ const ROLE_RESOLVE_BY_NAME_QUERY = `
 const ROLE_LOOKUP_TABLE = 'roles r';
 
 // Status join included — filter builder may apply status conditions.
-const ROLE_LOOKUP_JOINS = [
-  'LEFT JOIN status s ON s.id = r.status_id',
-];
+const ROLE_LOOKUP_JOINS = ['LEFT JOIN status s ON s.id = r.status_id'];
 
 const ROLE_LOOKUP_SORT_WHITELIST = new Set([
   'r.hierarchy_level',
@@ -55,9 +53,7 @@ const ROLE_LOOKUP_SORT_WHITELIST = new Set([
 ]);
 
 // Tie-break by name after primary hierarchy_level sort.
-const ROLE_LOOKUP_ADDITIONAL_SORTS = [
-  { column: 'r.name', direction: 'ASC' },
-];
+const ROLE_LOOKUP_ADDITIONAL_SORTS = [{ column: 'r.name', direction: 'ASC' }];
 
 /**
  * @param {string} whereClause - Parameterised WHERE predicate from buildRoleFilter.

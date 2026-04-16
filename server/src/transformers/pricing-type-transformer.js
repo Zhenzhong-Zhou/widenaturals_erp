@@ -23,15 +23,16 @@ const { transformPageResult } = require('../utils/transformer-utils');
  * @param {PricingTypeRow} row
  * @returns {PricingTypeRecord}
  */
-const transformPricingTypeRow = (row) => cleanObject({
-  id:                  row.id,
-  name:                row.name,
-  code:                row.code,
-  slug:                row.slug          ?? null,
-  description:         row.description   ?? null,
-  status:              makeStatus(row),
-  audit:               compactAudit(makeAudit(row)),
-});
+const transformPricingTypeRow = (row) =>
+  cleanObject({
+    id: row.id,
+    name: row.name,
+    code: row.code,
+    slug: row.slug ?? null,
+    description: row.description ?? null,
+    status: makeStatus(row),
+    audit: compactAudit(makeAudit(row)),
+  });
 
 /**
  * @param {PaginatedResult<PricingTypeRow>} paginatedResult

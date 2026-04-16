@@ -25,37 +25,35 @@
  * @returns {Promise<object>} Transformed lookup result.
  */
 const executeLookupWorkflow = async ({
-                                       user,
-                                       filters = {},
-                                       limit = 50,
-                                       offset = 0,
-                                       repository,
-                                       aclEvaluator,
-                                       aclFilterApplier,
-                                       transformer,
-                                       rowEnricher,
-                                       enrichmentCondition,
-                                     }) => {
+  user,
+  filters = {},
+  limit = 50,
+  offset = 0,
+  repository,
+  aclEvaluator,
+  aclFilterApplier,
+  transformer,
+  rowEnricher,
+  enrichmentCondition,
+}) => {
   const acl = await aclEvaluator(user);
-  
+
   const adjustedFilters = aclFilterApplier(filters, acl);
-  
+
   const { data = [], pagination = {} } = await repository({
     filters: adjustedFilters,
     limit,
     offset,
   });
-  
+
   const shouldEnrich =
     typeof enrichmentCondition === 'function'
       ? enrichmentCondition(acl)
       : false;
-  
+
   const enrichedRows =
-    shouldEnrich && rowEnricher
-      ? data.map(rowEnricher)
-      : data;
-  
+    shouldEnrich && rowEnricher ? data.map(rowEnricher) : data;
+
   return transformer({ data: enrichedRows, pagination }, acl);
 };
 

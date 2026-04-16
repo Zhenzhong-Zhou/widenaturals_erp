@@ -73,20 +73,22 @@ const _startOfNextDayUtc = (date) => {
  */
 const normalizeDateRangeFilters = (filters, afterKey, beforeKey) => {
   const out = { ...filters };
-  
+
   // Coerce Date objects to ISO date strings — Joi date() type auto-coerces
   // string inputs to Date objects before they reach this function.
-  if (out[afterKey]  instanceof Date) out[afterKey]  = out[afterKey].toISOString().slice(0, 10);
-  if (out[beforeKey] instanceof Date) out[beforeKey] = out[beforeKey].toISOString().slice(0, 10);
-  
-  if (out[afterKey]  && _isValidDate(out[afterKey])) {
-    out[afterKey]  = _startOfDayUtc(out[afterKey]).toISOString();
+  if (out[afterKey] instanceof Date)
+    out[afterKey] = out[afterKey].toISOString().slice(0, 10);
+  if (out[beforeKey] instanceof Date)
+    out[beforeKey] = out[beforeKey].toISOString().slice(0, 10);
+
+  if (out[afterKey] && _isValidDate(out[afterKey])) {
+    out[afterKey] = _startOfDayUtc(out[afterKey]).toISOString();
   }
-  
+
   if (out[beforeKey] && _isValidDate(out[beforeKey])) {
     out[beforeKey] = _startOfNextDayUtc(out[beforeKey]).toISOString();
   }
-  
+
   return out;
 };
 
@@ -109,19 +111,19 @@ const normalizeDateRangeFilters = (filters, afterKey, beforeKey) => {
  * @param {{ value: number }} options.paramIndexRef - Mutable ref tracking the current $N index.
  */
 const applyDateRangeConditions = ({
-                                    conditions,
-                                    params,
-                                    column,
-                                    after,
-                                    before,
-                                    paramIndexRef,
-                                  }) => {
+  conditions,
+  params,
+  column,
+  after,
+  before,
+  paramIndexRef,
+}) => {
   if (after) {
     conditions.push(`${column} >= $${paramIndexRef.value}`);
     params.push(after);
     paramIndexRef.value++;
   }
-  
+
   if (before) {
     conditions.push(`${column} < $${paramIndexRef.value}`);
     params.push(before);

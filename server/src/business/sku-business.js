@@ -60,18 +60,18 @@ const SKU_REQUIRED_FIELDS = Object.freeze([
  */
 const validateSkuStatusTransition = (currentStatusId, newStatusId) => {
   const allowedTransitions = {
-    DRAFT:        ['ACTIVE', 'INACTIVE'],
-    ACTIVE:       ['INACTIVE', 'DISCONTINUED'],
-    INACTIVE:     ['ACTIVE'],
+    DRAFT: ['ACTIVE', 'INACTIVE'],
+    ACTIVE: ['INACTIVE', 'DISCONTINUED'],
+    INACTIVE: ['ACTIVE'],
     DISCONTINUED: ['ARCHIVED'],
-    ARCHIVED:     [],
+    ARCHIVED: [],
   };
-  
+
   const currentCode = getStatusNameById(currentStatusId);
-  const nextCode    = getStatusNameById(newStatusId);
-  
+  const nextCode = getStatusNameById(newStatusId);
+
   if (!currentCode || !nextCode) return false;
-  
+
   return (allowedTransitions[currentCode] ?? []).includes(nextCode);
 };
 
@@ -94,10 +94,11 @@ const skuHasActiveDependencies = async (
   client = null
 ) => {
   if (await skuHasInventory(skuId, client)) return true;
-  if (await skuHasActiveOrders(skuId, activeOrderStatusIds, client)) return true;
-  if (await skuHasActiveAllocations(skuId, activeAllocationStatusIds, client)) return true;
+  if (await skuHasActiveOrders(skuId, activeOrderStatusIds, client))
+    return true;
+  if (await skuHasActiveAllocations(skuId, activeAllocationStatusIds, client))
+    return true;
   return await skuHasActiveTransfers(skuId, activeTransferStatusIds, client);
-  
 };
 
 // ---------------------------------------------------------------------------
@@ -115,10 +116,10 @@ const skuHasActiveDependencies = async (
  */
 const evaluateSkuFilterAccessControl = async (user) => {
   const context = `${CONTEXT}/evaluateSkuFilterAccessControl`;
-  
+
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     return {
       allowAllSkus:
         isRoot ||
@@ -131,7 +132,7 @@ const evaluateSkuFilterAccessControl = async (user) => {
       context,
       userId: user?.id,
     });
-    
+
     throw AppError.businessError(
       'Unable to evaluate SKU filter access control.'
     );
@@ -153,11 +154,11 @@ const enforceSkuLookupVisibilityRules = (options = {}, userAccess = {}) => {
     ...options,
     allowAllSkus: !!userAccess.allowAllSkus,
   };
-  
+
   if (!userAccess.allowAllSkus) {
     adjusted.requireAvailableStock = true;
   }
-  
+
   return adjusted;
 };
 
@@ -179,13 +180,13 @@ const filterSkuLookupQuery = (
   activeStatusId
 ) => {
   const modified = { ...filters };
-  
+
   if (!userAccess.allowAllSkus) {
-    modified.sku_status_id         = activeStatusId;
-    modified.product_status_id     = activeStatusId;
+    modified.sku_status_id = activeStatusId;
+    modified.product_status_id = activeStatusId;
     modified.requireAvailableStock = true;
   }
-  
+
   return modified;
 };
 
@@ -207,38 +208,42 @@ const enrichSkuRow = (row, expectedStatusIds) => {
     location_status_id,
     batch_status_id,
   } = row;
-  
+
   const noStatusFields =
-    sku_status_id      == null &&
-    product_status_id  == null &&
+    sku_status_id == null &&
+    product_status_id == null &&
     warehouse_status_id == null &&
     location_status_id == null &&
-    batch_status_id    == null;
-  
+    batch_status_id == null;
+
   if (noStatusFields) {
     return { ...row, isNormal: true };
   }
-  
+
   const statusChecks = {
-    skuStatusValid:          sku_status_id === expectedStatusIds.sku,
-    productStatusValid:      product_status_id === expectedStatusIds.product,
-    warehouseInventoryValid: !warehouse_status_id || warehouse_status_id === expectedStatusIds.warehouse,
-    locationInventoryValid:  !location_status_id  || location_status_id  === expectedStatusIds.location,
-    batchStatusValid:        !batch_status_id      || batch_status_id      === expectedStatusIds.batch,
+    skuStatusValid: sku_status_id === expectedStatusIds.sku,
+    productStatusValid: product_status_id === expectedStatusIds.product,
+    warehouseInventoryValid:
+      !warehouse_status_id ||
+      warehouse_status_id === expectedStatusIds.warehouse,
+    locationInventoryValid:
+      !location_status_id || location_status_id === expectedStatusIds.location,
+    batchStatusValid:
+      !batch_status_id || batch_status_id === expectedStatusIds.batch,
   };
-  
+
   const isNormal = Object.values(statusChecks).every(Boolean);
-  
+
   return {
     ...row,
     isNormal,
     ...(isNormal
       ? {}
       : {
-        issueReasons: Object.entries(statusChecks)
-          .filter(([, valid]) => !valid)
-          .map(([key]) => getGenericIssueReason(key)),
-      }),
+          issueReasons: Object.entries(statusChecks)
+            .filter(([, valid]) => !valid)
+            .map(([key]) => getGenericIssueReason(key)),
+        }),
   };
 };
 
@@ -255,7 +260,7 @@ const validateSkuCreation = (skuData) => {
       throw AppError.validationError(`Missing required field: ${field}`);
     }
   }
-  
+
   if (skuData.barcode && !BARCODE_REGEX.test(skuData.barcode)) {
     throw AppError.validationError(
       `Invalid barcode format: ${skuData.barcode}`
@@ -276,7 +281,7 @@ const validateSkuList = (skuList) => {
       `SKU list is empty or invalid. Expected fields: ${SKU_REQUIRED_FIELDS.join(', ')}`
     );
   }
-  
+
   for (const sku of skuList) {
     validateSkuCreation(sku);
   }
@@ -292,20 +297,20 @@ const validateSkuList = (skuList) => {
  * @returns {object}
  */
 const prepareSkuInsertPayload = (skuData, generatedSku, statusId, userId) => ({
-  product_id:    skuData.product_id,
-  sku:           generatedSku,
-  barcode:       skuData.barcode       ?? null,
-  language:      skuData.language      ?? 'en-fr',
-  country_code:  skuData.region_code   ?? null,
+  product_id: skuData.product_id,
+  sku: generatedSku,
+  barcode: skuData.barcode ?? null,
+  language: skuData.language ?? 'en-fr',
+  country_code: skuData.region_code ?? null,
   market_region: skuData.market_region ?? null,
-  size_label:    skuData.size_label    ?? null,
-  description:   skuData.description  ?? null,
-  length_cm:     skuData.length_cm     ?? null,
-  width_cm:      skuData.width_cm      ?? null,
-  height_cm:     skuData.height_cm     ?? null,
-  weight_g:      skuData.weight_g      ?? null,
-  status_id:     statusId,
-  created_by:    userId,
+  size_label: skuData.size_label ?? null,
+  description: skuData.description ?? null,
+  length_cm: skuData.length_cm ?? null,
+  width_cm: skuData.width_cm ?? null,
+  height_cm: skuData.height_cm ?? null,
+  weight_g: skuData.weight_g ?? null,
+  status_id: statusId,
+  created_by: userId,
 });
 
 /**
@@ -319,7 +324,7 @@ const prepareSkuInsertPayload = (skuData, generatedSku, statusId, userId) => ({
  */
 const prepareSkuInsertPayloads = (skuList, generatedSkus, statusId, userId) => {
   const result = new Array(skuList.length);
-  
+
   for (let i = 0; i < skuList.length; i++) {
     result[i] = prepareSkuInsertPayload(
       skuList[i],
@@ -328,7 +333,7 @@ const prepareSkuInsertPayloads = (skuList, generatedSkus, statusId, userId) => {
       userId
     );
   }
-  
+
   return result;
 };
 
@@ -343,15 +348,15 @@ const prepareSkuInsertPayloads = (skuList, generatedSkus, statusId, userId) => {
  */
 const assertValidSkuStatusTransition = (currentStatusId, newStatusId) => {
   const current = getStatusNameById(currentStatusId);
-  const next    = getStatusNameById(newStatusId);
-  
+  const next = getStatusNameById(newStatusId);
+
   if (!current || !next) {
     throw AppError.validationError('Unknown SKU status ID(s).', {
       currentStatusId,
       newStatusId,
     });
   }
-  
+
   if (!validateSkuStatusTransition(currentStatusId, newStatusId)) {
     throw AppError.validationError(
       `Invalid SKU status transition: ${current} → ${next}`,
@@ -372,24 +377,27 @@ const assertValidSkuStatusTransition = (currentStatusId, newStatusId) => {
  */
 const evaluateSkuStatusAccessControl = async (user) => {
   const context = `${CONTEXT}/evaluateSkuStatusAccessControl`;
-  
+
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     return {
       canViewInactiveSku:
-        isRoot || permissions.includes(SKU_CONSTANTS.PERMISSIONS.VIEW_SKU_INACTIVE),
+        isRoot ||
+        permissions.includes(SKU_CONSTANTS.PERMISSIONS.VIEW_SKU_INACTIVE),
       canViewInactiveProduct:
-        isRoot || permissions.includes(SKU_CONSTANTS.PERMISSIONS.VIEW_PRODUCT_INACTIVE),
+        isRoot ||
+        permissions.includes(SKU_CONSTANTS.PERMISSIONS.VIEW_PRODUCT_INACTIVE),
       canViewAllSkuStatuses:
-        isRoot || permissions.includes(SKU_CONSTANTS.PERMISSIONS.VIEW_SKUS_ALL_STATUSES),
+        isRoot ||
+        permissions.includes(SKU_CONSTANTS.PERMISSIONS.VIEW_SKUS_ALL_STATUSES),
     };
   } catch (err) {
     logSystemException(err, 'Failed to evaluate SKU status access control', {
       context,
       userId: user?.id,
     });
-    
+
     throw AppError.businessError(
       'Unable to evaluate SKU status access control.'
     );
@@ -406,16 +414,16 @@ const evaluateSkuStatusAccessControl = async (user) => {
  */
 const sliceSkuForUser = (skuRow, access) => {
   if (access.canViewAllSkuStatuses) return skuRow;
-  
-  const ACTIVE_SKU_STATUS_ID     = getStatusId('general_active');
+
+  const ACTIVE_SKU_STATUS_ID = getStatusId('general_active');
   const ACTIVE_PRODUCT_STATUS_ID = getStatusId('product_active');
-  
-  const isSkuActive     = skuRow.sku_status_id     === ACTIVE_SKU_STATUS_ID;
+
+  const isSkuActive = skuRow.sku_status_id === ACTIVE_SKU_STATUS_ID;
   const isProductActive = skuRow.product_status_id === ACTIVE_PRODUCT_STATUS_ID;
-  
-  if (!isSkuActive     && !access.canViewInactiveSku)     return null;
+
+  if (!isSkuActive && !access.canViewInactiveSku) return null;
   if (!isProductActive && !access.canViewInactiveProduct) return null;
-  
+
   return skuRow;
 };
 
@@ -431,28 +439,28 @@ const sliceSkuForUser = (skuRow, access) => {
  */
 const applySkuProductCardVisibilityRules = (filters, acl) => {
   const adjusted = { ...filters };
-  
+
   if (acl.canViewAllSkuStatuses) {
     delete adjusted.skuStatusIds;
     delete adjusted.productStatusIds;
     return adjusted;
   }
-  
-  const ACTIVE_SKU_STATUS_ID     = getStatusId('general_active');
+
+  const ACTIVE_SKU_STATUS_ID = getStatusId('general_active');
   const ACTIVE_PRODUCT_STATUS_ID = getStatusId('product_active');
-  
+
   if (!acl.canViewInactiveSku) {
     adjusted.skuStatusIds = [ACTIVE_SKU_STATUS_ID];
   } else {
     delete adjusted.skuStatusIds;
   }
-  
+
   if (!acl.canViewInactiveProduct) {
     adjusted.productStatusIds = [ACTIVE_PRODUCT_STATUS_ID];
   } else {
     delete adjusted.productStatusIds;
   }
-  
+
   return adjusted;
 };
 
@@ -471,24 +479,24 @@ const applySkuProductCardVisibilityRules = (filters, acl) => {
  */
 const assertSkuEditAllowed = async (sku, editType, user, client) => {
   const { isRoot } = await resolveUserPermissionContext(user);
-  
+
   if (isRoot) return;
-  
+
   const policy = SKU_EDIT_POLICIES[editType];
-  
+
   if (!policy) {
     throw AppError.businessError(`Unknown SKU edit type: ${editType}`);
   }
-  
+
   const ARCHIVED_STATUS_ID = getStatusId('general_archived');
-  
+
   if (policy.blockArchived && sku.status_id === ARCHIVED_STATUS_ID) {
     throw AppError.businessError('Archived SKU cannot be modified.');
   }
-  
+
   if (policy.blockOperational) {
     const { order, allocation, transfer } = getSkuOperationalStatusIds();
-    
+
     const hasOperational = await skuHasActiveDependencies(
       sku.id,
       order,
@@ -496,15 +504,15 @@ const assertSkuEditAllowed = async (sku, editType, user, client) => {
       transfer,
       client
     );
-    
+
     if (hasOperational) {
       throw AppError.businessError('SKU has active operational dependencies.');
     }
   }
-  
+
   if (policy.blockCommercial) {
     const hasCommercial = await skuHasAnyHistory(sku.id, client);
-    
+
     if (hasCommercial) {
       throw AppError.businessError(
         'SKU has commercial history and cannot be modified.'

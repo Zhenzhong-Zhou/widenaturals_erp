@@ -12,7 +12,7 @@
 
 'use strict';
 
-const { wrapAsyncHandler }                = require('../middlewares/async-handler');
+const { wrapAsyncHandler } = require('../middlewares/async-handler');
 const {
   fetchPaginatedPricingGroupsService,
   fetchPricingGroupByIdService,
@@ -25,26 +25,28 @@ const {
  * @param {Object} req.normalizedQuery - { page, limit, sortBy, sortOrder, filters }
  * @param {Object} req.auth.user       - Authenticated user object.
  */
-const getPaginatedPricingGroupsController = wrapAsyncHandler(async (req, res) => {
-  const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
-  
-  const { data, pagination } = await fetchPaginatedPricingGroupsService({
-    filters,
-    page,
-    limit,
-    sortBy,
-    sortOrder,
-    user: req.auth.user,
-  });
-  
-  res.status(200).json({
-    success:    true,
-    message:    'Pricing groups retrieved successfully.',
-    data,
-    pagination,
-    traceId:    req.traceId,
-  });
-});
+const getPaginatedPricingGroupsController = wrapAsyncHandler(
+  async (req, res) => {
+    const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
+
+    const { data, pagination } = await fetchPaginatedPricingGroupsService({
+      filters,
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+      user: req.auth.user,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Pricing groups retrieved successfully.',
+      data,
+      pagination,
+      traceId: req.traceId,
+    });
+  }
+);
 
 /**
  * GET /pricing-groups/:pricingGroupId
@@ -54,9 +56,9 @@ const getPaginatedPricingGroupsController = wrapAsyncHandler(async (req, res) =>
  */
 const getPricingGroupByIdController = wrapAsyncHandler(async (req, res) => {
   const { pricingGroupId } = req.params;
-  
+
   const data = await fetchPricingGroupByIdService(pricingGroupId);
-  
+
   res.status(200).json({
     success: true,
     message: 'Pricing group retrieved successfully.',

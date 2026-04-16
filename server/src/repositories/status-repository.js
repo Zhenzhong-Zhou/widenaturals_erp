@@ -53,51 +53,52 @@ const {
  * @throws  {AppError}        Normalized database error if the query fails.
  */
 const getPaginatedStatuses = async ({
-                                      filters   = {},
-                                      page      = 1,
-                                      limit     = 10,
-                                      sortBy    = 'name',
-                                      sortOrder = 'ASC',
-                                    }) => {
+  filters = {},
+  page = 1,
+  limit = 10,
+  sortBy = 'name',
+  sortOrder = 'ASC',
+}) => {
   const context = 'status-repository/getPaginatedStatuses';
-  
+
   const { whereClause, params } = buildStatusFilter(filters);
-  
+
   const sortConfig = resolveSort({
     sortBy,
     sortOrder,
-    moduleKey:   'statusSortMap',
+    moduleKey: 'statusSortMap',
     defaultSort: SORTABLE_FIELDS.statusSortMap.defaultNaturalSort,
   });
-  
+
   // ORDER BY omitted — paginateQuery appends it from sortConfig.
   const queryText = buildStatusPaginatedQuery(whereClause);
-  
+
   try {
     return await paginateQuery({
-      tableName:    STATUS_TABLE,
-      joins:        [],
+      tableName: STATUS_TABLE,
+      joins: [],
       whereClause,
       queryText,
       params,
       page,
       limit,
-      sortBy:       sortConfig.sortBy,
-      sortOrder:    sortConfig.sortOrder,
+      sortBy: sortConfig.sortBy,
+      sortOrder: sortConfig.sortOrder,
       whitelistSet: STATUS_SORT_WHITELIST,
-      meta:         { context },
+      meta: { context },
     });
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch paginated statuses.',
-      meta:    { filters, page, limit, sortBy, sortOrder },
-      logFn:   (err) => logDbQueryError(
-        queryText,
-        params,
-        err,
-        { context, filters, page, limit }
-      ),
+      meta: { filters, page, limit, sortBy, sortOrder },
+      logFn: (err) =>
+        logDbQueryError(queryText, params, err, {
+          context,
+          filters,
+          page,
+          limit,
+        }),
     });
   }
 };
@@ -115,8 +116,8 @@ const getPaginatedStatuses = async ({
  */
 const checkStatusExists = async (statusId, client) => {
   const context = 'status-repository/checkStatusExists';
-  const params  = [statusId];
-  
+  const params = [statusId];
+
   try {
     const { rows } = await query(CHECK_STATUS_EXISTS_QUERY, params, client);
     return rows[0]?.exists ?? false;
@@ -124,13 +125,12 @@ const checkStatusExists = async (statusId, client) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to execute status existence check.',
-      meta:    { statusId },
-      logFn:   (err) => logDbQueryError(
-        CHECK_STATUS_EXISTS_QUERY,
-        params,
-        err,
-        { context, statusId }
-      ),
+      meta: { statusId },
+      logFn: (err) =>
+        logDbQueryError(CHECK_STATUS_EXISTS_QUERY, params, err, {
+          context,
+          statusId,
+        }),
     });
   }
 };
@@ -149,7 +149,7 @@ const checkStatusExists = async (statusId, client) => {
  */
 const getAllStatuses = async (client) => {
   const context = 'status-repository/getAllStatuses';
-  
+
   try {
     const { rows } = await query(GET_ALL_STATUSES_QUERY, [], client);
     return rows;
@@ -157,13 +157,9 @@ const getAllStatuses = async (client) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to load all statuses.',
-      meta:    {},
-      logFn:   (err) => logDbQueryError(
-        GET_ALL_STATUSES_QUERY,
-        [],
-        err,
-        { context }
-      ),
+      meta: {},
+      logFn: (err) =>
+        logDbQueryError(GET_ALL_STATUSES_QUERY, [], err, { context }),
     });
   }
 };
@@ -186,35 +182,36 @@ const getAllStatuses = async (client) => {
  */
 const getStatusLookup = async ({ filters = {}, limit = 50, offset = 0 }) => {
   const context = 'status-repository/getStatusLookup';
-  
+
   const { whereClause, params } = buildStatusFilter(filters);
-  
+
   const queryText = buildStatusLookupQuery(whereClause);
-  
+
   try {
     return await paginateQueryByOffset({
-      tableName:       STATUS_TABLE,
+      tableName: STATUS_TABLE,
       whereClause,
       queryText,
       params,
       offset,
       limit,
-      sortBy:          's.name',
-      sortOrder:       'ASC',
+      sortBy: 's.name',
+      sortOrder: 'ASC',
       additionalSorts: STATUS_LOOKUP_ADDITIONAL_SORTS,
-      whitelistSet:    STATUS_LOOKUP_SORT_WHITELIST,
+      whitelistSet: STATUS_LOOKUP_SORT_WHITELIST,
     });
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch status lookup.',
-      meta:    { filters, offset, limit },
-      logFn:   (err) => logDbQueryError(
-        queryText,
-        params,
-        err,
-        { context, filters, offset, limit }
-      ),
+      meta: { filters, offset, limit },
+      logFn: (err) =>
+        logDbQueryError(queryText, params, err, {
+          context,
+          filters,
+          offset,
+          limit,
+        }),
     });
   }
 };

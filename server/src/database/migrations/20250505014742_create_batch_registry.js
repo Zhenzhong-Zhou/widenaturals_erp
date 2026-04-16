@@ -22,16 +22,19 @@ exports.up = async function (knex) {
 
     table.timestamp('registered_at', { useTz: true }).defaultTo(knex.fn.now());
     table.uuid('registered_by').references('id').inTable('users');
-    
+
     table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
     table.uuid('updated_by').references('id').inTable('users');
     table.text('note');
 
     table.unique(['product_batch_id']);
     table.unique(['packaging_material_batch_id']);
-    
+
     table.index(['product_batch_id'], 'idx_batch_registry_product_batch');
-    table.index(['packaging_material_batch_id'], 'idx_batch_registry_packaging_batch');
+    table.index(
+      ['packaging_material_batch_id'],
+      'idx_batch_registry_packaging_batch'
+    );
     table.index('batch_type', 'idx_batch_registry_type');
     table.index(['registered_at'], 'idx_batch_registry_registered_at');
 

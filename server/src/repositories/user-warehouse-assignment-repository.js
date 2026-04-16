@@ -12,7 +12,9 @@
 
 'use strict';
 
-const { USER_WAREHOUSE_ASSIGNMENT_QUERY } = require('./queries/user-warehouse-assignment-queries');
+const {
+  USER_WAREHOUSE_ASSIGNMENT_QUERY,
+} = require('./queries/user-warehouse-assignment-queries');
 const { query } = require('../database/db');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { logDbQueryError } = require('../utils/db-logger');
@@ -28,9 +30,9 @@ const CONTEXT = 'user-warehouse-assignment-repository';
  */
 const getWarehouseIdsByUserId = async (userId) => {
   const context = `${CONTEXT}/getWarehouseIdsByUserId`;
-  
+
   const params = [userId];
-  
+
   try {
     const { rows } = await query(USER_WAREHOUSE_ASSIGNMENT_QUERY, params);
     return rows.map((r) => r.warehouse_id);
@@ -38,8 +40,12 @@ const getWarehouseIdsByUserId = async (userId) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch warehouse assignments for user.',
-      meta:    { userId },
-      logFn:   (err) => logDbQueryError(USER_WAREHOUSE_ASSIGNMENT_QUERY, params, err, { context, userId }),
+      meta: { userId },
+      logFn: (err) =>
+        logDbQueryError(USER_WAREHOUSE_ASSIGNMENT_QUERY, params, err, {
+          context,
+          userId,
+        }),
     });
   }
 };

@@ -9,10 +9,10 @@
 
 'use strict';
 
-const express                            = require('express');
-const { authorize }                      = require('../middlewares/authorize');
-const PERMISSION_KEYS                        = require('../utils/constants/domain/permission-keys');
-const validate                           = require('../middlewares/validate');
+const express = require('express');
+const { authorize } = require('../middlewares/authorize');
+const PERMISSION_KEYS = require('../utils/constants/domain/permission-keys');
+const validate = require('../middlewares/validate');
 const createQueryNormalizationMiddleware = require('../middlewares/normalize-query');
 const {
   bomQuerySchema,
@@ -41,14 +41,15 @@ router.get(
   authorize([PERMISSION_KEYS.BOMS.VIEW_LIST]),
   validate(bomQuerySchema, 'query'),
   createQueryNormalizationMiddleware(
-    'bomSortMap',              // moduleKey — drives allowed sortBy fields
-    ['productId'],             // arrayKeys — normalized as UUID arrays
-    [                          // booleanKeys — normalized to true/false
+    'bomSortMap', // moduleKey — drives allowed sortBy fields
+    ['productId'], // arrayKeys — normalized as UUID arrays
+    [
+      // booleanKeys — normalized to true/false
       'onlyActiveCompliance',
       'isActive',
       'isDefault',
     ],
-    bomQuerySchema             // filterKeysOrSchema — extracts filter keys from schema
+    bomQuerySchema // filterKeysOrSchema — extracts filter keys from schema
   ),
   getPaginatedBomsController
 );

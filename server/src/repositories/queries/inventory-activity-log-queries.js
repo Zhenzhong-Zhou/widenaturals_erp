@@ -51,7 +51,8 @@ const INVENTORY_ACTIVITY_LOG_JOINS = [
   'LEFT JOIN packaging_materials pm        ON pm.id  = pms.packaging_material_id',
 ];
 
-const _INVENTORY_ACTIVITY_LOG_JOINS_SQL = INVENTORY_ACTIVITY_LOG_JOINS.join('\n  ');
+const _INVENTORY_ACTIVITY_LOG_JOINS_SQL =
+  INVENTORY_ACTIVITY_LOG_JOINS.join('\n  ');
 
 const INVENTORY_ACTIVITY_LOG_SORT_WHITELIST = new Set(
   Object.values(SORTABLE_FIELDS.inventoryActivityLogSortMap)

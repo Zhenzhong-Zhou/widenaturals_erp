@@ -13,9 +13,9 @@
 
 'use strict';
 
-const { cleanObject }             = require('../utils/object-utils');
-const { transformPageResult }     = require('../utils/transformer-utils');
-const { makeStatus }              = require('../utils/status-utils');
+const { cleanObject } = require('../utils/object-utils');
+const { transformPageResult } = require('../utils/transformer-utils');
+const { makeStatus } = require('../utils/status-utils');
 const { compactAudit, makeAudit } = require('../utils/audit-utils');
 
 /**
@@ -26,15 +26,15 @@ const { compactAudit, makeAudit } = require('../utils/audit-utils');
  */
 const transformOrderTypeRow = (row) => {
   if (!row) return null;
-  
+
   return cleanObject({
-    id:              row.id,
-    name:            row.name,
-    code:            row.code,
-    category:        row.category,
+    id: row.id,
+    name: row.name,
+    code: row.code,
+    category: row.category,
     requiresPayment: row.requires_payment,
-    status:          makeStatus(row),
-    audit:           compactAudit(makeAudit(row)),
+    status: makeStatus(row),
+    audit: compactAudit(makeAudit(row)),
   });
 };
 

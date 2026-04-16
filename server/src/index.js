@@ -34,14 +34,11 @@ const {
   logSystemError,
   logSystemCrash,
 } = require('./utils/logging/system-logger');
-const {
-  connectRedis,
-  disconnectRedis
-} = require('./utils/redis-client');
+const { connectRedis, disconnectRedis } = require('./utils/redis-client');
 const { startServer } = require('./server');
 const {
   handleExit,
-  registerShutdownHook
+  registerShutdownHook,
 } = require('./system/lifecycle/on-exit');
 
 // =============================================================================
@@ -68,7 +65,7 @@ const {
 const registerProcessHandlers = () => {
   // Shorthand so every handler reads identically.
   const exit = (code) => void handleExit(code);
-  
+
   // ---------------------------------------------------------------------------
   // Infrastructure cleanup hooks
   // Registered here because Redis is initialized here, not in server.js.
@@ -77,7 +74,7 @@ const registerProcessHandlers = () => {
   registerShutdownHook(async () => {
     await disconnectRedis();
   });
-  
+
   // ---------------------------------------------------------------------------
   // OS signals → unified shutdown pipeline
   // ---------------------------------------------------------------------------
@@ -85,12 +82,12 @@ const registerProcessHandlers = () => {
     logSystemInfo('SIGINT received', { context: 'lifecycle/signal' });
     exit(0);
   });
-  
+
   process.on('SIGTERM', () => {
     logSystemInfo('SIGTERM received', { context: 'lifecycle/signal' });
     exit(0);
   });
-  
+
   // ---------------------------------------------------------------------------
   // Unhandled promise rejection
   // Treated as fatal: a missed rejection means an operation completed in an
@@ -103,10 +100,10 @@ const registerProcessHandlers = () => {
       reasonMessage: reason?.message ?? String(reason),
       reasonStack: reason?.stack ?? null,
     });
-    
+
     exit(1);
   });
-  
+
   // ---------------------------------------------------------------------------
   // Uncaught exception
   // The process is in an undefined state — log and exit immediately.
@@ -116,7 +113,7 @@ const registerProcessHandlers = () => {
       context: 'lifecycle/crash',
       traceId: 'uncaught-exception',
     });
-    
+
     exit(1);
   });
 };
@@ -151,7 +148,7 @@ const initializeApp = async () => {
   // during Redis connect or server startup is caught and routed correctly.
   // ---------------------------------------------------------------------------
   registerProcessHandlers();
-  
+
   // ---------------------------------------------------------------------------
   // Step 2 — Redis (optional)
   // connectRedis handles its own error logging internally, so a failure here
@@ -163,16 +160,16 @@ const initializeApp = async () => {
     // Already logged inside connectRedis — nothing more to do here.
     // Startup continues without Redis.
   }
-  
+
   // ---------------------------------------------------------------------------
   // Step 3 — HTTP server
   // server.js owns its own startup steps (DB, caches, admin, monitoring,
   // backup). setServer() is called inside server.js — not repeated here.
   // ---------------------------------------------------------------------------
   const serverInstance = await startServer();
-  
+
   logSystemInfo('Application started successfully', { context: 'startup/app' });
-  
+
   return serverInstance;
 };
 
@@ -188,7 +185,7 @@ if (require.main === module) {
     logSystemCrash(error, 'Application failed to start', {
       context: 'entry',
     });
-    
+
     await handleExit(1);
   });
 }

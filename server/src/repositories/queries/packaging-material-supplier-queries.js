@@ -21,10 +21,7 @@ const PMS_JOINS = [
 
 const _PMS_JOINS_SQL = PMS_JOINS.join('\n  ');
 
-const PMS_SORT_WHITELIST = new Set([
-  's.name',
-  's.id',
-]);
+const PMS_SORT_WHITELIST = new Set(['s.name', 's.id']);
 
 /**
  * @param {string} whereClause - Parameterised WHERE predicate from buildPackagingMaterialSupplierFilter.

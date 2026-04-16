@@ -35,7 +35,7 @@ const { logSystemError } = require('./logging/system-logger');
  */
 const tryCacheWrite = async (key, value, ttlSeconds = 3600) => {
   if (!isRedisReady()) return;
-  
+
   try {
     const redis = getRedisClient();
     await redis.set(key, JSON.stringify(value), 'EX', ttlSeconds);
@@ -65,13 +65,13 @@ const tryCacheWrite = async (key, value, ttlSeconds = 3600) => {
  */
 const tryCacheRead = async (key) => {
   if (!isRedisReady()) return null;
-  
+
   try {
     const redis = getRedisClient();
     const cached = await redis.get(key);
-    
+
     if (!cached) return null; // cache miss — normal, not an error
-    
+
     // Parse separately so a corrupted value doesn't look like a Redis failure in logs
     try {
       return JSON.parse(cached);

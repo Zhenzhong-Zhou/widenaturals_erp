@@ -44,21 +44,21 @@ const computeEstimatedBomCostSummary = (
       itemCount: 0,
     };
   }
-  
+
   let total = 0;
-  
+
   for (const item of structuredResult.details) {
-    const qty      = Number(item.partQtyPerProduct ?? 1);
-    const cost     = Number(item.estimatedUnitCost ?? 0);
+    const qty = Number(item.partQtyPerProduct ?? 1);
+    const cost = Number(item.estimatedUnitCost ?? 0);
     const currency = item.currency ?? baseCurrency;
-    const rate     = Number(item.exchangeRate ?? 1);
-    
-    const amount    = qty * cost;
+    const rate = Number(item.exchangeRate ?? 1);
+
+    const amount = qty * cost;
     const converted = currency === baseCurrency ? amount : amount * rate;
-    
+
     total += converted;
   }
-  
+
   return {
     type: 'ESTIMATED',
     description:
@@ -79,10 +79,10 @@ const computeEstimatedBomCostSummary = (
 const identifyShortageParts = (summary = []) =>
   Array.isArray(summary)
     ? summary.filter(
-      (p) =>
-        (p.isShortage ?? false) ||
-        toNumber(p.totalAvailableQuantity) < toNumber(p.requiredQtyPerUnit)
-    )
+        (p) =>
+          (p.isShortage ?? false) ||
+          toNumber(p.totalAvailableQuantity) < toNumber(p.requiredQtyPerUnit)
+      )
     : [];
 
 /**
@@ -95,12 +95,12 @@ const identifyShortageParts = (summary = []) =>
  */
 const calculateMaterialUtilization = (summary = [], targetQty = 0) => {
   if (!Array.isArray(summary) || targetQty <= 0) return [];
-  
+
   return summary.map((p) => {
-    const required  = Number(p.requiredQtyPerUnit) || 0;
+    const required = Number(p.requiredQtyPerUnit) || 0;
     const available = Number(p.totalAvailableQuantity) || 0;
-    const needed    = targetQty * required;
-    
+    const needed = targetQty * required;
+
     return {
       partId: p.partId,
       partName: p.partName,
@@ -123,7 +123,7 @@ const calculateMaterialUtilization = (summary = [], targetQty = 0) => {
  */
 const calculateInactiveStockImpact = (summary = []) => {
   const totals = { usable: 0, inactive: 0 };
-  
+
   for (const part of summary) {
     const batches = Array.isArray(part.materialBatches)
       ? part.materialBatches
@@ -134,7 +134,7 @@ const calculateInactiveStockImpact = (summary = []) => {
       else totals.usable += qty;
     }
   }
-  
+
   return totals;
 };
 
@@ -147,14 +147,14 @@ const calculateInactiveStockImpact = (summary = []) => {
  */
 const calculateMaxManufacturableUnits = (bomSummary = []) => {
   if (!Array.isArray(bomSummary) || bomSummary.length === 0) return 0;
-  
+
   const limits = bomSummary.map((p) => {
     const available = toNumber(p.totalAvailableQuantity);
     // Minimum of 0.0001 prevents divide-by-zero for parts with zero required qty.
-    const required  = Math.max(toNumber(p.requiredQtyPerUnit), 0.0001);
+    const required = Math.max(toNumber(p.requiredQtyPerUnit), 0.0001);
     return Math.floor(available / required);
   });
-  
+
   const min = Math.min(...limits);
   return Number.isFinite(min) ? min : 0;
 };
@@ -168,11 +168,11 @@ const calculateMaxManufacturableUnits = (bomSummary = []) => {
  */
 const markBottleneckParts = (summary = []) => {
   if (!Array.isArray(summary) || summary.length === 0) return [];
-  
+
   const minUnits = Math.min(
     ...summary.map((p) => toNumber(p.maxProducibleUnits))
   );
-  
+
   return summary.map((p) => ({
     ...p,
     isBottleneck: toNumber(p.maxProducibleUnits) === minUnits,
@@ -200,13 +200,13 @@ const markBottleneckParts = (summary = []) => {
  */
 const getProductionReadinessReport = (inputSummary = []) => {
   if (!Array.isArray(inputSummary)) return null;
-  
-  const summary          = markBottleneckParts(inputSummary);
+
+  const summary = markBottleneckParts(inputSummary);
   const maxProducibleUnits = calculateMaxManufacturableUnits(summary);
-  const shortageParts    = identifyShortageParts(summary);
-  const stockHealth      = calculateInactiveStockImpact(summary);
-  const bottleneckParts  = summary.filter((p) => p.isBottleneck);
-  
+  const shortageParts = identifyShortageParts(summary);
+  const stockHealth = calculateInactiveStockImpact(summary);
+  const bottleneckParts = summary.filter((p) => p.isBottleneck);
+
   return {
     summary,
     maxProducibleUnits,

@@ -10,31 +10,27 @@ exports.up = async function (knex) {
       .notNullable()
       .references('id')
       .inTable('warehouse_inventory');
-    
+
     table.string('movement_type', 30).notNullable();
     table.string('from_zone_code', 100).nullable();
     table.string('to_zone_code', 100).nullable();
     table.integer('quantity').notNullable();
-    
+
     table.string('reference_type', 30).nullable();
     table.uuid('reference_id').nullable();
-    
+
     table.text('notes').nullable();
-    
-    table
-      .uuid('performed_by')
-      .notNullable()
-      .references('id')
-      .inTable('users');
+
+    table.uuid('performed_by').notNullable().references('id').inTable('users');
     table
       .timestamp('performed_at', { useTz: true })
       .notNullable()
       .defaultTo(knex.fn.now());
-    
+
     table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
     table.uuid('created_by').references('id').inTable('users');
   });
-  
+
   await knex.raw(`
     ALTER TABLE warehouse_movements
     ADD CONSTRAINT warehouse_movements_type_check
@@ -49,7 +45,7 @@ exports.up = async function (knex) {
     ADD CONSTRAINT warehouse_movements_quantity_check
       CHECK (quantity > 0);
   `);
-  
+
   await knex.raw(`
     CREATE INDEX idx_warehouse_movements_inventory_id
       ON warehouse_movements (warehouse_inventory_id);

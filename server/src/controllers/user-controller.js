@@ -46,13 +46,13 @@ const { fetchPermissions } = require('../services/permission-service');
  */
 const createUserController = wrapAsyncHandler(async (req, res) => {
   const actor = req.auth.user;
-  
+
   const result = await createUserService(req.body, actor);
-  
+
   res.status(201).json({
     success: true,
     message: 'User created successfully.',
-    data:    result,
+    data: result,
     traceId: req.traceId,
   });
 });
@@ -69,10 +69,11 @@ const createUserController = wrapAsyncHandler(async (req, res) => {
  * Requires: auth middleware, query normalizer, VIEW_USERS permission.
  */
 const getPaginatedUsersController = wrapAsyncHandler(async (req, res) => {
-  const { page, limit, sortBy, sortOrder, filters, options } = req.normalizedQuery;
-  const user     = req.auth.user;
+  const { page, limit, sortBy, sortOrder, filters, options } =
+    req.normalizedQuery;
+  const user = req.auth.user;
   const viewMode = options?.viewMode ?? 'list';
-  
+
   const { data, pagination } = await fetchPaginatedUsersService({
     filters,
     page,
@@ -82,13 +83,13 @@ const getPaginatedUsersController = wrapAsyncHandler(async (req, res) => {
     viewMode,
     user,
   });
-  
+
   res.status(200).json({
-    success:   true,
-    message:   'Users retrieved successfully.',
+    success: true,
+    message: 'Users retrieved successfully.',
     data,
     pagination,
-    traceId:   req.traceId,
+    traceId: req.traceId,
   });
 });
 
@@ -106,11 +107,11 @@ const getPaginatedUsersController = wrapAsyncHandler(async (req, res) => {
  * Requires: auth middleware, VIEW_USER_PROFILE permission.
  */
 const getUserProfileController = wrapAsyncHandler(async (req, res) => {
-  const requester    = req.auth.user;
+  const requester = req.auth.user;
   const targetUserId = req.params.userId ?? requester.id;
-  
+
   const data = await fetchUserProfileService(targetUserId, requester);
-  
+
   res.status(200).json({
     success: true,
     message: 'User profile retrieved successfully.',
@@ -130,9 +131,9 @@ const getUserProfileController = wrapAsyncHandler(async (req, res) => {
  */
 const getUserPermissionsController = wrapAsyncHandler(async (req, res) => {
   const { role } = req.auth.user;
-  
+
   const data = await fetchPermissions(role);
-  
+
   res.status(200).json({
     success: true,
     message: 'Permissions retrieved successfully.',

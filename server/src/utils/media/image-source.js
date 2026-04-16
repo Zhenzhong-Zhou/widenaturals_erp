@@ -19,8 +19,13 @@ const net = require('net');
 const dns = require('dns').promises;
 const AppError = require('../AppError');
 const { retry } = require('../retry/retry');
-const { logSystemException, logSystemWarn } = require('../logging/system-logger');
-const { ALLOWED_IMAGE_HOSTS } = require('../constants/security/media-security-constants');
+const {
+  logSystemException,
+  logSystemWarn,
+} = require('../logging/system-logger');
+const {
+  ALLOWED_IMAGE_HOSTS,
+} = require('../constants/security/media-security-constants');
 const { isRetryableHttpError } = require('../db/db-error-utils');
 
 const ROOT_DIR = path.resolve(__dirname, '../../../');
@@ -48,8 +53,13 @@ const isPrivateOrUnsafeIp = (ip) => {
   if (normalized === '::1') return true;
   if (normalized === '::') return true;
   if (normalized.startsWith('fc') || normalized.startsWith('fd')) return true; // unique local
-  if (normalized.startsWith('fe8') || normalized.startsWith('fe9')
-    || normalized.startsWith('fea') || normalized.startsWith('feb')) return true; // link-local
+  if (
+    normalized.startsWith('fe8') ||
+    normalized.startsWith('fe9') ||
+    normalized.startsWith('fea') ||
+    normalized.startsWith('feb')
+  )
+    return true; // link-local
 
   return false;
 };
@@ -79,7 +89,7 @@ const assertHostnameResolvesToPublicIp = async (hostname) => {
  */
 const isRemoteUrl = (value) => {
   if (typeof value !== 'string') return false;
-  
+
   try {
     const url = new URL(value);
     return url.protocol === 'http:' || url.protocol === 'https:';
@@ -113,23 +123,23 @@ const isRemoteUrl = (value) => {
  */
 const resolveSource = async (src, skuCode) => {
   const context = 'image-source/resolveSource';
-  
+
   if (!src || typeof src !== 'string') {
     throw AppError.validationError('Invalid image source');
   }
-  
+
   // ------------------------------------------------------------
   // Remote URL handling
   // ------------------------------------------------------------
   if (isRemoteUrl(src)) {
     const url = new URL(src);
     const hostname = url.hostname.toLowerCase();
-    
+
     // Validation errors are expected — throw directly without logging
     if (!ALLOWED_IMAGE_HOSTS.length) {
       throw AppError.validationError('Remote image fetching is not enabled.');
     }
-    
+
     if (hostname === 'localhost') {
       throw AppError.validationError('Localhost is not allowed.');
     }
@@ -137,21 +147,21 @@ const resolveSource = async (src, skuCode) => {
     if (url.username || url.password) {
       throw AppError.validationError('URL credentials are not allowed.');
     }
-    
+
     // Block numeric IPs to prevent SSRF via direct IP access
     if (net.isIP(hostname)) {
       throw AppError.validationError('IP-based hosts are not allowed.');
     }
-    
+
     // Restrict to default HTTP(S) ports to reduce SSRF surface.
     if (url.port && url.port !== '80' && url.port !== '443') {
       throw AppError.validationError('Non-standard ports are not allowed.');
     }
-    
+
     const isAllowed = ALLOWED_IMAGE_HOSTS.some(
       (host) => hostname === host || hostname.endsWith(`.${host}`)
     );
-    
+
     if (!isAllowed) {
       logSystemWarn('Blocked untrusted image host', {
         context,
@@ -162,32 +172,32 @@ const resolveSource = async (src, skuCode) => {
     }
 
     await assertHostnameResolvesToPublicIp(hostname);
-    
+
     // Build a canonical URL from validated components only.
     const sanitizedUrl = `${url.protocol}//${hostname}${url.pathname}${url.search}`;
-    
+
     try {
       const tempDir = path.join(
         ROOT_DIR,
         'temp',
         `${skuCode}-${Date.now()}-${Math.random().toString(36).slice(2)}`
       );
-      
+
       await fsp.mkdir(tempDir, { recursive: true });
-      
+
       const filename = path.basename(url.pathname) || 'image';
       const tempFile = path.join(tempDir, filename);
-      
+
       const response = await retry(
         async () => {
           const res = await fetch(sanitizedUrl, { redirect: 'error' });
-          
+
           if (!res.ok) {
             const error = new Error(`HTTP error: ${res.status}`);
             error.response = res;
             throw error;
           }
-          
+
           return res;
         },
         {
@@ -196,11 +206,11 @@ const resolveSource = async (src, skuCode) => {
           shouldRetry: isRetryableHttpError,
         }
       );
-      
+
       if (!response.body) {
         throw AppError.fileSystemError('Fetch returned empty body', { src });
       }
-      
+
       // Native fetch returns a WHATWG ReadableStream — convert to Node Readable
       // before piping to the write stream
       await new Promise((resolve, reject) => {
@@ -210,7 +220,7 @@ const resolveSource = async (src, skuCode) => {
         writeStream.on('finish', resolve);
         writeStream.on('error', reject);
       });
-      
+
       return tempFile;
     } catch (error) {
       logSystemException(error, 'Failed to fetch remote image', {
@@ -218,15 +228,15 @@ const resolveSource = async (src, skuCode) => {
         skuCode,
         src,
       });
-      
+
       if (error instanceof AppError) throw error;
-      
+
       throw AppError.fileSystemError('Failed to fetch remote image', {
         cause: error,
       });
     }
   }
-  
+
   // ------------------------------------------------------------
   // Local path handling
   // ------------------------------------------------------------
@@ -234,9 +244,9 @@ const resolveSource = async (src, skuCode) => {
     const resolvedPath = path.isAbsolute(src)
       ? src
       : path.resolve(ROOT_DIR, src);
-    
+
     await fsp.access(resolvedPath);
-    
+
     return resolvedPath;
   } catch (error) {
     logSystemException(error, 'Failed to resolve local image path', {
@@ -244,7 +254,7 @@ const resolveSource = async (src, skuCode) => {
       skuCode,
       src,
     });
-    
+
     throw AppError.fileSystemError('Failed to resolve local image path', {
       cause: error,
     });
@@ -263,13 +273,13 @@ const resolveSource = async (src, skuCode) => {
  */
 const detectImageSource = (image) => {
   if (!image || typeof image !== 'object') return null;
-  
+
   const { image_url } = image;
-  
+
   if (typeof image_url !== 'string') return null;
-  
+
   const trimmed = image_url.trim();
-  
+
   return trimmed.length > 0 ? trimmed : null;
 };
 

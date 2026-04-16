@@ -32,13 +32,13 @@
  * @returns {object} Adjusted copy of `filters` with visibility rules applied.
  */
 const applyLookupVisibilityRules = ({
-                                      filters,
-                                      acl,
-                                      activeStatusId,
-                                      fullVisibilityKey,
-                                    }) => {
+  filters,
+  acl,
+  activeStatusId,
+  fullVisibilityKey,
+}) => {
   const adjusted = { ...filters };
-  
+
   // ---------------------------------------------------------
   // Full visibility override
   // ---------------------------------------------------------
@@ -48,12 +48,12 @@ const applyLookupVisibilityRules = ({
     delete adjusted.activeStatusId;
     return adjusted;
   }
-  
+
   // ---------------------------------------------------------
   // Archive visibility
   // ---------------------------------------------------------
   adjusted.includeArchived = !!acl.canViewArchived;
-  
+
   // ---------------------------------------------------------
   // Active-only enforcement
   // ---------------------------------------------------------
@@ -67,7 +67,7 @@ const applyLookupVisibilityRules = ({
     delete adjusted.enforceActiveOnly;
     delete adjusted.activeStatusId;
   }
-  
+
   return adjusted;
 };
 
@@ -82,17 +82,21 @@ const applyLookupVisibilityRules = ({
  * @param {string} activeStatusId - UUID of the active status record.
  * @returns {object}
  */
-const enforceActiveOnlyVisibilityRules = (filters, userAccess, activeStatusId) => {
+const enforceActiveOnlyVisibilityRules = (
+  filters,
+  userAccess,
+  activeStatusId
+) => {
   const adjusted = { ...filters };
-  
+
   if (!userAccess.canViewAllStatuses) {
-    adjusted.status_id       ??= activeStatusId;
-    adjusted._activeStatusId   = activeStatusId;
+    adjusted.status_id ??= activeStatusId;
+    adjusted._activeStatusId = activeStatusId;
   } else {
     delete adjusted.status_id;
     delete adjusted._activeStatusId;
   }
-  
+
   return adjusted;
 };
 

@@ -11,11 +11,16 @@
 'use strict';
 
 const AppError = require('../utils/AppError');
-const { logSystemInfo, logSystemException } = require('../utils/logging/system-logger');
-const { getBatchActivityTypes } = require('../repositories/batch-activity-type-repository');
+const {
+  logSystemInfo,
+  logSystemException,
+} = require('../utils/logging/system-logger');
+const {
+  getBatchActivityTypes,
+} = require('../repositories/batch-activity-type-repository');
 
 const CACHE = {
-  map:      null, // code → activity_type_id, frozen after load
+  map: null, // code → activity_type_id, frozen after load
   loadedAt: null, // timestamp of last successful load
 };
 
@@ -33,27 +38,31 @@ const CACHE = {
  */
 const initBatchActivityTypeCache = async (client = null) => {
   const context = 'batch-activity-type-cache/initBatchActivityTypeCache';
-  
+
   let rows;
-  
+
   try {
     rows = await getBatchActivityTypes(client);
   } catch (error) {
-    logSystemException(error, 'Failed to initialize batch activity type cache', {
-      context,
-    });
+    logSystemException(
+      error,
+      'Failed to initialize batch activity type cache',
+      {
+        context,
+      }
+    );
     throw error;
   }
-  
+
   // Validation errors are expected — throw directly without logging
   if (!Array.isArray(rows) || rows.length === 0) {
     throw AppError.validationError(
       'Batch activity type cache initialization failed: no records found.'
     );
   }
-  
+
   const map = {};
-  
+
   for (const row of rows) {
     if (map[row.code]) {
       throw AppError.validationError(
@@ -62,11 +71,11 @@ const initBatchActivityTypeCache = async (client = null) => {
     }
     map[row.code] = row.id;
   }
-  
+
   // Freeze to prevent accidental mutation after load
   CACHE.map = Object.freeze(map);
   CACHE.loadedAt = new Date();
-  
+
   logSystemInfo('Batch activity type cache initialized', {
     context,
     totalTypes: rows.length,
@@ -92,19 +101,19 @@ const getBatchActivityTypeId = (code) => {
       'Batch activity type cache not initialized.'
     );
   }
-  
+
   if (!code || typeof code !== 'string') {
     throw AppError.validationError('Invalid batch activity type code.');
   }
-  
+
   const id = CACHE.map[code];
-  
+
   if (!id) {
     throw AppError.notFoundError(
       `Missing batch activity type for code: "${code}"`
     );
   }
-  
+
   return id;
 };
 
@@ -114,7 +123,7 @@ const getBatchActivityTypeId = (code) => {
  * @returns {{ loadedAt: Date|null, totalTypes: number }}
  */
 const getBatchActivityTypeCacheInfo = () => ({
-  loadedAt:   CACHE.loadedAt,
+  loadedAt: CACHE.loadedAt,
   totalTypes: CACHE.map ? Object.keys(CACHE.map).length : 0,
 });
 

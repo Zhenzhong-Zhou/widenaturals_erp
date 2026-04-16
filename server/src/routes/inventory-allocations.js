@@ -15,12 +15,12 @@
 
 'use strict';
 
-const express                            = require('express');
-const { authorize }                      = require('../middlewares/authorize');
-const validate                           = require('../middlewares/validate');
+const express = require('express');
+const { authorize } = require('../middlewares/authorize');
+const validate = require('../middlewares/validate');
 const createQueryNormalizationMiddleware = require('../middlewares/normalize-query');
-const PERMISSION_KEYS                        = require('../utils/constants/domain/permission-keys');
-const { orderIdParamSchema }             = require('../validators/order-validators');
+const PERMISSION_KEYS = require('../utils/constants/domain/permission-keys');
+const { orderIdParamSchema } = require('../validators/order-validators');
 const {
   allocateInventorySchema,
   allocationReviewSchema,
@@ -77,10 +77,10 @@ router.get(
   authorize([PERMISSION_KEYS.INVENTORY_ALLOCATION.VIEW]),
   validate(inventoryAllocationsQuerySchema, 'query'),
   createQueryNormalizationMiddleware(
-    'inventoryAllocationSortMap',                  // moduleKey — drives allowed sortBy fields
-    ['statusIds', 'warehouseIds', 'batchIds'],     // arrayKeys — normalized as UUID arrays
-    [],                                            // booleanKeys — none client-controlled
-    inventoryAllocationsQuerySchema                // filterKeysOrSchema — extracts filter keys from schema
+    'inventoryAllocationSortMap', // moduleKey — drives allowed sortBy fields
+    ['statusIds', 'warehouseIds', 'batchIds'], // arrayKeys — normalized as UUID arrays
+    [], // booleanKeys — none client-controlled
+    inventoryAllocationsQuerySchema // filterKeysOrSchema — extracts filter keys from schema
   ),
   getPaginatedInventoryAllocationsController
 );

@@ -82,18 +82,23 @@ const safeStringify = (value) => {
  * @param {Object} meta
  * @param {boolean} sanitizeMessageFlag
  */
-const logWithLevel = (level, message, meta = {}, sanitizeMessageFlag = false) => {
+const logWithLevel = (
+  level,
+  message,
+  meta = {},
+  sanitizeMessageFlag = false
+) => {
   // Enforce valid level (fail-safe)
   if (!LOG_LEVELS.includes(level)) {
     level = 'error';
   }
-  
+
   // Remove reserved fields (prevent conflicts)
   const { severity: _ignored, ...cleanMeta } = meta || {};
-  
+
   // Single pipeline (fast + predictable)
   const safeMeta = sanitizeAndLimitMeta(cleanMeta);
-  
+
   // Normalize message (cheap path first)
   let normalizedMessage;
   if (typeof message === 'string') {
@@ -103,19 +108,19 @@ const logWithLevel = (level, message, meta = {}, sanitizeMessageFlag = false) =>
   } else {
     normalizedMessage = safeStringify(message);
   }
-  
+
   const payload = {
     level,
     severity: SEVERITY_MAP[level] || 'low',
     message: normalizedMessage,
     meta: safeMeta,
   };
-  
+
   // Optional debug visibility (dev only)
   if (process.env.DEBUG_LOGS === 'true') {
     console.debug('[Logger Payload]', safeStringify(payload));
   }
-  
+
   // Transport (isolated)
   try {
     getLogger().log(payload);
@@ -142,32 +147,32 @@ const logWithLevel = (level, message, meta = {}, sanitizeMessageFlag = false) =>
  */
 const logError = (errOrMessage, req = null, meta = {}) => {
   const requestContext = extractRequestContext(req);
-  
+
   let message = 'An unknown error occurred';
   let logLevel = 'error';
   let finalMeta;
-  
+
   const { overrideMessage, ...cleanMeta } = meta || {};
-  
+
   // =========================
   // AppError (rich domain error)
   // =========================
   if (errOrMessage instanceof AppError) {
     message = overrideMessage || errOrMessage.message || message;
     logLevel = errOrMessage.logLevel || logLevel;
-    
+
     finalMeta = errOrMessage.toLog({
       ...requestContext,
       ...cleanMeta,
     });
   }
-    
-    // =========================
-    // Native Error
+
+  // =========================
+  // Native Error
   // =========================
   else if (errOrMessage instanceof Error) {
     message = overrideMessage || errOrMessage.message || message;
-    
+
     finalMeta = {
       ...requestContext,
       ...cleanMeta,
@@ -178,19 +183,19 @@ const logError = (errOrMessage, req = null, meta = {}) => {
         : {}),
     };
   }
-    
-    // =========================
-    // Plain message fallback
+
+  // =========================
+  // Plain message fallback
   // =========================
   else {
     message = overrideMessage || String(errOrMessage);
-    
+
     finalMeta = {
       ...requestContext,
       ...cleanMeta,
     };
   }
-  
+
   logWithLevel(logLevel, message, finalMeta);
 };
 

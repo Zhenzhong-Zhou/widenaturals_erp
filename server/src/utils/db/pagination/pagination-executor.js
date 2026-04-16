@@ -32,14 +32,14 @@ const AppError = require('../../AppError');
  * @throws {AppError} databaseError if queries fail or count is invalid
  */
 const executePaginatedQueries = async ({
-                                         dataQuery,
-                                         dataParams = [],
-                                         countQuery,
-                                         countParams = [],
-                                         clientOrPool,
-                                       }) => {
+  dataQuery,
+  dataParams = [],
+  countQuery,
+  countParams = [],
+  clientOrPool,
+}) => {
   const context = 'pagination-executor/executePaginatedQueries';
-  
+
   //--------------------------------------------------
   // Validate required inputs
   //--------------------------------------------------
@@ -49,7 +49,7 @@ const executePaginatedQueries = async ({
       meta: { dataQuery, countQuery },
     });
   }
-  
+
   //--------------------------------------------------
   // Detect execution mode (robust)
   //--------------------------------------------------
@@ -57,10 +57,10 @@ const executePaginatedQueries = async ({
     clientOrPool &&
     typeof clientOrPool.query === 'function' &&
     clientOrPool.constructor?.name === 'Client'; // more explicit
-  
+
   let dataResult;
   let countResult;
-  
+
   try {
     //--------------------------------------------------
     // Execute queries
@@ -85,39 +85,34 @@ const executePaginatedQueries = async ({
       },
     });
   }
-  
+
   //--------------------------------------------------
   // Normalize and validate count result
   //--------------------------------------------------
   const countRow = countResult?.rows?.[0];
-  
+
   if (!countRow) {
     throw AppError.databaseError('Missing count result', { context });
   }
-  
+
   // Flexible key support
   /** @type {CountRow} */
-  const totalRaw =
-    countRow.total ??
-    countRow.count ??
-    countRow.total_records;
-  
+  const totalRaw = countRow.total ?? countRow.count ?? countRow.total_records;
+
   const totalRecords = Number(totalRaw);
-  
+
   if (!Number.isFinite(totalRecords)) {
     throw AppError.databaseError('Invalid total record count', {
       context,
       meta: { totalRaw },
     });
   }
-  
+
   //--------------------------------------------------
   // Normalize data rows
   //--------------------------------------------------
-  const rows = Array.isArray(dataResult?.rows)
-    ? dataResult.rows
-    : [];
-  
+  const rows = Array.isArray(dataResult?.rows) ? dataResult.rows : [];
+
   return {
     rows,
     totalRecords,

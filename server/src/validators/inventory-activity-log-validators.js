@@ -18,24 +18,25 @@ const {
   paginationSchema,
   createSortSchema,
   validateOptionalUUID,
-  optionalIsoDate
+  optionalIsoDate,
 } = require('./general-validators');
 
 const inventoryActivityLogQuerySchema = paginationSchema
   .concat(createSortSchema('performedAt'))
   .keys({
-    inventoryId:      validateOptionalUUID('Inventory ID'),
-    actionTypeId:     validateOptionalUUID('Action Type ID'),
+    inventoryId: validateOptionalUUID('Inventory ID'),
+    actionTypeId: validateOptionalUUID('Action Type ID'),
     adjustmentTypeId: validateOptionalUUID('Adjustment Type ID'),
-    referenceType:    Joi.string()
+    referenceType: Joi.string()
       .valid('order', 'transfer', 'audit', 'return', 'manual')
       .optional()
       .messages({
         'string.base': 'Reference Type must be a string.',
-        'any.only':    'Reference Type must be one of: order, transfer, audit, return, manual.',
+        'any.only':
+          'Reference Type must be one of: order, transfer, audit, return, manual.',
       }),
-    performedBy:       validateOptionalUUID('Performed By'),
-    performedAtAfter:  optionalIsoDate('Performed At After'),
+    performedBy: validateOptionalUUID('Performed By'),
+    performedAtAfter: optionalIsoDate('Performed At After'),
     performedAtBefore: optionalIsoDate('Performed At Before'),
   });
 

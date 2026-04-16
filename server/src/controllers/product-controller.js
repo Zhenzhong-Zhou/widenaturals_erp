@@ -52,7 +52,7 @@ const {
  */
 const getPaginatedProductsController = wrapAsyncHandler(async (req, res) => {
   const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
-  
+
   const { data, pagination } = await fetchPaginatedProductsService({
     filters,
     page,
@@ -60,13 +60,13 @@ const getPaginatedProductsController = wrapAsyncHandler(async (req, res) => {
     sortBy,
     sortOrder,
   });
-  
+
   res.status(200).json({
-    success:   true,
-    message:   'Products retrieved successfully.',
+    success: true,
+    message: 'Products retrieved successfully.',
     data,
     pagination,
-    traceId:   req.traceId,
+    traceId: req.traceId,
   });
 });
 
@@ -82,14 +82,14 @@ const getPaginatedProductsController = wrapAsyncHandler(async (req, res) => {
  */
 const createProductsController = wrapAsyncHandler(async (req, res) => {
   const { products } = req.body;
-  const user         = req.auth.user;
-  
+  const user = req.auth.user;
+
   const result = await createProductsService(products, user);
-  
+
   res.status(201).json({
     success: true,
     message: 'Products created successfully.',
-    data:    result,
+    data: result,
     traceId: req.traceId,
   });
 });
@@ -106,9 +106,9 @@ const createProductsController = wrapAsyncHandler(async (req, res) => {
  */
 const getProductDetailsController = wrapAsyncHandler(async (req, res) => {
   const { productId } = req.params;
-  
+
   const data = await fetchProductDetailsService(productId);
-  
+
   res.status(200).json({
     success: true,
     message: 'Product details retrieved successfully.',
@@ -128,15 +128,19 @@ const getProductDetailsController = wrapAsyncHandler(async (req, res) => {
  */
 const updateProductStatusController = wrapAsyncHandler(async (req, res) => {
   const { productId } = req.params;
-  const { statusId }  = req.body;
-  const user          = req.auth.user;
-  
-  const result = await updateProductStatusService({ productId, statusId, user });
-  
+  const { statusId } = req.body;
+  const user = req.auth.user;
+
+  const result = await updateProductStatusService({
+    productId,
+    statusId,
+    user,
+  });
+
   res.status(200).json({
     success: true,
     message: 'Product status updated successfully.',
-    data:    result,
+    data: result,
     traceId: req.traceId,
   });
 });
@@ -152,14 +156,18 @@ const updateProductStatusController = wrapAsyncHandler(async (req, res) => {
  */
 const updateProductInfoController = wrapAsyncHandler(async (req, res) => {
   const { productId } = req.params;
-  const user          = req.auth.user;
-  
-  const result = await updateProductInfoService({ productId, updates: req.body, user });
-  
+  const user = req.auth.user;
+
+  const result = await updateProductInfoService({
+    productId,
+    updates: req.body,
+    user,
+  });
+
   res.status(200).json({
     success: true,
     message: 'Product information updated successfully.',
-    data:    result,
+    data: result,
     traceId: req.traceId,
   });
 });

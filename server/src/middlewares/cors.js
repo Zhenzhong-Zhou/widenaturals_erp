@@ -34,10 +34,7 @@ const CONTEXT = 'middleware/cors';
 // Fail fast: production must declare allowed origins explicitly.
 // Checked here (module load = startup) so the error surfaces immediately
 // rather than on the first inbound request.
-if (
-  process.env.NODE_ENV === 'production' &&
-  !process.env.ALLOWED_ORIGINS
-) {
+if (process.env.NODE_ENV === 'production' && !process.env.ALLOWED_ORIGINS) {
   throw AppError.corsError('ALLOWED_ORIGINS must be defined in production.', {
     details: { environment: 'production' },
   });
@@ -53,7 +50,9 @@ const isDev = process.env.NODE_ENV === 'development';
  */
 const allowedOriginsSet = new Set(
   process.env.ALLOWED_ORIGINS
-    ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim().toLowerCase()).filter(Boolean)
+    ? process.env.ALLOWED_ORIGINS.split(',')
+        .map((o) => o.trim().toLowerCase())
+        .filter(Boolean)
     : isDev
       ? ['http://localhost:5173']
       : []
@@ -63,19 +62,38 @@ const allowedOriginsSet = new Set(
 // (Production already throws above, so this only fires in development/test
 // when ALLOWED_ORIGINS is intentionally omitted.)
 if (allowedOriginsSet.size === 0) {
-  logWarn('CORS: No ALLOWED_ORIGINS configured — all originless requests will be allowed.', null, {
-    context: CONTEXT,
-    mode: process.env.NODE_ENV,
-  });
+  logWarn(
+    'CORS: No ALLOWED_ORIGINS configured — all originless requests will be allowed.',
+    null,
+    {
+      context: CONTEXT,
+      mode: process.env.NODE_ENV,
+    }
+  );
 }
 
 // -----------------------------------------------------------------------------
 // Static config values — also resolved once at module load
 // -----------------------------------------------------------------------------
 
-const DEFAULT_METHODS  = ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'];
-const DEFAULT_HEADERS  = ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'X-CSRF-Token'];
-const DEFAULT_EXPOSED  = ['Content-Disposition'];
+const DEFAULT_METHODS = [
+  'GET',
+  'HEAD',
+  'POST',
+  'PUT',
+  'PATCH',
+  'DELETE',
+  'OPTIONS',
+];
+const DEFAULT_HEADERS = [
+  'Content-Type',
+  'Authorization',
+  'X-Requested-With',
+  'Accept',
+  'Origin',
+  'X-CSRF-Token',
+];
+const DEFAULT_EXPOSED = ['Content-Disposition'];
 
 // -----------------------------------------------------------------------------
 // CORS middleware
@@ -100,24 +118,23 @@ const corsMiddleware = cors({
       if (!origin) {
         return callback(null, true);
       }
-      
+
       if (allowedOriginsSet.has(origin.toLowerCase())) {
         return callback(null, true);
       }
-      
+
       // Origin is set but not in the allow-list — reject with a CORS error.
       const corsError = AppError.corsError(
         `CORS policy: Origin '${origin}' is not allowed.`,
         { details: { origin } }
       );
-      
+
       logWarn('CORS request rejected', null, {
         context: CONTEXT,
         origin,
       });
-      
+
       return callback(corsError);
-      
     } catch (error) {
       // Unexpected error in the origin callback — log internally and return
       // a generic CORS error so internal details are never sent to the client.
@@ -125,7 +142,7 @@ const corsMiddleware = cors({
         context: CONTEXT,
         meta: { origin, message: error.message },
       });
-      
+
       return callback(
         AppError.corsError('CORS configuration error.', {
           details: { origin },
@@ -133,15 +150,15 @@ const corsMiddleware = cors({
       );
     }
   },
-  
+
   methods: process.env.ALLOWED_METHODS?.split(',') ?? DEFAULT_METHODS,
-  
+
   allowedHeaders: process.env.ALLOWED_HEADERS?.split(',') ?? DEFAULT_HEADERS,
-  
+
   exposedHeaders: process.env.EXPOSED_HEADERS?.split(',') ?? DEFAULT_EXPOSED,
-  
+
   credentials: process.env.ALLOW_CREDENTIALS === 'true',
-  
+
   optionsSuccessStatus: parseInt(process.env.OPTIONS_SUCCESS_STATUS, 10) || 204,
 });
 

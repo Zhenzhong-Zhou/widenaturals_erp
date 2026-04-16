@@ -45,14 +45,14 @@ const PB_INSERT_COLUMNS = [
 const PB_CONFLICT_COLUMNS = ['lot_number', 'sku_id'];
 
 const PB_UPDATE_STRATEGIES = {
-  manufacturer_id:             'preserve',
-  received_at:                 'preserve',
-  notes:                       'overwrite',
-  status_id:                   'overwrite',
-  released_at:                 'preserve',
-  released_by:                 'preserve',
+  manufacturer_id: 'preserve',
+  received_at: 'preserve',
+  notes: 'overwrite',
+  status_id: 'overwrite',
+  released_at: 'preserve',
+  released_by: 'preserve',
   released_by_manufacturer_id: 'preserve',
-  updated_at:                  'overwrite',
+  updated_at: 'overwrite',
 };
 
 // ─── Paginated List ───────────────────────────────────────────────────────────

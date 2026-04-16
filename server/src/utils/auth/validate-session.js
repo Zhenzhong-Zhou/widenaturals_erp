@@ -51,18 +51,18 @@ const { logSystemWarn } = require('../logging/system-logger');
  */
 const validateSessionState = async (sessionId, client = null) => {
   const context = 'validate-session/validateSessionState';
-  
+
   if (!sessionId) {
     throw AppError.authenticationError('Session is missing.');
   }
-  
+
   const session = await getSessionById(sessionId, client);
-  
+
   if (!session) {
     // Deliberately vague — do not reveal whether session ever existed
     throw AppError.authenticationError('Session no longer exists.');
   }
-  
+
   if (session.revoked_at) {
     // Security-relevant — a revoked session being presented may indicate token reuse
     logSystemWarn('Revoked session presented', {
@@ -71,10 +71,10 @@ const validateSessionState = async (sessionId, client = null) => {
       userId: session.user_id,
       revokedAt: session.revoked_at,
     });
-    
+
     throw AppError.authenticationError('Session has been revoked.');
   }
-  
+
   if (session.logout_at) {
     logSystemWarn('Logged-out session presented', {
       context,
@@ -82,10 +82,10 @@ const validateSessionState = async (sessionId, client = null) => {
       userId: session.user_id,
       logoutAt: session.logout_at,
     });
-    
+
     throw AppError.authenticationError('Session has been logged out.');
   }
-  
+
   if (session.expires_at <= new Date()) {
     logSystemWarn('Expired session presented', {
       context,
@@ -93,10 +93,10 @@ const validateSessionState = async (sessionId, client = null) => {
       userId: session.user_id,
       expiresAt: session.expires_at,
     });
-    
+
     throw AppError.authenticationError('Session expired.');
   }
-  
+
   return session;
 };
 

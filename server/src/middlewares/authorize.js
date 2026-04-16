@@ -18,7 +18,9 @@
 const AppError = require('../utils/AppError');
 const { tryCacheRead, tryCacheWrite } = require('../utils/cache-utils');
 const { getStatusId } = require('../config/status-cache');
-const { getRolePermissionsByRoleId } = require('../repositories/role-permission-repository');
+const {
+  getRolePermissionsByRoleId,
+} = require('../repositories/role-permission-repository');
 
 // -----------------------------------------------------------------------------
 // Permission resolver (shared by all authorization middleware)
@@ -50,22 +52,22 @@ const resolvePermissions = async (req) => {
   if (!req.auth?.user) {
     throw AppError.authenticationError('Unauthorized: User not authenticated.');
   }
-  
+
   // Permissions already resolved earlier in this request — reuse them.
   if (Array.isArray(req.permissions)) {
     return req.permissions;
   }
-  
+
   const { role } = req.auth.user;
   const cacheKey = `role_permissions:${role}`;
-  
+
   // ---------------------------------------------------------------------------
   // Cache-first lookup (best-effort)
   // tryCacheRead swallows cache errors internally — a miss or failure here
   // is expected and falls through to the DB.
   // ---------------------------------------------------------------------------
   let rolePermissions = await tryCacheRead(cacheKey);
-  
+
   // ---------------------------------------------------------------------------
   // DB fallback (source of truth)
   // Only reached on a cache miss or cache unavailability.
@@ -73,18 +75,18 @@ const resolvePermissions = async (req) => {
   if (!rolePermissions) {
     const activeStatusId = getStatusId('general_active');
     rolePermissions = await getRolePermissionsByRoleId(role, activeStatusId);
-    
+
     if (!rolePermissions || !Array.isArray(rolePermissions.permissions)) {
       throw AppError.authorizationError('Role permissions not found.', {
         details: { role },
       });
     }
-    
+
     // Write back to cache best-effort (non-blocking). A failure here is
     // acceptable — the next request will fall through to DB again.
     await tryCacheWrite(cacheKey, rolePermissions, 3600);
   }
-  
+
   req.permissions = rolePermissions.permissions;
   return req.permissions;
 };
@@ -110,23 +112,26 @@ const authorize = (requiredPermissions = []) => {
   return async (req, res, next) => {
     try {
       const permissions = await resolvePermissions(req);
-      
+
       // root_access is a superuser bypass — skip all permission checks.
       if (permissions.includes('root_access')) {
         next();
         return;
       }
-      
+
       const missingPermissions = requiredPermissions.filter(
         (p) => !permissions.includes(p)
       );
-      
+
       if (missingPermissions.length > 0) {
-        throw AppError.authorizationError('Forbidden: Insufficient permissions.', {
-          details: { missingPermissions },
-        });
+        throw AppError.authorizationError(
+          'Forbidden: Insufficient permissions.',
+          {
+            details: { missingPermissions },
+          }
+        );
       }
-      
+
       next();
     } catch (err) {
       next(err);
@@ -155,21 +160,24 @@ const authorizeAny = (requiredPermissions = []) => {
   return async (req, res, next) => {
     try {
       const permissions = await resolvePermissions(req);
-      
+
       // root_access is a superuser bypass — skip all permission checks.
       if (permissions.includes('root_access')) {
         next();
         return;
       }
-      
+
       const hasAny = requiredPermissions.some((p) => permissions.includes(p));
-      
+
       if (!hasAny) {
-        throw AppError.authorizationError('Forbidden: Insufficient permissions.', {
-          details: { requiredAnyOf: requiredPermissions },
-        });
+        throw AppError.authorizationError(
+          'Forbidden: Insufficient permissions.',
+          {
+            details: { requiredAnyOf: requiredPermissions },
+          }
+        );
       }
-      
+
       next();
     } catch (err) {
       next(err);

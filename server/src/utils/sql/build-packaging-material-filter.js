@@ -39,26 +39,27 @@ const {
 const buildPackagingMaterialsFilter = (filters = {}) => {
   const normalizedFilters = normalizeDateRangeFilters(
     normalizeDateRangeFilters(filters, 'createdAfter', 'createdBefore'),
-    'updatedAfter', 'updatedBefore'
+    'updatedAfter',
+    'updatedBefore'
   );
-  
-  const conditions    = ['1=1'];
-  const params        = [];
+
+  const conditions = ['1=1'];
+  const params = [];
   const paramIndexRef = { value: 1 };
-  
+
   // ─── Visibility ──────────────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.visibleOnly === true) {
     conditions.push(`pm.is_visible_for_sales_order = true`);
   }
-  
+
   // Exclude archived by default — caller must explicitly opt out.
   if (normalizedFilters.restrictToUnarchived !== false) {
     conditions.push(`pm.is_archived = false`);
   }
-  
+
   // ─── Status ──────────────────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.statusId) {
     conditions.push(`pm.status_id = $${paramIndexRef.value}`);
     params.push(normalizedFilters.statusId);
@@ -68,9 +69,9 @@ const buildPackagingMaterialsFilter = (filters = {}) => {
     params.push(normalizedFilters._activeStatusId);
     paramIndexRef.value++;
   }
-  
+
   // ─── Keyword (must remain last before audit) ─────────────────────────────────
-  
+
   // Same $N referenced five times — single param covers all columns.
   if (normalizedFilters.keyword) {
     conditions.push(`(
@@ -83,39 +84,41 @@ const buildPackagingMaterialsFilter = (filters = {}) => {
     params.push(`%${normalizedFilters.keyword}%`);
     paramIndexRef.value++;
   }
-  
+
   // ─── Audit ──────────────────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.createdBy) {
     conditions.push(`pm.created_by = $${paramIndexRef.value}`);
     params.push(normalizedFilters.createdBy);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.updatedBy) {
     conditions.push(`pm.updated_by = $${paramIndexRef.value}`);
     params.push(normalizedFilters.updatedBy);
     paramIndexRef.value++;
   }
-  
+
   // ─── Date Range ─────────────────────────────────────────────────────────────
-  
+
   applyDateRangeConditions({
-    conditions, params,
-    column:        'pm.created_at',
-    after:         normalizedFilters.createdAfter,
-    before:        normalizedFilters.createdBefore,
+    conditions,
+    params,
+    column: 'pm.created_at',
+    after: normalizedFilters.createdAfter,
+    before: normalizedFilters.createdBefore,
     paramIndexRef,
   });
-  
+
   applyDateRangeConditions({
-    conditions, params,
-    column:        'pm.updated_at',
-    after:         normalizedFilters.updatedAfter,
-    before:        normalizedFilters.updatedBefore,
+    conditions,
+    params,
+    column: 'pm.updated_at',
+    after: normalizedFilters.updatedAfter,
+    before: normalizedFilters.updatedBefore,
     paramIndexRef,
   });
-  
+
   return {
     whereClause: conditions.join(' AND '),
     params,

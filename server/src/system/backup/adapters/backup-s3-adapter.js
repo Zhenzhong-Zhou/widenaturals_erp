@@ -8,9 +8,7 @@ const {
   groupFilesWithTolerance,
   getGroupTimestamp,
 } = require('../utils/backup-grouping-utils');
-const {
-  logSystemInfo,
-} = require('../../../utils/logging/system-logger');
+const { logSystemInfo } = require('../../../utils/logging/system-logger');
 
 /**
  * Uploads the encrypted backup, IV, and hash files to S3.
@@ -25,15 +23,20 @@ const {
  * @returns {Promise<void>}
  * @throws {Error} If any upload fails.
  */
-const uploadBackupToS3 = async ({ encryptedFile, ivFile, hashFile, bucketName }) => {
-  const s3KeyEnc  = `backups/${path.basename(encryptedFile)}`;
-  const s3KeyIv   = `backups/${path.basename(ivFile)}`;
+const uploadBackupToS3 = async ({
+  encryptedFile,
+  ivFile,
+  hashFile,
+  bucketName,
+}) => {
+  const s3KeyEnc = `backups/${path.basename(encryptedFile)}`;
+  const s3KeyIv = `backups/${path.basename(ivFile)}`;
   const s3KeyHash = `backups/${path.basename(hashFile)}`;
-  
-  await uploadFileToS3(encryptedFile, bucketName, s3KeyEnc,  'application/gzip');
-  await uploadFileToS3(ivFile,        bucketName, s3KeyIv,   'application/octet-stream');
-  await uploadFileToS3(hashFile,      bucketName, s3KeyHash, 'text/plain');
-  
+
+  await uploadFileToS3(encryptedFile, bucketName, s3KeyEnc, 'application/gzip');
+  await uploadFileToS3(ivFile, bucketName, s3KeyIv, 'application/octet-stream');
+  await uploadFileToS3(hashFile, bucketName, s3KeyHash, 'text/plain');
+
   logSystemInfo('Backup files uploaded to S3', {
     context: 'backup-upload',
     files: [s3KeyEnc, s3KeyIv, s3KeyHash],
@@ -55,12 +58,12 @@ const uploadBackupToS3 = async ({ encryptedFile, ivFile, hashFile, bucketName })
  */
 const cleanupS3Backups = async ({ bucketName, maxBackups, toleranceMs }) => {
   const files = await listFilesInS3(bucketName, 'backups/');
-  
+
   // Each group = one backup copy (typically 3 objects: .enc, .iv, .sha256)
   const groups = groupFilesWithTolerance(files, toleranceMs);
-  
+
   if (groups.length <= maxBackups) return 0;
-  
+
   //--------------------------------------------------
   // Precompute timestamps (avoid repeated calculation)
   //--------------------------------------------------
@@ -68,35 +71,33 @@ const cleanupS3Backups = async ({ bucketName, maxBackups, toleranceMs }) => {
     group,
     ts: getGroupTimestamp(group),
   }));
-  
+
   // Oldest first — delete from the front
   groupsWithTs.sort((a, b) => a.ts - b.ts);
-  
+
   //--------------------------------------------------
   // Determine groups to delete
   //--------------------------------------------------
   const excessCount = groupsWithTs.length - maxBackups;
-  const groupsToDelete = groupsWithTs
-    .slice(0, excessCount)
-    .map((g) => g.group);
-  
+  const groupsToDelete = groupsWithTs.slice(0, excessCount).map((g) => g.group);
+
   //--------------------------------------------------
   // Flatten keys for deletion
   //--------------------------------------------------
   const keysToDelete = groupsToDelete.flatMap((g) =>
     g.files.map((f) => ({ Key: f.Key }))
   );
-  
+
   // S3 DeleteObjects limit: 1000 per request
   const BATCH_SIZE = 1000;
   let deletedCount = 0;
-  
+
   for (let i = 0; i < keysToDelete.length; i += BATCH_SIZE) {
     const batch = keysToDelete.slice(i, i + BATCH_SIZE);
     await deleteFilesFromS3(bucketName, batch);
     deletedCount += batch.length;
   }
-  
+
   return deletedCount;
 };
 

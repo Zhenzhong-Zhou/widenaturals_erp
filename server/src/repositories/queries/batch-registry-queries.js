@@ -52,7 +52,8 @@ const BATCH_REGISTRY_LOOKUP_JOINS = [
   'LEFT JOIN packaging_material_batches pmb ON br.packaging_material_batch_id = pmb.id',
 ];
 
-const _BATCH_REGISTRY_LOOKUP_JOINS_SQL = BATCH_REGISTRY_LOOKUP_JOINS.join('\n  ');
+const _BATCH_REGISTRY_LOOKUP_JOINS_SQL =
+  BATCH_REGISTRY_LOOKUP_JOINS.join('\n  ');
 
 // Only registered_at is sortable in the lookup — this is a narrow projection.
 const BATCH_REGISTRY_LOOKUP_WHITELIST = new Set(['br.registered_at']);
@@ -102,7 +103,8 @@ const BATCH_REGISTRY_PAGINATED_JOINS = [
   'LEFT JOIN suppliers sup                  ON pms.supplier_id = sup.id',
 ];
 
-const _BATCH_REGISTRY_PAGINATED_JOINS_SQL = BATCH_REGISTRY_PAGINATED_JOINS.join('\n  ');
+const _BATCH_REGISTRY_PAGINATED_JOINS_SQL =
+  BATCH_REGISTRY_PAGINATED_JOINS.join('\n  ');
 
 const BATCH_REGISTRY_SORT_WHITELIST = new Set(
   Object.values(SORTABLE_FIELDS.batchRegistrySortMap)
@@ -168,8 +170,10 @@ const BATCH_REGISTRY_UPDATE_STRATEGIES = {
 };
 
 // Conflict targets are separated by batch_type — each has its own unique constraint.
-const BATCH_REGISTRY_CONFLICT_COLUMNS_PRODUCT    = ['product_batch_id'];
-const BATCH_REGISTRY_CONFLICT_COLUMNS_PACKAGING  = ['packaging_material_batch_id'];
+const BATCH_REGISTRY_CONFLICT_COLUMNS_PRODUCT = ['product_batch_id'];
+const BATCH_REGISTRY_CONFLICT_COLUMNS_PACKAGING = [
+  'packaging_material_batch_id',
+];
 
 // ─── Update ───────────────────────────────────────────────────────────────────
 

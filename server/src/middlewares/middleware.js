@@ -23,18 +23,18 @@
 
 'use strict';
 
-const express      = require('express');
+const express = require('express');
 const cookieParser = require('cookie-parser');
-const morgan       = require('morgan');
-const configureHelmet        = require('./helmet');
-const corsMiddleware         = require('./cors');
-const { csrfProtection }     = require('./csrf-protection');
-const requestLogger          = require('./request-logger');
-const { sanitizeInput }      = require('./sanitize');
-const { logSystemInfo }      = require('../utils/logging/system-logger');
+const morgan = require('morgan');
+const configureHelmet = require('./helmet');
+const corsMiddleware = require('./cors');
+const { csrfProtection } = require('./csrf-protection');
+const requestLogger = require('./request-logger');
+const { sanitizeInput } = require('./sanitize');
+const { logSystemInfo } = require('../utils/logging/system-logger');
 
-const CONTEXT    = 'middleware/global';
-const isDev      = process.env.NODE_ENV === 'development';
+const CONTEXT = 'middleware/global';
+const isDev = process.env.NODE_ENV === 'development';
 
 /**
  * Registers the global middleware stack on the Express application instance.
@@ -50,21 +50,21 @@ const applyGlobalMiddleware = (app) => {
   // 1. Security headers
   // -------------------------------------------------------------------------
   app.use(configureHelmet);
-  
+
   // -------------------------------------------------------------------------
   // 2. CORS
   // Origin must be validated before the request body is parsed so that
   // disallowed origins are rejected before any body processing occurs.
   // -------------------------------------------------------------------------
   app.use(corsMiddleware);
-  
+
   // -------------------------------------------------------------------------
   // 3 + 4. Cookie parser → CSRF protection
   // cookieParser must run first — csrfProtection reads the CSRF token from
   // the cookie that cookieParser populates.
   // -------------------------------------------------------------------------
   app.use(cookieParser(), csrfProtection());
-  
+
   // -------------------------------------------------------------------------
   // 5. Body parsing
   // Registered after CSRF so that token validation runs before the body is
@@ -72,19 +72,19 @@ const applyGlobalMiddleware = (app) => {
   // -------------------------------------------------------------------------
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
-  
+
   // -------------------------------------------------------------------------
   // 6. Request logger
   // After body parsing so structured log entries can include request context.
   // -------------------------------------------------------------------------
   app.use(requestLogger);
-  
+
   // -------------------------------------------------------------------------
   // 7. Input sanitization
   // After body parsing so req.body, req.query, and req.params are populated.
   // -------------------------------------------------------------------------
   app.use(sanitizeInput);
-  
+
   // -------------------------------------------------------------------------
   // 8. Morgan (development only)
   // Lightweight console request summary for local development.
@@ -92,7 +92,7 @@ const applyGlobalMiddleware = (app) => {
   // -------------------------------------------------------------------------
   if (isDev) {
     app.use(morgan('dev'));
-    
+
     logSystemInfo('Morgan request logging enabled', {
       context: CONTEXT,
     });

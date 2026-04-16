@@ -46,14 +46,14 @@ const runStartupStep = async (name, fn, options = {}) => {
   if (!name || typeof name !== 'string') {
     throw new Error('runStartupStep: "name" must be a non-empty string');
   }
-  
+
   if (typeof fn !== 'function') {
     throw new Error('runStartupStep: "fn" must be a function');
   }
-  
+
   const context = options.context || 'startup';
   const start = process.hrtime.bigint();
-  
+
   //--------------------------------------------------
   // Start log
   //--------------------------------------------------
@@ -62,20 +62,20 @@ const runStartupStep = async (name, fn, options = {}) => {
     step: name,
     status: 'started',
   });
-  
+
   try {
     //--------------------------------------------------
     // Execute step (supports sync + async naturally)
     //--------------------------------------------------
     const result = await fn();
-    
+
     //--------------------------------------------------
     // Compute duration once
     //--------------------------------------------------
     const durationMs = Math.round(
       Number(process.hrtime.bigint() - start) / 1_000_000
     );
-    
+
     //--------------------------------------------------
     // Success log
     //--------------------------------------------------
@@ -85,7 +85,7 @@ const runStartupStep = async (name, fn, options = {}) => {
       status: 'completed',
       durationMs,
     });
-    
+
     return result;
   } catch (error) {
     //--------------------------------------------------
@@ -94,7 +94,7 @@ const runStartupStep = async (name, fn, options = {}) => {
     const durationMs = Math.round(
       Number(process.hrtime.bigint() - start) / 1_000_000
     );
-    
+
     //--------------------------------------------------
     // Failure log
     //--------------------------------------------------
@@ -104,7 +104,7 @@ const runStartupStep = async (name, fn, options = {}) => {
       status: 'failed',
       durationMs,
     });
-    
+
     //--------------------------------------------------
     // Re-throw (critical for startup control flow)
     //--------------------------------------------------

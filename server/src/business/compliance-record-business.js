@@ -9,7 +9,9 @@
 const {
   resolveUserPermissionContext,
 } = require('../services/permission-service');
-const { COMPLIANCE_RECORD_CONSTANTS } = require('../utils/constants/domain/compliance-record-constants');
+const {
+  COMPLIANCE_RECORD_CONSTANTS,
+} = require('../utils/constants/domain/compliance-record-constants');
 const { logSystemException } = require('../utils/logging/system-logger');
 const AppError = require('../utils/AppError');
 const { getStatusId } = require('../config/status-cache');
@@ -26,22 +28,37 @@ const CONTEXT = 'compliance-record-business';
  */
 const evaluateComplianceViewAccessControl = async (user) => {
   const context = `${CONTEXT}/evaluateComplianceViewAccessControl`;
-  
+
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     const canViewCompliance =
-      isRoot || permissions.includes(COMPLIANCE_RECORD_CONSTANTS.PERMISSIONS.VIEW_COMPLIANCE_RECORDINGS);
-    
+      isRoot ||
+      permissions.includes(
+        COMPLIANCE_RECORD_CONSTANTS.PERMISSIONS.VIEW_COMPLIANCE_RECORDINGS
+      );
+
     const canViewComplianceMetadata =
-      isRoot || permissions.includes(COMPLIANCE_RECORD_CONSTANTS.PERMISSIONS.VIEW_COMPLIANCE_RECORDINGS_METADATA);
-    
+      isRoot ||
+      permissions.includes(
+        COMPLIANCE_RECORD_CONSTANTS.PERMISSIONS
+          .VIEW_COMPLIANCE_RECORDINGS_METADATA
+      );
+
     const canViewComplianceHistory =
-      isRoot || permissions.includes(COMPLIANCE_RECORD_CONSTANTS.PERMISSIONS.VIEW_COMPLIANCE_RECORDINGS_HISTORY);
-    
+      isRoot ||
+      permissions.includes(
+        COMPLIANCE_RECORD_CONSTANTS.PERMISSIONS
+          .VIEW_COMPLIANCE_RECORDINGS_HISTORY
+      );
+
     const canViewInactiveCompliance =
-      isRoot || permissions.includes(COMPLIANCE_RECORD_CONSTANTS.PERMISSIONS.VIEW_COMPLIANCE_RECORDINGS_INACTIVE);
-    
+      isRoot ||
+      permissions.includes(
+        COMPLIANCE_RECORD_CONSTANTS.PERMISSIONS
+          .VIEW_COMPLIANCE_RECORDINGS_INACTIVE
+      );
+
     return {
       canViewCompliance,
       canViewComplianceMetadata,
@@ -53,7 +70,7 @@ const evaluateComplianceViewAccessControl = async (user) => {
       context,
       userId: user?.id,
     });
-    
+
     throw AppError.businessError(
       'Unable to evaluate user access control for compliance records.'
     );
@@ -73,10 +90,10 @@ const evaluateComplianceViewAccessControl = async (user) => {
  */
 const sliceComplianceRecordsForUser = (complianceRows, access) => {
   if (!Array.isArray(complianceRows)) return [];
-  
+
   const ACTIVE_STATUS_ID = getStatusId('general_active');
   const results = [];
-  
+
   for (const row of complianceRows) {
     // Skip inactive records unless the user has explicit permission to view them.
     if (
@@ -85,7 +102,7 @@ const sliceComplianceRecordsForUser = (complianceRows, access) => {
     ) {
       continue;
     }
-    
+
     const safe = {
       id: row.id,
       type: row.type,
@@ -93,7 +110,7 @@ const sliceComplianceRecordsForUser = (complianceRows, access) => {
       issuedDate: row.issued_date,
       expiryDate: row.expiry_date,
     };
-    
+
     if (access.canViewComplianceMetadata) {
       safe.metadata = {
         status: {
@@ -104,14 +121,14 @@ const sliceComplianceRecordsForUser = (complianceRows, access) => {
         description: row.description,
       };
     }
-    
+
     if (access.canViewComplianceHistory) {
       safe.audit = compactAudit(makeAudit(row));
     }
-    
+
     results.push(safe);
   }
-  
+
   return results;
 };
 

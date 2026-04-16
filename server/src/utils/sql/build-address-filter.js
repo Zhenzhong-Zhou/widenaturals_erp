@@ -57,11 +57,11 @@ const buildAddressFilter = (filters = {}, includeUnassigned = false) => {
     'updatedAfter',
     'updatedBefore'
   );
-  
-  const conditions  = ['1=1'];
-  const params      = [];
+
+  const conditions = ['1=1'];
+  const params = [];
   const paramIndexRef = { value: 1 };
-  
+
   if (normalizedFilters.customerId) {
     if (includeUnassigned) {
       // Surface both the customer's own addresses and any orphan addresses.
@@ -74,43 +74,43 @@ const buildAddressFilter = (filters = {}, includeUnassigned = false) => {
     params.push(normalizedFilters.customerId);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.customerType) {
     conditions.push(`c.customer_type = $${paramIndexRef.value}`);
     params.push(normalizedFilters.customerType);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.createdBy) {
     conditions.push(`a.created_by = $${paramIndexRef.value}`);
     params.push(normalizedFilters.createdBy);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.updatedBy) {
     conditions.push(`a.updated_by = $${paramIndexRef.value}`);
     params.push(normalizedFilters.updatedBy);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.region) {
     conditions.push(`a.region = $${paramIndexRef.value}`);
     params.push(normalizedFilters.region);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.country) {
     conditions.push(`a.country = $${paramIndexRef.value}`);
     params.push(normalizedFilters.country);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.city) {
     conditions.push(`a.city = $${paramIndexRef.value}`);
     params.push(normalizedFilters.city);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.keyword) {
     // Same $N index is intentionally repeated across all five columns —
     // PostgreSQL allows a single bound parameter to be referenced multiple
@@ -128,25 +128,25 @@ const buildAddressFilter = (filters = {}, includeUnassigned = false) => {
     params.push(`%${normalizedFilters.keyword}%`);
     paramIndexRef.value++;
   }
-  
+
   applyDateRangeConditions({
     conditions,
     params,
-    column:        'a.created_at',
-    after:         normalizedFilters.createdAfter,
-    before:        normalizedFilters.createdBefore,
+    column: 'a.created_at',
+    after: normalizedFilters.createdAfter,
+    before: normalizedFilters.createdBefore,
     paramIndexRef,
   });
-  
+
   applyDateRangeConditions({
     conditions,
     params,
-    column:        'a.updated_at',
-    after:         normalizedFilters.updatedAfter,
-    before:        normalizedFilters.updatedBefore,
+    column: 'a.updated_at',
+    after: normalizedFilters.updatedAfter,
+    before: normalizedFilters.updatedBefore,
     paramIndexRef,
   });
-  
+
   return {
     whereClause: conditions.join(' AND '),
     params,

@@ -10,8 +10,8 @@
 
 'use strict';
 
-const sanitizeRichText    = require('./sanitize-html');
-const customSanitization  = require('./custom-sanitization');
+const sanitizeRichText = require('./sanitize-html');
+const customSanitization = require('./custom-sanitization');
 
 /**
  * Sanitizes a specific subset of `req.body` fields and stores the results
@@ -33,7 +33,7 @@ const customSanitization  = require('./custom-sanitization');
  */
 const sanitizeRequestBody = (req, fields, isRichText = false) => {
   req.sanitizedBody ??= {};
-  
+
   for (const field of fields) {
     // Use hasOwnProperty check so falsy values (0, false, '') are not skipped.
     if (req.body && Object.prototype.hasOwnProperty.call(req.body, field)) {

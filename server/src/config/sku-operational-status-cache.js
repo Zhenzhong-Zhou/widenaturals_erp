@@ -15,10 +15,19 @@
 'use strict';
 
 const AppError = require('../utils/AppError');
-const { getOrderStatusesByCodes } = require('../repositories/order-status-repository');
-const { getInventoryAllocationStatusesByCodes } = require('../repositories/inventory-allocation-status-repository');
-const { getTransferItemStatusesByCodes } = require('../repositories/transfer-order-item-status-repository');
-const { logSystemInfo, logSystemException } = require('../utils/logging/system-logger');
+const {
+  getOrderStatusesByCodes,
+} = require('../repositories/order-status-repository');
+const {
+  getInventoryAllocationStatusesByCodes,
+} = require('../repositories/inventory-allocation-status-repository');
+const {
+  getTransferItemStatusesByCodes,
+} = require('../repositories/transfer-order-item-status-repository');
+const {
+  logSystemInfo,
+  logSystemException,
+} = require('../utils/logging/system-logger');
 
 const CONTEXT = 'sku-operational-status-cache';
 
@@ -90,12 +99,16 @@ const SKU_ACTIVE_TRANSFER_ITEM_CODES = [
 const initSkuOperationalStatusCache = async (client = null) => {
   try {
     // Fetch all three domains in parallel — they have no dependency on each other.
-    const [orderStatuses, allocationStatuses, transferStatuses] = await Promise.all([
-      getOrderStatusesByCodes(SKU_ACTIVE_ORDER_CODES, client),
-      getInventoryAllocationStatusesByCodes(SKU_ACTIVE_ALLOCATION_CODES, client),
-      getTransferItemStatusesByCodes(SKU_ACTIVE_TRANSFER_ITEM_CODES, client),
-    ]);
-    
+    const [orderStatuses, allocationStatuses, transferStatuses] =
+      await Promise.all([
+        getOrderStatusesByCodes(SKU_ACTIVE_ORDER_CODES, client),
+        getInventoryAllocationStatusesByCodes(
+          SKU_ACTIVE_ALLOCATION_CODES,
+          client
+        ),
+        getTransferItemStatusesByCodes(SKU_ACTIVE_TRANSFER_ITEM_CODES, client),
+      ]);
+
     // If the DB returned fewer rows than codes requested, at least one code is
     // missing from the seed data. Treat this as a fatal misconfiguration rather
     // than a partial success — availability logic depends on the full set.
@@ -108,24 +121,27 @@ const initSkuOperationalStatusCache = async (client = null) => {
         'SKU operational status cache initialization failed: one or more required status codes are missing from the database. Check that all seed data has been applied.'
       );
     }
-    
+
     SKU_OPERATIONAL_STATUS_IDS = {
-      order:      orderStatuses.map((s) => s.id),
+      order: orderStatuses.map((s) => s.id),
       allocation: allocationStatuses.map((s) => s.id),
-      transfer:   transferStatuses.map((s) => s.id),
+      transfer: transferStatuses.map((s) => s.id),
     };
-    
+
     logSystemInfo('SKU operational status cache initialized', {
       context: CONTEXT,
-      orderCount:      SKU_OPERATIONAL_STATUS_IDS.order.length,
+      orderCount: SKU_OPERATIONAL_STATUS_IDS.order.length,
       allocationCount: SKU_OPERATIONAL_STATUS_IDS.allocation.length,
-      transferCount:   SKU_OPERATIONAL_STATUS_IDS.transfer.length,
+      transferCount: SKU_OPERATIONAL_STATUS_IDS.transfer.length,
     });
-    
   } catch (error) {
-    logSystemException(error, 'Failed to initialize SKU operational status cache', {
-      context: CONTEXT,
-    });
+    logSystemException(
+      error,
+      'Failed to initialize SKU operational status cache',
+      {
+        context: CONTEXT,
+      }
+    );
     throw error;
   }
 };
@@ -150,10 +166,10 @@ const getSkuOperationalStatusIds = () => {
   if (!SKU_OPERATIONAL_STATUS_IDS) {
     throw AppError.validationError(
       'SKU operational status cache has not been initialized. ' +
-      'Ensure initSkuOperationalStatusCache() is called during startup.'
+        'Ensure initSkuOperationalStatusCache() is called during startup.'
     );
   }
-  
+
   return SKU_OPERATIONAL_STATUS_IDS;
 };
 

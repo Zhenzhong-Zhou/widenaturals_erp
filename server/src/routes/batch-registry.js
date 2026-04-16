@@ -10,9 +10,9 @@
 'use strict';
 
 const express = require('express');
-const { authorize }                      = require('../middlewares/authorize');
-const PERMISSION_KEYS                = require('../utils/constants/domain/permission-keys');
-const validate                           = require('../middlewares/validate');
+const { authorize } = require('../middlewares/authorize');
+const PERMISSION_KEYS = require('../utils/constants/domain/permission-keys');
+const validate = require('../middlewares/validate');
 const createQueryNormalizationMiddleware = require('../middlewares/normalize-query');
 const {
   batchRegistryQuerySchema,
@@ -44,7 +44,8 @@ router.get(
   }),
   createQueryNormalizationMiddleware(
     'batchRegistrySortMap', // moduleKey — drives allowed sortBy fields
-    [                       // arrayKeys — normalized as UUID arrays
+    [
+      // arrayKeys — normalized as UUID arrays
       'statusIds',
       'skuIds',
       'productIds',
@@ -52,11 +53,11 @@ router.get(
       'packagingMaterialIds',
       'supplierIds',
     ],
-    [],                      // booleanKeys — none client-controlled
-    batchRegistryQuerySchema,           // filterKeysOrSchema — extracts filter keys from schema
-    {},                    // options factoryOption — none
-    [],                 // option-level booleans — none
-    []                   // option-level strings — none
+    [], // booleanKeys — none client-controlled
+    batchRegistryQuerySchema, // filterKeysOrSchema — extracts filter keys from schema
+    {}, // options factoryOption — none
+    [], // option-level booleans — none
+    [] // option-level strings — none
   ),
   getPaginatedBatchRegistryController
 );

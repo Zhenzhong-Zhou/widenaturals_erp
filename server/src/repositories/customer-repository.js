@@ -18,8 +18,13 @@
 
 const { bulkInsert } = require('../utils/db/write-utils');
 const { query } = require('../database/db');
-const { validateBulkInsertRows } = require('../utils/validation/bulk-insert-row-validator');
-const { paginateQuery, paginateQueryByOffset } = require('../utils/db/pagination/pagination-helpers');
+const {
+  validateBulkInsertRows,
+} = require('../utils/validation/bulk-insert-row-validator');
+const {
+  paginateQuery,
+  paginateQueryByOffset,
+} = require('../utils/db/pagination/pagination-helpers');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { logDbQueryError, logBulkInsertError } = require('../utils/db-logger');
 const { buildCustomerFilter } = require('../utils/sql/build-customer-filter');
@@ -57,25 +62,25 @@ const {
  */
 const insertCustomerRecords = async (customers, client) => {
   const context = 'customer-repository/insertCustomerRecords';
-  
+
   const rows = customers.map((customer) => [
     customer.firstname,
     customer.lastname,
-    customer.email          ?? null,
-    customer.phone_number   ?? null,
-    customer.customer_type  ?? 'individual',
-    customer.company_name   ?? null,
+    customer.email ?? null,
+    customer.phone_number ?? null,
+    customer.customer_type ?? 'individual',
+    customer.company_name ?? null,
     customer.status_id,
-    customer.note           ?? null,
-    null,                           // updated_at — null at insert time
-    customer.created_by     ?? null,
-    null,                           // updated_by — null at insert time
+    customer.note ?? null,
+    null, // updated_at — null at insert time
+    customer.created_by ?? null,
+    null, // updated_by — null at insert time
   ]);
-  
+
   // Validation is outside the try block — a validation throw must not be
   // caught and re-thrown as a database error.
   validateBulkInsertRows(rows, CUSTOMER_INSERT_COLUMNS.length);
-  
+
   try {
     return await bulkInsert(
       'customers',
@@ -89,14 +94,12 @@ const insertCustomerRecords = async (customers, client) => {
     throw handleDbError(error, {
       context,
       message: 'Bulk insert operation failed.',
-      meta:    { table: 'customers', rowCount: rows.length },
-      logFn:   (err) => logBulkInsertError(
-        err,
-        'customers',
-        rows,
-        rows.length,
-        { context, conflictColumns: CUSTOMER_CONFLICT_COLUMNS }
-      ),
+      meta: { table: 'customers', rowCount: rows.length },
+      logFn: (err) =>
+        logBulkInsertError(err, 'customers', rows, rows.length, {
+          context,
+          conflictColumns: CUSTOMER_CONFLICT_COLUMNS,
+        }),
     });
   }
 };
@@ -117,7 +120,7 @@ const insertCustomerRecords = async (customers, client) => {
  */
 const getEnrichedCustomersByIds = async (ids, client) => {
   const context = 'customer-repository/getEnrichedCustomersByIds';
-  
+
   try {
     const result = await query(CUSTOMER_ENRICHED_QUERY, [ids], client);
     return result.rows;
@@ -125,13 +128,9 @@ const getEnrichedCustomersByIds = async (ids, client) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to retrieve enriched customer records.',
-      meta:    { ids },
-      logFn:   (err) => logDbQueryError(
-        CUSTOMER_ENRICHED_QUERY,
-        [ids],
-        err,
-        { context, ids }
-      ),
+      meta: { ids },
+      logFn: (err) =>
+        logDbQueryError(CUSTOMER_ENRICHED_QUERY, [ids], err, { context, ids }),
     });
   }
 };
@@ -157,50 +156,51 @@ const getEnrichedCustomersByIds = async (ids, client) => {
  * @throws  {AppError}       Normalized database error if the query fails.
  */
 const getPaginatedCustomers = async ({
-                                       filters   = {},
-                                       page      = 1,
-                                       limit     = 10,
-                                       sortBy    = 'created_at',
-                                       sortOrder = 'DESC',
-                                     }) => {
+  filters = {},
+  page = 1,
+  limit = 10,
+  sortBy = 'created_at',
+  sortOrder = 'DESC',
+}) => {
   const context = 'customer-repository/getPaginatedCustomers';
-  
+
   const { whereClause, params } = buildCustomerFilter(filters);
-  
+
   // ORDER BY omitted — paginateQuery appends it from sortBy/sortOrder.
   const queryText = buildCustomerPaginatedQuery(whereClause);
-  
+
   const sortConfig = resolveSort({
     sortBy,
     sortOrder,
-    moduleKey:   'customerSortMap',
+    moduleKey: 'customerSortMap',
     defaultSort: SORTABLE_FIELDS.customerSortMap.defaultNaturalSort,
   });
-  
+
   try {
     return await paginateQuery({
-      tableName:    CUSTOMER_PAGINATED_TABLE,
-      joins:        CUSTOMER_PAGINATED_JOINS,
+      tableName: CUSTOMER_PAGINATED_TABLE,
+      joins: CUSTOMER_PAGINATED_JOINS,
       whereClause,
       queryText,
       params,
       page,
       limit,
-      sortBy:       sortConfig.sortBy,
-      sortOrder:    sortConfig.sortOrder,
+      sortBy: sortConfig.sortBy,
+      sortOrder: sortConfig.sortOrder,
       whitelistSet: CUSTOMER_PAGINATED_SORT_WHITELIST,
     });
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch paginated customers.',
-      meta:    { filters, page, limit, sortBy, sortOrder },
-      logFn:   (err) => logDbQueryError(
-        queryText,
-        params,
-        err,
-        { context, filters, page, limit }
-      ),
+      meta: { filters, page, limit, sortBy, sortOrder },
+      logFn: (err) =>
+        logDbQueryError(queryText, params, err, {
+          context,
+          filters,
+          page,
+          limit,
+        }),
     });
   }
 };
@@ -224,34 +224,35 @@ const getPaginatedCustomers = async ({
  */
 const getCustomerLookup = async ({ filters = {}, limit = 50, offset = 0 }) => {
   const context = 'customer-repository/getCustomerLookup';
-  
+
   const { whereClause, params } = buildCustomerFilter(filters);
   const queryText = buildCustomerLookupQuery(whereClause);
-  
+
   try {
     return await paginateQueryByOffset({
-      tableName:       CUSTOMER_LOOKUP_TABLE,
+      tableName: CUSTOMER_LOOKUP_TABLE,
       whereClause,
       queryText,
       params,
       offset,
       limit,
-      sortBy:          'c.firstname',
-      sortOrder:       'ASC',
+      sortBy: 'c.firstname',
+      sortOrder: 'ASC',
       additionalSorts: CUSTOMER_LOOKUP_ADDITIONAL_SORTS,
-      whitelistSet:    CUSTOMER_LOOKUP_SORT_WHITELIST,
+      whitelistSet: CUSTOMER_LOOKUP_SORT_WHITELIST,
     });
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch customer lookup data.',
-      meta:    { filters, limit, offset },
-      logFn:   (err) => logDbQueryError(
-        queryText,
-        params,
-        err,
-        { context, filters, limit, offset }
-      ),
+      meta: { filters, limit, offset },
+      logFn: (err) =>
+        logDbQueryError(queryText, params, err, {
+          context,
+          filters,
+          limit,
+          offset,
+        }),
     });
   }
 };

@@ -27,8 +27,9 @@ const {
  * @property {string} pricingGroupId - UUID of the pricing group record.
  */
 const pricingGroupParamsSchema = Joi.object({
-  pricingGroupId: validateUUID('Pricing Group ID')
-    .description('UUID of the pricing group record'),
+  pricingGroupId: validateUUID('Pricing Group ID').description(
+    'UUID of the pricing group record'
+  ),
 });
 
 // ─── Pricing Join List ────────────────────────────────────────────────────────
@@ -50,16 +51,18 @@ const pricingGroupParamsSchema = Joi.object({
  */
 const pricingJoinQuerySchema = paginationSchema
   .concat(createSortSchema('productName'))
-  .concat(Joi.object({
-    pricingGroupId: validateOptionalUUID('Pricing Group ID'),
-    pricingTypeId:  validateOptionalUUID('Pricing Type ID'),
-    skuId:          validateOptionalUUID('SKU ID'),
-    productId:      validateOptionalUUID('Product ID'),
-    search:         Joi.string().max(100).optional(),
-    brand:          Joi.string().max(100).optional(),
-    category:       Joi.string().max(100).optional(),
-    countryCode:    Joi.string().max(10).optional(),
-  }));
+  .concat(
+    Joi.object({
+      pricingGroupId: validateOptionalUUID('Pricing Group ID'),
+      pricingTypeId: validateOptionalUUID('Pricing Type ID'),
+      skuId: validateOptionalUUID('SKU ID'),
+      productId: validateOptionalUUID('Product ID'),
+      search: Joi.string().max(100).optional(),
+      brand: Joi.string().max(100).optional(),
+      category: Joi.string().max(100).optional(),
+      countryCode: Joi.string().max(10).optional(),
+    })
+  );
 
 // ─── Export ───────────────────────────────────────────────────────────────────
 
@@ -76,11 +79,14 @@ const pricingJoinQuerySchema = paginationSchema
  */
 const pricingExportQuerySchema = Joi.object({
   pricingTypeId: validateOptionalUUID('Pricing Type ID'),
-  countryCode:   Joi.string().max(10).optional(),
-  statusId:      validateOptionalUUID('Status ID'),
-  brand:         Joi.string().max(100).optional(),
-  productId:     validateOptionalUUID('Product ID'),
-  exportFormat:  Joi.string().lowercase().valid('txt', 'csv', 'xlsx').default('xlsx'),
+  countryCode: Joi.string().max(10).optional(),
+  statusId: validateOptionalUUID('Status ID'),
+  brand: Joi.string().max(100).optional(),
+  productId: validateOptionalUUID('Product ID'),
+  exportFormat: Joi.string()
+    .lowercase()
+    .valid('txt', 'csv', 'xlsx')
+    .default('xlsx'),
 });
 
 module.exports = {

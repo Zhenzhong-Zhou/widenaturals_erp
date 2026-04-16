@@ -17,8 +17,12 @@ const {
   assertWarehouseAccess,
   enforceWarehouseScope,
 } = require('../business/warehouse-inventory-business');
-const { getPaginatedInventoryActivityLog } = require('../repositories/inventory-activity-log-repository');
-const { transformPaginatedInventoryActivityLog } = require('../transformers/inventory-activity-log-transformer');
+const {
+  getPaginatedInventoryActivityLog,
+} = require('../repositories/inventory-activity-log-repository');
+const {
+  transformPaginatedInventoryActivityLog,
+} = require('../transformers/inventory-activity-log-transformer');
 
 const CONTEXT = 'inventory-activity-log-service';
 
@@ -42,19 +46,19 @@ const CONTEXT = 'inventory-activity-log-service';
  * @throws {AppError} Passes through ACL AppErrors; wraps unexpected errors as serviceError.
  */
 const fetchPaginatedActivityLogService = async ({
-                                                  filters   = {},
-                                                  page      = 1,
-                                                  limit     = 20,
-                                                  sortBy    = 'performedAt',
-                                                  sortOrder = 'DESC',
-                                                  user,
-                                                }) => {
-  const context = `${CONTEXT}/fetchPaginatedActivityLogService`
-  
+  filters = {},
+  page = 1,
+  limit = 20,
+  sortBy = 'performedAt',
+  sortOrder = 'DESC',
+  user,
+}) => {
+  const context = `${CONTEXT}/fetchPaginatedActivityLogService`;
+
   try {
     const assignedWarehouseIds = await assertWarehouseAccess(user);
     enforceWarehouseScope(assignedWarehouseIds, filters.warehouseId);
-    
+
     const rawResult = await getPaginatedInventoryActivityLog({
       filters,
       page,
@@ -62,23 +66,23 @@ const fetchPaginatedActivityLogService = async ({
       sortBy,
       sortOrder,
     });
-    
+
     if (!rawResult || rawResult.data.length === 0) {
       return {
-        data:       [],
+        data: [],
         pagination: { page, limit, totalRecords: 0, totalPages: 0 },
       };
     }
-    
+
     return transformPaginatedInventoryActivityLog(rawResult);
   } catch (error) {
     if (error instanceof AppError) throw error;
-   
+
     throw AppError.serviceError(
       'Unable to retrieve inventory activity log at this time.',
       {
         context,
-        meta: { error: error.message }
+        meta: { error: error.message },
       }
     );
   }

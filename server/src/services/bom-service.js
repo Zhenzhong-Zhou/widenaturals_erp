@@ -20,18 +20,18 @@ const {
   getPaginatedBoms,
   getBomDetailsById,
   getBomProductionSummary,
-}                                        = require('../repositories/bom-repository');
+} = require('../repositories/bom-repository');
 const {
   transformPaginatedOBoms,
   transformBomDetails,
   transformBOMProductionSummaryRows,
   buildBOMProductionSummaryResponse,
-}                                        = require('../transformers/bom-transformer');
+} = require('../transformers/bom-transformer');
 const {
   computeEstimatedBomCostSummary,
   getProductionReadinessReport,
-}                                        = require('../business/bom-business');
-const AppError                           = require('../utils/AppError');
+} = require('../business/bom-business');
+const AppError = require('../utils/AppError');
 
 /**
  * Fetches paginated BOM records with optional filtering and sorting.
@@ -49,18 +49,24 @@ const AppError                           = require('../utils/AppError');
  * @throws {AppError} Wraps unexpected errors as `AppError.serviceError`.
  */
 const fetchPaginatedBomsService = async ({
-                                           filters   = {},
-                                           page      = 1,
-                                           limit     = 10,
-                                           sortBy,
-                                           sortOrder = 'DESC',
-                                         }) => {
+  filters = {},
+  page = 1,
+  limit = 10,
+  sortBy,
+  sortOrder = 'DESC',
+}) => {
   try {
-    const rawResult = await getPaginatedBoms({ filters, page, limit, sortBy, sortOrder });
+    const rawResult = await getPaginatedBoms({
+      filters,
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+    });
     return transformPaginatedOBoms(rawResult);
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
+
     throw AppError.serviceError('Unable to fetch BOM list.', {
       meta: { error: error.message },
     });
@@ -82,20 +88,23 @@ const fetchPaginatedBomsService = async ({
 const fetchBomDetailsService = async (bomId) => {
   try {
     const rawData = await getBomDetailsById(bomId);
-    
+
     if (!rawData || rawData.length === 0) {
-      throw AppError.notFoundError('No BOM details found for the provided BOM ID.');
+      throw AppError.notFoundError(
+        'No BOM details found for the provided BOM ID.'
+      );
     }
-    
+
     const structuredResult = transformBomDetails(rawData);
-    
+
     // Attach aggregated cost summary if the business function is available.
-    structuredResult.summary = computeEstimatedBomCostSummary(structuredResult) ?? null;
-    
+    structuredResult.summary =
+      computeEstimatedBomCostSummary(structuredResult) ?? null;
+
     return structuredResult;
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
+
     throw AppError.serviceError('Unable to fetch BOM details.', {
       meta: { error: error.message },
     });
@@ -117,18 +126,18 @@ const fetchBOMProductionSummaryService = async (bomId) => {
   try {
     // 1. Fetch raw rows from repository.
     const rawData = await getBomProductionSummary(bomId);
-    
+
     // 2. Transform flat rows into structured part summaries.
     const transformedSummary = transformBOMProductionSummaryRows(rawData);
-    
+
     // 3. Apply business logic — capacity, shortages, bottlenecks.
     const readinessReport = getProductionReadinessReport(transformedSummary);
-    
+
     // 4. Build and return final API response shape.
     return buildBOMProductionSummaryResponse(bomId, readinessReport);
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
+
     throw AppError.serviceError('Unable to fetch BOM production summary.', {
       meta: { error: error.message },
     });

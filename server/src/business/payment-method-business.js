@@ -27,10 +27,10 @@ const CONTEXT = 'payment-method-business';
  */
 const evaluatePaymentMethodLookupAccessControl = async (user) => {
   const context = `${CONTEXT}/evaluatePaymentMethodLookupAccessControl`;
-  
+
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     return {
       canViewAllStatuses:
         isRoot ||
@@ -44,7 +44,7 @@ const evaluatePaymentMethodLookupAccessControl = async (user) => {
       'Failed to evaluate payment method access control',
       { context, userId: user?.id }
     );
-    
+
     throw AppError.businessError(
       'Unable to evaluate access control for payment method lookup.'
     );
@@ -69,24 +69,24 @@ const enforcePaymentMethodLookupVisibilityRules = (
   userAccess
 ) => {
   const adjusted = { ...filters };
-  
+
   if (!userAccess.canViewAllStatuses) {
     adjusted.isActive = true;
   } else {
     delete adjusted.isActive;
   }
-  
+
   if (!userAccess.canViewPaymentCode && adjusted.keyword) {
     const keyword = adjusted.keyword.trim();
-    
+
     // Block keywords that match a code format — prevents unauthorized code enumeration.
     if (/^[A-Z0-9_]+$/.test(keyword)) {
       throw AppError.authorizationError('Filtering by code is not allowed.');
     }
-    
+
     adjusted._restrictKeywordToNameOnly = true;
   }
-  
+
   return adjusted;
 };
 

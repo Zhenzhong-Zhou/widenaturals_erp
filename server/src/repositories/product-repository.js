@@ -21,8 +21,13 @@
 
 const { query } = require('../database/db');
 const { bulkInsert, updateById } = require('../utils/db/write-utils');
-const { validateBulkInsertRows } = require('../utils/validation/bulk-insert-row-validator');
-const { paginateQueryByOffset, paginateQuery } = require('../utils/db/pagination/pagination-helpers');
+const {
+  validateBulkInsertRows,
+} = require('../utils/validation/bulk-insert-row-validator');
+const {
+  paginateQueryByOffset,
+  paginateQuery,
+} = require('../utils/db/pagination/pagination-helpers');
 const AppError = require('../utils/AppError');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { logDbQueryError, logBulkInsertError } = require('../utils/db-logger');
@@ -47,7 +52,11 @@ const {
 } = require('./queries/product-queries');
 
 // Allowed field names for checkProductExists — validated before SQL interpolation.
-const _PRODUCT_EXISTS_ALLOWED_FIELDS = new Set(['id', 'barcode', 'product_name']);
+const _PRODUCT_EXISTS_ALLOWED_FIELDS = new Set([
+  'id',
+  'barcode',
+  'product_name',
+]);
 
 // ─── Existence Check ──────────────────────────────────────────────────────────
 
@@ -66,17 +75,21 @@ const _PRODUCT_EXISTS_ALLOWED_FIELDS = new Set(['id', 'barcode', 'product_name']
  */
 const checkProductExists = async (filters, combineWith = 'OR') => {
   const context = 'product-repository/checkProductExists';
-  
-  if (!filters || typeof filters !== 'object' || Object.keys(filters).length === 0) {
+
+  if (
+    !filters ||
+    typeof filters !== 'object' ||
+    Object.keys(filters).length === 0
+  ) {
     throw AppError.validationError(
       'No valid filters provided for product existence check.',
       { context, meta: { providedFilters: filters } }
     );
   }
-  
+
   const whereClauses = [];
-  const queryParams  = [];
-  
+  const queryParams = [];
+
   for (const [key, value] of Object.entries(filters)) {
     if (!_PRODUCT_EXISTS_ALLOWED_FIELDS.has(key) || !value) continue;
     // validateIdentifier guards against SQL injection on the field name.
@@ -84,15 +97,15 @@ const checkProductExists = async (filters, combineWith = 'OR') => {
     whereClauses.push(`${safeKey} = $${queryParams.length + 1}`);
     queryParams.push(value);
   }
-  
+
   if (whereClauses.length === 0) {
     throw AppError.validationError(
       'No valid filters provided for product existence check.',
       { context, meta: { providedFilters: filters } }
     );
   }
-  
-  const operator  = combineWith.toUpperCase() === 'AND' ? ' AND ' : ' OR ';
+
+  const operator = combineWith.toUpperCase() === 'AND' ? ' AND ' : ' OR ';
   const queryText = `
     SELECT EXISTS (
       SELECT 1
@@ -100,7 +113,7 @@ const checkProductExists = async (filters, combineWith = 'OR') => {
       WHERE ${whereClauses.join(operator)}
     ) AS exists
   `;
-  
+
   try {
     const { rows } = await query(queryText, queryParams);
     return rows[0].exists;
@@ -108,10 +121,8 @@ const checkProductExists = async (filters, combineWith = 'OR') => {
     throw handleDbError(error, {
       context,
       message: 'Failed to execute product existence check.',
-      meta:    { filters },
-      logFn:   (err) => logDbQueryError(
-        queryText, queryParams, err, { context }
-      ),
+      meta: { filters },
+      logFn: (err) => logDbQueryError(queryText, queryParams, err, { context }),
     });
   }
 };
@@ -132,46 +143,50 @@ const checkProductExists = async (filters, combineWith = 'OR') => {
  * @throws  {AppError}        Normalized database error if the query fails.
  */
 const getPaginatedProducts = async ({
-                                      filters   = {},
-                                      page      = 1,
-                                      limit     = 10,
-                                      sortBy    = 'createdAt',
-                                      sortOrder = 'DESC',
-                                    }) => {
+  filters = {},
+  page = 1,
+  limit = 10,
+  sortBy = 'createdAt',
+  sortOrder = 'DESC',
+}) => {
   const context = 'product-repository/getPaginatedProducts';
-  
+
   const { whereClause, params } = buildProductFilter(filters);
-  
+
   const sortConfig = resolveSort({
     sortBy,
     sortOrder,
-    moduleKey:   'productSortMap',
+    moduleKey: 'productSortMap',
     defaultSort: SORTABLE_FIELDS.productSortMap.defaultNaturalSort,
   });
-  
+
   const queryText = buildProductPaginatedQuery(whereClause);
-  
+
   try {
     return await paginateQuery({
-      tableName:    PRODUCT_TABLE,
-      joins:        PRODUCT_JOINS,
+      tableName: PRODUCT_TABLE,
+      joins: PRODUCT_JOINS,
       whereClause,
       queryText,
       params,
       page,
       limit,
-      sortBy:       sortConfig.sortBy,
-      sortOrder:    sortConfig.sortOrder,
+      sortBy: sortConfig.sortBy,
+      sortOrder: sortConfig.sortOrder,
       whitelistSet: PRODUCT_SORT_WHITELIST,
     });
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch paginated product records.',
-      meta:    { filters, page, limit, sortBy, sortOrder },
-      logFn:   (err) => logDbQueryError(
-        queryText, params, err, { context, filters, page, limit }
-      ),
+      meta: { filters, page, limit, sortBy, sortOrder },
+      logFn: (err) =>
+        logDbQueryError(queryText, params, err, {
+          context,
+          filters,
+          page,
+          limit,
+        }),
     });
   }
 };
@@ -190,7 +205,7 @@ const getPaginatedProducts = async ({
  */
 const getProductDetailsById = async (productId) => {
   const context = 'product-repository/getProductDetailsById';
-  
+
   try {
     const { rows } = await query(PRODUCT_DETAILS_QUERY, [productId]);
     return rows[0] ?? null;
@@ -198,10 +213,12 @@ const getProductDetailsById = async (productId) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch product detail.',
-      meta:    { productId },
-      logFn:   (err) => logDbQueryError(
-        PRODUCT_DETAILS_QUERY, [productId], err, { context, productId }
-      ),
+      meta: { productId },
+      logFn: (err) =>
+        logDbQueryError(PRODUCT_DETAILS_QUERY, [productId], err, {
+          context,
+          productId,
+        }),
     });
   }
 };
@@ -253,7 +270,7 @@ const updateProductInfo = async (productId, updates, userId, client) => {
       'No update fields provided for product update.'
     );
   }
-  
+
   return await updateById('products', productId, updates, userId, client);
 };
 
@@ -274,9 +291,9 @@ const updateProductInfo = async (productId, updates, userId, client) => {
  */
 const insertProductsBulk = async (products, client) => {
   if (!Array.isArray(products) || products.length === 0) return [];
-  
+
   const context = 'product-repository/insertProductsBulk';
-  
+
   // Validation is before IO — must not be inside the try block.
   if (!products.every((p) => p.name && p.brand && p.category)) {
     throw AppError.validationError(
@@ -284,21 +301,21 @@ const insertProductsBulk = async (products, client) => {
       { context }
     );
   }
-  
+
   const rows = products.map((p) => [
     p.name,
-    p.series      ?? null,
+    p.series ?? null,
     p.brand,
     p.category,
     p.description ?? null,
     p.status_id,
-    p.created_by  ?? null,
-    null,                   // updated_by — null at insert time
-    null,                   // updated_at — null at insert time
+    p.created_by ?? null,
+    null, // updated_by — null at insert time
+    null, // updated_at — null at insert time
   ]);
-  
+
   validateBulkInsertRows(rows, PRODUCT_INSERT_COLUMNS.length);
-  
+
   try {
     return await bulkInsert(
       'products',
@@ -314,14 +331,12 @@ const insertProductsBulk = async (products, client) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to insert product records.',
-      meta:    { productCount: products.length },
-      logFn:   (err) => logBulkInsertError(
-        err,
-        'products',
-        rows,
-        rows.length,
-        { context, conflictColumns: PRODUCT_CONFLICT_COLUMNS }
-      ),
+      meta: { productCount: products.length },
+      logFn: (err) =>
+        logBulkInsertError(err, 'products', rows, rows.length, {
+          context,
+          conflictColumns: PRODUCT_CONFLICT_COLUMNS,
+        }),
     });
   }
 };
@@ -341,32 +356,36 @@ const insertProductsBulk = async (products, client) => {
  */
 const getProductLookup = async ({ filters = {}, limit = 50, offset = 0 }) => {
   const context = 'product-repository/getProductLookup';
-  
+
   const { whereClause, params } = buildProductFilter(filters);
   const queryText = buildProductLookupQuery(whereClause);
-  
+
   try {
     return await paginateQueryByOffset({
-      tableName:       PRODUCT_LOOKUP_TABLE,
-      joins:           PRODUCT_LOOKUP_JOINS,
+      tableName: PRODUCT_LOOKUP_TABLE,
+      joins: PRODUCT_LOOKUP_JOINS,
       whereClause,
       queryText,
       params,
       offset,
       limit,
-      sortBy:          'p.name',
-      sortOrder:       'ASC',
+      sortBy: 'p.name',
+      sortOrder: 'ASC',
       additionalSorts: PRODUCT_LOOKUP_ADDITIONAL_SORTS,
-      whitelistSet:    PRODUCT_LOOKUP_SORT_WHITELIST,
+      whitelistSet: PRODUCT_LOOKUP_SORT_WHITELIST,
     });
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch product lookup.',
-      meta:    { filters, limit, offset },
-      logFn:   (err) => logDbQueryError(
-        queryText, params, err, { context, filters, limit, offset }
-      ),
+      meta: { filters, limit, offset },
+      logFn: (err) =>
+        logDbQueryError(queryText, params, err, {
+          context,
+          filters,
+          limit,
+          offset,
+        }),
     });
   }
 };

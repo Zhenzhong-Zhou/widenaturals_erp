@@ -33,7 +33,7 @@ const { exportData } = require('../utils/export-utils');
 const getPaginatedPricingJoinController = wrapAsyncHandler(async (req, res) => {
   const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
   const user = req.auth.user;
-  
+
   const { data, pagination } = await fetchPaginatedPricingJoinService({
     filters,
     page,
@@ -42,13 +42,13 @@ const getPaginatedPricingJoinController = wrapAsyncHandler(async (req, res) => {
     sortOrder,
     user,
   });
-  
+
   res.status(200).json({
-    success:  true,
-    message:  'Pricing records retrieved successfully.',
+    success: true,
+    message: 'Pricing records retrieved successfully.',
     data,
     pagination,
-    traceId:  req.traceId,
+    traceId: req.traceId,
   });
 });
 
@@ -63,22 +63,22 @@ const getPaginatedPricingJoinController = wrapAsyncHandler(async (req, res) => {
  * @param {Object} req.user                         - Authenticated user object.
  */
 const exportPricingRecordsController = wrapAsyncHandler(async (req, res) => {
-  const { filters }      = req.normalizedQuery;
+  const { filters } = req.normalizedQuery;
   const { exportFormat } = req.query;
   const user = req.auth.user;
-  
+
   const exportRows = await exportPricingRecordsService({
     filters,
     user,
   });
-  
+
   const { fileBuffer, contentType, filename } = await exportData({
-    data:         exportRows,
+    data: exportRows,
     exportFormat,
-    filename:     'pricing_export',
-    title:        'Pricing Export',
+    filename: 'pricing_export',
+    title: 'Pricing Export',
   });
-  
+
   res.setHeader('Content-Type', contentType);
   res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
   res.status(200).send(fileBuffer);
@@ -94,9 +94,9 @@ const exportPricingRecordsController = wrapAsyncHandler(async (req, res) => {
  */
 const getPricingBySkuIdController = wrapAsyncHandler(async (req, res) => {
   const { skuId } = req.params;
-  
+
   const data = await fetchPricingBySkuIdService(skuId);
-  
+
   res.status(200).json({
     success: true,
     message: 'Pricing retrieved successfully.',

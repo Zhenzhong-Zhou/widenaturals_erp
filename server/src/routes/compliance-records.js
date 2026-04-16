@@ -8,11 +8,11 @@
 
 'use strict';
 
-const express                            = require('express');
-const { authorize }                      = require('../middlewares/authorize');
-const validate                           = require('../middlewares/validate');
+const express = require('express');
+const { authorize } = require('../middlewares/authorize');
+const validate = require('../middlewares/validate');
 const createQueryNormalizationMiddleware = require('../middlewares/normalize-query');
-const PERMISSION_KEYS                        = require('../utils/constants/domain/permission-keys');
+const PERMISSION_KEYS = require('../utils/constants/domain/permission-keys');
 const {
   getPaginatedComplianceRecordsSchema,
 } = require('../validators/compliance-record-validators');
@@ -36,10 +36,10 @@ router.get(
   authorize([PERMISSION_KEYS.COMPLIANCE_RECORDS.VIEW_LIST]),
   validate(getPaginatedComplianceRecordsSchema, 'query'),
   createQueryNormalizationMiddleware(
-    'complianceRecordSortMap',              // moduleKey — drives allowed sortBy fields
-    ['statusIds', 'productIds', 'skuIds'],  // arrayKeys — normalized as UUID arrays
-    [],                                     // booleanKeys — none client-controlled
-    getPaginatedComplianceRecordsSchema     // filterKeysOrSchema — extracts filter keys from schema
+    'complianceRecordSortMap', // moduleKey — drives allowed sortBy fields
+    ['statusIds', 'productIds', 'skuIds'], // arrayKeys — normalized as UUID arrays
+    [], // booleanKeys — none client-controlled
+    getPaginatedComplianceRecordsSchema // filterKeysOrSchema — extracts filter keys from schema
   ),
   getPaginatedComplianceRecordsController
 );

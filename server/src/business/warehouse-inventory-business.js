@@ -40,15 +40,27 @@
 'use strict';
 
 const AppError = require('../utils/AppError');
-const { resolveUserPermissionContext } = require('../services/permission-service');
+const {
+  resolveUserPermissionContext,
+} = require('../services/permission-service');
 const { logSystemException } = require('../utils/logging/system-logger');
-const { getWarehouseIdsByUserId } = require('../repositories/user-warehouse-assignment-repository');
+const {
+  getWarehouseIdsByUserId,
+} = require('../repositories/user-warehouse-assignment-repository');
 const { applyBatchTypeVisibility } = require('./apply-batch-type-visibility');
-const { PERMISSIONS } = require('../utils/constants/domain/warehouse-inventory');
-const { validateBatchRegistryIds } = require('../repositories/batch-registry-repository');
-const { findExistingInventoryByBatchIds } = require('../repositories/warehouse-inventory-repository');
+const {
+  PERMISSIONS,
+} = require('../utils/constants/domain/warehouse-inventory');
+const {
+  validateBatchRegistryIds,
+} = require('../repositories/batch-registry-repository');
+const {
+  findExistingInventoryByBatchIds,
+} = require('../repositories/warehouse-inventory-repository');
 const { getStatusId } = require('../config/status-cache');
-const { getInventoryStatusById } = require('../repositories/inventory-status-repository');
+const {
+  getInventoryStatusById,
+} = require('../repositories/inventory-status-repository');
 const { computeLogChecksum } = require('../utils/hash-utils');
 const { cleanObject } = require('../utils/object-utils');
 
@@ -70,78 +82,79 @@ const CONTEXT = 'warehouse-inventory-business';
  */
 const evaluateWarehouseInventoryVisibility = async (user) => {
   const context = `${CONTEXT}/evaluateWarehouseInventoryVisibility`;
-  
+
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     // ─── Warehouse scope ───────────────────────────────────────────────────────
-    
+
     const canViewAllWarehouses =
-      isRoot ||
-      permissions.includes(PERMISSIONS.VIEW_ALL_WAREHOUSES);
-    
+      isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_WAREHOUSES);
+
     let assignedWarehouseIds = null;
-    
+
     if (!canViewAllWarehouses) {
       assignedWarehouseIds = await getWarehouseIdsByUserId(user.id);
     }
-    
+
     // ─── Batch-type visibility ─────────────────────────────────────────────────
-    
+
     const canViewAllBatchTypes =
-      isRoot ||
-      permissions.includes(PERMISSIONS.VIEW_ALL_BATCH_TYPES);
-    
+      isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_BATCH_TYPES);
+
     const canViewProductBatches =
       canViewAllBatchTypes ||
       permissions.includes(PERMISSIONS.VIEW_PRODUCT_INVENTORY);
-    
+
     const canViewPackagingBatches =
       canViewAllBatchTypes ||
       permissions.includes(PERMISSIONS.VIEW_PACKAGING_INVENTORY);
-    
+
     // ─── Field-level visibility ────────────────────────────────────────────────
-    
+
     const canViewFinancials =
-      isRoot ||
-      permissions.includes(PERMISSIONS.VIEW_INVENTORY_FINANCIALS);
-    
+      isRoot || permissions.includes(PERMISSIONS.VIEW_INVENTORY_FINANCIALS);
+
     const canViewManufacturer =
       canViewAllBatchTypes ||
       permissions.includes(PERMISSIONS.VIEW_INVENTORY_MANUFACTURER);
-    
+
     const canViewSupplier =
       canViewAllBatchTypes ||
       permissions.includes(PERMISSIONS.VIEW_INVENTORY_SUPPLIER);
-    
+
     return {
       // Warehouse scope
       canViewAllWarehouses,
       assignedWarehouseIds,
-      
+
       // Batch-type visibility
       canViewAllBatchTypes,
       canViewProductBatches,
       canViewPackagingBatches,
-      
+
       // Field-level visibility
       canViewFinancials,
       canViewManufacturer,
       canViewSupplier,
-      
+
       // Derived search capabilities
-      canSearchProduct:           canViewProductBatches,
-      canSearchSku:               canViewProductBatches,
-      canSearchManufacturer:      canViewManufacturer,
+      canSearchProduct: canViewProductBatches,
+      canSearchSku: canViewProductBatches,
+      canSearchManufacturer: canViewManufacturer,
       canSearchPackagingMaterial: canViewPackagingBatches,
-      canSearchSupplier:          canViewSupplier,
+      canSearchSupplier: canViewSupplier,
     };
   } catch (err) {
-    logSystemException(err, 'Failed to evaluate warehouse inventory visibility', {
-      context,
-      userId: user?.id,
-    });
-    
+    logSystemException(
+      err,
+      'Failed to evaluate warehouse inventory visibility',
+      {
+        context,
+        userId: user?.id,
+      }
+    );
+
     throw AppError.businessError(
       'Unable to evaluate warehouse inventory visibility.'
     );
@@ -163,9 +176,9 @@ const evaluateWarehouseInventoryVisibility = async (user) => {
  */
 const applyWarehouseInventoryVisibilityRules = (filters, acl) => {
   const adjusted = { ...filters };
-  
+
   // ─── 1. Warehouse scope ──────────────────────────────────────────────────────
-  
+
   if (
     !acl.canViewAllWarehouses &&
     !acl.assignedWarehouseIds.includes(filters.warehouseId)
@@ -173,9 +186,9 @@ const applyWarehouseInventoryVisibilityRules = (filters, acl) => {
     adjusted.forceEmptyResult = true;
     return adjusted;
   }
-  
+
   // ─── 2. Batch-type visibility ────────────────────────────────────────────────
-  
+
   return applyBatchTypeVisibility(adjusted, acl);
 };
 
@@ -190,14 +203,13 @@ const applyWarehouseInventoryVisibilityRules = (filters, acl) => {
  */
 const assertWarehouseAccess = async (user) => {
   const context = `${CONTEXT}/assertWarehouseAccess`;
-  
+
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     const canViewAll =
-      isRoot ||
-      permissions.includes(PERMISSIONS.VIEW_ALL_WAREHOUSES);
-    
+      isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_WAREHOUSES);
+
     if (canViewAll) return null;
 
     return await getWarehouseIdsByUserId(user.id);
@@ -206,7 +218,7 @@ const assertWarehouseAccess = async (user) => {
       context,
       userId: user?.id,
     });
-    
+
     throw AppError.businessError('Unable to verify warehouse access.');
   }
 };
@@ -218,7 +230,7 @@ const assertWarehouseAccess = async (user) => {
  */
 const enforceWarehouseScope = (assignedWarehouseIds, warehouseId) => {
   if (assignedWarehouseIds === null) return;
-  
+
   if (!assignedWarehouseIds.includes(warehouseId)) {
     throw AppError.authorizationError(
       'You do not have access to this warehouse.'
@@ -240,21 +252,23 @@ const enforceWarehouseScope = (assignedWarehouseIds, warehouseId) => {
  */
 const validateInboundBatches = async (batchIds, warehouseId, client) => {
   const existingBatches = await validateBatchRegistryIds(batchIds, client);
-  
+
   const foundIds = new Set(existingBatches.map((r) => r.id));
   const missingIds = batchIds.filter((id) => !foundIds.has(id));
-  
+
   if (missingIds.length > 0) {
     throw AppError.validationError(
       'One or more batch IDs do not exist in the registry.',
       { meta: { missingBatchIds: missingIds } }
     );
   }
-  
+
   const existingInventory = await findExistingInventoryByBatchIds(
-    warehouseId, batchIds, client
+    warehouseId,
+    batchIds,
+    client
   );
-  
+
   if (existingInventory.length > 0) {
     throw AppError.validationError(
       'One or more batches already have inventory at this warehouse.',
@@ -270,13 +284,13 @@ const validateInboundBatches = async (batchIds, warehouseId, client) => {
  * @type {Record<string, string[]>}
  */
 const VALID_STATUS_TRANSITIONS = {
-  in_stock:     ['quarantined', 'reserved', 'damaged', 'expired'],
-  quarantined:  ['in_stock', 'damaged', 'expired'],
-  reserved:     ['in_stock', 'fulfilled'],
-  damaged:      ['disposed'],
-  expired:      ['disposed'],
-  fulfilled:    [],
-  disposed:     [],
+  in_stock: ['quarantined', 'reserved', 'damaged', 'expired'],
+  quarantined: ['in_stock', 'damaged', 'expired'],
+  reserved: ['in_stock', 'fulfilled'],
+  damaged: ['disposed'],
+  expired: ['disposed'],
+  fulfilled: [],
+  disposed: [],
 };
 
 /**
@@ -288,7 +302,7 @@ const VALID_STATUS_TRANSITIONS = {
  */
 const assertValidStatusTransition = (currentStatusName, newStatusName) => {
   const allowed = VALID_STATUS_TRANSITIONS[currentStatusName];
-  
+
   if (!allowed || !allowed.includes(newStatusName)) {
     throw AppError.validationError(
       `Cannot transition from "${currentStatusName}" to "${newStatusName}".`,
@@ -315,7 +329,7 @@ const resolveInboundStatus = async (client, requestedStatusId) => {
     }
     return requestedStatusId;
   }
-  
+
   return getStatusId('inventory_in_stock');
 };
 
@@ -330,7 +344,7 @@ const resolveInboundStatus = async (client, requestedStatusId) => {
  */
 const validateInboundQuantities = (records) => {
   const invalidIndices = [];
-  
+
   records.forEach((record, index) => {
     if (
       record.warehouseQuantity == null ||
@@ -340,7 +354,7 @@ const validateInboundQuantities = (records) => {
       invalidIndices.push(index);
     }
   });
-  
+
   if (invalidIndices.length > 0) {
     throw AppError.validationError(
       'Inbound quantity must be a positive integer for all records.',
@@ -359,7 +373,11 @@ const validateInboundQuantities = (records) => {
  * @param {string} performedBy - User UUID.
  * @returns {object[]}
  */
-const buildInboundActivityLogEntries = (insertedRecords, actionTypeId, performedBy) =>
+const buildInboundActivityLogEntries = (
+  insertedRecords,
+  actionTypeId,
+  performedBy
+) =>
   insertedRecords.map((record) => ({
     warehouse_inventory_id: record.id,
     inventory_action_type_id: actionTypeId,
@@ -396,7 +414,7 @@ const buildInboundActivityLogEntries = (insertedRecords, actionTypeId, performed
  */
 const validateQuantityAdjustments = (updates) => {
   const invalidIndices = [];
-  
+
   updates.forEach((update, index) => {
     if (
       update.warehouseQuantity == null ||
@@ -406,18 +424,18 @@ const validateQuantityAdjustments = (updates) => {
       invalidIndices.push(index);
       return;
     }
-    
+
     const reserved = update.reservedQuantity ?? 0;
     if (reserved < 0 || !Number.isInteger(reserved)) {
       invalidIndices.push(index);
       return;
     }
-    
+
     if (reserved > update.warehouseQuantity) {
       invalidIndices.push(index);
     }
   });
-  
+
   if (invalidIndices.length > 0) {
     throw AppError.validationError(
       'Invalid quantity values. Warehouse quantity must be a non-negative integer and reserved must not exceed warehouse quantity.',
@@ -436,7 +454,7 @@ const validateQuantityAdjustments = (updates) => {
  */
 const validateOutboundRecords = (updates) => {
   const invalidIndices = [];
-  
+
   updates.forEach((update, index) => {
     if (
       update.warehouseQuantity == null ||
@@ -446,12 +464,12 @@ const validateOutboundRecords = (updates) => {
       invalidIndices.push(index);
       return;
     }
-    
+
     if (!update.outboundDate) {
       invalidIndices.push(index);
     }
   });
-  
+
   if (invalidIndices.length > 0) {
     throw AppError.validationError(
       'Outbound records require a valid date and non-negative quantity.',
@@ -481,28 +499,28 @@ const buildQuantityAdjustmentLogEntries = (
     const previous = previousRecords.find((r) => r.id === updated.id);
     const prevQty = previous?.warehouse_quantity ?? 0;
     const newQty = updated.warehouse_quantity;
-    
+
     return {
-      warehouse_inventory_id:   updated.id,
+      warehouse_inventory_id: updated.id,
       inventory_action_type_id: actionTypeId,
-      adjustment_type_id:       adjustmentTypeId,
-      previous_quantity:        prevQty,
-      quantity_change:          newQty - prevQty,
-      new_quantity:             newQty,
-      status_id:                updated.status_id,
-      status_effective_at:      null,
-      reference_type:           null,
-      reference_id:             null,
-      performed_by:             performedBy,
-      comments:                 null,
+      adjustment_type_id: adjustmentTypeId,
+      previous_quantity: prevQty,
+      quantity_change: newQty - prevQty,
+      new_quantity: newQty,
+      status_id: updated.status_id,
+      status_effective_at: null,
+      reference_type: null,
+      reference_id: null,
+      performed_by: performedBy,
+      comments: null,
       checksum: computeLogChecksum({
         warehouseInventoryId: updated.id,
         actionTypeId,
-        previousQuantity:     prevQty,
-        quantityChange:       newQty - prevQty,
-        newQuantity:          newQty,
+        previousQuantity: prevQty,
+        quantityChange: newQty - prevQty,
+        newQuantity: newQty,
         performedBy,
-        performedAt:          updated.updated_at,
+        performedAt: updated.updated_at,
       }),
       metadata: null,
       created_by: performedBy,
@@ -524,32 +542,32 @@ const buildStatusChangeLogEntries = (
 ) =>
   updatedRecords.map((updated) => {
     const previous = previousRecords.find((r) => r.id === updated.id);
-    
+
     return {
-      warehouse_inventory_id:   updated.id,
+      warehouse_inventory_id: updated.id,
       inventory_action_type_id: actionTypeId,
-      adjustment_type_id:       null,
-      previous_quantity:        updated.warehouse_quantity,
-      quantity_change:          0,
-      new_quantity:             updated.warehouse_quantity,
-      status_id:                updated.status_id,
-      status_effective_at:      updated.status_date,
-      reference_type:           null,
-      reference_id:             null,
-      performed_by:             performedBy,
-      comments:                 null,
+      adjustment_type_id: null,
+      previous_quantity: updated.warehouse_quantity,
+      quantity_change: 0,
+      new_quantity: updated.warehouse_quantity,
+      status_id: updated.status_id,
+      status_effective_at: updated.status_date,
+      reference_type: null,
+      reference_id: null,
+      performed_by: performedBy,
+      comments: null,
       checksum: computeLogChecksum({
         warehouseInventoryId: updated.id,
         actionTypeId,
-        previousQuantity:     updated.warehouse_quantity,
-        quantityChange:       0,
-        newQuantity:          updated.warehouse_quantity,
+        previousQuantity: updated.warehouse_quantity,
+        quantityChange: 0,
+        newQuantity: updated.warehouse_quantity,
         performedBy,
-        performedAt:          updated.updated_at,
+        performedAt: updated.updated_at,
       }),
       metadata: {
         previousStatusId: previous?.status_id ?? null,
-        newStatusId:       updated.status_id,
+        newStatusId: updated.status_id,
       },
       created_by: performedBy,
     };
@@ -572,28 +590,28 @@ const buildOutboundLogEntries = (
     const previous = previousRecords.find((r) => r.id === updated.id);
     const prevQty = previous?.warehouse_quantity ?? 0;
     const newQty = updated.warehouse_quantity;
-    
+
     return {
-      warehouse_inventory_id:   updated.id,
+      warehouse_inventory_id: updated.id,
       inventory_action_type_id: actionTypeId,
-      adjustment_type_id:       null,
-      previous_quantity:        prevQty,
-      quantity_change:          newQty - prevQty,
-      new_quantity:             newQty,
-      status_id:                updated.status_id,
-      status_effective_at:      null,
-      reference_type:           null,
-      reference_id:             null,
-      performed_by:             performedBy,
-      comments:                 null,
+      adjustment_type_id: null,
+      previous_quantity: prevQty,
+      quantity_change: newQty - prevQty,
+      new_quantity: newQty,
+      status_id: updated.status_id,
+      status_effective_at: null,
+      reference_type: null,
+      reference_id: null,
+      performed_by: performedBy,
+      comments: null,
       checksum: computeLogChecksum({
         warehouseInventoryId: updated.id,
         actionTypeId,
-        previousQuantity:     prevQty,
-        quantityChange:       newQty - prevQty,
-        newQuantity:          newQty,
+        previousQuantity: prevQty,
+        quantityChange: newQty - prevQty,
+        newQuantity: newQty,
         performedBy,
-        performedAt:          updated.updated_at,
+        performedAt: updated.updated_at,
       }),
       metadata: {
         outboundDate: updated.outbound_date,
@@ -609,14 +627,13 @@ const buildOutboundLogEntries = (
  */
 const assertAllInventoryRecordsFound = (expectedIds, foundRecords) => {
   if (foundRecords.length === expectedIds.length) return;
-  
+
   const foundIds = new Set(foundRecords.map((r) => r.id));
   const missingIds = expectedIds.filter((id) => !foundIds.has(id));
-  
-  throw AppError.notFoundError(
-    'One or more inventory records not found.',
-    { meta: { missingIds } }
-  );
+
+  throw AppError.notFoundError('One or more inventory records not found.', {
+    meta: { missingIds },
+  });
 };
 
 /**
@@ -626,7 +643,10 @@ const assertAllInventoryRecordsFound = (expectedIds, foundRecords) => {
  * @param {{ inStockStatusId: string, outOfStockStatusId: string }} statusIds
  * @returns {string}
  */
-const resolveInventoryStatus = (warehouseQuantity, { inStockStatusId, outOfStockStatusId }) => {
+const resolveInventoryStatus = (
+  warehouseQuantity,
+  { inStockStatusId, outOfStockStatusId }
+) => {
   return warehouseQuantity > 0 ? inStockStatusId : outOfStockStatusId;
 };
 
@@ -664,46 +684,49 @@ const buildAllocationConfirmLogEntries = (
       record,
     ])
   );
-  
+
   return updatedRows.map((updated) => {
-    const key      = `${updated.warehouse_id}__${updated.batch_id}`;
+    const key = `${updated.warehouse_id}__${updated.batch_id}`;
     const original = originalMap[key];
     const performedAt = new Date().toISOString();
-    
+
     if (!original) {
-      throw new Error(`Missing original warehouse inventory data for key: ${key}`);
+      throw new Error(
+        `Missing original warehouse inventory data for key: ${key}`
+      );
     }
-    
+
     const previousQty = original.reserved_quantity;
-    const newQty      = updated.reserved_quantity;
-    
+    const newQty = updated.reserved_quantity;
+
     return {
-      warehouse_inventory_id:   original.id,
+      warehouse_inventory_id: original.id,
       inventory_action_type_id: actionTypeId,
-      adjustment_type_id:       null,
-      previous_quantity:        previousQty,
-      quantity_change:          newQty - previousQty,
-      new_quantity:             newQty,
-      status_id:                updated.status_id,
-      status_effective_at:      performedAt,
-      reference_type:           'order',
-      reference_id:             orderId,
-      performed_by:             performedBy,
-      comments:                 comments ?? 'Reserved quantity updated during order allocation.',
+      adjustment_type_id: null,
+      previous_quantity: previousQty,
+      quantity_change: newQty - previousQty,
+      new_quantity: newQty,
+      status_id: updated.status_id,
+      status_effective_at: performedAt,
+      reference_type: 'order',
+      reference_id: orderId,
+      performed_by: performedBy,
+      comments:
+        comments ?? 'Reserved quantity updated during order allocation.',
       checksum: computeLogChecksum({
         warehouseInventoryId: original.id,
-        actionTypeId:         actionTypeId,
-        previousQuantity:     previousQty,
-        quantityChange:       newQty - previousQty,
-        newQuantity:          newQty,
-        performedBy:          performedBy,
+        actionTypeId: actionTypeId,
+        previousQuantity: previousQty,
+        quantityChange: newQty - previousQty,
+        newQuantity: newQty,
+        performedBy: performedBy,
         performedAt,
-        referenceId:          orderId,
+        referenceId: orderId,
       }),
       metadata: {
-        source:       'order_allocation',
+        source: 'order_allocation',
         warehouse_id: updated.warehouse_id,
-        batch_id:     updated.batch_id,
+        batch_id: updated.batch_id,
       },
       created_by: performedBy,
     };
@@ -732,57 +755,57 @@ const buildAllocationConfirmLogEntries = (
  * @returns {object} Activity log row object ready for `insertInventoryActivityLogBulk`.
  */
 const buildFulfillmentLogEntry = ({
-                                    allocation,
-                                    update,
-                                    inventoryActionTypeId,
-                                    userId,
-                                    shipmentId,
-                                    fulfillmentId,
-                                    orderNumber,
-                                  }) => {
+  allocation,
+  update,
+  inventoryActionTypeId,
+  userId,
+  shipmentId,
+  fulfillmentId,
+  orderNumber,
+}) => {
   const previousQuantity = allocation.warehouse_quantity;
-  const quantityChange   = -allocation.allocated_quantity;
-  const newQuantity      = update.warehouse_quantity;
-  
+  const quantityChange = -allocation.allocated_quantity;
+  const newQuantity = update.warehouse_quantity;
+
   const comments = `[System] Inventory adjusted during fulfillment for order ${orderNumber}`;
-  
+
   const metadata = cleanObject({
-    batch_id:                    allocation.batch_id,
-    allocation_id:               allocation.allocation_id,
-    shipment_id:                 shipmentId,
-    fulfillment_id:              fulfillmentId,
-    reserved_quantity_before:    allocation.reserved_quantity,
-    reserved_quantity_after:     update.reserved_quantity,
+    batch_id: allocation.batch_id,
+    allocation_id: allocation.allocation_id,
+    shipment_id: shipmentId,
+    fulfillment_id: fulfillmentId,
+    reserved_quantity_before: allocation.reserved_quantity,
+    reserved_quantity_after: update.reserved_quantity,
     warehouse_quantity_snapshot: previousQuantity,
   });
-  
+
   const checksum = computeLogChecksum({
     warehouseInventoryId: allocation.warehouse_inventory_id,
-    actionTypeId:         inventoryActionTypeId,
+    actionTypeId: inventoryActionTypeId,
     previousQuantity,
     quantityChange,
     newQuantity,
-    performedBy:          userId,
-    performedAt:          new Date().toISOString(),
-    referenceId:          fulfillmentId,
+    performedBy: userId,
+    performedAt: new Date().toISOString(),
+    referenceId: fulfillmentId,
   });
-  
+
   return {
-    warehouse_inventory_id:   allocation.warehouse_inventory_id,
+    warehouse_inventory_id: allocation.warehouse_inventory_id,
     inventory_action_type_id: inventoryActionTypeId,
-    adjustment_type_id:       null,
-    previous_quantity:        previousQuantity,
-    quantity_change:          quantityChange,
-    new_quantity:             newQuantity,
-    status_id:                update.status_id,
-    status_effective_at:      new Date().toISOString(),
-    reference_type:           'fulfillment',
-    reference_id:             fulfillmentId,
-    performed_by:             userId,
+    adjustment_type_id: null,
+    previous_quantity: previousQuantity,
+    quantity_change: quantityChange,
+    new_quantity: newQuantity,
+    status_id: update.status_id,
+    status_effective_at: new Date().toISOString(),
+    reference_type: 'fulfillment',
+    reference_id: fulfillmentId,
+    performed_by: userId,
     comments,
     checksum,
     metadata,
-    created_by:               userId,
+    created_by: userId,
   };
 };
 

@@ -32,162 +32,176 @@ const {
 
 // ── List ─────────────────────────────────────────────────
 
-const getPaginatedWarehouseInventoryController = wrapAsyncHandler(async (req, res) => {
-  const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
-  const { warehouseId } = req.params;
-  const user = req.auth.user;
-  
-  const { data, pagination } = await fetchPaginatedWarehouseInventoryService({
-    filters: { ...filters, warehouseId },
-    page,
-    limit,
-    sortBy,
-    sortOrder,
-    user,
-  });
-  
-  res.status(200).json({
-    success:    true,
-    message:    'Warehouse inventory retrieved successfully.',
-    data,
-    pagination,
-    traceId:    req.traceId,
-  });
-});
+const getPaginatedWarehouseInventoryController = wrapAsyncHandler(
+  async (req, res) => {
+    const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
+    const { warehouseId } = req.params;
+    const user = req.auth.user;
+
+    const { data, pagination } = await fetchPaginatedWarehouseInventoryService({
+      filters: { ...filters, warehouseId },
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+      user,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Warehouse inventory retrieved successfully.',
+      data,
+      pagination,
+      traceId: req.traceId,
+    });
+  }
+);
 
 // ── Create (inbound) ────────────────────────────────────────────────
 
-const createWarehouseInventoryController = wrapAsyncHandler(async (req, res) => {
-  const { warehouseId } = req.params;
-  const { records }     = req.body;
-  const user            = req.auth.user;
-  
-  const result = await createWarehouseInventoryService({
-    warehouseId,
-    records,
-    user,
-  });
-  
-  res.status(201).json({
-    success: true,
-    message: 'Warehouse inventory records created successfully.',
-    payload: result,
-    traceId: req.traceId,
-  });
-});
+const createWarehouseInventoryController = wrapAsyncHandler(
+  async (req, res) => {
+    const { warehouseId } = req.params;
+    const { records } = req.body;
+    const user = req.auth.user;
+
+    const result = await createWarehouseInventoryService({
+      warehouseId,
+      records,
+      user,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Warehouse inventory records created successfully.',
+      payload: result,
+      traceId: req.traceId,
+    });
+  }
+);
 
 // ── Adjust quantities ───────────────────────────────────────────────
 
-const adjustWarehouseInventoryQuantityController = wrapAsyncHandler(async (req, res) => {
-  const { warehouseId } = req.params;
-  const { updates }     = req.body;
-  const user            = req.auth.user;
-  
-  const result = await adjustWarehouseInventoryQuantityService({
-    warehouseId,
-    updates,
-    user,
-  });
-  
-  res.status(200).json({
-    success: true,
-    message: 'Warehouse inventory quantities adjusted successfully.',
-    data:    result,
-    traceId: req.traceId,
-  });
-});
+const adjustWarehouseInventoryQuantityController = wrapAsyncHandler(
+  async (req, res) => {
+    const { warehouseId } = req.params;
+    const { updates } = req.body;
+    const user = req.auth.user;
+
+    const result = await adjustWarehouseInventoryQuantityService({
+      warehouseId,
+      updates,
+      user,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Warehouse inventory quantities adjusted successfully.',
+      data: result,
+      traceId: req.traceId,
+    });
+  }
+);
 
 // ── Update status ───────────────────────────────────────────────────
 
-const updateWarehouseInventoryStatusController = wrapAsyncHandler(async (req, res) => {
-  const { warehouseId } = req.params;
-  const { updates }     = req.body;
-  const user            = req.auth.user;
-  
-  const result = await updateWarehouseInventoryStatusService({
-    warehouseId,
-    updates,
-    user,
-  });
-  
-  res.status(200).json({
-    success: true,
-    message: 'Warehouse inventory status updated successfully.',
-    data:    result,
-    traceId: req.traceId,
-  });
-});
+const updateWarehouseInventoryStatusController = wrapAsyncHandler(
+  async (req, res) => {
+    const { warehouseId } = req.params;
+    const { updates } = req.body;
+    const user = req.auth.user;
+
+    const result = await updateWarehouseInventoryStatusService({
+      warehouseId,
+      updates,
+      user,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Warehouse inventory status updated successfully.',
+      data: result,
+      traceId: req.traceId,
+    });
+  }
+);
 
 // ── Update metadata ─────────────────────────────────────────────────
 
-const updateWarehouseInventoryMetadataController = wrapAsyncHandler(async (req, res) => {
-  const { warehouseId, inventoryId } = req.params;
-  const user                         = req.auth.user;
-  
-  const result = await updateWarehouseInventoryMetadataService({
-    warehouseId,
-    id: inventoryId,
-    fields: req.body,
-    user,
-  });
-  
-  res.status(200).json({
-    success: true,
-    message: 'Warehouse inventory metadata updated successfully.',
-    data:    result,
-    traceId: req.traceId,
-  });
-});
+const updateWarehouseInventoryMetadataController = wrapAsyncHandler(
+  async (req, res) => {
+    const { warehouseId, inventoryId } = req.params;
+    const user = req.auth.user;
+
+    const result = await updateWarehouseInventoryMetadataService({
+      warehouseId,
+      id: inventoryId,
+      fields: req.body,
+      user,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Warehouse inventory metadata updated successfully.',
+      data: result,
+      traceId: req.traceId,
+    });
+  }
+);
 
 // ── Record outbound ─────────────────────────────────────────────────
 
-const recordWarehouseInventoryOutboundController = wrapAsyncHandler(async (req, res) => {
-  const { warehouseId } = req.params;
-  const { updates }     = req.body;
-  const user            = req.auth.user;
-  
-  const result = await recordWarehouseInventoryOutboundService({
-    warehouseId,
-    updates,
-    user,
-  });
-  
-  res.status(200).json({
-    success: true,
-    message: 'Warehouse inventory outbound recorded successfully.',
-    data:    result,
-    traceId: req.traceId,
-  });
-});
+const recordWarehouseInventoryOutboundController = wrapAsyncHandler(
+  async (req, res) => {
+    const { warehouseId } = req.params;
+    const { updates } = req.body;
+    const user = req.auth.user;
+
+    const result = await recordWarehouseInventoryOutboundService({
+      warehouseId,
+      updates,
+      user,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Warehouse inventory outbound recorded successfully.',
+      data: result,
+      traceId: req.traceId,
+    });
+  }
+);
 
 // ── Detail ──────────────────────────────────────────────────────────
 
-const getWarehouseInventoryDetailController = wrapAsyncHandler(async (req, res) => {
-  const { warehouseId, inventoryId } = req.params;
-  const user = req.auth?.user;
-  
-  const data = await getWarehouseInventoryDetailService({
-    warehouseId,
-    inventoryId,
-    user,
-  });
-  
-  res.status(200).json({
-    success: true,
-    message: 'Warehouse inventory detail retrieved successfully.',
-    data,
-    traceId: req.traceId,
-  });
-});
+const getWarehouseInventoryDetailController = wrapAsyncHandler(
+  async (req, res) => {
+    const { warehouseId, inventoryId } = req.params;
+    const user = req.auth?.user;
+
+    const data = await getWarehouseInventoryDetailService({
+      warehouseId,
+      inventoryId,
+      user,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Warehouse inventory detail retrieved successfully.',
+      data,
+      traceId: req.traceId,
+    });
+  }
+);
 
 // ── Summary ─────────────────────────────────────────────────────────
 
 const getWarehouseSummaryController = wrapAsyncHandler(async (req, res) => {
   const { warehouseId } = req.params;
   const user = req.auth?.user;
-  
+
   const data = await getWarehouseSummaryService({ warehouseId, user });
-  
+
   res.status(200).json({
     success: true,
     message: 'Warehouse summary retrieved successfully.',
@@ -200,15 +214,15 @@ const getWarehouseSummaryController = wrapAsyncHandler(async (req, res) => {
 
 const getWarehouseItemSummaryController = wrapAsyncHandler(async (req, res) => {
   const { warehouseId } = req.params;
-  const { batchType }   = req.query;
-  const user            = req.auth?.user;
-  
+  const { batchType } = req.query;
+  const user = req.auth?.user;
+
   const data = await getWarehouseItemSummaryService({
     warehouseId,
     batchType,
     user,
   });
-  
+
   res.status(200).json({
     success: true,
     message: 'Warehouse item summary retrieved successfully.',

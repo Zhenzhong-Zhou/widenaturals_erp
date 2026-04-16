@@ -39,9 +39,9 @@ const RATE_LIMIT = require('../utils/constants/domain/rate-limit');
  */
 const createGlobalRateLimiter = () =>
   createRateLimiter({
-    windowMs:     RATE_LIMIT.GLOBAL.WINDOW_MS,
-    max:          RATE_LIMIT.GLOBAL.MAX,
-    context:      'global-rate-limiter',
+    windowMs: RATE_LIMIT.GLOBAL.WINDOW_MS,
+    max: RATE_LIMIT.GLOBAL.MAX,
+    context: 'global-rate-limiter',
     disableInDev: true,
   });
 
@@ -56,8 +56,8 @@ const createGlobalRateLimiter = () =>
 const createApiRateLimiter = () =>
   createRateLimiter({
     windowMs: RATE_LIMIT.API.WINDOW_MS,
-    max:      RATE_LIMIT.API.MAX,
-    context:  'api-rate-limiter',
+    max: RATE_LIMIT.API.MAX,
+    context: 'api-rate-limiter',
   });
 
 /**
@@ -71,8 +71,8 @@ const createApiRateLimiter = () =>
 const createCsrfTokenRateLimiter = () =>
   createRateLimiter({
     windowMs: RATE_LIMIT.CSRF.WINDOW_MS,
-    max:      RATE_LIMIT.CSRF.MAX,
-    context:  'csrf-token-rate-limiter',
+    max: RATE_LIMIT.CSRF.MAX,
+    context: 'csrf-token-rate-limiter',
   });
 
 /**
@@ -87,8 +87,8 @@ const createCsrfTokenRateLimiter = () =>
 const createHealthRateLimiter = () =>
   createRateLimiter({
     windowMs: RATE_LIMIT.HEALTH.WINDOW_MS,
-    max:      RATE_LIMIT.HEALTH.MAX,
-    context:  'health-rate-limiter',
+    max: RATE_LIMIT.HEALTH.MAX,
+    context: 'health-rate-limiter',
   });
 
 /**
@@ -102,8 +102,8 @@ const createHealthRateLimiter = () =>
 const createLoginRateLimiter = () =>
   createRateLimiter({
     windowMs: RATE_LIMIT.LOGIN.WINDOW_MS,
-    max:      RATE_LIMIT.LOGIN.MAX,
-    context:  'login-rate-limiter',
+    max: RATE_LIMIT.LOGIN.MAX,
+    context: 'login-rate-limiter',
   });
 
 /**
@@ -117,8 +117,8 @@ const createLoginRateLimiter = () =>
 const createRefreshRateLimiter = () =>
   createRateLimiter({
     windowMs: RATE_LIMIT.REFRESH.WINDOW_MS,
-    max:      RATE_LIMIT.REFRESH.MAX,
-    context:  'refresh-token-rate-limiter',
+    max: RATE_LIMIT.REFRESH.MAX,
+    context: 'refresh-token-rate-limiter',
   });
 
 /**
@@ -132,8 +132,8 @@ const createRefreshRateLimiter = () =>
 const createUserProfileRateLimiter = () =>
   createRateLimiter({
     windowMs: RATE_LIMIT.USER_PROFILE.WINDOW_MS,
-    max:      RATE_LIMIT.USER_PROFILE.MAX,
-    context:  'user-profile-rate-limiter',
+    max: RATE_LIMIT.USER_PROFILE.MAX,
+    context: 'user-profile-rate-limiter',
   });
 
 /**
@@ -147,8 +147,8 @@ const createUserProfileRateLimiter = () =>
 const createResetPasswordRateLimiter = () =>
   createRateLimiter({
     windowMs: RATE_LIMIT.PASSWORD_RESET.WINDOW_MS,
-    max:      RATE_LIMIT.PASSWORD_RESET.MAX,
-    context:  'reset-password-rate-limiter',
+    max: RATE_LIMIT.PASSWORD_RESET.MAX,
+    context: 'reset-password-rate-limiter',
   });
 
 /**
@@ -162,8 +162,8 @@ const createResetPasswordRateLimiter = () =>
 const createAdminRateLimiter = () =>
   createRateLimiter({
     windowMs: RATE_LIMIT.ADMIN.WINDOW_MS,
-    max:      RATE_LIMIT.ADMIN.MAX,
-    context:  'admin-rate-limiter',
+    max: RATE_LIMIT.ADMIN.MAX,
+    context: 'admin-rate-limiter',
   });
 
 module.exports = {

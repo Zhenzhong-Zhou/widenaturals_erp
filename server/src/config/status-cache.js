@@ -220,32 +220,32 @@ const getStatusIdMap = async (db = pool) => {
         )
       ),
     ];
-    
+
     const params = [];
     const unions = uniquePairs.map((entry, i) => {
       const [table, name] = entry.split(':');
       params.push(name);
-      
+
       return `
         SELECT '${table}' AS source, LOWER(name) AS name, id
         FROM ${table}
         WHERE LOWER(name) = $${i + 1}
       `;
     });
-    
+
     const sql = unions.join(' UNION ALL ');
     const { rows } = await query(sql, params, db);
-    
+
     const rowIndex = new Map(
       rows.map((row) => [`${row.source}:${row.name}`, row.id])
     );
-    
+
     const map = {};
     for (const { key, table, name } of STATUS_KEY_LOOKUP) {
       const id = rowIndex.get(`${table}:${name.toLowerCase()}`);
       if (id) map[key] = id;
     }
-    
+
     return Object.freeze(map);
   } catch (error) {
     throw AppError.databaseError('Failed to initialize status map', {
@@ -269,7 +269,7 @@ const getStatusIdMap = async (db = pool) => {
  */
 const initStatusCache = async (db = pool) => {
   statusMap = await getStatusIdMap(db);
-  
+
   logSystemInfo('Initialized logical status ID map', {
     context: `${CONTEXT}/initStatusCache`,
     count: Object.keys(statusMap).length,
@@ -289,14 +289,14 @@ const getStatusId = (key) => {
       `Status cache not initialized. Cannot resolve key: "${key}"`
     );
   }
-  
+
   if (!statusMap[key]) {
     throw AppError.notFoundError(`Missing status ID for key: "${key}"`, {
       context: `${CONTEXT}/getStatusId`,
       key,
     });
   }
-  
+
   return statusMap[key];
 };
 
@@ -313,23 +313,23 @@ const getStatusId = (key) => {
  */
 const loadAllStatusesIntoCache = async (client) => {
   const context = `${CONTEXT}/loadAllStatusesIntoCache`;
-  
+
   try {
     const rows = await getAllStatuses(client);
-    
+
     const nextNameMap = new Map();
     const nextRowMap = new Map();
-    
+
     for (const row of rows) {
       const code = (row.name || '').toUpperCase();
       nextNameMap.set(row.id, code);
       nextRowMap.set(row.id, row);
     }
-    
+
     // Build replacement maps first, then swap references once complete.
     STATUS_NAME_MAP = nextNameMap;
     STATUS_ROW_MAP = nextRowMap;
-    
+
     logSystemInfo('Status name and row caches loaded successfully', {
       context,
       recordCount: rows.length,
@@ -386,20 +386,20 @@ const initStatusNameCache = async (client) => {
  */
 const startStatusCacheAutoRefresh = (refreshIntervalMs = 10 * 60 * 1000) => {
   const context = `${CONTEXT}/startStatusCacheAutoRefresh`;
-  
+
   // Prevent duplicate intervals if bootstrap is called more than once.
   if (statusCacheRefreshTimer) return;
-  
+
   let refreshing = false;
-  
+
   statusCacheRefreshTimer = setInterval(async () => {
     // Avoid overlapping refresh runs if one execution is still in progress.
     if (refreshing) return;
     refreshing = true;
-    
+
     try {
       await loadAllStatusesIntoCache();
-      
+
       logSystemInfo('Status cache refresh completed', {
         context,
         timestamp: new Date().toISOString(),
@@ -412,10 +412,10 @@ const startStatusCacheAutoRefresh = (refreshIntervalMs = 10 * 60 * 1000) => {
       refreshing = false;
     }
   }, refreshIntervalMs);
-  
+
   // Do not keep the Node.js process alive solely for this background timer.
   statusCacheRefreshTimer.unref?.();
-  
+
   logSystemInfo('Periodic status cache auto-refresh enabled', {
     context,
     refreshIntervalMs,
@@ -446,23 +446,20 @@ const initAllStatusCaches = async (
   refreshIntervalMs = 10 * 60 * 1000
 ) => {
   const context = `${CONTEXT}/initAllStatusCaches`;
-  
+
   const startTime = Date.now();
-  
+
   logSystemInfo('Initializing all status caches...', {
     context,
   });
-  
+
   try {
-    await Promise.all([
-      initStatusCache(client),
-      initStatusNameCache(client),
-    ]);
-    
+    await Promise.all([initStatusCache(client), initStatusNameCache(client)]);
+
     if (enableAutoRefresh) {
       startStatusCacheAutoRefresh(refreshIntervalMs);
     }
-    
+
     logSystemInfo('All status caches initialized successfully', {
       context,
       elapsedMs: Date.now() - startTime,
@@ -471,7 +468,7 @@ const initAllStatusCaches = async (
     logSystemException(error, 'Failed to initialize all status caches', {
       context,
     });
-    
+
     throw AppError.initializationError('Failed to initialize status caches', {
       details: error.message,
       context,

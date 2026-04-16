@@ -51,51 +51,52 @@ const {
  * @throws  {AppError}        Normalized database error if the query fails.
  */
 const getPaginatedBoms = async ({
-                                  filters   = {},
-                                  page      = 1,
-                                  limit     = 10,
-                                  sortBy    = 'createdAt',  // map key, not DB column
-                                  sortOrder = 'DESC',
-                                }) => {
+  filters = {},
+  page = 1,
+  limit = 10,
+  sortBy = 'createdAt', // map key, not DB column
+  sortOrder = 'DESC',
+}) => {
   const context = 'bom-repository/getPaginatedBoms';
-  
+
   const { whereClause, params } = buildBomFilter(filters);
-  
+
   const sortConfig = resolveSort({
     sortBy,
     sortOrder,
-    moduleKey:   'bomSortMap',
+    moduleKey: 'bomSortMap',
     defaultSort: SORTABLE_FIELDS.bomSortMap.defaultNaturalSort,
   });
-  
+
   // ORDER BY omitted — paginateQuery appends it from sortConfig.
   const queryText = buildBomPaginatedQuery(whereClause);
-  
+
   try {
     return await paginateQuery({
-      tableName:       BOM_TABLE,
-      joins:           BOM_JOINS,
+      tableName: BOM_TABLE,
+      joins: BOM_JOINS,
       whereClause,
       queryText,
       params,
       page,
       limit,
-      sortBy:          sortConfig.sortBy,
-      sortOrder:       sortConfig.sortOrder,
+      sortBy: sortConfig.sortBy,
+      sortOrder: sortConfig.sortOrder,
       additionalSorts: BOM_ADDITIONAL_SORTS,
-      whitelistSet:    BOM_SORT_WHITELIST,
+      whitelistSet: BOM_SORT_WHITELIST,
     });
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch paginated BOM list.',
-      meta:    { filters, page, limit, sortBy, sortOrder },
-      logFn:   (err) => logDbQueryError(
-        queryText,
-        params,
-        err,
-        { context, filters, page, limit }
-      ),
+      meta: { filters, page, limit, sortBy, sortOrder },
+      logFn: (err) =>
+        logDbQueryError(queryText, params, err, {
+          context,
+          filters,
+          page,
+          limit,
+        }),
     });
   }
 };
@@ -115,7 +116,7 @@ const getPaginatedBoms = async ({
  */
 const getBomDetailsById = async (bomId) => {
   const context = 'bom-repository/getBomDetailsById';
-  
+
   try {
     const result = await query(BOM_DETAILS_QUERY, [bomId]);
     return result.rows;
@@ -123,13 +124,9 @@ const getBomDetailsById = async (bomId) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch BOM details.',
-      meta:    { bomId },
-      logFn:   (err) => logDbQueryError(
-        BOM_DETAILS_QUERY,
-        [bomId],
-        err,
-        { context, bomId }
-      ),
+      meta: { bomId },
+      logFn: (err) =>
+        logDbQueryError(BOM_DETAILS_QUERY, [bomId], err, { context, bomId }),
     });
   }
 };
@@ -151,7 +148,7 @@ const getBomDetailsById = async (bomId) => {
  */
 const getBomProductionSummary = async (bomId) => {
   const context = 'bom-repository/getBomProductionSummary';
-  
+
   try {
     const result = await query(BOM_PRODUCTION_SUMMARY_QUERY, [bomId]);
     return result.rows;
@@ -159,13 +156,12 @@ const getBomProductionSummary = async (bomId) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch BOM production summary.',
-      meta:    { bomId },
-      logFn:   (err) => logDbQueryError(
-        BOM_PRODUCTION_SUMMARY_QUERY,
-        [bomId],
-        err,
-        { context, bomId }
-      ),
+      meta: { bomId },
+      logFn: (err) =>
+        logDbQueryError(BOM_PRODUCTION_SUMMARY_QUERY, [bomId], err, {
+          context,
+          bomId,
+        }),
     });
   }
 };

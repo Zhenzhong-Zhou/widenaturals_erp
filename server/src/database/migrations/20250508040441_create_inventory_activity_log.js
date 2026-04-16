@@ -10,7 +10,7 @@ exports.up = async function (knex) {
       .notNullable()
       .references('id')
       .inTable('warehouse_inventory');
-    
+
     table
       .uuid('inventory_action_type_id')
       .notNullable()
@@ -21,33 +21,27 @@ exports.up = async function (knex) {
       .nullable()
       .references('id')
       .inTable('lot_adjustment_types');
-    
+
     table.integer('previous_quantity').notNullable();
     table.integer('quantity_change').notNullable();
     table.integer('new_quantity').notNullable();
-    
+
     table
       .uuid('status_id')
       .nullable()
       .references('id')
       .inTable('inventory_status');
-    table
-      .timestamp('status_effective_at', { useTz: true })
-      .nullable();
-    
+    table.timestamp('status_effective_at', { useTz: true }).nullable();
+
     // Source linkage — polymorphic reference to what triggered this
     table.string('reference_type', 30).nullable();
     table.uuid('reference_id').nullable();
-    
-    table
-      .uuid('performed_by')
-      .notNullable()
-      .references('id')
-      .inTable('users');
+
+    table.uuid('performed_by').notNullable().references('id').inTable('users');
     table.text('comments').nullable();
     table.text('checksum').notNullable();
     table.jsonb('metadata').nullable();
-    
+
     table
       .timestamp('performed_at', { useTz: true })
       .notNullable()
@@ -55,7 +49,7 @@ exports.up = async function (knex) {
     table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
     table.uuid('created_by').references('id').inTable('users');
   });
-  
+
   await knex.raw(`
     ALTER TABLE inventory_activity_log
     ADD CONSTRAINT inventory_activity_log_quantity_integrity_check
@@ -70,7 +64,7 @@ exports.up = async function (knex) {
         'order', 'transfer', 'audit', 'return', 'manual', 'fulfillment', 'adjustment'
       ));
   `);
-  
+
   await knex.raw(`
     CREATE INDEX idx_inventory_activity_log_inventory_id
       ON inventory_activity_log (warehouse_inventory_id);

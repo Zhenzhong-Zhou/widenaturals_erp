@@ -10,17 +10,21 @@
 
 'use strict';
 
-const express                            = require('express');
-const { authorize }                      = require('../middlewares/authorize');
-const validate                           = require('../middlewares/validate');
+const express = require('express');
+const { authorize } = require('../middlewares/authorize');
+const validate = require('../middlewares/validate');
 const createQueryNormalizationMiddleware = require('../middlewares/normalize-query');
 const PERMISSION_KEYS = require('../utils/constants/domain/permission-keys');
 const {
   exportPricingRecordsController,
-  getPricingBySkuIdController, getPaginatedPricingJoinController,
+  getPricingBySkuIdController,
+  getPaginatedPricingJoinController,
 } = require('../controllers/pricing-controller');
-const { pricingExportQuerySchema, pricingJoinQuerySchema } = require('../validators/pricing-validators');
-const { skuIdParamSchema }         = require('../validators/sku-validators');
+const {
+  pricingExportQuerySchema,
+  pricingJoinQuerySchema,
+} = require('../validators/pricing-validators');
+const { skuIdParamSchema } = require('../validators/sku-validators');
 
 const router = express.Router();
 
@@ -60,12 +64,7 @@ router.get(
   '/export',
   authorize([PERMISSION_KEYS.PRICING.EXPORT_DATA]),
   validate(pricingExportQuerySchema, 'query'),
-  createQueryNormalizationMiddleware(
-    null,
-    [],
-    [],
-    pricingExportQuerySchema
-  ),
+  createQueryNormalizationMiddleware(null, [], [], pricingExportQuerySchema),
   exportPricingRecordsController
 );
 

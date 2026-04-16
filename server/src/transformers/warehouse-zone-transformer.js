@@ -19,13 +19,13 @@
  */
 const transformWarehouseZones = (rows) =>
   rows.map((row) => ({
-    id:                row.id,
-    zoneCode:          row.zone_code,
-    quantity:          row.quantity,
-    reservedQuantity:  row.reserved_quantity,
+    id: row.id,
+    zoneCode: row.zone_code,
+    quantity: row.quantity,
+    reservedQuantity: row.reserved_quantity,
     availableQuantity: row.available_quantity,
-    zoneEntryDate:     row.zone_entry_date,
-    zoneExitDate:      row.zone_exit_date,
+    zoneEntryDate: row.zone_entry_date,
+    zoneExitDate: row.zone_exit_date,
   }));
 
 module.exports = {

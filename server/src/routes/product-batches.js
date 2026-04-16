@@ -10,11 +10,11 @@
 
 'use strict';
 
-const express                            = require('express');
-const { authorize }                      = require('../middlewares/authorize');
-const validate                           = require('../middlewares/validate');
+const express = require('express');
+const { authorize } = require('../middlewares/authorize');
+const validate = require('../middlewares/validate');
 const createQueryNormalizationMiddleware = require('../middlewares/normalize-query');
-const PERMISSION_KEYS            = require('../utils/constants/domain/permission-keys');
+const PERMISSION_KEYS = require('../utils/constants/domain/permission-keys');
 const {
   productBatchQuerySchema,
   productBatchIdParamSchema,
@@ -51,18 +51,19 @@ router.get(
     allowUnknown: true, // downstream middleware normalizes unknown keys before business layer
   }),
   createQueryNormalizationMiddleware(
-    'productBatchSortMap',      // moduleKey — drives allowed sortBy fields
-    [                           // arrayKeys — normalized as UUID arrays
+    'productBatchSortMap', // moduleKey — drives allowed sortBy fields
+    [
+      // arrayKeys — normalized as UUID arrays
       'statusIds',
       'skuIds',
       'productIds',
       'manufacturerIds',
     ],
-    [],                         // booleanKeys — none client-controlled
-    productBatchQuerySchema,    // filterKeysOrSchema — extracts filter keys from schema
-    {},                         // options overrides — none
-    [],                         // option-level booleans — none
-    []                          // option-level strings — none
+    [], // booleanKeys — none client-controlled
+    productBatchQuerySchema, // filterKeysOrSchema — extracts filter keys from schema
+    {}, // options overrides — none
+    [], // option-level booleans — none
+    [] // option-level strings — none
   ),
   getPaginatedProductBatchesController
 );

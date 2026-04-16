@@ -8,12 +8,12 @@
 
 'use strict';
 
-const express                            = require('express');
-const { authorize }                      = require('../middlewares/authorize');
-const validate                           = require('../middlewares/validate');
+const express = require('express');
+const { authorize } = require('../middlewares/authorize');
+const validate = require('../middlewares/validate');
 const createQueryNormalizationMiddleware = require('../middlewares/normalize-query');
-const PERMISSION_KEYS                        = require('../utils/constants/domain/permission-keys');
-const { orderTypeQuerySchema }           = require('../validators/order-type-validators');
+const PERMISSION_KEYS = require('../utils/constants/domain/permission-keys');
+const { orderTypeQuerySchema } = require('../validators/order-type-validators');
 const {
   getPaginatedOrderTypesController,
 } = require('../controllers/order-type-controller');
@@ -38,10 +38,10 @@ router.get(
     'Invalid query parameters.'
   ),
   createQueryNormalizationMiddleware(
-    'orderTypeSortMap',                        // moduleKey — drives allowed sortBy fields
-    ['statusId', 'createdBy', 'updatedBy'],    // arrayKeys — normalized as UUID arrays
-    [],                                        // booleanKeys — none client-controlled
-    orderTypeQuerySchema                       // filterKeysOrSchema — extracts filter keys from schema
+    'orderTypeSortMap', // moduleKey — drives allowed sortBy fields
+    ['statusId', 'createdBy', 'updatedBy'], // arrayKeys — normalized as UUID arrays
+    [], // booleanKeys — none client-controlled
+    orderTypeQuerySchema // filterKeysOrSchema — extracts filter keys from schema
   ),
   getPaginatedOrderTypesController
 );

@@ -24,30 +24,41 @@ const {
   applyPackagingMaterialBatchVisibilityRules,
   evaluatePackagingMaterialBatchAccessControl,
   filterUpdatablePackagingMaterialBatchFields,
-}                                            = require('../business/packaging-material-batch-business');
+} = require('../business/packaging-material-batch-business');
 const {
   getPaginatedPackagingMaterialBatches,
   insertPackagingMaterialBatchesBulk,
   getPackagingMaterialBatchById,
   updatePackagingMaterialBatch,
-}                                            = require('../repositories/packaging-material-batch-repository');
+} = require('../repositories/packaging-material-batch-repository');
 const {
   transformPaginatedPackagingMaterialBatchResults,
   transformPackagingMaterialBatchRecords,
-}                                            = require('../transformers/packaging-material-batch-transformer');
-const AppError                               = require('../utils/AppError');
-const { withTransaction }          = require('../database/db');
+} = require('../transformers/packaging-material-batch-transformer');
+const AppError = require('../utils/AppError');
+const { withTransaction } = require('../database/db');
 const { lockRows } = require('../utils/db/lock-modes');
-const { validateRequiredFields }             = require('../utils/validation/validate-required-fields');
-const { getStatusId }                        = require('../config/status-cache');
-const { registerBatchWorkflow, updateBatchWorkflow } = require('../business/batches/batch-workflow');
-const { getBatchActivityTypeId }             = require('../cache/batch-activity-type-cache');
+const {
+  validateRequiredFields,
+} = require('../utils/validation/validate-required-fields');
+const { getStatusId } = require('../config/status-cache');
+const {
+  registerBatchWorkflow,
+  updateBatchWorkflow,
+} = require('../business/batches/batch-workflow');
+const {
+  getBatchActivityTypeId,
+} = require('../cache/batch-activity-type-cache');
 const {
   PACKAGING_BATCH_EDIT_RULES,
   PACKAGING_BATCH_STATUS_TRANSITIONS,
-}                                            = require('../utils/constants/domain/packaging-material-batch-constants');
-const { getBatchActivityType }               = require('../business/batches/batch-activity-resolvers');
-const { transformIdOnlyResult }              = require('../transformers/common/id-result-transformer');
+} = require('../utils/constants/domain/packaging-material-batch-constants');
+const {
+  getBatchActivityType,
+} = require('../business/batches/batch-activity-resolvers');
+const {
+  transformIdOnlyResult,
+} = require('../transformers/common/id-result-transformer');
 
 const CONTEXT = 'packaging-material-batch-service';
 
@@ -65,44 +76,50 @@ const CONTEXT = 'packaging-material-batch-service';
  * @throws {AppError} Wraps unexpected errors as `AppError.serviceError`.
  */
 const fetchPaginatedPackagingMaterialBatchesService = async ({
-                                                               filters = {},
-                                                               page    = 1,
-                                                               limit   = 20,
-                                                               user,
-                                                             }) => {
+  filters = {},
+  page = 1,
+  limit = 20,
+  user,
+}) => {
   const context = `${CONTEXT}/fetchPaginatedPackagingMaterialBatchesService`;
-  
+
   try {
     // 1. Resolve visibility access control scope.
     const access = await evaluatePackagingMaterialBatchVisibility(user);
-    
+
     // 2. Apply visibility rules to filters (CRITICAL — must run before query).
-    const adjustedFilters = applyPackagingMaterialBatchVisibilityRules(filters, access);
-    
+    const adjustedFilters = applyPackagingMaterialBatchVisibilityRules(
+      filters,
+      access
+    );
+
     // 3. Query raw paginated rows.
     const rawResult = await getPaginatedPackagingMaterialBatches({
       filters: adjustedFilters,
       page,
       limit,
     });
-    
+
     // 4. Return empty shape immediately — no records to process.
     if (!rawResult || rawResult.data.length === 0) {
       return {
-        data:       [],
+        data: [],
         pagination: { page, limit, totalRecords: 0, totalPages: 0 },
       };
     }
-    
+
     // 5. Transform for UI consumption.
     return transformPaginatedPackagingMaterialBatchResults(rawResult, access);
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
-    throw AppError.serviceError('Unable to retrieve packaging material batches.', {
-      context,
-      meta: { error: error.message }
-    });
+
+    throw AppError.serviceError(
+      'Unable to retrieve packaging material batches.',
+      {
+        context,
+        meta: { error: error.message },
+      }
+    );
   }
 };
 
@@ -121,22 +138,36 @@ const fetchPaginatedPackagingMaterialBatchesService = async ({
  * @throws {AppError} Re-throws all other AppErrors from lower layers unchanged.
  * @throws {AppError} Wraps unexpected errors as `AppError.serviceError`.
  */
-const createPackagingMaterialBatchesService = async (packagingMaterialBatches, user) => {
+const createPackagingMaterialBatchesService = async (
+  packagingMaterialBatches,
+  user
+) => {
   const context = `${CONTEXT}/createPackagingMaterialBatchesService`;
-  
+
   return withTransaction(async (client) => {
     try {
       // 1. Validate input array.
-      if (!Array.isArray(packagingMaterialBatches) || packagingMaterialBatches.length === 0) {
-        throw AppError.validationError('No packaging material batches provided.');
+      if (
+        !Array.isArray(packagingMaterialBatches) ||
+        packagingMaterialBatches.length === 0
+      ) {
+        throw AppError.validationError(
+          'No packaging material batches provided.'
+        );
       }
-      
+
       validateRequiredFields(
         packagingMaterialBatches,
-        ['lot_number', 'packaging_material_supplier_id', 'manufacture_date', 'expiry_date', 'quantity'],
+        [
+          'lot_number',
+          'packaging_material_supplier_id',
+          'manufacture_date',
+          'expiry_date',
+          'quantity',
+        ],
         context
       );
-      
+
       // 2. Lock supplier rows to prevent concurrent batch creation.
       const uniqueSupplierIds = [
         ...new Set(
@@ -145,7 +176,7 @@ const createPackagingMaterialBatchesService = async (packagingMaterialBatches, u
             .filter(Boolean)
         ),
       ];
-      
+
       const lockedSuppliers = await lockRows(
         client,
         'packaging_material_suppliers',
@@ -153,42 +184,51 @@ const createPackagingMaterialBatchesService = async (packagingMaterialBatches, u
         'FOR UPDATE',
         { context }
       );
-      
-      if (!lockedSuppliers || lockedSuppliers.length !== uniqueSupplierIds.length) {
-        throw AppError.notFoundError('Some packaging material suppliers could not be locked.');
+
+      if (
+        !lockedSuppliers ||
+        lockedSuppliers.length !== uniqueSupplierIds.length
+      ) {
+        throw AppError.notFoundError(
+          'Some packaging material suppliers could not be locked.'
+        );
       }
-      
+
       // 3. Prepare batch records with status and actor.
       const pendingStatusId = getStatusId('batch_pending');
-      const actorId         = user?.id;
-      
+      const actorId = user?.id;
+
       const preparedBatches = packagingMaterialBatches.map((batch) => ({
         ...batch,
-        status_id:  pendingStatusId,
+        status_id: pendingStatusId,
         created_by: actorId,
       }));
-      
+
       // 4. Resolve activity type and run batch registration workflow.
-      const batchCreatedActivityTypeId = getBatchActivityTypeId('BATCH_CREATED');
-      
+      const batchCreatedActivityTypeId =
+        getBatchActivityTypeId('BATCH_CREATED');
+
       const insertedBatches = await registerBatchWorkflow({
-        batchType:                'packaging_material',
-        batches:                  preparedBatches,
-        insertBatchFn:            insertPackagingMaterialBatchesBulk,
+        batchType: 'packaging_material',
+        batches: preparedBatches,
+        insertBatchFn: insertPackagingMaterialBatchesBulk,
         batchCreatedActivityTypeId,
         actorId,
         client,
       });
-      
+
       // 5. Transform and return insert results.
       return transformPackagingMaterialBatchRecords(insertedBatches);
     } catch (error) {
       if (error instanceof AppError) throw error;
-      
-      throw AppError.serviceError('Unable to create packaging material batches.', {
-        context,
-        meta: { error: error.message }
-      });
+
+      throw AppError.serviceError(
+        'Unable to create packaging material batches.',
+        {
+          context,
+          meta: { error: error.message },
+        }
+      );
     }
   });
 };
@@ -214,40 +254,44 @@ const editPackagingMaterialBatchMetadataService = async (
   user,
   overrideContext
 ) => {
-  const context = overrideContext ?? `${CONTEXT}/editPackagingMaterialBatchMetadataService`;
-  
+  const context =
+    overrideContext ?? `${CONTEXT}/editPackagingMaterialBatchMetadataService`;
+
   return withTransaction(async (client) => {
     try {
       // 1. Validate updates payload.
       if (!updates || typeof updates !== 'object') {
         throw AppError.validationError('Invalid updates payload.');
       }
-      
+
       // 2. Execute shared batch update workflow.
       const updatedBatch = await updateBatchWorkflow({
         batchId,
         updates,
         user,
         client,
-        getBatchFn:               getPackagingMaterialBatchById,
-        updateBatchFn:            updatePackagingMaterialBatch,
-        editRules:                PACKAGING_BATCH_EDIT_RULES,
-        statusTransitions:        PACKAGING_BATCH_STATUS_TRANSITIONS,
-        batchType:                'packaging_material',
-        activityTypeResolver:     getBatchActivityType,
-        evaluateAccessControlFn:  evaluatePackagingMaterialBatchAccessControl,
-        filterUpdatableFieldsFn:  filterUpdatablePackagingMaterialBatchFields,
+        getBatchFn: getPackagingMaterialBatchById,
+        updateBatchFn: updatePackagingMaterialBatch,
+        editRules: PACKAGING_BATCH_EDIT_RULES,
+        statusTransitions: PACKAGING_BATCH_STATUS_TRANSITIONS,
+        batchType: 'packaging_material',
+        activityTypeResolver: getBatchActivityType,
+        evaluateAccessControlFn: evaluatePackagingMaterialBatchAccessControl,
+        filterUpdatableFieldsFn: filterUpdatablePackagingMaterialBatchFields,
       });
-      
+
       // 3. Transform and return ID-only result.
       return transformIdOnlyResult([updatedBatch])[0];
     } catch (error) {
       if (error instanceof AppError) throw error;
-      
-      throw AppError.serviceError('Unable to update packaging material batch metadata.', {
-        context,
-        meta: { error: error.message }
-      });
+
+      throw AppError.serviceError(
+        'Unable to update packaging material batch metadata.',
+        {
+          context,
+          meta: { error: error.message },
+        }
+      );
     }
   });
 };
@@ -263,7 +307,12 @@ const editPackagingMaterialBatchMetadataService = async (
  * @param {Object}      user      - Authenticated user.
  * @returns {Promise<{ id: string }>}
  */
-const updatePackagingMaterialBatchStatusService = async (batchId, statusId, notes, user) =>
+const updatePackagingMaterialBatchStatusService = async (
+  batchId,
+  statusId,
+  notes,
+  user
+) =>
   editPackagingMaterialBatchMetadataService(
     batchId,
     { status_id: statusId, notes: notes ?? null },
@@ -282,14 +331,19 @@ const updatePackagingMaterialBatchStatusService = async (batchId, statusId, note
  * @param {Object}      user        - Authenticated user.
  * @returns {Promise<{ id: string }>}
  */
-const receivePackagingMaterialBatchService = async (batchId, received_at, notes, user) =>
+const receivePackagingMaterialBatchService = async (
+  batchId,
+  received_at,
+  notes,
+  user
+) =>
   editPackagingMaterialBatchMetadataService(
     batchId,
     {
-      status_id:   getStatusId('batch_received'),
+      status_id: getStatusId('batch_received'),
       received_at: received_at ?? null,
       received_by: user.id,
-      notes:       notes ?? null,
+      notes: notes ?? null,
     },
     user,
     `${CONTEXT}/receivePackagingMaterialBatchService`
@@ -306,14 +360,19 @@ const receivePackagingMaterialBatchService = async (batchId, received_at, notes,
  * @param {Object}      user        - Authenticated user.
  * @returns {Promise<{ id: string }>}
  */
-const releasePackagingMaterialBatchService = async (batchId, supplierId, notes, user) =>
+const releasePackagingMaterialBatchService = async (
+  batchId,
+  supplierId,
+  notes,
+  user
+) =>
   editPackagingMaterialBatchMetadataService(
     batchId,
     {
-      status_id:               getStatusId('batch_released'),
-      released_by:             user.id,
+      status_id: getStatusId('batch_released'),
+      released_by: user.id,
       released_by_supplier_id: supplierId,
-      notes:                   notes ?? null,
+      notes: notes ?? null,
     },
     user,
     `${CONTEXT}/releasePackagingMaterialBatchService`

@@ -35,35 +35,39 @@ const {
  * @throws  {AppError}        Normalized database error if the query fails.
  */
 const getSupplierLookup = async ({
-                                   filters = {},
-                                   options = {},
-                                   limit   = 50,
-                                   offset  = 0,
-                                 }) => {
+  filters = {},
+  options = {},
+  limit = 50,
+  offset = 0,
+}) => {
   const context = 'supplier-repository/getSupplierLookup';
   const { canSearchStatus = false, canSearchLocation = false } = options;
-  
+
   const joins = [
-    ...(canSearchStatus   ? ['LEFT JOIN status st   ON st.id = s.status_id']  : []),
-    ...(canSearchLocation ? ['LEFT JOIN locations l  ON l.id = s.location_id'] : []),
+    ...(canSearchStatus
+      ? ['LEFT JOIN status st   ON st.id = s.status_id']
+      : []),
+    ...(canSearchLocation
+      ? ['LEFT JOIN locations l  ON l.id = s.location_id']
+      : []),
   ];
-  
+
   const { whereClause, params } = buildSupplierFilter(filters, {
     canSearchStatus,
     canSearchLocation,
   });
-  
+
   const queryText = buildSupplierLookupQuery(joins, whereClause);
-  
+
   return buildVendorLookup({
     context,
-    tableName:       SUPPLIER_TABLE,
+    tableName: SUPPLIER_TABLE,
     joins,
     whereClause,
-    queryParams:     params,
+    queryParams: params,
     queryText,
-    sortBy:          's.name',
-    sortWhitelist:   SUPPLIER_SORT_WHITELIST,
+    sortBy: 's.name',
+    sortWhitelist: SUPPLIER_SORT_WHITELIST,
     additionalSorts: SUPPLIER_ADDITIONAL_SORTS,
     limit,
     offset,

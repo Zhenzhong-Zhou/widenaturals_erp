@@ -50,9 +50,9 @@ const PACKAGING_BATCH_EDIT_RULES = {
     'exchange_rate',
     'total_cost',
     'notes',
-    'status_id'
+    'status_id',
   ],
-  
+
   /**
    * Batch has been physically received into warehouse inventory.
    *
@@ -67,28 +67,24 @@ const PACKAGING_BATCH_EDIT_RULES = {
     'manufacture_date',
     'expiry_date',
     'notes',
-    
+
     // Receipt metadata
     'received_at',
     'received_by',
-    
+
     // Lifecycle control
     'status_id',
-    'status_date'
+    'status_date',
   ],
-  
+
   /**
    * Batch temporarily blocked due to inspection,
    * QA review, or operational issues.
    *
    * Only lifecycle transitions are allowed.
    */
-  quarantined: [
-    'notes',
-    'status_id',
-    'status_date'
-  ],
-  
+  quarantined: ['notes', 'status_id', 'status_date'],
+
   /**
    * Batch approved for operational usage.
    *
@@ -97,10 +93,7 @@ const PACKAGING_BATCH_EDIT_RULES = {
    *
    * Only lifecycle transitions may occur.
    */
-  released: [
-    'notes',
-    'status_id'
-  ]
+  released: ['notes', 'status_id'],
 };
 
 //------------------------------------------------------------
@@ -144,64 +137,63 @@ const PACKAGING_BATCH_EDIT_RULES = {
  * @type {Record<string, string[]>}
  */
 const PACKAGING_BATCH_STATUS_TRANSITIONS = {
-  
   /**
    * Batch registered in the system but not yet received
    * into warehouse inventory.
    */
   pending: [
-    'received',      // warehouse intake completed
-    'quarantined',   // batch held for inspection
-    'rejected'       // intake rejected immediately
+    'received', // warehouse intake completed
+    'quarantined', // batch held for inspection
+    'rejected', // intake rejected immediately
   ],
-  
+
   /**
    * Batch has physically arrived at the warehouse.
    */
   received: [
-    'quarantined',   // QA inspection required
-    'released',      // approved for use
-    'rejected'       // rejected during intake inspection
+    'quarantined', // QA inspection required
+    'released', // approved for use
+    'rejected', // rejected during intake inspection
   ],
-  
+
   /**
    * Batch temporarily held for quality inspection
    * or operational investigation.
    */
   quarantined: [
-    'released',      // inspection passed
-    'rejected',      // inspection failed
-    'suspended'      // operational hold
+    'released', // inspection passed
+    'rejected', // inspection failed
+    'suspended', // operational hold
   ],
-  
+
   /**
    * Batch approved for operational use in manufacturing
    * or packaging processes.
    */
   released: [
-    'consumed',      // fully used in production
-    'expired',       // shelf-life expired
-    'suspended',     // blocked due to operational issues
-    'archived'       // archived after lifecycle completion
+    'consumed', // fully used in production
+    'expired', // shelf-life expired
+    'suspended', // blocked due to operational issues
+    'archived', // archived after lifecycle completion
   ],
-  
+
   /**
    * Batch temporarily blocked due to operational
    * or quality issues.
    */
   suspended: [
-    'quarantined',   // return to inspection
-    'released',      // issue resolved
-    'archived'       // permanently archived
+    'quarantined', // return to inspection
+    'released', // issue resolved
+    'archived', // permanently archived
   ],
-  
+
   /**
    * Batch rejected during inspection or intake.
    *
    * Terminal state — no further transitions allowed.
    */
   rejected: [],
-  
+
   /**
    * Batch expired (possible for certain materials
    * such as adhesives, liners, or chemical components).
@@ -209,21 +201,21 @@ const PACKAGING_BATCH_STATUS_TRANSITIONS = {
    * Terminal state.
    */
   expired: [],
-  
+
   /**
    * Batch fully consumed in manufacturing operations.
    *
    * Terminal state.
    */
   consumed: [],
-  
+
   /**
    * Batch archived for historical or compliance
    * recordkeeping.
    *
    * Terminal state.
    */
-  archived: []
+  archived: [],
 };
 
 /**
@@ -263,7 +255,7 @@ const PACKAGING_BATCH_PERMISSION_FIELD_RULES = {
     'unit',
     'notes',
   ],
-  
+
   /**
    * Sensitive metadata edits.
    *
@@ -281,14 +273,11 @@ const PACKAGING_BATCH_PERMISSION_FIELD_RULES = {
     'total_cost',
     'received_at',
   ],
-  
+
   /**
    * Permission allowing lifecycle status transitions.
    */
-  change_batch_status: [
-    'status_id',
-    'notes'
-  ]
+  change_batch_status: ['status_id', 'notes'],
 };
 
 module.exports = {

@@ -33,10 +33,10 @@
  */
 const deduplicateByCompositeKey = (records, keyFields = [], mergeFn = null) => {
   const map = new Map();
-  
+
   for (const r of records) {
     const key = keyFields.map((k) => r[k]).join('::');
-    
+
     if (!map.has(key)) {
       map.set(key, { ...r });
     } else if (mergeFn) {
@@ -45,7 +45,7 @@ const deduplicateByCompositeKey = (records, keyFields = [], mergeFn = null) => {
       throw new Error(`Duplicate key encountered without mergeFn: ${key}`);
     }
   }
-  
+
   return Array.from(map.values());
 };
 
@@ -134,7 +134,7 @@ const deduplicatePairs = (list, keySelector) => {
  */
 const normalizeToArray = (value) => {
   if (Array.isArray(value)) return value;
-  if (value == null)         return [];
+  if (value == null) return [];
   return [value];
 };
 

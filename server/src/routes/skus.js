@@ -10,11 +10,11 @@
 
 'use strict';
 
-const express                            = require('express');
-const { authorize }                      = require('../middlewares/authorize');
-const validate                           = require('../middlewares/validate');
+const express = require('express');
+const { authorize } = require('../middlewares/authorize');
+const validate = require('../middlewares/validate');
 const createQueryNormalizationMiddleware = require('../middlewares/normalize-query');
-const PERMISSION_KEYS                        = require('../utils/constants/domain/permission-keys');
+const PERMISSION_KEYS = require('../utils/constants/domain/permission-keys');
 const {
   getPaginatedSkuProductCardsSchema,
   skuQuerySchema,
@@ -51,10 +51,10 @@ router.get(
   authorize([PERMISSION_KEYS.SKUS.VIEW_CARDS]),
   validate(getPaginatedSkuProductCardsSchema, 'query'),
   createQueryNormalizationMiddleware(
-    'skuProductCards',                  // moduleKey — drives allowed sortBy fields
-    ['skuIds'],                         // arrayKeys — normalized as UUID arrays
-    [],                                 // booleanKeys — none client-controlled
-    getPaginatedSkuProductCardsSchema   // filterKeysOrSchema — extracts filter keys from schema
+    'skuProductCards', // moduleKey — drives allowed sortBy fields
+    ['skuIds'], // arrayKeys — normalized as UUID arrays
+    [], // booleanKeys — none client-controlled
+    getPaginatedSkuProductCardsSchema // filterKeysOrSchema — extracts filter keys from schema
   ),
   getPaginatedSkuProductCardsController
 );
@@ -72,10 +72,10 @@ router.get(
   authorize([PERMISSION_KEYS.SKUS.VIEW_LIST]),
   validate(skuQuerySchema, 'query'),
   createQueryNormalizationMiddleware(
-    'skuSortMap',                  // moduleKey — drives allowed sortBy fields
-    ['statusIds', 'productIds'],   // arrayKeys — normalized as UUID arrays
-    [],                            // booleanKeys — none client-controlled
-    skuQuerySchema                 // filterKeysOrSchema — extracts filter keys from schema
+    'skuSortMap', // moduleKey — drives allowed sortBy fields
+    ['statusIds', 'productIds'], // arrayKeys — normalized as UUID arrays
+    [], // booleanKeys — none client-controlled
+    skuQuerySchema // filterKeysOrSchema — extracts filter keys from schema
   ),
   getPaginatedSkusController
 );

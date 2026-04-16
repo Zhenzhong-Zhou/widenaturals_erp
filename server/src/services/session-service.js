@@ -15,21 +15,23 @@
 
 'use strict';
 
-const { logSystemInfo }                      = require('../utils/logging/system-logger');
-const { signToken }                          = require('../utils/auth/jwt-utils');
-const { insertTokenActivityLog }             = require('../repositories/token-activity-log-repository');
+const { logSystemInfo } = require('../utils/logging/system-logger');
+const { signToken } = require('../utils/auth/jwt-utils');
+const {
+  insertTokenActivityLog,
+} = require('../repositories/token-activity-log-repository');
 const {
   insertToken,
   revokeTokensByUserId,
   revokeAllTokensBySessionId,
-}                                            = require('../repositories/token-repository');
-const { hashToken }                          = require('../utils/auth/token-hash');
-const { getTokenExpiry }                     = require('../utils/auth/token-expiry');
+} = require('../repositories/token-repository');
+const { hashToken } = require('../utils/auth/token-hash');
+const { getTokenExpiry } = require('../utils/auth/token-expiry');
 const {
   insertSession,
   revokeSessionsByUserId,
   revokeSessionRowById,
-}                                            = require('../repositories/session-repository');
+} = require('../repositories/session-repository');
 
 const CONTEXT = 'session-service';
 
@@ -62,7 +64,7 @@ const issueSessionWithTokens = async (
   client
 ) => {
   const context = `${CONTEXT}/issueSessionWithTokens`;
-  
+
   // 1. Create session first — sessionId is required for token signing.
   const session = await insertSession(
     {
@@ -75,18 +77,18 @@ const issueSessionWithTokens = async (
     },
     client
   );
-  
+
   if (!session?.id) {
     throw new Error('Session creation failed unexpectedly');
   }
-  
+
   // 2. Sign tokens with sessionId embedded in payload.
   const accessToken = signToken({
     id: userId,
     role: roleId,
     sessionId: session.id,
   });
-  
+
   const refreshToken = signToken(
     {
       id: userId,
@@ -95,11 +97,11 @@ const issueSessionWithTokens = async (
     },
     true
   );
-  
+
   // 3. Hash and persist refresh token.
   const refreshTokenHash = hashToken(refreshToken);
   let refreshTokenRow;
-  
+
   try {
     refreshTokenRow = await insertToken(
       {
@@ -112,7 +114,7 @@ const issueSessionWithTokens = async (
       },
       client
     );
-    
+
     await insertTokenActivityLog(
       {
         userId,
@@ -140,16 +142,16 @@ const issueSessionWithTokens = async (
       },
       client
     );
-    
+
     throw error;
   }
-  
+
   logSystemInfo('Session and tokens issued successfully', {
     context,
     userId,
     sessionId: session.id,
   });
-  
+
   return {
     accessToken,
     refreshToken,
@@ -175,15 +177,15 @@ const revokeAllSessionsForUser = async (
   client = null
 ) => {
   const context = `${CONTEXT}/revokeAllSessionsForUser`;
-  
+
   const revokedSessions = await revokeSessionsByUserId(userId, client);
-  
+
   const revokedTokens = await revokeTokensByUserId(
     userId,
     { tokenType: 'refresh' },
     client
   );
-  
+
   await Promise.all(
     revokedTokens.map((token) =>
       insertTokenActivityLog(
@@ -200,14 +202,14 @@ const revokeAllSessionsForUser = async (
       )
     )
   );
-  
+
   logSystemInfo('All sessions revoked for user', {
     context,
     userId,
     revokedSessionCount: revokedSessions.length,
     revokedTokenCount: revokedTokens.length,
   });
-  
+
   return { revokedSessions, revokedTokens };
 };
 
@@ -228,13 +230,13 @@ const revokeSession = async (
   client = null
 ) => {
   const context = `${CONTEXT}/revokeSession`;
-  
+
   // 1. Revoke session row — invalidates access tokens via session check.
   await revokeSessionRowById(sessionId, client);
-  
+
   // 2. Revoke all non-revoked tokens linked to the session.
   const revokedTokens = await revokeAllTokensBySessionId(sessionId, client);
-  
+
   // 3. Record token-level revocation events for audit purposes.
   await Promise.all(
     revokedTokens.map((token) =>
@@ -252,13 +254,13 @@ const revokeSession = async (
       )
     )
   );
-  
+
   logSystemInfo('Session revoked successfully', {
     context,
     sessionId,
     revokedTokenCount: revokedTokens.length,
   });
-  
+
   return revokedTokens;
 };
 

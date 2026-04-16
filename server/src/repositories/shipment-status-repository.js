@@ -11,7 +11,9 @@
 const { query } = require('../database/db');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { logDbQueryError } = require('../utils/db-logger');
-const { SHIPMENT_STATUS_GET_BY_CODE } = require('./queries/shipment-status-queries');
+const {
+  SHIPMENT_STATUS_GET_BY_CODE,
+} = require('./queries/shipment-status-queries');
 
 // ─── Single Record ────────────────────────────────────────────────────────────
 
@@ -29,18 +31,24 @@ const { SHIPMENT_STATUS_GET_BY_CODE } = require('./queries/shipment-status-queri
  */
 const getShipmentStatusByCode = async (statusCode, client = null) => {
   const context = 'shipment-status-repository/getShipmentStatusByCode';
-  
+
   try {
-    const { rows } = await query(SHIPMENT_STATUS_GET_BY_CODE, [statusCode], client);
+    const { rows } = await query(
+      SHIPMENT_STATUS_GET_BY_CODE,
+      [statusCode],
+      client
+    );
     return rows[0] ?? null;
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch shipment status by code.',
-      meta:    { statusCode },
-      logFn:   (err) => logDbQueryError(
-        SHIPMENT_STATUS_GET_BY_CODE, [statusCode], err, { context, statusCode }
-      ),
+      meta: { statusCode },
+      logFn: (err) =>
+        logDbQueryError(SHIPMENT_STATUS_GET_BY_CODE, [statusCode], err, {
+          context,
+          statusCode,
+        }),
     });
   }
 };

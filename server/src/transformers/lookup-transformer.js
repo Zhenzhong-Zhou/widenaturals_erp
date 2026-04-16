@@ -10,27 +10,29 @@
 
 'use strict';
 
-const { getProductDisplayName }         = require('../utils/display-name-utils');
-const { cleanObject }                   = require('../utils/object-utils');
+const { getProductDisplayName } = require('../utils/display-name-utils');
+const { cleanObject } = require('../utils/object-utils');
 const {
   transformRows,
   transformIdNameToIdLabel,
   includeFlagsBasedOnAccess,
   transformLoadMoreResult,
-}                                       = require('../utils/transformer-utils');
-const { getFullName }                   = require('../utils/person-utils');
-const { formatPackagingMaterialLabel }  = require('../utils/packaging-material-utils');
-const { formatAddress }                 = require('../utils/address-utils');
-const { formatDiscount }                = require('../utils/discount-utils');
-const { formatTaxRateLabel }            = require('../utils/tax-rate-utils');
+} = require('../utils/transformer-utils');
+const { getFullName } = require('../utils/person-utils');
+const {
+  formatPackagingMaterialLabel,
+} = require('../utils/packaging-material-utils');
+const { formatAddress } = require('../utils/address-utils');
+const { formatDiscount } = require('../utils/discount-utils');
+const { formatTaxRateLabel } = require('../utils/tax-rate-utils');
 const {
   createEntityLookupTransformer,
-}                                       = require('./common/create-entity-lookup-transformer');
+} = require('./common/create-entity-lookup-transformer');
 const {
   STANDARD_FLAG_MAP,
   STATUS_ONLY_FLAG_MAP,
-  PRICING_GROUP_FLAG_MAP
-}                                       = require('../utils/constants/lookup-flag-maps');
+  PRICING_GROUP_FLAG_MAP,
+} = require('../utils/constants/lookup-flag-maps');
 
 // ---------------------------------------------------------------------------
 // Batch registry
@@ -38,24 +40,24 @@ const {
 
 const transformBatchRegistryLookupItem = (row) =>
   cleanObject({
-    id:   row.batch_registry_id,
+    id: row.batch_registry_id,
     type: row.batch_type,
     product: row.product_batch_id
       ? {
-        id:         row.product_batch_id,
-        name:       getProductDisplayName(row),
-        lotNumber:  row.product_lot_number,
-        expiryDate: row.product_expiry_date,
-      }
+          id: row.product_batch_id,
+          name: getProductDisplayName(row),
+          lotNumber: row.product_lot_number,
+          expiryDate: row.product_expiry_date,
+        }
       : null,
     packagingMaterial: row.packaging_material_batch_id
       ? {
-        id:            row.packaging_material_batch_id,
-        lotNumber:     row.material_lot_number,
-        expiryDate:    row.material_expiry_date,
-        snapshotName:  row.material_snapshot_name,
-        receivedLabel: row.received_label_name,
-      }
+          id: row.packaging_material_batch_id,
+          lotNumber: row.material_lot_number,
+          expiryDate: row.material_expiry_date,
+          snapshotName: row.material_snapshot_name,
+          receivedLabel: row.received_label_name,
+        }
       : null,
   });
 
@@ -68,10 +70,10 @@ const transformBatchRegistryPaginatedLookupResult = (paginatedResult) =>
 
 const transformWarehouseLookupRows = (rows) => {
   if (!Array.isArray(rows)) return [];
-  
+
   return rows.map((row) => ({
-    value:    row.warehouse_id,
-    label:    `${row.warehouse_name} (${row.location_name}${row.warehouse_type_name ? ' - ' + row.warehouse_type_name : ''})`,
+    value: row.warehouse_id,
+    label: `${row.warehouse_name} (${row.location_name}${row.warehouse_type_name ? ' - ' + row.warehouse_type_name : ''})`,
     metadata: { locationId: row.location_id },
   }));
 };
@@ -82,10 +84,10 @@ const transformWarehouseLookupRows = (rows) => {
 
 const transformLotAdjustmentLookupOptions = (rows) => {
   if (!Array.isArray(rows)) return [];
-  
+
   return rows.map((row) => ({
-    value:        row.lot_adjustment_type_id,
-    label:        row.name,
+    value: row.lot_adjustment_type_id,
+    label: row.name,
     actionTypeId: row.inventory_action_type_id,
   }));
 };
@@ -98,12 +100,19 @@ const transformCustomerLookup = (row, userAccess) => {
   if (!row || typeof row !== 'object') {
     throw new Error('Invalid customer lookup row.');
   }
-  
-  const fullName  = getFullName(row.firstname, row.lastname);
-  const email     = row.email || 'no-email';
-  const base      = transformIdNameToIdLabel({ id: row.id, name: `${fullName} (${email})` });
-  const flagSubset = includeFlagsBasedOnAccess(row, userAccess, STANDARD_FLAG_MAP);
-  
+
+  const fullName = getFullName(row.firstname, row.lastname);
+  const email = row.email || 'no-email';
+  const base = transformIdNameToIdLabel({
+    id: row.id,
+    name: `${fullName} (${email})`,
+  });
+  const flagSubset = includeFlagsBasedOnAccess(
+    row,
+    userAccess,
+    STANDARD_FLAG_MAP
+  );
+
   return {
     ...base,
     hasAddress: row?.has_address === true,
@@ -118,9 +127,9 @@ const transformCustomerPaginatedLookupResult = (paginatedResult, userAccess) =>
 
 const transformCustomerAddressLookupRow = (row) =>
   cleanObject({
-    id:                row.id,
-    recipient_name:    row.recipient_name,
-    label:             row.label ?? null,
+    id: row.id,
+    recipient_name: row.recipient_name,
+    label: row.label ?? null,
     formatted_address: formatAddress(row),
   });
 
@@ -133,13 +142,17 @@ const transformCustomerAddressesLookupResult = (rows) =>
 
 const transformOrderTypeLookup = (row, userAccess) => {
   if (!row || typeof row !== 'object') return null;
-  
-  const label      = userAccess?.canViewAllCategories
+
+  const label = userAccess?.canViewAllCategories
     ? `${row.category} - ${row.name}`
     : row.name;
-  const base       = transformIdNameToIdLabel({ id: row.id, name: label });
-  const flagSubset = includeFlagsBasedOnAccess(row, userAccess, STANDARD_FLAG_MAP);
-  
+  const base = transformIdNameToIdLabel({ id: row.id, name: label });
+  const flagSubset = includeFlagsBasedOnAccess(
+    row,
+    userAccess,
+    STANDARD_FLAG_MAP
+  );
+
   return {
     ...base,
     isRequiredPayment: !!row?.requires_payment,
@@ -161,7 +174,10 @@ const transformPaymentMethodLookup = (row, userAccess) => ({
   ...includeFlagsBasedOnAccess(row, userAccess, STATUS_ONLY_FLAG_MAP),
 });
 
-const transformPaymentMethodPaginatedLookupResult = (paginatedResult, userAccess) =>
+const transformPaymentMethodPaginatedLookupResult = (
+  paginatedResult,
+  userAccess
+) =>
   transformLoadMoreResult(paginatedResult, (row) =>
     transformPaymentMethodLookup(row, userAccess)
   );
@@ -172,9 +188,13 @@ const transformPaymentMethodPaginatedLookupResult = (paginatedResult, userAccess
 
 const transformDiscountLookup = (row, userAccess) => {
   const formattedValue = formatDiscount(row.discount_type, row.discount_value);
-  const base           = transformIdNameToIdLabel({ id: row.id, name: row.name });
-  const flagSubset     = includeFlagsBasedOnAccess(row, userAccess, STANDARD_FLAG_MAP);
-  
+  const base = transformIdNameToIdLabel({ id: row.id, name: row.name });
+  const flagSubset = includeFlagsBasedOnAccess(
+    row,
+    userAccess,
+    STANDARD_FLAG_MAP
+  );
+
   return {
     ...base,
     label: `${row.name} (${formattedValue})`,
@@ -212,7 +232,10 @@ const transformDeliveryMethodLookup = (row, userAccess) =>
     ...includeFlagsBasedOnAccess(row, userAccess, STATUS_ONLY_FLAG_MAP),
   });
 
-const transformDeliveryMethodPaginatedLookupResult = (paginatedResult, userAccess) =>
+const transformDeliveryMethodPaginatedLookupResult = (
+  paginatedResult,
+  userAccess
+) =>
   transformLoadMoreResult(paginatedResult, (row) =>
     transformDeliveryMethodLookup(row, userAccess)
   );
@@ -228,19 +251,23 @@ const transformDeliveryMethodPaginatedLookupResult = (paginatedResult, userAcces
  * @type {FlagMap}
  */
 const SKU_FLAG_MAP = {
-  canViewAllStatuses:     'isActive',
+  canViewAllStatuses: 'isActive',
   canViewAllValidLookups: 'isValidToday',
-  canViewArchived:        'isArchived',
+  canViewArchived: 'isArchived',
 };
 
-const transformSkuLookupRow = (row, { includeBarcode = false } = {}, userAccess) => {
+const transformSkuLookupRow = (
+  row,
+  { includeBarcode = false } = {},
+  userAccess
+) => {
   const productName = getProductDisplayName(row);
-  const name        = includeBarcode
+  const name = includeBarcode
     ? `${productName} (${row.sku}) • Barcode: ${row.barcode}`
     : `${productName} (${row.sku})`;
-  
+
   const flags = includeFlagsBasedOnAccess(row, userAccess, SKU_FLAG_MAP);
-  
+
   // isNormal and issueReasons require conditional nesting — handled inline.
   if (userAccess?.allowAllSkus && 'isNormal' in row) {
     flags.isNormal = row.isNormal;
@@ -248,14 +275,18 @@ const transformSkuLookupRow = (row, { includeBarcode = false } = {}, userAccess)
       flags.issueReasons = row.issueReasons;
     }
   }
-  
+
   return cleanObject({
     ...transformIdNameToIdLabel({ id: row.id, name }),
     ...flags,
   });
 };
 
-const transformSkuPaginatedLookupResult = (paginatedResult, options = {}, userAccess) =>
+const transformSkuPaginatedLookupResult = (
+  paginatedResult,
+  options = {},
+  userAccess
+) =>
   transformLoadMoreResult(paginatedResult, (row) =>
     transformSkuLookupRow(row, options, userAccess)
   );
@@ -281,39 +312,46 @@ const transformPricingGroupLookupRow = (
   row,
   acl,
   {
-    showSku          = true,
-    showPriceType    = true,
+    showSku = true,
+    showPriceType = true,
     showPriceInLabel = true,
-    labelOnly        = false,
+    labelOnly = false,
   } = {}
 ) => {
   const productDisplayName = getProductDisplayName({
     product_name: row.product_name,
-    sku:          row.sku,
-    brand:        row.brand            ?? '',
+    sku: row.sku,
+    brand: row.brand ?? '',
     country_code: row.sku_country_code ?? '',
   });
-  
+
   const labelParts = [];
-  if (showSku)          labelParts.push(`${productDisplayName} (${row.sku})`);
-  if (showPriceType)    labelParts.push(row.price_type);
+  if (showSku) labelParts.push(`${productDisplayName} (${row.sku})`);
+  if (showPriceType) labelParts.push(row.price_type);
   if (showPriceInLabel) labelParts.push(`$${row.price}`);
-  
-  const canViewExtended = acl?.canViewAllPricingStates || acl?.canViewAllValidPricing;
-  const base            = {
-    id:    row.pricing_group_id,
+
+  const canViewExtended =
+    acl?.canViewAllPricingStates || acl?.canViewAllValidPricing;
+  const base = {
+    id: row.pricing_group_id,
     label: labelParts.join(' · '),
   };
-  
+
   if (!labelOnly) {
-    base.price           = parseFloat(row.price);
-    base.countryCode     = row.country_code     ?? null;
+    base.price = parseFloat(row.price);
+    base.countryCode = row.country_code ?? null;
     base.pricingTypeName = row.price_type;
-    Object.assign(base, includeFlagsBasedOnAccess(row, acl, PRICING_GROUP_FLAG_MAP));
+    Object.assign(
+      base,
+      includeFlagsBasedOnAccess(row, acl, PRICING_GROUP_FLAG_MAP)
+    );
   } else if (canViewExtended) {
-    Object.assign(base, includeFlagsBasedOnAccess(row, acl, PRICING_GROUP_FLAG_MAP));
+    Object.assign(
+      base,
+      includeFlagsBasedOnAccess(row, acl, PRICING_GROUP_FLAG_MAP)
+    );
   }
-  
+
   return cleanObject(base);
 };
 
@@ -325,7 +363,11 @@ const transformPricingGroupLookupRow = (
  * @param {Object}                [options]        - Display options forwarded to transformPricingGroupLookupRow.
  * @returns {Object} Transformed paginated result.
  */
-const transformPricingGroupPaginatedLookupResult = (paginatedResult, acl, options = {}) =>
+const transformPricingGroupPaginatedLookupResult = (
+  paginatedResult,
+  acl,
+  options = {}
+) =>
   transformLoadMoreResult(paginatedResult, (row) =>
     transformPricingGroupLookupRow(row, acl, options)
   );
@@ -336,24 +378,31 @@ const transformPricingGroupPaginatedLookupResult = (paginatedResult, acl, option
 
 const transformPackagingMaterialLookupRow = (row, userAccess) => {
   if (!row || typeof row !== 'object' || !row.id) return null;
-  
+
   const label = formatPackagingMaterialLabel(row);
   if (!label) return null;
-  
-  const base       = transformIdNameToIdLabel({ id: row.id, name: label });
-  const flagSubset = includeFlagsBasedOnAccess(row, userAccess, STANDARD_FLAG_MAP);
-  
+
+  const base = transformIdNameToIdLabel({ id: row.id, name: label });
+  const flagSubset = includeFlagsBasedOnAccess(
+    row,
+    userAccess,
+    STANDARD_FLAG_MAP
+  );
+
   const out = { ...base, ...flagSubset };
-  
+
   // isArchived exposed separately — only visible to users with full status access.
   if (userAccess?.canViewAllStatuses) {
     out.isArchived = row?.is_archived === true;
   }
-  
+
   return cleanObject(out);
 };
 
-const transformPackagingMaterialPaginatedLookupResult = (paginatedResult, userAccess) =>
+const transformPackagingMaterialPaginatedLookupResult = (
+  paginatedResult,
+  userAccess
+) =>
   transformLoadMoreResult(paginatedResult, (row) =>
     transformPackagingMaterialLookupRow(row, userAccess)
   );
@@ -364,19 +413,22 @@ const transformPackagingMaterialPaginatedLookupResult = (paginatedResult, userAc
 
 const transformSkuCodeBaseLookup = (row, userAccess) => {
   if (!row || typeof row !== 'object') return null;
-  
-  const brand    = row.brand_code    || 'N/A';
+
+  const brand = row.brand_code || 'N/A';
   const category = row.category_code || 'N/A';
-  const base     = row.base_code != null ? row.base_code : '—';
-  const label    = `${brand}-${category} (${base})`;
-  
+  const base = row.base_code != null ? row.base_code : '—';
+  const label = `${brand}-${category} (${base})`;
+
   return {
     ...transformIdNameToIdLabel({ id: row.id, name: label }),
     ...includeFlagsBasedOnAccess(row, userAccess, STATUS_ONLY_FLAG_MAP),
   };
 };
 
-const transformSkuCodeBasePaginatedLookupResult = (paginatedResult, userAccess) =>
+const transformSkuCodeBasePaginatedLookupResult = (
+  paginatedResult,
+  userAccess
+) =>
   transformLoadMoreResult(paginatedResult, (row) =>
     transformSkuCodeBaseLookup(row, userAccess)
   );
@@ -387,12 +439,12 @@ const transformSkuCodeBasePaginatedLookupResult = (paginatedResult, userAccess) 
 
 const transformProductLookup = (row, userAccess) => {
   if (!row || typeof row !== 'object') return null;
-  
+
   const labelParts = [row.name ?? 'Unnamed Product'];
-  if (row.brand)    labelParts.push(`• ${row.brand}`);
+  if (row.brand) labelParts.push(`• ${row.brand}`);
   if (row.category) labelParts.push(`(${row.category})`);
   else if (row.series) labelParts.push(`(${row.series})`);
-  
+
   return {
     ...transformIdNameToIdLabel({ id: row.id, name: labelParts.join(' ') }),
     ...includeFlagsBasedOnAccess(row, userAccess, STATUS_ONLY_FLAG_MAP),
@@ -410,10 +462,10 @@ const transformProductPaginatedLookupResult = (paginatedResult, userAccess) =>
 
 const transformStatusLookup = (row, userAccess) => {
   if (!row || typeof row !== 'object') return null;
-  
-  const desc  = row.description ? ` - ${row.description}` : '';
+
+  const desc = row.description ? ` - ${row.description}` : '';
   const label = `${row.name || 'Unknown Status'}${desc}`;
-  
+
   return {
     ...transformIdNameToIdLabel({ id: row.id, name: label }),
     ...includeFlagsBasedOnAccess(row, userAccess, STATUS_ONLY_FLAG_MAP),
@@ -431,12 +483,12 @@ const transformStatusPaginatedLookupResult = (paginatedResult, userAccess) =>
 
 const transformUserLookup = (row, userAccess) => {
   if (!row || typeof row !== 'object') return null;
-  if (!row.id || !row.email)           return null;
-  
+  if (!row.id || !row.email) return null;
+
   const fullName = getFullName(row.firstname, row.lastname);
-  const label    = fullName || row.email;
+  const label = fullName || row.email;
   const subLabel = fullName ? row.email : undefined;
-  
+
   return cleanObject({
     id: row.id,
     label,
@@ -469,16 +521,16 @@ const enrichRoleOption = (row, activeStatusId) => {
   if (!activeStatusId || typeof activeStatusId !== 'string') {
     throw new Error('[enrichRoleOption] Invalid `activeStatusId`');
   }
-  
+
   return { ...row, isActive: row.status_id === activeStatusId };
 };
 
 const transformRoleLookup = (row, userAccess) => {
   if (!row || typeof row !== 'object') return null;
-  
+
   const labelParts = [row.name ?? 'Unnamed Role'];
   if (row.role_group) labelParts.push(`• ${row.role_group}`);
-  
+
   return {
     ...transformIdNameToIdLabel({ id: row.id, name: labelParts.join(' ') }),
     ...includeFlagsBasedOnAccess(row, userAccess, STATUS_ONLY_FLAG_MAP),
@@ -495,7 +547,7 @@ const transformRolePaginatedLookupResult = (paginatedResult, access) =>
 // ---------------------------------------------------------------------------
 
 const transformManufacturerLookup = createEntityLookupTransformer({
-  labelKey:    'name',
+  labelKey: 'name',
   subLabelKey: 'contact_name',
 });
 
@@ -505,7 +557,7 @@ const transformManufacturerPaginatedLookupResult = (paginatedResult, acl) =>
   );
 
 const transformSupplierLookup = createEntityLookupTransformer({
-  labelKey:    'name',
+  labelKey: 'name',
   subLabelKey: 'contact_name',
 });
 
@@ -529,17 +581,20 @@ const transformLocationTypePaginatedLookupResult = (paginatedResult, acl) =>
 
 const transformBatchStatusLookup = (row, userAccess) => {
   if (!row || typeof row !== 'object') return null;
-  if (!row.id || !row.name)            return null;
-  
+  if (!row.id || !row.name) return null;
+
   return cleanObject({
-    id:       row.id,
-    label:    row.name,
+    id: row.id,
+    label: row.name,
     subLabel: row.description || undefined,
     ...includeFlagsBasedOnAccess(row, userAccess, STATUS_ONLY_FLAG_MAP),
   });
 };
 
-const transformBatchStatusPaginatedLookupResult = (paginatedResult, userAccess) =>
+const transformBatchStatusPaginatedLookupResult = (
+  paginatedResult,
+  userAccess
+) =>
   transformLoadMoreResult(paginatedResult, (row) =>
     transformBatchStatusLookup(row, userAccess)
   );
@@ -550,20 +605,23 @@ const transformBatchStatusPaginatedLookupResult = (paginatedResult, userAccess) 
 
 const transformPackagingMaterialSupplierLookup = (row, userAccess) => {
   if (!row || typeof row !== 'object') return null;
-  if (!row.id || !row.name)            return null;
-  
+  if (!row.id || !row.name) return null;
+
   const subLabelParts = [row.contact_name, row.contact_email].filter(Boolean);
-  
+
   return cleanObject({
-    id:          row.id,
-    label:       row.name,
-    subLabel:    subLabelParts.length ? subLabelParts.join(' • ') : undefined,
+    id: row.id,
+    label: row.name,
+    subLabel: subLabelParts.length ? subLabelParts.join(' • ') : undefined,
     isPreferred: row.is_preferred ?? false,
     ...includeFlagsBasedOnAccess(row, userAccess, STATUS_ONLY_FLAG_MAP),
   });
 };
 
-const transformPackagingMaterialSupplierPaginatedLookupResult = (paginatedResult, userAccess) =>
+const transformPackagingMaterialSupplierPaginatedLookupResult = (
+  paginatedResult,
+  userAccess
+) =>
   transformLoadMoreResult(paginatedResult, (row) =>
     transformPackagingMaterialSupplierLookup(row, userAccess)
   );

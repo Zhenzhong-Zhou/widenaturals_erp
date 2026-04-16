@@ -58,27 +58,30 @@ const CONTEXT = 'pricing-service';
  * @throws {AppError} serviceError if an unexpected error occurs.
  */
 const fetchPaginatedPricingJoinService = async ({
-                                                  filters   = {},
-                                                  page      = 1,
-                                                  limit     = 20,
-                                                  sortBy    = 'productName',
-                                                  sortOrder = 'ASC',
-                                                  user,
-                                                }) => {
+  filters = {},
+  page = 1,
+  limit = 20,
+  sortBy = 'productName',
+  sortOrder = 'ASC',
+  user,
+}) => {
   const context = `${CONTEXT}/fetchPaginatedPricingJoinService`;
-  
+
   try {
     // 1. Resolve visibility access control scope.
     const acl = await evaluatePricingVisibility(user);
-    
+
     // 2. Apply visibility rules to filters (CRITICAL — must run before query).
     const adjustedFilters = applyPricingVisibilityRules(filters, acl);
-    
+
     // 3. Return empty shape immediately — no permission to view.
     if (adjustedFilters.forceEmptyResult) {
-      return { data: [], pagination: { page, limit, totalRecords: 0, totalPages: 0 } };
+      return {
+        data: [],
+        pagination: { page, limit, totalRecords: 0, totalPages: 0 },
+      };
     }
-    
+
     // 4. Query raw paginated rows.
     const rawResult = await getPaginatedPricingJoin({
       filters: adjustedFilters,
@@ -87,12 +90,15 @@ const fetchPaginatedPricingJoinService = async ({
       sortBy,
       sortOrder,
     });
-    
+
     // 5. Return empty shape immediately — no records to process.
     if (!rawResult || rawResult.data.length === 0) {
-      return { data: [], pagination: { page, limit, totalRecords: 0, totalPages: 0 } };
+      return {
+        data: [],
+        pagination: { page, limit, totalRecords: 0, totalPages: 0 },
+      };
     }
-    
+
     // 6. Transform for UI consumption.
     return transformPricingJoinList(rawResult);
   } catch (error) {
@@ -119,32 +125,30 @@ const fetchPaginatedPricingJoinService = async ({
  * @throws {AppError} authorizationError if user lacks export permission.
  * @throws {AppError} serviceError if an unexpected error occurs.
  */
-const exportPricingRecordsService = async ({
-                                             filters = {},
-                                             user,
-                                           }) => {
+const exportPricingRecordsService = async ({ filters = {}, user }) => {
   const context = `${CONTEXT}/exportPricingRecordsService`;
-  
+
   try {
     // 1. Resolve visibility access control scope.
     const acl = await evaluatePricingVisibility(user);
-    
+
     // 2. Check export permission explicitly.
     if (!acl.canExportPricing) {
       throw AppError.authorizationError(
-        'You do not have permission to export pricing.', { context }
+        'You do not have permission to export pricing.',
+        { context }
       );
     }
-    
+
     // 3. Apply visibility rules to filters.
     const adjustedFilters = applyPricingVisibilityRules(filters, acl);
-    
+
     // 4. Query all matching rows — no pagination.
     const rows = await exportAllPricingRecords({ filters: adjustedFilters });
-    
+
     // 5. Return empty array immediately — no records to process.
     if (!rows || rows.length === 0) return [];
-    
+
     // 6. Transform for export consumption.
     return transformPricingExport(rows);
   } catch (error) {
@@ -170,7 +174,7 @@ const exportPricingRecordsService = async ({
  */
 const fetchPricingBySkuIdService = async (skuId) => {
   const context = `${CONTEXT}/fetchPricingBySkuIdService`;
-  
+
   try {
     const rows = await getPricingBySkuId(skuId);
     return transformPricingBySku(rows);

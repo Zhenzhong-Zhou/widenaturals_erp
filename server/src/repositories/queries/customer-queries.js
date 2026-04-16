@@ -149,7 +149,7 @@ const CUSTOMER_LOOKUP_SORT_WHITELIST = new Set([
 
 // Deterministic tie-breaking after primary sort on firstname.
 const CUSTOMER_LOOKUP_ADDITIONAL_SORTS = [
-  { column: 'c.lastname',   direction: 'ASC'  },
+  { column: 'c.lastname', direction: 'ASC' },
   { column: 'c.created_at', direction: 'DESC' },
 ];
 

@@ -40,37 +40,37 @@ const {
  * @throws {AppError} businessError if insert or registry creation fails.
  */
 const registerBatchWorkflow = async ({
-                                       batchType,
-                                       batches,
-                                       insertBatchFn,
-                                       batchCreatedActivityTypeId,
-                                       actorId,
-                                       client,
-                                     }) => {
+  batchType,
+  batches,
+  insertBatchFn,
+  batchCreatedActivityTypeId,
+  actorId,
+  client,
+}) => {
   if (!Array.isArray(batches) || batches.length === 0) {
     throw AppError.validationError('No batches provided for registration.');
   }
-  
+
   // 1. Insert batch records.
   const insertedBatches = await insertBatchFn(batches, client);
-  
+
   if (!insertedBatches?.length) {
     throw AppError.businessError('Failed to insert batch records.');
   }
-  
+
   // 2. Register batches in batch_registry.
   const registryRows = buildBatchRegistryRows({
     batchType,
     insertedBatches,
     actorId,
   });
-  
+
   const registry = await insertBatchRegistryBulk(registryRows, client);
-  
+
   if (registry.length !== insertedBatches.length) {
     throw AppError.businessError('Batch registry creation mismatch.');
   }
-  
+
   // 3. Record batch creation activity logs.
   const activityRows = buildBatchActivityRows(
     registry,
@@ -79,9 +79,9 @@ const registerBatchWorkflow = async ({
     batchCreatedActivityTypeId,
     actorId
   );
-  
+
   await insertBatchActivityLogsBulk(activityRows, client);
-  
+
   return insertedBatches;
 };
 
@@ -107,36 +107,36 @@ const registerBatchWorkflow = async ({
  * @throws {AppError} notFoundError if the batch does not exist.
  */
 const updateBatchWorkflow = async ({
-                                     batchId,
-                                     updates,
-                                     user,
-                                     client,
-                                     getBatchFn,
-                                     updateBatchFn,
-                                     editRules,
-                                     statusTransitions,
-                                     batchType,
-                                     activityTypeResolver,
-                                     evaluateAccessControlFn,
-                                     filterUpdatableFieldsFn,
-                                   }) => {
+  batchId,
+  updates,
+  user,
+  client,
+  getBatchFn,
+  updateBatchFn,
+  editRules,
+  statusTransitions,
+  batchType,
+  activityTypeResolver,
+  evaluateAccessControlFn,
+  filterUpdatableFieldsFn,
+}) => {
   const actorId = user.id;
-  
+
   // 1. Load current batch state.
   const batch = await getBatchFn(batchId, client);
-  
+
   if (!batch) {
     throw AppError.notFoundError('Batch not found.');
   }
-  
+
   // 2. Resolve access control.
   const access = await evaluateAccessControlFn(user);
-  
+
   // 3. Normalize update payload.
   const { safeUpdates, hasMetadataUpdates } = prepareMetadataUpdates({
     updates,
   });
-  
+
   // 4. Enforce lifecycle and permission rules.
   const permittedUpdates = filterUpdatableFieldsFn({
     batch,
@@ -144,10 +144,10 @@ const updateBatchWorkflow = async ({
     access,
     editRules,
   });
-  
+
   // 5. Apply lifecycle transition logic.
   const nextStatus = permittedUpdates?.status_id ?? null;
-  
+
   const { lifecycleUpdates, isStatusChange } = applyLifecycleTransition({
     batch,
     nextStatus,
@@ -156,13 +156,13 @@ const updateBatchWorkflow = async ({
     access,
     updates,
   });
-  
+
   // 6. Merge permitted and lifecycle-driven updates.
   const finalUpdates = {
     ...permittedUpdates,
     ...lifecycleUpdates,
   };
-  
+
   // 7. Persist update.
   const updatedBatch = await updateBatchFn(
     {
@@ -172,7 +172,7 @@ const updateBatchWorkflow = async ({
     },
     client
   );
-  
+
   // 8. Build and persist activity logs.
   const activityRows = buildBatchActivities({
     batch,
@@ -184,11 +184,11 @@ const updateBatchWorkflow = async ({
     updates: finalUpdates,
     activityTypeResolver,
   });
-  
+
   if (activityRows.length > 0) {
     await insertBatchActivityLogsBulk(activityRows, client);
   }
-  
+
   return updatedBatch;
 };
 

@@ -46,32 +46,50 @@ const AppError = require('../AppError');
 const buildSkuProductCardFilters = (filters = {}) => {
   /** @type {string[]} */
   const conditions = ['1=1'];
-  
+
   /** @type {any[]} */
   const params = [];
-  
+
   /** @type {number} */
   let idx = 1;
-  
+
   // ─── Product filters ─────────────────────────────────────────────────────────
-  
+
   idx = addIlikeFilter(conditions, params, idx, filters.productName, 'p.name');
   idx = addIlikeFilter(conditions, params, idx, filters.brand, 'p.brand');
   idx = addIlikeFilter(conditions, params, idx, filters.category, 'p.category');
-  
+
   if (filters.productStatusId) {
     conditions.push(`p.status_id = $${idx}`);
     params.push(filters.productStatusId);
     idx++;
   }
-  
+
   // ─── SKU filters ─────────────────────────────────────────────────────────────
-  
+
   idx = addIlikeFilter(conditions, params, idx, filters.sku, 's.sku');
-  idx = addIlikeFilter(conditions, params, idx, filters.sizeLabel, 's.size_label');
-  idx = addIlikeFilter(conditions, params, idx, filters.countryCode, 's.country_code');
-  idx = addIlikeFilter(conditions, params, idx, filters.marketRegion, 's.market_region');
-  
+  idx = addIlikeFilter(
+    conditions,
+    params,
+    idx,
+    filters.sizeLabel,
+    's.size_label'
+  );
+  idx = addIlikeFilter(
+    conditions,
+    params,
+    idx,
+    filters.countryCode,
+    's.country_code'
+  );
+  idx = addIlikeFilter(
+    conditions,
+    params,
+    idx,
+    filters.marketRegion,
+    's.market_region'
+  );
+
   if (filters.skuIds) {
     if (Array.isArray(filters.skuIds)) {
       conditions.push(`s.id = ANY($${idx}::uuid[])`);
@@ -81,19 +99,25 @@ const buildSkuProductCardFilters = (filters = {}) => {
     params.push(filters.skuIds);
     idx++;
   }
-  
+
   if (filters.skuStatusId) {
     conditions.push(`s.status_id = $${idx}`);
     params.push(filters.skuStatusId);
     idx++;
   }
-  
+
   // ─── Compliance filters ───────────────────────────────────────────────────────
-  
-  idx = addIlikeFilter(conditions, params, idx, filters.complianceId, 'cr.compliance_id');
-  
+
+  idx = addIlikeFilter(
+    conditions,
+    params,
+    idx,
+    filters.complianceId,
+    'cr.compliance_id'
+  );
+
   // ─── Keyword search ───────────────────────────────────────────────────────────
-  
+
   if (filters.keyword) {
     const kw = `%${filters.keyword.trim().replace(/\s+/g, ' ')}%`;
     conditions.push(`(
@@ -106,7 +130,7 @@ const buildSkuProductCardFilters = (filters = {}) => {
     params.push(kw);
     idx++;
   }
-  
+
   return {
     whereClause: conditions.join(' AND '),
     params,
@@ -141,32 +165,32 @@ const buildWhereClauseAndParams = (
   keywordHandler,
   options = {}
 ) => {
-  const fieldMap   = SORTABLE_FIELDS.skuProductCards;
+  const fieldMap = SORTABLE_FIELDS.skuProductCards;
   const conditions = [];
-  const params     = [];
-  let paramIndex   = 1;
-  
+  const params = [];
+  let paramIndex = 1;
+
   if (!options.allowAllSkus) {
     if (!productStatusId) {
       throw AppError.validationError(
         'productStatusId is required when allowAllSkus is false'
       );
     }
-    
+
     conditions.push(`p.status_id = $${paramIndex}`);
     conditions.push(`s.status_id = $${paramIndex}`);
     params.push(productStatusId);
     paramIndex++;
   }
-  
+
   // ─── Basic field filters ──────────────────────────────────────────────────────
-  
+
   for (const [key, value] of Object.entries(filters)) {
     if (value === undefined || value === null || value === '') continue;
-    
+
     const field = fieldMap[key];
     if (!field && key !== 'keyword') continue;
-    
+
     if (key === 'keyword') {
       if (typeof keywordHandler === 'function') {
         const { condition, values } = keywordHandler(value, paramIndex);
@@ -186,9 +210,9 @@ const buildWhereClauseAndParams = (
       paramIndex++;
     }
   }
-  
+
   // ─── Stock availability EXISTS clause ─────────────────────────────────────────
-  
+
   if (options.requireAvailableStock && !options.allowAllSkus) {
     let clause = `
       EXISTS (
@@ -199,28 +223,28 @@ const buildWhereClauseAndParams = (
         WHERE pb.sku_id = s.id
           AND wi.warehouse_quantity > 0
     `;
-    
+
     if (options.batchStatusId) {
       clause += ` AND pb.status_id = $${paramIndex++}`;
       params.push(options.batchStatusId);
     }
-    
+
     if (options.inventoryStatusId) {
       clause += ` AND wi.status_id = $${paramIndex++}`;
       params.push(options.inventoryStatusId);
     }
-    
+
     if (options.warehouseId) {
       clause += ` AND wi.warehouse_id = $${paramIndex++}`;
       params.push(options.warehouseId);
     }
-    
+
     clause += `)`;
     conditions.push(clause);
   }
-  
+
   const whereClause = conditions.length > 0 ? conditions.join(' AND ') : '1=1';
-  
+
   return { whereClause, params };
 };
 
@@ -235,14 +259,14 @@ const buildWhereClauseAndParams = (
  */
 const skuDropdownKeywordHandler = (keyword, paramIndex) => {
   const param = `%${keyword.trim().toLowerCase()}%`;
-  
+
   const condition = `(
     LOWER(s.sku)        LIKE $${paramIndex} OR
     LOWER(s.barcode)    LIKE $${paramIndex} OR
     LOWER(p.name)       LIKE $${paramIndex} OR
     LOWER(s.size_label) LIKE $${paramIndex}
   )`;
-  
+
   return { condition, values: [param] };
 };
 
@@ -294,64 +318,64 @@ const buildSkuFilter = (filters = {}) => {
     'updatedAfter',
     'updatedBefore'
   );
-  
-  const conditions    = ['1=1'];
-  const params        = [];
+
+  const conditions = ['1=1'];
+  const params = [];
   const paramIndexRef = { value: 1 };
-  
+
   // ─── SKU-level filters ────────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.statusIds?.length) {
     conditions.push(`s.status_id = ANY($${paramIndexRef.value}::uuid[])`);
     params.push(normalizedFilters.statusIds);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.productIds?.length) {
     conditions.push(`s.product_id = ANY($${paramIndexRef.value}::uuid[])`);
     params.push(normalizedFilters.productIds);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.marketRegion) {
     conditions.push(`s.market_region ILIKE $${paramIndexRef.value}`);
     params.push(`%${normalizedFilters.marketRegion}%`);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.sizeLabel) {
     conditions.push(`s.size_label ILIKE $${paramIndexRef.value}`);
     params.push(`%${normalizedFilters.sizeLabel}%`);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.sku) {
     conditions.push(`s.sku ILIKE $${paramIndexRef.value}`);
     params.push(`%${normalizedFilters.sku}%`);
     paramIndexRef.value++;
   }
-  
+
   // ─── Dimensional range filters ────────────────────────────────────────────────
-  
+
   const rangeFilters = [
     ['minLengthCm', 's.length_cm >='],
     ['maxLengthCm', 's.length_cm <='],
     ['minLengthIn', 's.length_inch >='],
     ['maxLengthIn', 's.length_inch <='],
-    ['minWidthCm',  's.width_cm >='],
-    ['maxWidthCm',  's.width_cm <='],
-    ['minWidthIn',  's.width_inch >='],
-    ['maxWidthIn',  's.width_inch <='],
+    ['minWidthCm', 's.width_cm >='],
+    ['maxWidthCm', 's.width_cm <='],
+    ['minWidthIn', 's.width_inch >='],
+    ['maxWidthIn', 's.width_inch <='],
     ['minHeightCm', 's.height_cm >='],
     ['maxHeightCm', 's.height_cm <='],
     ['minHeightIn', 's.height_inch >='],
     ['maxHeightIn', 's.height_inch <='],
-    ['minWeightG',  's.weight_g >='],
-    ['maxWeightG',  's.weight_g <='],
+    ['minWeightG', 's.weight_g >='],
+    ['maxWeightG', 's.weight_g <='],
     ['minWeightLb', 's.weight_lb >='],
     ['maxWeightLb', 's.weight_lb <='],
   ];
-  
+
   for (const [key, sql] of rangeFilters) {
     if (normalizedFilters[key] !== undefined) {
       conditions.push(`${sql} $${paramIndexRef.value}`);
@@ -359,51 +383,51 @@ const buildSkuFilter = (filters = {}) => {
       paramIndexRef.value++;
     }
   }
-  
+
   // ─── Audit filters ────────────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.createdBy) {
     conditions.push(`s.created_by = $${paramIndexRef.value}`);
     params.push(normalizedFilters.createdBy);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.updatedBy) {
     conditions.push(`s.updated_by = $${paramIndexRef.value}`);
     params.push(normalizedFilters.updatedBy);
     paramIndexRef.value++;
   }
-  
+
   // ─── Date range filters ───────────────────────────────────────────────────────
-  
+
   applyDateRangeConditions({
     conditions,
     params,
-    column:        's.created_at',
-    after:         normalizedFilters.createdAfter,
-    before:        normalizedFilters.createdBefore,
+    column: 's.created_at',
+    after: normalizedFilters.createdAfter,
+    before: normalizedFilters.createdBefore,
     paramIndexRef,
   });
-  
+
   applyDateRangeConditions({
     conditions,
     params,
-    column:        's.updated_at',
-    after:         normalizedFilters.updatedAfter,
-    before:        normalizedFilters.updatedBefore,
+    column: 's.updated_at',
+    after: normalizedFilters.updatedAfter,
+    before: normalizedFilters.updatedBefore,
     paramIndexRef,
   });
-  
+
   // ─── Product-level filters ────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.productName) {
     conditions.push(`p.name ILIKE $${paramIndexRef.value}`);
     params.push(`%${normalizedFilters.productName}%`);
     paramIndexRef.value++;
   }
-  
+
   // ─── Keyword (must remain last) ───────────────────────────────────────────────
-  
+
   if (normalizedFilters.keyword) {
     conditions.push(`(
       s.sku       ILIKE $${paramIndexRef.value} OR
@@ -414,7 +438,7 @@ const buildSkuFilter = (filters = {}) => {
     params.push(`%${normalizedFilters.keyword}%`);
     paramIndexRef.value++;
   }
-  
+
   return {
     whereClause: conditions.join(' AND '),
     params,

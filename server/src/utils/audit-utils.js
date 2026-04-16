@@ -63,33 +63,41 @@ const makeAudit = (
   { dedupe = true, prefix, map, includeIds = true, includeFullName = true } = {}
 ) => {
   const M = map || {
-    createdAt:          prefix ? `${prefix}created_at`           : 'created_at',
-    createdById:        prefix ? `${prefix}created_by`           : 'created_by',
-    createdByFirstName: prefix ? `${prefix}created_by_firstname` : 'created_by_firstname',
-    createdByLastName:  prefix ? `${prefix}created_by_lastname`  : 'created_by_lastname',
-    updatedAt:          prefix ? `${prefix}updated_at`           : 'updated_at',
-    updatedById:        prefix ? `${prefix}updated_by`           : 'updated_by',
-    updatedByFirstName: prefix ? `${prefix}updated_by_firstname` : 'updated_by_firstname',
-    updatedByLastName:  prefix ? `${prefix}updated_by_lastname`  : 'updated_by_lastname',
+    createdAt: prefix ? `${prefix}created_at` : 'created_at',
+    createdById: prefix ? `${prefix}created_by` : 'created_by',
+    createdByFirstName: prefix
+      ? `${prefix}created_by_firstname`
+      : 'created_by_firstname',
+    createdByLastName: prefix
+      ? `${prefix}created_by_lastname`
+      : 'created_by_lastname',
+    updatedAt: prefix ? `${prefix}updated_at` : 'updated_at',
+    updatedById: prefix ? `${prefix}updated_by` : 'updated_by',
+    updatedByFirstName: prefix
+      ? `${prefix}updated_by_firstname`
+      : 'updated_by_firstname',
+    updatedByLastName: prefix
+      ? `${prefix}updated_by_lastname`
+      : 'updated_by_lastname',
   };
-  
+
   const v = (k) => row?.[k] ?? null;
-  
+
   const createdBy = {
     ...(includeIds ? { id: v(M.createdById) } : {}),
     firstName: v(M.createdByFirstName),
-    lastName:  v(M.createdByLastName),
+    lastName: v(M.createdByLastName),
   };
-  
+
   const updatedBy = {
     ...(includeIds ? { id: v(M.updatedById) } : {}),
     firstName: v(M.updatedByFirstName),
-    lastName:  v(M.updatedByLastName),
+    lastName: v(M.updatedByLastName),
   };
-  
+
   const createdAtRaw = v(M.createdAt);
   const updatedAtRaw = v(M.updatedAt);
-  
+
   // Normalize timestamps to a comparable key regardless of whether the DB
   // returns a Date object or an ISO string
   const toKey = (t) => {
@@ -97,15 +105,15 @@ const makeAudit = (
     if (t instanceof Date) return t.getTime();
     return String(t);
   };
-  
+
   const createdAtKey = toKey(createdAtRaw);
   const updatedAtKey = toKey(updatedAtRaw);
-  
+
   if (includeFullName) {
     createdBy.name = getFullName(createdBy.firstName, createdBy.lastName);
     updatedBy.name = getFullName(updatedBy.firstName, updatedBy.lastName);
   }
-  
+
   const audit = {
     createdAt: createdAtRaw,
     createdBy,
@@ -116,24 +124,25 @@ const makeAudit = (
       ? { updatedAt: updatedAtRaw, updatedBy }
       : {}),
   };
-  
+
   if (!dedupe) return audit;
-  
+
   const sameTime = createdAtKey != null && createdAtKey === updatedAtKey;
-  
+
   const sameUserById =
     includeIds &&
     audit.createdBy?.id != null &&
     audit.updatedBy?.id != null &&
     String(audit.createdBy.id) === String(audit.updatedBy.id);
-  
+
   // Name-based dedupe runs even when includeFullName=false — names are
   // computed here only for comparison, not added to the output
-  const norm = (s) => (typeof s === 'string' ? s.trim().replace(/\s+/g, ' ') : s || '');
+  const norm = (s) =>
+    typeof s === 'string' ? s.trim().replace(/\s+/g, ' ') : s || '';
   const sameUserByName =
     norm(getFullName(audit.createdBy?.firstName, audit.createdBy?.lastName)) ===
     norm(getFullName(audit.updatedBy?.firstName, audit.updatedBy?.lastName));
-  
+
   if (sameTime && (sameUserById || sameUserByName)) {
     // updated* is redundant — drop it entirely to avoid duplicate audit data
     return {
@@ -141,7 +150,7 @@ const makeAudit = (
       createdBy: { ...audit.createdBy },
     };
   }
-  
+
   return audit;
 };
 
@@ -158,7 +167,7 @@ const makeAudit = (
  */
 const compactAudit = (audit, { keepIds = true, nameOnly = true } = {}) => {
   if (!audit) return audit;
-  
+
   const pruneUser = (u = {}) => {
     const out = {};
     if (keepIds && 'id' in u) out.id = u.id ?? null;
@@ -169,17 +178,17 @@ const compactAudit = (audit, { keepIds = true, nameOnly = true } = {}) => {
     }
     return out;
   };
-  
+
   const collapsed = {
     createdAt: audit.createdAt ?? null,
     createdBy: pruneUser(audit.createdBy),
   };
-  
+
   if ('updatedAt' in audit || 'updatedBy' in audit) {
     collapsed.updatedAt = audit.updatedAt ?? null;
     collapsed.updatedBy = pruneUser(audit.updatedBy);
   }
-  
+
   return collapsed;
 };
 

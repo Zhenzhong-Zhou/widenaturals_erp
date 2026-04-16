@@ -220,7 +220,7 @@ const USER_LOOKUP_SORT_WHITELIST = new Set([
 
 const USER_LOOKUP_ADDITIONAL_SORTS = [
   { column: 'u.lastname', direction: 'ASC' },
-  { column: 'u.email',    direction: 'ASC' },
+  { column: 'u.email', direction: 'ASC' },
 ];
 
 /**
@@ -234,7 +234,7 @@ const USER_LOOKUP_ADDITIONAL_SORTS = [
  */
 const buildUserLookupJoins = (canSearchRole, canSearchStatus) => {
   const joins = [];
-  if (canSearchRole)   joins.push('LEFT JOIN roles r  ON r.id = u.role_id');
+  if (canSearchRole) joins.push('LEFT JOIN roles r  ON r.id = u.role_id');
   if (canSearchStatus) joins.push('LEFT JOIN status s ON s.id = u.status_id');
   return joins;
 };

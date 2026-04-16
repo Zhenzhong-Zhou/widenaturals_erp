@@ -25,30 +25,30 @@ const buildWhereClause = (conditions, startIndex = 1) => {
   if (!Array.isArray(conditions) || conditions.length === 0) {
     throw AppError.validationError('Conditions must be a non-empty array');
   }
-  
+
   let paramIndex = startIndex;
   const values = [];
-  
+
   const clauses = conditions.map((cond) => {
     if (!cond || typeof cond !== 'object') {
       throw AppError.validationError('Invalid condition object');
     }
-    
+
     const keys = Object.keys(cond);
     if (keys.length === 0) {
       throw AppError.validationError('Empty condition object');
     }
-    
+
     const parts = [];
-    
+
     for (const key of keys) {
       parts.push(`${q(key)} = $${paramIndex++}`);
       values.push(cond[key]);
     }
-    
+
     return `(${parts.join(' AND ')})`;
   });
-  
+
   return {
     clause: clauses.join(' OR '),
     values,
@@ -63,9 +63,9 @@ const buildInClause = (column, values, startIndex = 1) => {
   if (!Array.isArray(values) || values.length === 0) {
     throw AppError.validationError('Values must be a non-empty array');
   }
-  
+
   const placeholders = values.map((_, i) => `$${i + startIndex}`).join(', ');
-  
+
   return {
     clause: `${q(column)} IN (${placeholders})`,
     values,

@@ -37,16 +37,16 @@ const { addKeywordIlikeGroup } = require('./sql-helpers');
  * @returns {{ whereClause: string, params: Array }} Parameterised WHERE clause and bound values.
  */
 const buildBatchRegistryInventoryScopeFilter = (filters = {}) => {
-  const conditions    = ['1=1'];
-  const params        = [];
+  const conditions = ['1=1'];
+  const params = [];
   const paramIndexRef = { value: 1 };
-  
+
   if (filters.batchType) {
     conditions.push(`br.batch_type = $${paramIndexRef.value}`);
     params.push(filters.batchType);
     paramIndexRef.value++;
   }
-  
+
   if (filters.warehouseId) {
     conditions.push(`
       NOT EXISTS (
@@ -58,7 +58,7 @@ const buildBatchRegistryInventoryScopeFilter = (filters = {}) => {
     params.push(filters.warehouseId);
     paramIndexRef.value++;
   }
-  
+
   return {
     whereClause: conditions.join(' AND '),
     params,
@@ -109,28 +109,28 @@ const buildBatchRegistryFilter = (filters = {}) => {
     'registeredAfter',
     'registeredBefore'
   );
-  
+
   // Hard fail-closed: injected by the business layer when the caller has no
   // visibility into any batch type. Short-circuits before building any conditions
   // to guarantee zero rows without invalid enum or SQL errors.
   if (normalizedFilters.forceEmptyResult === true) {
     return { whereClause: '1=1 AND 1=0', params: [] };
   }
-  
-  const conditions    = ['1=1'];
-  const params        = [];
+
+  const conditions = ['1=1'];
+  const params = [];
   const paramIndexRef = { value: 1 };
-  
+
   // ─── Core ───────────────────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.batchType) {
     conditions.push(`br.batch_type = $${paramIndexRef.value}`);
     params.push(normalizedFilters.batchType);
     paramIndexRef.value++;
   }
-  
+
   // ─── Status (polymorphic) ───────────────────────────────────────────────────
-  
+
   if (normalizedFilters.statusIds?.length) {
     // Same $N referenced twice — PostgreSQL allows a bound parameter to be
     // referenced multiple times in the same query.
@@ -143,43 +143,43 @@ const buildBatchRegistryFilter = (filters = {}) => {
     params.push(normalizedFilters.statusIds);
     paramIndexRef.value++;
   }
-  
+
   // ─── Product Batch ──────────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.skuIds?.length) {
     conditions.push(`s.id = ANY($${paramIndexRef.value}::uuid[])`);
     params.push(normalizedFilters.skuIds);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.productIds?.length) {
     conditions.push(`p.id = ANY($${paramIndexRef.value}::uuid[])`);
     params.push(normalizedFilters.productIds);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.manufacturerIds?.length) {
     conditions.push(`m.id = ANY($${paramIndexRef.value}::uuid[])`);
     params.push(normalizedFilters.manufacturerIds);
     paramIndexRef.value++;
   }
-  
+
   // ─── Packaging Batch ────────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.packagingMaterialIds?.length) {
     conditions.push(`pm.id = ANY($${paramIndexRef.value}::uuid[])`);
     params.push(normalizedFilters.packagingMaterialIds);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.supplierIds?.length) {
     conditions.push(`sup.id = ANY($${paramIndexRef.value}::uuid[])`);
     params.push(normalizedFilters.supplierIds);
     paramIndexRef.value++;
   }
-  
+
   // ─── Lot Number (polymorphic ILIKE) ─────────────────────────────────────────
-  
+
   if (normalizedFilters.lotNumber) {
     // Same $N referenced twice — single param covers both batch types.
     conditions.push(`
@@ -191,9 +191,9 @@ const buildBatchRegistryFilter = (filters = {}) => {
     params.push(`%${normalizedFilters.lotNumber}%`);
     paramIndexRef.value++;
   }
-  
+
   // ─── Expiry Date (polymorphic) ───────────────────────────────────────────────
-  
+
   if (normalizedFilters.expiryAfter || normalizedFilters.expiryBefore) {
     // Polymorphic — a registry has either a product batch OR a packaging batch,
     // never both. AND would always produce zero rows for single-type registries
@@ -208,7 +208,7 @@ const buildBatchRegistryFilter = (filters = {}) => {
       params.push(normalizedFilters.expiryAfter);
       paramIndexRef.value++;
     }
-    
+
     if (normalizedFilters.expiryBefore) {
       conditions.push(`
       (
@@ -220,20 +220,20 @@ const buildBatchRegistryFilter = (filters = {}) => {
       paramIndexRef.value++;
     }
   }
-  
+
   // ─── Registry Date ──────────────────────────────────────────────────────────
-  
+
   applyDateRangeConditions({
     conditions,
     params,
-    column:        'br.registered_at',
-    after:         normalizedFilters.registeredAfter,
-    before:        normalizedFilters.registeredBefore,
+    column: 'br.registered_at',
+    after: normalizedFilters.registeredAfter,
+    before: normalizedFilters.registeredBefore,
     paramIndexRef,
   });
-  
+
   // ─── Keyword Search (must remain last) ──────────────────────────────────────
-  
+
   // addKeywordIlikeGroup advances the param index internally and does not
   // return the updated value — any condition added after this block would
   // use a stale index and produce invalid SQL.
@@ -245,15 +245,15 @@ const buildBatchRegistryFilter = (filters = {}) => {
       canSearchPackagingMaterial,
       canSearchSupplier,
     } = normalizedFilters.keywordCapabilities;
-    
+
     const searchableFields = ['pb.lot_number', 'pmb.lot_number'];
-    
-    if (canSearchProduct)          searchableFields.push('p.name');
-    if (canSearchSku)              searchableFields.push('s.sku');
-    if (canSearchManufacturer)     searchableFields.push('m.name');
+
+    if (canSearchProduct) searchableFields.push('p.name');
+    if (canSearchSku) searchableFields.push('s.sku');
+    if (canSearchManufacturer) searchableFields.push('m.name');
     if (canSearchPackagingMaterial) searchableFields.push('pm.name');
-    if (canSearchSupplier)         searchableFields.push('sup.name');
-    
+    if (canSearchSupplier) searchableFields.push('sup.name');
+
     addKeywordIlikeGroup(
       conditions,
       params,
@@ -262,7 +262,7 @@ const buildBatchRegistryFilter = (filters = {}) => {
       searchableFields
     );
   }
-  
+
   return {
     whereClause: conditions.join(' AND '),
     params,

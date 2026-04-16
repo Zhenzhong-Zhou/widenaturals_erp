@@ -38,21 +38,23 @@ const {
  * Not-found case is handled by the service layer via AppError.notFound().
  * Requires: auth middleware, VIEW_BOMS permission.
  */
-const getBomMaterialSupplyDetailsController = wrapAsyncHandler(async (req, res) => {
-  const { bomId } = req.params;
-  
-  const result = await fetchBomMaterialSupplyDetailsService(bomId);
-  
-  res.status(200).json({
-    success: true,
-    message: 'BOM material supply details retrieved successfully.',
-    data: {
-      summary: result.summary || null,
-      details: result,
-    },
-    traceId: req.traceId,
-  });
-});
+const getBomMaterialSupplyDetailsController = wrapAsyncHandler(
+  async (req, res) => {
+    const { bomId } = req.params;
+
+    const result = await fetchBomMaterialSupplyDetailsService(bomId);
+
+    res.status(200).json({
+      success: true,
+      message: 'BOM material supply details retrieved successfully.',
+      data: {
+        summary: result.summary || null,
+        details: result,
+      },
+      traceId: req.traceId,
+    });
+  }
+);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Exports

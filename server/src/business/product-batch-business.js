@@ -37,24 +37,24 @@ const CONTEXT = 'product-batch-business';
  */
 const evaluateProductBatchVisibility = async (user) => {
   const context = `${CONTEXT}/evaluateProductBatchVisibility`;
-  
+
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     const canViewAllProductBatches =
       isRoot ||
       permissions.includes(
         BATCH_CONSTANTS.PERMISSIONS.VIEW_BATCH_ALL_VISIBILITY
       );
-    
+
     const canViewProductBatches =
       canViewAllProductBatches ||
       permissions.includes(BATCH_CONSTANTS.PERMISSIONS.VIEW_PRODUCT_BATCHES);
-    
+
     const canViewManufacturer =
       canViewAllProductBatches ||
       permissions.includes(BATCH_CONSTANTS.PERMISSIONS.VIEW_BATCH_MANUFACTURER);
-    
+
     return {
       canViewAllProductBatches,
       canViewProductBatches,
@@ -69,7 +69,7 @@ const evaluateProductBatchVisibility = async (user) => {
       context,
       userId: user?.id,
     });
-    
+
     throw AppError.businessError(
       'Unable to evaluate product batch visibility.'
     );
@@ -89,7 +89,7 @@ const evaluateProductBatchVisibility = async (user) => {
  */
 const applyProductBatchVisibilityRules = (filters, acl) => {
   const adjusted = { ...filters };
-  
+
   // Full visibility override — enable all keyword capabilities.
   if (acl.canViewAllProductBatches) {
     adjusted.keywordCapabilities = {
@@ -99,20 +99,20 @@ const applyProductBatchVisibilityRules = (filters, acl) => {
     };
     return adjusted;
   }
-  
+
   // No product batch permission — fail closed.
   if (acl.canViewProductBatches !== true) {
     adjusted.forceEmptyResult = true;
     return adjusted;
   }
-  
+
   // Inject keyword search capabilities from ACL.
   adjusted.keywordCapabilities = {
     canSearchProduct: acl.canSearchProduct,
     canSearchSku: acl.canSearchSku,
     canSearchManufacturer: acl.canSearchManufacturer,
   };
-  
+
   return adjusted;
 };
 
@@ -125,10 +125,10 @@ const applyProductBatchVisibilityRules = (filters, acl) => {
  */
 const evaluateProductBatchAccessControl = async (user) => {
   const context = `${CONTEXT}/evaluateProductBatchAccessControl`;
-  
+
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     return {
       isRoot,
       canEditBasicMetadata:
@@ -153,15 +153,11 @@ const evaluateProductBatchAccessControl = async (user) => {
         ),
     };
   } catch (err) {
-    logSystemException(
-      err,
-      'Failed to evaluate product batch access control',
-      {
-        context,
-        userId: user?.id,
-      }
-    );
-    
+    logSystemException(err, 'Failed to evaluate product batch access control', {
+      context,
+      userId: user?.id,
+    });
+
     throw AppError.businessError(
       'Unable to evaluate product batch access control.'
     );
@@ -190,7 +186,12 @@ const getEditableFieldsForProductBatch = (access) =>
  * @returns {object} Filtered update payload.
  * @throws {AppError} validationError if fields are not permitted or none remain.
  */
-const filterUpdatableProductBatchFields = ({ batch, updates, access, editRules }) =>
+const filterUpdatableProductBatchFields = ({
+  batch,
+  updates,
+  access,
+  editRules,
+}) =>
   filterUpdatableBatchFields({
     batch,
     updates,

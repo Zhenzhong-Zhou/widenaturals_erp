@@ -9,7 +9,7 @@
 
 'use strict';
 
-const express                        = require('express');
+const express = require('express');
 const { createCsrfTokenRateLimiter } = require('../middlewares/rate-limiter');
 const {
   generateCsrfTokenController,
@@ -23,10 +23,6 @@ const router = express.Router();
  * state-changing requests.
  * @access public
  */
-router.get(
-  '/token',
-  createCsrfTokenRateLimiter(),
-  generateCsrfTokenController
-);
+router.get('/token', createCsrfTokenRateLimiter(), generateCsrfTokenController);
 
 module.exports = router;

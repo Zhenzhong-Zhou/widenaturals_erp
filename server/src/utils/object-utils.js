@@ -58,9 +58,7 @@ const cleanObject = (obj) => {
  * @returns {boolean}
  */
 const isPlainObject = (value) =>
-  value !== null &&
-  typeof value === 'object' &&
-  !Array.isArray(value);
+  value !== null && typeof value === 'object' && !Array.isArray(value);
 
 /**
  * Recursively removes null, undefined, and empty plain-object values.
@@ -73,7 +71,7 @@ const isPlainObject = (value) =>
  */
 const deepCleanObject = (obj) => {
   if (!isPlainObject(obj)) return obj;
-  
+
   const cleanedEntries = Object.entries(obj)
     .map(([key, value]) => [
       key,
@@ -84,7 +82,7 @@ const deepCleanObject = (obj) => {
       if (isPlainObject(value) && Object.keys(value).length === 0) return false;
       return true;
     });
-  
+
   return Object.fromEntries(cleanedEntries);
 };
 

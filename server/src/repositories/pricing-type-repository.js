@@ -14,13 +14,15 @@
 
 'use strict';
 
-const { paginateQuery }   = require('../utils/db/pagination/pagination-helpers');
-const { query }           = require('../database/db');
-const { handleDbError }   = require('../utils/errors/error-handlers');
+const { paginateQuery } = require('../utils/db/pagination/pagination-helpers');
+const { query } = require('../database/db');
+const { handleDbError } = require('../utils/errors/error-handlers');
 const { logDbQueryError } = require('../utils/db-logger');
-const { resolveSort }     = require('../utils/query/sort-resolver');
+const { resolveSort } = require('../utils/query/sort-resolver');
 const { SORTABLE_FIELDS } = require('../utils/sort-field-mapping');
-const { buildPricingTypeFilter } = require('../utils/sql/build-pricing-type-filter');
+const {
+  buildPricingTypeFilter,
+} = require('../utils/sql/build-pricing-type-filter');
 const {
   PRICING_TYPE_TABLE,
   PRICING_TYPE_JOINS,
@@ -51,44 +53,48 @@ const CONTEXT = 'pricing-type-repository';
  * @throws  {AppError} Normalized database error if the query fails.
  */
 const getPaginatedPricingTypes = async ({
-                                    filters   = {},
-                                    page      = 1,
-                                    limit     = 10,
-                                    sortBy    = 'pricingTypeName',
-                                    sortOrder = 'ASC',
-                                  }) => {
-  const context                 = `${CONTEXT}/getPricingTypeList`;
+  filters = {},
+  page = 1,
+  limit = 10,
+  sortBy = 'pricingTypeName',
+  sortOrder = 'ASC',
+}) => {
+  const context = `${CONTEXT}/getPricingTypeList`;
   const { whereClause, params } = buildPricingTypeFilter(filters);
-  const queryText               = buildPricingTypePaginatedQuery(whereClause);
-  
+  const queryText = buildPricingTypePaginatedQuery(whereClause);
+
   const sortConfig = resolveSort({
     sortBy,
     sortOrder,
-    moduleKey:   'pricingTypeSortMap',
+    moduleKey: 'pricingTypeSortMap',
     defaultSort: SORTABLE_FIELDS.pricingTypeSortMap.defaultNaturalSort,
   });
-  
+
   try {
     return await paginateQuery({
-      tableName:    PRICING_TYPE_TABLE,
-      joins:        PRICING_TYPE_JOINS,
+      tableName: PRICING_TYPE_TABLE,
+      joins: PRICING_TYPE_JOINS,
       whereClause,
       queryText,
       params,
       page,
       limit,
-      sortBy:       sortConfig.sortBy,
-      sortOrder:    sortConfig.sortOrder,
+      sortBy: sortConfig.sortBy,
+      sortOrder: sortConfig.sortOrder,
       whitelistSet: PRICING_TYPE_SORT_WHITELIST,
     });
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch paginated pricing types.',
-      meta:    { filters, page, limit },
-      logFn:   (err) => logDbQueryError(
-        queryText, params, err, { context, filters, page, limit }
-      ),
+      meta: { filters, page, limit },
+      logFn: (err) =>
+        logDbQueryError(queryText, params, err, {
+          context,
+          filters,
+          page,
+          limit,
+        }),
     });
   }
 };
@@ -106,8 +112,8 @@ const getPaginatedPricingTypes = async ({
  */
 const getPricingTypeById = async (pricingTypeId) => {
   const context = `${CONTEXT}/getPricingTypeById`;
-  const params  = [pricingTypeId];
-  
+  const params = [pricingTypeId];
+
   try {
     const { rows } = await query(PRICING_TYPE_GET_BY_ID_QUERY, params);
     return rows[0] ?? null;
@@ -115,10 +121,12 @@ const getPricingTypeById = async (pricingTypeId) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch pricing type by ID.',
-      meta:    { pricingTypeId },
-      logFn:   (err) => logDbQueryError(
-        PRICING_TYPE_GET_BY_ID_QUERY, params, err, { context, pricingTypeId }
-      ),
+      meta: { pricingTypeId },
+      logFn: (err) =>
+        logDbQueryError(PRICING_TYPE_GET_BY_ID_QUERY, params, err, {
+          context,
+          pricingTypeId,
+        }),
     });
   }
 };

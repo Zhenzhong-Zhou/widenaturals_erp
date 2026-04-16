@@ -43,15 +43,15 @@ const crypto = require('crypto');
  * @returns {string} SHA-256 hex digest.
  */
 const computeLogChecksum = ({
-                              warehouseInventoryId,
-                              actionTypeId,
-                              previousQuantity,
-                              quantityChange,
-                              newQuantity,
-                              performedBy,
-                              performedAt,
-                              referenceId = '',
-                            }) => {
+  warehouseInventoryId,
+  actionTypeId,
+  previousQuantity,
+  quantityChange,
+  newQuantity,
+  performedBy,
+  performedAt,
+  referenceId = '',
+}) => {
   const payload = [
     warehouseInventoryId,
     actionTypeId,
@@ -62,7 +62,7 @@ const computeLogChecksum = ({
     performedAt,
     referenceId,
   ].join('|');
-  
+
   return crypto.createHash('sha256').update(payload).digest('hex');
 };
 
@@ -96,7 +96,7 @@ const computeLogChecksum = ({
 const generateAddressHash = (address) => {
   // Normalize each field — null/undefined treated as empty string.
   const clean = (val) => (val ?? '').trim().toLowerCase();
-  
+
   const payload = [
     clean(address.customer_id),
     clean(address.label),
@@ -107,7 +107,7 @@ const generateAddressHash = (address) => {
     clean(address.postal_code),
     clean(address.country),
   ].join('|');
-  
+
   return crypto.createHash('sha256').update(payload).digest('hex');
 };
 

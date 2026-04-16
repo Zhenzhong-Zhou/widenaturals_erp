@@ -8,11 +8,11 @@
 
 'use strict';
 
-const express                            = require('express');
-const { authorize }                      = require('../middlewares/authorize');
-const validate                           = require('../middlewares/validate');
+const express = require('express');
+const { authorize } = require('../middlewares/authorize');
+const validate = require('../middlewares/validate');
 const createQueryNormalizationMiddleware = require('../middlewares/normalize-query');
-const PERMISSION_KEYS                        = require('../utils/constants/domain/permission-keys');
+const PERMISSION_KEYS = require('../utils/constants/domain/permission-keys');
 const {
   customerArraySchema,
   customerFilterSchema,
@@ -57,10 +57,10 @@ router.get(
     'Invalid query parameters.'
   ),
   createQueryNormalizationMiddleware(
-    'customerSortMap',           // moduleKey — drives allowed sortBy fields
-    ['createdBy', 'updatedBy'],  // arrayKeys — normalized as UUID arrays
-    ['onlyWithAddress'],         // booleanKeys — normalized to true/false
-    customerFilterSchema         // filterKeysOrSchema — extracts filter keys from schema
+    'customerSortMap', // moduleKey — drives allowed sortBy fields
+    ['createdBy', 'updatedBy'], // arrayKeys — normalized as UUID arrays
+    ['onlyWithAddress'], // booleanKeys — normalized to true/false
+    customerFilterSchema // filterKeysOrSchema — extracts filter keys from schema
   ),
   getPaginatedCustomersController
 );

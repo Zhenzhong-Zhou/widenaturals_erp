@@ -74,20 +74,22 @@ const transformRowsAsync = async (rows, transformer) => {
 const transformPageResult = async (paginatedResult, transformFn) => {
   if (!paginatedResult || !Array.isArray(paginatedResult.data)) {
     return {
-      data:       [],
+      data: [],
       pagination: { page: 1, limit: 10, totalRecords: 0, totalPages: 0 },
     };
   }
-  
+
   const { data = [], pagination = {} } = paginatedResult;
-  
-  const transformedItems = (await transformRowsAsync(data, transformFn)).filter(Boolean);
-  
-  const page         = Number(pagination.page         ?? 1);
-  const limit        = Number(pagination.limit        ?? 10);
+
+  const transformedItems = (await transformRowsAsync(data, transformFn)).filter(
+    Boolean
+  );
+
+  const page = Number(pagination.page ?? 1);
+  const limit = Number(pagination.limit ?? 10);
   const totalRecords = Number(pagination.totalRecords ?? 0);
-  const totalPages   = pagination.totalPages ?? Math.ceil(totalRecords / limit);
-  
+  const totalPages = pagination.totalPages ?? Math.ceil(totalRecords / limit);
+
   return {
     data: transformedItems,
     pagination: { page, limit, totalRecords, totalPages },
@@ -114,18 +116,20 @@ const transformLoadMoreResult = async (paginatedResult, transformFn) => {
   if (!paginatedResult || !Array.isArray(paginatedResult.data)) {
     return { items: [], offset: 0, limit: 10, hasMore: false };
   }
-  
+
   const { data = [], pagination = {} } = paginatedResult;
-  
-  const transformedItems = (await transformRowsAsync(data, transformFn)).filter(Boolean);
-  
-  const page         = Number(pagination.page         ?? 1);
-  const limit        = Number(pagination.limit        ?? 10);
+
+  const transformedItems = (await transformRowsAsync(data, transformFn)).filter(
+    Boolean
+  );
+
+  const page = Number(pagination.page ?? 1);
+  const limit = Number(pagination.limit ?? 10);
   const totalRecords = Number(pagination.totalRecords ?? 0);
-  const offset       = pagination.offset ?? (page - 1) * limit;
-  
+  const offset = pagination.offset ?? (page - 1) * limit;
+
   return {
-    items:   transformedItems,
+    items: transformedItems,
     offset,
     limit,
     hasMore: offset + transformedItems.length < totalRecords,
@@ -147,7 +151,7 @@ const transformLoadMoreResult = async (paginatedResult, transformFn) => {
  */
 const transformIdNameToIdLabel = (row) =>
   cleanObject({
-    id:    row.id,
+    id: row.id,
     label: row.name,
   });
 
@@ -177,15 +181,15 @@ const transformIdNameToIdLabel = (row) =>
  */
 const includeFlagsBasedOnAccess = (row, userAccess = {}, flagMap = {}) => {
   if (!row) return {};
-  
+
   const result = {};
-  
+
   for (const [aclKey, rowKey] of Object.entries(flagMap)) {
     if (userAccess[aclKey]) {
       result[rowKey] = row[rowKey] ?? false;
     }
   }
-  
+
   return cleanObject(result);
 };
 

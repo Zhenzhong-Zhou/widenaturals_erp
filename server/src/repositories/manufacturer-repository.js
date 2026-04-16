@@ -8,7 +8,9 @@
 
 'use strict';
 
-const { buildManufacturerFilter } = require('../utils/sql/build-manufacturer-filter');
+const {
+  buildManufacturerFilter,
+} = require('../utils/sql/build-manufacturer-filter');
 const { buildVendorLookup } = require('./utils/build-vendor-lookup');
 const {
   MANUFACTURER_TABLE,
@@ -35,35 +37,37 @@ const {
  * @throws  {AppError}        Normalized database error if the query fails.
  */
 const getManufacturerLookup = async ({
-                                       filters = {},
-                                       options = {},
-                                       limit   = 50,
-                                       offset  = 0,
-                                     }) => {
+  filters = {},
+  options = {},
+  limit = 50,
+  offset = 0,
+}) => {
   const context = 'manufacturer-repository/getManufacturerLookup';
   const { canSearchStatus = false, canSearchLocation = false } = options;
-  
+
   const joins = [
-    ...(canSearchStatus   ? ['LEFT JOIN status s    ON s.id = m.status_id']   : []),
-    ...(canSearchLocation ? ['LEFT JOIN locations l ON l.id = m.location_id'] : []),
+    ...(canSearchStatus ? ['LEFT JOIN status s    ON s.id = m.status_id'] : []),
+    ...(canSearchLocation
+      ? ['LEFT JOIN locations l ON l.id = m.location_id']
+      : []),
   ];
-  
+
   const { whereClause, params } = buildManufacturerFilter(filters, {
     canSearchStatus,
     canSearchLocation,
   });
-  
+
   const queryText = buildManufacturerLookupQuery(joins, whereClause);
-  
+
   return buildVendorLookup({
     context,
-    tableName:       MANUFACTURER_TABLE,
+    tableName: MANUFACTURER_TABLE,
     joins,
     whereClause,
-    queryParams:     params,
+    queryParams: params,
     queryText,
-    sortBy:          'm.name',
-    sortWhitelist:   MANUFACTURER_SORT_WHITELIST,
+    sortBy: 'm.name',
+    sortWhitelist: MANUFACTURER_SORT_WHITELIST,
     additionalSorts: MANUFACTURER_ADDITIONAL_SORTS,
     limit,
     offset,

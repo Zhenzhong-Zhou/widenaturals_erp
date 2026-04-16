@@ -27,10 +27,10 @@ const CONTEXT = 'delivery-method-business';
  */
 const evaluateDeliveryMethodLookupAccessControl = async (user) => {
   const context = `${CONTEXT}/evaluateDeliveryMethodLookupAccessControl`;
-  
+
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     return {
       canViewAllStatuses:
         isRoot ||
@@ -42,7 +42,7 @@ const evaluateDeliveryMethodLookupAccessControl = async (user) => {
       'Failed to evaluate delivery method lookup access control',
       { context, userId: user?.id }
     );
-    
+
     throw AppError.businessError(
       'Unable to evaluate user access control for delivery method lookup.'
     );
@@ -66,7 +66,7 @@ const enforceDeliveryMethodLookupVisibilityRules = (
   activeStatusId
 ) => {
   const adjusted = { ...filters };
-  
+
   if (!userAccess.canViewAllStatuses) {
     // Remove caller-supplied statusId — active status is pinned via _activeStatusId.
     delete adjusted.statusId;
@@ -74,7 +74,7 @@ const enforceDeliveryMethodLookupVisibilityRules = (
       adjusted._activeStatusId = activeStatusId;
     }
   }
-  
+
   return adjusted;
 };
 

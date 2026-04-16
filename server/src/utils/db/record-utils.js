@@ -59,27 +59,27 @@ const getUniqueScalarValue = async (
   meta = {}
 ) => {
   const context = `${CONTEXT}/getUniqueScalarValue`;
-  
+
   if (!table || typeof where !== 'object' || !select) {
     throw AppError.validationError(
       'Invalid parameters for getUniqueScalarValue.'
     );
   }
-  
+
   const maskedTable = maskTableName(table);
   const whereKeys = Object.keys(where ?? {});
-  
+
   if (whereKeys.length === 0) {
     throw AppError.validationError(
       'getUniqueScalarValue: where condition must have at least one key.'
     );
   }
-  
+
   // Build multi-condition WHERE clause with correct $N indices.
   let paramIdx = 1;
   const whereParts = [];
   const whereValues = [];
-  
+
   for (const key of whereKeys) {
     const val = where[key];
     if (val === null) {
@@ -89,31 +89,36 @@ const getUniqueScalarValue = async (
       whereValues.push(val);
     }
   }
-  
+
   const sql = `
     SELECT ${q(select)}
     FROM ${qualify('public', table)}
     WHERE ${whereParts.join(' AND ')}
     LIMIT 2
   `;
-  
+
   try {
     const result = await query(sql, whereValues, client);
-    
+
     if (result.rows.length === 0) return null;
-    
+
     if (result.rows.length > 1) {
       throw AppError.databaseError(
         `Multiple rows found in "${maskedTable}" for ${whereKeys.join(', ')}`
       );
     }
-    
+
     return result.rows[0][select];
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: `Failed to fetch value '${select}' from '${maskedTable}'.`,
-      meta: { table: maskedTable, select, where: Object.fromEntries(whereKeys.map(k => [k, where[k]])), ...meta },
+      meta: {
+        table: maskedTable,
+        select,
+        where: Object.fromEntries(whereKeys.map((k) => [k, where[k]])),
+        ...meta,
+      },
       logFn: (err) =>
         logDbQueryError(sql, whereValues, err, {
           context,
@@ -150,18 +155,20 @@ const getUniqueScalarValue = async (
 const checkRecordExists = async (table, condition, client = null) => {
   // Use validateIdentifier for consistency with the rest of the module.
   const safeTable = validateIdentifier(table, 'table');
-  
+
   const keys = Object.keys(condition ?? {});
   if (keys.length === 0) {
-    throw AppError.validationError('No condition provided for checkRecordExists');
+    throw AppError.validationError(
+      'No condition provided for checkRecordExists'
+    );
   }
-  
+
   // Build a stable, ordered list of [key, value] pairs so that the
   // $N parameter indices align correctly with the values array.
   let paramIdx = 1;
   const whereParts = [];
   const values = [];
-  
+
   for (const key of keys) {
     const val = condition[key];
     if (val === null) {
@@ -172,17 +179,17 @@ const checkRecordExists = async (table, condition, client = null) => {
       values.push(val);
     }
   }
-  
+
   const sql = `SELECT EXISTS (SELECT 1 FROM ${safeTable} WHERE ${whereParts.join(' AND ')}) AS exists`;
-  
+
   try {
     const { rows } = await query(sql, values, client);
     return rows[0]?.exists === true;
   } catch (error) {
     const context = `${CONTEXT}/checkRecordExists`;
-    
+
     const maskedTable = maskTableName(table);
-    
+
     throw handleDbError(error, {
       context,
       message: `Failed to check existence in "${maskedTable}"`,
@@ -214,18 +221,14 @@ const checkRecordExists = async (table, condition, client = null) => {
  */
 const findMissingIds = async (client, table, ids, opts = {}) => {
   const context = `${CONTEXT}/findMissingIds`;
-  
-  const {
-    schema = 'public',
-    idColumn = 'id',
-    logOnError = true,
-  } = opts;
-  
+
+  const { schema = 'public', idColumn = 'id', logOnError = true } = opts;
+
   const list = uniq(ids);
   if (list.length === 0) return [];
-  
+
   const maskedTable = maskTableName(table);
-  
+
   const sql = `
     WITH input(id) AS (
       SELECT DISTINCT UNNEST($1::uuid[])
@@ -238,7 +241,7 @@ const findMissingIds = async (client, table, ids, opts = {}) => {
       WHERE t.${q(idColumn)} = i.id
     );
   `;
-  
+
   try {
     const { rows } = await query(sql, [list], client);
     return rows.map((r) => r.id);
@@ -253,12 +256,12 @@ const findMissingIds = async (client, table, ids, opts = {}) => {
       },
       logFn: logOnError
         ? (err) =>
-          logSystemException(err, 'Batch ID existence check failed', {
-            context,
-            table: `${schema}.${maskedTable}`,
-            idColumn,
-            count: list.length,
-          })
+            logSystemException(err, 'Batch ID existence check failed', {
+              context,
+              table: `${schema}.${maskedTable}`,
+              idColumn,
+              count: list.length,
+            })
         : undefined,
     });
   }
@@ -292,36 +295,35 @@ const getFieldsById = async (
   client = null
 ) => {
   const context = `${CONTEXT}/getFieldsById`;
-  
+
   if (!table || typeof table !== 'string' || !id) {
     throw AppError.validationError('Invalid parameters for getFieldsById');
   }
-  
+
   const maskedTable = maskTableName(table);
-  
+
   // Use validateIdentifier for consistency — rejects unsafe names with a
   // structured error rather than silently stripping characters.
-  const safeFields = (Array.isArray(selectFields) ? selectFields : [selectFields])
-    .map((field) => validateIdentifier(field, 'select field'));
-  
+  const safeFields = (
+    Array.isArray(selectFields) ? selectFields : [selectFields]
+  ).map((field) => validateIdentifier(field, 'select field'));
+
   const sql = `
     SELECT ${safeFields.map((f) => q(f)).join(', ')}
     FROM ${qualify('public', table)}
     WHERE ${q('id')} = $1
     LIMIT 2
   `;
-  
+
   try {
     const result = await query(sql, [id], client);
-    
+
     if (result.rows.length === 0) return null;
-    
+
     if (result.rows.length > 1) {
-      throw AppError.databaseError(
-        `Duplicate id in table '${maskedTable}'`
-      );
+      throw AppError.databaseError(`Duplicate id in table '${maskedTable}'`);
     }
-    
+
     return result.rows[0];
   } catch (error) {
     throw handleDbError(error, {
@@ -373,7 +375,7 @@ const getFieldValuesByField = async (
   client = null
 ) => {
   const context = `${CONTEXT}/getFieldValuesByField`;
-  
+
   // Validate before entering the IO try/catch so a ValidationError thrown
   // here is NOT caught below and therefore not double-logged.
   if (!table || !whereKey || !selectField) {
@@ -381,23 +383,23 @@ const getFieldValuesByField = async (
       'Invalid parameters for getFieldValuesByField'
     );
   }
-  
-  const safeTable    = validateIdentifier(table, 'table');
-  const safeField    = validateIdentifier(selectField, 'select field');
+
+  const safeTable = validateIdentifier(table, 'table');
+  const safeField = validateIdentifier(selectField, 'select field');
   const safeWhereKey = validateIdentifier(whereKey, 'where key');
-  
+
   const sql = `
     SELECT ${q(safeField)}
     FROM ${qualify('public', safeTable)}
     WHERE ${q(safeWhereKey)} = $1
   `;
-  
+
   try {
     const result = await query(sql, [whereValue], client);
     return result.rows.map((row) => row[safeField]);
   } catch (error) {
     const maskedTable = maskTableName(table);
-    
+
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch field values',

@@ -14,13 +14,17 @@
 
 'use strict';
 
-const AppError                           = require('../utils/AppError');
-const { getPaginatedOrderTypes }         = require('../repositories/order-type-repository');
-const { transformPaginatedOrderTypes }   = require('../transformers/order-type-transformer');
+const AppError = require('../utils/AppError');
+const {
+  getPaginatedOrderTypes,
+} = require('../repositories/order-type-repository');
+const {
+  transformPaginatedOrderTypes,
+} = require('../transformers/order-type-transformer');
 const {
   enforceOrderTypeCodeAccessControl,
   filterOrderTypeRowsByPermission,
-}                                        = require('../business/order-type-business');
+} = require('../business/order-type-business');
 
 const CONTEXT = 'order-type-service';
 
@@ -44,33 +48,39 @@ const CONTEXT = 'order-type-service';
  * @throws {AppError} Wraps unexpected errors as `AppError.serviceError`.
  */
 const fetchPaginatedOrderTypesService = async ({
-                                                 filters   = {},
-                                                 user,
-                                                 page      = 1,
-                                                 limit     = 10,
-                                                 sortBy    = 'name',
-                                                 sortOrder = 'ASC',
-                                               }) => {
+  filters = {},
+  user,
+  page = 1,
+  limit = 10,
+  sortBy = 'name',
+  sortOrder = 'ASC',
+}) => {
   const context = `${CONTEXT}/fetchPaginatedOrderTypesService`;
-  
+
   try {
     // 1. Enforce code-level access control on filters and sort fields.
     await enforceOrderTypeCodeAccessControl({ user, filters, sortBy });
-    
+
     // 2. Query raw paginated rows.
-    const rawResult = await getPaginatedOrderTypes({ filters, page, limit, sortBy, sortOrder });
-    
+    const rawResult = await getPaginatedOrderTypes({
+      filters,
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+    });
+
     // 3. Apply per-row permission filtering.
     const filteredRows = await filterOrderTypeRowsByPermission(rawResult, user);
-    
+
     // 4. Transform for UI consumption.
     return transformPaginatedOrderTypes(filteredRows);
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
+
     throw AppError.serviceError('Unable to fetch order type list.', {
       context,
-      meta: { error: error.message }
+      meta: { error: error.message },
     });
   }
 };

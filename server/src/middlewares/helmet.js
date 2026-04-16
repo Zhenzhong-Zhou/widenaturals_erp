@@ -27,18 +27,20 @@ const isProduction = process.env.NODE_ENV === 'production';
 // allowing a stale example domain.
 const apiConnectOrigin = process.env.API_CONNECT_ORIGIN;
 
-const connectSrc = apiConnectOrigin
-  ? ["'self'", apiConnectOrigin]
-  : ["'self'"];
+const connectSrc = apiConnectOrigin ? ["'self'", apiConnectOrigin] : ["'self'"];
 
 // Shared CSP directives across both environments.
 const sharedDirectives = {
-  imgSrc:       ["'self'", 'data:'],
+  imgSrc: ["'self'", 'data:'],
   connectSrc,
-  fontSrc:      ["'self'", 'https://fonts.googleapis.com', 'https://fonts.gstatic.com'],
-  objectSrc:    ["'none'"],
+  fontSrc: [
+    "'self'",
+    'https://fonts.googleapis.com',
+    'https://fonts.gstatic.com',
+  ],
+  objectSrc: ["'none'"],
   // Disallow framing entirely — defence against clickjacking on top of frameguard.
-  frameSrc:     ["'none'"],
+  frameSrc: ["'none'"],
 };
 
 // -----------------------------------------------------------------------------
@@ -63,43 +65,43 @@ const configureHelmet = helmet({
   contentSecurityPolicy: {
     directives: isProduction
       ? {
-        ...sharedDirectives,
-        defaultSrc: ["'self'"],
-        scriptSrc:  ["'self'"],
-        styleSrc:   ["'self'"],
-        // Force HTTP → HTTPS upgrades at the browser level.
-        upgradeInsecureRequests: [],
-      }
+          ...sharedDirectives,
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'"],
+          styleSrc: ["'self'"],
+          // Force HTTP → HTTPS upgrades at the browser level.
+          upgradeInsecureRequests: [],
+        }
       : {
-        ...sharedDirectives,
-        defaultSrc: ["'self'"],
-        // unsafe-inline required for Vite HMR and dev tool injections.
-        scriptSrc:  ["'self'", "'unsafe-inline'"],
-        styleSrc:   ["'self'", "'unsafe-inline'"],
-      },
+          ...sharedDirectives,
+          defaultSrc: ["'self'"],
+          // unsafe-inline required for Vite HMR and dev tool injections.
+          scriptSrc: ["'self'", "'unsafe-inline'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+        },
   },
-  
+
   crossOriginEmbedderPolicy: true,
-  crossOriginOpenerPolicy:   { policy: 'same-origin' },
+  crossOriginOpenerPolicy: { policy: 'same-origin' },
   crossOriginResourcePolicy: { policy: 'same-origin' },
-  
+
   dnsPrefetchControl: { allow: false },
-  
+
   // X-Frame-Options: DENY — belt-and-suspenders with frameSrc: none above.
   frameguard: { action: 'deny' },
-  
+
   hidePoweredBy: true,
-  
+
   hsts: isProduction
     ? {
-      maxAge:            31536000, // 1 year
-      includeSubDomains: true,
-      preload:           true,
-    }
+        maxAge: 31536000, // 1 year
+        includeSubDomains: true,
+        preload: true,
+      }
     : false,
-  
-  ieNoOpen:       true,
-  noSniff:        true,
+
+  ieNoOpen: true,
+  noSniff: true,
   referrerPolicy: { policy: 'no-referrer' },
 });
 

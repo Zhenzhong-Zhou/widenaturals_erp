@@ -6,7 +6,7 @@ const { getUniqueScalarValue } = require('../../utils/db/record-utils');
 (async () => {
   const client = await pool.connect();
   await initStatusCache();
-  
+
   try {
     const now = new Date();
     const { rows } = await client.query(

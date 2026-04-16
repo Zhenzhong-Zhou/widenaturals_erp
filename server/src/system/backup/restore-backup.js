@@ -52,13 +52,15 @@ const CONTEXT = 'restore-backup';
  */
 const verifyHash = async (encryptedFilePath, providedHash = null) => {
   let expectedHash = providedHash?.trim() ?? null;
-  
+
   // No hash provided — try local sidecar file
   if (!expectedHash) {
     const hashFile = `${encryptedFilePath}.sha256`;
     try {
       await fs.access(hashFile); // throws if file does not exist
-      const content = /** @type {string} */ (await fs.readFile(hashFile, 'utf8'));
+      const content = /** @type {string} */ (
+        await fs.readFile(hashFile, 'utf8')
+      );
       expectedHash = content.trim();
     } catch {
       logSystemWarn('Hash file not found — skipping integrity check', {
@@ -68,10 +70,12 @@ const verifyHash = async (encryptedFilePath, providedHash = null) => {
       return;
     }
   }
-  
+
   await verifyFileIntegrity(encryptedFilePath, expectedHash);
-  
-  logSystemInfo('Hash verified — backup integrity confirmed', { context: CONTEXT });
+
+  logSystemInfo('Hash verified — backup integrity confirmed', {
+    context: CONTEXT,
+  });
 };
 
 /**
@@ -91,34 +95,34 @@ const verifyHash = async (encryptedFilePath, providedHash = null) => {
  */
 const recreateDatabase = (dbName, dbUser, dbHost, dbPort, dbPassword) => {
   logSystemWarn(`Dropping database: ${dbName}`, { context: CONTEXT });
-  
+
   const env = {
     ...process.env,
-    PGUSER:   dbUser,
-    PGHOST:   dbHost,
-    PGPORT:   dbPort,
+    PGUSER: dbUser,
+    PGHOST: dbHost,
+    PGPORT: dbPort,
     ...(dbPassword ? { PGPASSWORD: dbPassword } : {}),
   };
-  
+
   const psql = `psql --username=${dbUser} --host=${dbHost} --port=${dbPort} --dbname=postgres`;
-  
+
   // Terminate active connections first — DROP DATABASE fails if connections exist
   execSync(
     `${psql} -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity` +
-    ` WHERE datname = '${dbName}' AND pid <> pg_backend_pid();"`,
+      ` WHERE datname = '${dbName}' AND pid <> pg_backend_pid();"`,
     { env, stdio: 'inherit' }
   );
-  
-  execSync(
-    `${psql} -c "DROP DATABASE IF EXISTS \\"${dbName}\\";"`,
-    { env, stdio: 'inherit' }
-  );
-  
+
+  execSync(`${psql} -c "DROP DATABASE IF EXISTS \\"${dbName}\\";"`, {
+    env,
+    stdio: 'inherit',
+  });
+
   execSync(
     `createdb --username=${dbUser} --host=${dbHost} --port=${dbPort} "${dbName}"`,
     { env, stdio: 'inherit' }
   );
-  
+
   logSystemInfo('Database recreated', { context: CONTEXT, dbName });
 };
 
@@ -139,19 +143,19 @@ const recreateDatabase = (dbName, dbUser, dbHost, dbPort, dbPassword) => {
 const verifyRowCounts = (dbName, dbUser, dbHost, dbPort, dbPassword) => {
   const env = {
     ...process.env,
-    PGUSER:   dbUser,
-    PGHOST:   dbHost,
-    PGPORT:   dbPort,
+    PGUSER: dbUser,
+    PGHOST: dbHost,
+    PGPORT: dbPort,
     ...(dbPassword ? { PGPASSWORD: dbPassword } : {}),
   };
-  
+
   const result = execSync(
     `psql --username=${dbUser} --host=${dbHost} --port=${dbPort} --dbname=${dbName}` +
-    ` -c "SELECT schemaname, tablename, n_live_tup AS row_count` +
-    `      FROM pg_stat_user_tables ORDER BY n_live_tup DESC;"`,
+      ` -c "SELECT schemaname, tablename, n_live_tup AS row_count` +
+      `      FROM pg_stat_user_tables ORDER BY n_live_tup DESC;"`,
     { env }
   ).toString();
-  
+
   // Log via system logger for consistency — no console.log in server code
   logSystemInfo('Row count verification completed', {
     context: CONTEXT,
@@ -183,81 +187,104 @@ const verifyRowCounts = (dbName, dbUser, dbHost, dbPort, dbPassword) => {
  * @throws {AppError} If any pipeline step fails.
  */
 const restoreBackup = async ({
-                               s3KeyEnc,
-                               databaseName,
-                               encryptionKey,
-                               dbUser,
-                               dbPassword  = '',
-                               dbHost      = 'localhost',
-                               dbPort      = '5432',
-                               isProduction = true,
-                             }) => {
+  s3KeyEnc,
+  databaseName,
+  encryptionKey,
+  dbUser,
+  dbPassword = '',
+  dbHost = 'localhost',
+  dbPort = '5432',
+  isProduction = true,
+}) => {
   loadEnv();
-  
+
   //--------------------------------------------------
   // Input validation — catch missing params early
   // before any file or DB operations begin
   //--------------------------------------------------
-  if (!s3KeyEnc)      throw AppError.validationError('s3KeyEnc is required',     { context: CONTEXT });
-  if (!databaseName)  throw AppError.validationError('databaseName is required',  { context: CONTEXT });
-  if (!encryptionKey) throw AppError.validationError('encryptionKey is required', { context: CONTEXT });
-  if (!dbUser)        throw AppError.validationError('dbUser is required',        { context: CONTEXT });
-  
+  if (!s3KeyEnc)
+    throw AppError.validationError('s3KeyEnc is required', {
+      context: CONTEXT,
+    });
+  if (!databaseName)
+    throw AppError.validationError('databaseName is required', {
+      context: CONTEXT,
+    });
+  if (!encryptionKey)
+    throw AppError.validationError('encryptionKey is required', {
+      context: CONTEXT,
+    });
+  if (!dbUser)
+    throw AppError.validationError('dbUser is required', { context: CONTEXT });
+
   const bucketName = process.env.AWS_S3_BUCKET_NAME;
-  const tempDir    = path.join(__dirname, '../temp');
+  const tempDir = path.join(__dirname, '../temp');
   await ensureDirectory(tempDir);
-  
+
   // Declared outside try so finally can reference them for cleanup
   let encryptedFilePath, ivFilePath, decryptedFilePath;
-  
+
   try {
     logSystemInfo('Starting database restore', {
       context: CONTEXT,
       isProduction,
       databaseName,
     });
-    
+
     if (isProduction) {
       if (!bucketName) {
-        throw AppError.validationError('Missing required env: AWS_S3_BUCKET_NAME', {
-          context: CONTEXT,
-        });
+        throw AppError.validationError(
+          'Missing required env: AWS_S3_BUCKET_NAME',
+          {
+            context: CONTEXT,
+          }
+        );
       }
-      
+
       encryptedFilePath = path.join(tempDir, path.basename(s3KeyEnc));
-      ivFilePath        = `${encryptedFilePath}.iv`;
+      ivFilePath = `${encryptedFilePath}.iv`;
       decryptedFilePath = encryptedFilePath.replace(/\.enc$/, '');
-      
+
       // Step 1 — download encrypted backup and IV sidecar from S3
-      await downloadFileFromS3(bucketName, s3KeyEnc,         encryptedFilePath);
+      await downloadFileFromS3(bucketName, s3KeyEnc, encryptedFilePath);
       await downloadFileFromS3(bucketName, `${s3KeyEnc}.iv`, ivFilePath);
-      
+
       logSystemInfo('Encrypted backup and IV downloaded from S3', {
         context: CONTEXT,
         files: [s3KeyEnc, `${s3KeyEnc}.iv`],
       });
-      
+
       // Step 2 — attempt integrity check; non-fatal if hash file absent on S3
       let originalHash = null;
       try {
-        originalHash = await downloadFileFromS3(bucketName, `${s3KeyEnc}.sha256`, null, true);
+        originalHash = await downloadFileFromS3(
+          bucketName,
+          `${s3KeyEnc}.sha256`,
+          null,
+          true
+        );
       } catch {
-        logSystemWarn('SHA256 file unavailable on S3 — skipping integrity check', {
-          context: CONTEXT,
-          s3Key: `${s3KeyEnc}.sha256`,
-        });
+        logSystemWarn(
+          'SHA256 file unavailable on S3 — skipping integrity check',
+          {
+            context: CONTEXT,
+            s3Key: `${s3KeyEnc}.sha256`,
+          }
+        );
       }
       await verifyHash(encryptedFilePath, originalHash);
-      
     } else {
       // Non-production: treat s3KeyEnc as a local filesystem path
       encryptedFilePath = path.resolve(s3KeyEnc);
-      ivFilePath        = `${encryptedFilePath}.iv`;
+      ivFilePath = `${encryptedFilePath}.iv`;
       decryptedFilePath = encryptedFilePath.replace(/\.enc$/, '');
-      
+
       // Confirm both required local files exist before proceeding
       try {
-        await Promise.all([fs.access(encryptedFilePath), fs.access(ivFilePath)]);
+        await Promise.all([
+          fs.access(encryptedFilePath),
+          fs.access(ivFilePath),
+        ]);
       } catch {
         throw AppError.notFoundError('Required local backup files not found', {
           context: CONTEXT,
@@ -265,35 +292,44 @@ const restoreBackup = async ({
           ivFilePath,
         });
       }
-      
+
       logSystemInfo('Local encrypted backup and IV found', {
         context: CONTEXT,
         encryptedFilePath,
         ivFilePath,
       });
-      
+
       // Step 2 — local hash verify via sidecar file
       await verifyHash(encryptedFilePath);
     }
-    
+
     // Step 3 — decrypt; decryptFile owns partial-file cleanup on failure
-    await decryptFile(encryptedFilePath, decryptedFilePath, encryptionKey, ivFilePath);
+    await decryptFile(
+      encryptedFilePath,
+      decryptedFilePath,
+      encryptionKey,
+      ivFilePath
+    );
     logSystemInfo('Backup decrypted', { context: CONTEXT, decryptedFilePath });
-    
+
     // Step 4 — terminate connections, drop and recreate database
     recreateDatabase(databaseName, dbUser, dbHost, dbPort, dbPassword);
-    
+
     // Step 5 — pg_restore into freshly recreated database
-    await restoreDatabase({ decryptedFilePath, databaseName, dbUser, dbPassword });
-    
+    await restoreDatabase({
+      decryptedFilePath,
+      databaseName,
+      dbUser,
+      dbPassword,
+    });
+
     // Step 6 — sanity check: verify tables have rows
     verifyRowCounts(databaseName, dbUser, dbHost, dbPort, dbPassword);
-    
+
     logSystemInfo('Database restore completed successfully', {
       context: CONTEXT,
       databaseName,
     });
-    
   } catch (error) {
     logSystemException(error, 'Database restore failed', {
       context: CONTEXT,
@@ -301,12 +337,15 @@ const restoreBackup = async ({
       s3Key: s3KeyEnc,
     });
     throw error;
-    
   } finally {
     // Step 7 — always remove temp files; failures warned but not re-thrown
     // so they cannot mask the original restore error
-    const filesToRemove = [encryptedFilePath, ivFilePath, decryptedFilePath].filter(Boolean);
-    
+    const filesToRemove = [
+      encryptedFilePath,
+      ivFilePath,
+      decryptedFilePath,
+    ].filter(Boolean);
+
     await Promise.allSettled(
       filesToRemove.map(async (file) => {
         try {
@@ -325,7 +364,7 @@ const restoreBackup = async ({
 };
 
 module.exports = {
-  restoreBackup
+  restoreBackup,
 };
 
 //--------------------------------------------------
@@ -334,28 +373,30 @@ module.exports = {
 //--------------------------------------------------
 if (require.main === module) {
   // loadEnv() not called here — restoreBackup() calls it internally
-  const fileArg = process.argv.find(a => a.startsWith('--file='));
+  const fileArg = process.argv.find((a) => a.startsWith('--file='));
   if (!fileArg) {
     console.error('Missing required argument: --file=<path-to-.enc-file>');
     process.exit(1);
   }
-  
+
   // loadEnv() must run before reading process.env for DB credentials
   loadEnv();
-  
+
   restoreBackup({
-    s3KeyEnc:      fileArg.replace('--file=', ''),
-    databaseName:  process.env.DB_NAME,
+    s3KeyEnc: fileArg.replace('--file=', ''),
+    databaseName: process.env.DB_NAME,
     encryptionKey: process.env.BACKUP_ENCRYPTION_KEY,
-    dbUser:        process.env.DB_USER,
-    dbPassword:    process.env.DB_PASSWORD    || '',
-    dbHost:        process.env.DB_HOST        || 'localhost',
-    dbPort:        process.env.DB_PORT        || '5432',
-    isProduction:  process.env.NODE_ENV       === 'production',
+    dbUser: process.env.DB_USER,
+    dbPassword: process.env.DB_PASSWORD || '',
+    dbHost: process.env.DB_HOST || 'localhost',
+    dbPort: process.env.DB_PORT || '5432',
+    isProduction: process.env.NODE_ENV === 'production',
   })
     .then(() => void handleExit(0))
     .catch((error) => {
-      logSystemException(error, 'Database restore failed', { context: CONTEXT });
+      logSystemException(error, 'Database restore failed', {
+        context: CONTEXT,
+      });
       void handleExit(1);
     });
 }

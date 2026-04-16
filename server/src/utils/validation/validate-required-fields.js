@@ -58,56 +58,56 @@ const validateRequiredFields = (
   if (!Array.isArray(records) || records.length === 0) {
     throw AppError.validationError('Invalid request.');
   }
-  
+
   // Guard: requiredFields must be an array — a wrong type is a programming error.
   if (!Array.isArray(requiredFields)) {
     throw new Error(
       'validateRequiredFields(): requiredFields must be an array of strings.'
     );
   }
-  
+
   // Nothing to validate if no required fields are specified.
   if (requiredFields.length === 0) return;
-  
+
   const invalidRecords = [];
-  
+
   for (let i = 0; i < records.length; i++) {
     const record = records[i];
-    
+
     // Treat non-object records (null, primitives) as entirely missing.
     if (!record || typeof record !== 'object') {
       invalidRecords.push({ index: i, missingFields: requiredFields });
       continue;
     }
-    
+
     const missingFields = requiredFields.filter(
       (field) =>
         record[field] === undefined ||
         record[field] === null ||
         record[field] === ''
     );
-    
+
     if (missingFields.length > 0) {
       invalidRecords.push({ index: i, missingFields });
     }
   }
-  
+
   if (invalidRecords.length === 0) return;
-  
+
   // Log diagnostic details internally before throwing the generic error.
   // Capped at MAX_SAMPLE_ERRORS entries to keep log payloads bounded on
   // large batch failures.
   logWarn('Required field validation failed', null, {
     context,
     requiredFields,
-    invalidCount:  invalidRecords.length,
-    totalRecords:  records.length,
-    sampleErrors:  invalidRecords.slice(0, MAX_SAMPLE_ERRORS),
+    invalidCount: invalidRecords.length,
+    totalRecords: records.length,
+    sampleErrors: invalidRecords.slice(0, MAX_SAMPLE_ERRORS),
   });
-  
+
   throw AppError.validationError('Invalid request.');
 };
 
 module.exports = {
-  validateRequiredFields
+  validateRequiredFields,
 };

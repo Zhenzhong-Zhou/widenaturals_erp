@@ -53,14 +53,14 @@ const {
  */
 const createOrderController = wrapAsyncHandler(async (req, res) => {
   const { category } = req.params;
-  const user         = req.auth.user;
-  
+  const user = req.auth.user;
+
   const result = await createOrderService(req.body, category, user);
-  
+
   res.status(201).json({
     success: true,
     message: 'Order created successfully.',
-    data:    result,
+    data: result,
     traceId: req.traceId,
   });
 });
@@ -76,10 +76,10 @@ const createOrderController = wrapAsyncHandler(async (req, res) => {
  * Requires: auth middleware, query normalizer, VIEW_ORDERS permission.
  */
 const fetchPaginatedOrdersController = wrapAsyncHandler(async (req, res) => {
-  const { category }                        = req.params;
+  const { category } = req.params;
   const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
-  const user                                = req.auth.user;
-  
+  const user = req.auth.user;
+
   const { data, pagination } = await fetchPaginatedOrdersService({
     filters,
     category,
@@ -89,7 +89,7 @@ const fetchPaginatedOrdersController = wrapAsyncHandler(async (req, res) => {
     sortBy,
     sortOrder,
   });
-  
+
   res.status(200).json({
     success: true,
     message: 'Orders retrieved successfully.',
@@ -111,10 +111,10 @@ const fetchPaginatedOrdersController = wrapAsyncHandler(async (req, res) => {
  */
 const getOrderDetailsByIdController = wrapAsyncHandler(async (req, res) => {
   const { category, orderId } = req.params;
-  const user                  = req.auth.user;
-  
+  const user = req.auth.user;
+
   const data = await fetchOrderDetailsByIdService(category, orderId, user);
-  
+
   res.status(200).json({
     success: true,
     message: 'Order details retrieved successfully.',
@@ -135,16 +135,16 @@ const getOrderDetailsByIdController = wrapAsyncHandler(async (req, res) => {
  */
 const updateOrderStatusController = wrapAsyncHandler(async (req, res) => {
   const { category, orderId } = req.params;
-  const { statusCode }        = req.body;
-  const user                  = req.auth.user;
-  
+  const { statusCode } = req.body;
+  const user = req.auth.user;
+
   const { enrichedOrder, enrichedItems } = await updateOrderStatusService(
     user,
     category,
     orderId,
-    statusCode,
+    statusCode
   );
-  
+
   res.status(200).json({
     success: true,
     message: 'Order status updated successfully.',
@@ -153,7 +153,7 @@ const updateOrderStatusController = wrapAsyncHandler(async (req, res) => {
       items: enrichedItems,
     },
     meta: {
-      itemsUpdated:   enrichedItems.length,
+      itemsUpdated: enrichedItems.length,
       recordsUpdated: 1 + enrichedItems.length,
     },
     traceId: req.traceId,

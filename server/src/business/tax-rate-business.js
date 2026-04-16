@@ -28,8 +28,8 @@ const CONTEXT = 'tax-rate-business';
  */
 const calculateTaxableAmount = (subtotal, discountAmount, taxRate) => {
   const taxableAmount = Math.max(subtotal - discountAmount, 0);
-  const taxAmount     = taxableAmount * (taxRate / 100);
-  
+  const taxAmount = taxableAmount * (taxRate / 100);
+
   return { taxableAmount, taxAmount };
 };
 
@@ -42,10 +42,10 @@ const calculateTaxableAmount = (subtotal, discountAmount, taxRate) => {
  */
 const evaluateTaxRateLookupAccessControl = async (user) => {
   const context = `${CONTEXT}/evaluateTaxRateLookupAccessControl`;
-  
+
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     return {
       canViewAllStatuses:
         isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_TAX_RATE_STATES),
@@ -58,7 +58,7 @@ const evaluateTaxRateLookupAccessControl = async (user) => {
       'Failed to evaluate tax rate lookup access control',
       { context, userId: user?.id }
     );
-    
+
     throw AppError.businessError(
       'Unable to evaluate user access control for tax rate lookup.'
     );
@@ -77,16 +77,16 @@ const evaluateTaxRateLookupAccessControl = async (user) => {
  */
 const enforceTaxRateLookupVisibilityRules = (filters, userAccess) => {
   const adjusted = { ...filters };
-  
+
   // Restrict keyword searches to currently valid records for unpermitted users.
   if (filters.keyword && !userAccess.canViewAllValidLookups) {
     adjusted._restrictKeywordToValidOnly = true;
   }
-  
+
   if (!userAccess.canViewAllStatuses) {
     adjusted.isActive = true;
   }
-  
+
   return adjusted;
 };
 
@@ -102,17 +102,17 @@ const enforceTaxRateLookupVisibilityRules = (filters, userAccess) => {
  */
 const filterTaxRateLookupQuery = (query, userAccess) => {
   const modifiedQuery = { ...query };
-  const now           = new Date().toISOString();
-  
+  const now = new Date().toISOString();
+
   if (!userAccess.canViewAllStatuses) {
     modifiedQuery.is_active = true;
   }
-  
+
   if (!userAccess.canViewAllValidLookups) {
     modifiedQuery.valid_from = { lte: now };
-    modifiedQuery.valid_to   = { gteOrNull: now };
+    modifiedQuery.valid_to = { gteOrNull: now };
   }
-  
+
   return modifiedQuery;
 };
 
@@ -124,11 +124,12 @@ const filterTaxRateLookupQuery = (query, userAccess) => {
  */
 const enrichTaxRateRow = (row) => {
   const now = new Date();
-  
+
   return {
     ...row,
-    isActive:     row.is_active,
-    isValidToday: row.valid_from <= now && (!row.valid_to || row.valid_to >= now),
+    isActive: row.is_active,
+    isValidToday:
+      row.valid_from <= now && (!row.valid_to || row.valid_to >= now),
   };
 };
 

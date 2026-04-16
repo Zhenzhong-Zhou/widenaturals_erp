@@ -13,7 +13,7 @@ const {
 const {
   lifecycleStatusUpdateSchema,
   lifecycleReceiveSchema,
-  lifecycleNotes
+  lifecycleNotes,
 } = require('./batches/lifecycle-common');
 
 /**
@@ -108,19 +108,19 @@ const productBatchQuerySchema = paginationSchema
 const productBatchBaseSchema = {
   // Unique production lot number assigned to the batch
   lot_number: validateString('Lot Number', 10, 100),
-  
+
   // Manufacturer responsible for producing the batch
   manufacturer_id: validateUUID('Manufacturer'),
-  
+
   // Production manufacturing date
   manufacture_date: requiredIsoDate(),
-  
+
   // Expiry date for the batch
   expiry_date: requiredIsoDate(),
-  
+
   // Initial quantity produced during manufacturing
   initial_quantity: validatePositiveIntegerRequired(),
-  
+
   // Internal notes for QA, operations, or traceability
   notes: validateOptionalString('Notes', 500),
 };
@@ -152,18 +152,13 @@ const productBatchBaseSchema = {
  *   of validated fields.
  */
 const createProductBatchSchema = Joi.object({
-    ...productBatchBaseSchema,
-    
-    // Each batch must belong to a SKU
-    sku_id: validateUUID('SKU ID').required(),
-  })
+  ...productBatchBaseSchema,
+
+  // Each batch must belong to a SKU
+  sku_id: validateUUID('SKU ID').required(),
+})
   .fork(
-    [
-      'lot_number',
-      'manufacture_date',
-      'expiry_date',
-      'initial_quantity',
-    ],
+    ['lot_number', 'manufacture_date', 'expiry_date', 'initial_quantity'],
     (schema) => schema.required()
   )
   .unknown(false);
@@ -214,8 +209,9 @@ const createProductBatchBulkSchema = Joi.object({
  * if (error) throw AppError.validationError(error.message);
  */
 const productBatchIdParamSchema = Joi.object({
-  batchId: validateUUID('Product Batch ID')
-    .description('UUID of the product batch record'),
+  batchId: validateUUID('Product Batch ID').description(
+    'UUID of the product batch record'
+  ),
 });
 
 /**
@@ -229,13 +225,8 @@ const productBatchIdParamSchema = Joi.object({
  * Required fields from creation become optional here using `.fork()`,
  * allowing flexible metadata updates.
  */
-const editProductBatchMetadataSchema = Joi.object(
-    productBatchBaseSchema
-  )
-  .fork(
-    Object.keys(productBatchBaseSchema),
-    (schema) => schema.optional()
-  )
+const editProductBatchMetadataSchema = Joi.object(productBatchBaseSchema)
+  .fork(Object.keys(productBatchBaseSchema), (schema) => schema.optional())
   .min(1)
   .unknown(false);
 

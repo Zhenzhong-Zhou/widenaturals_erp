@@ -51,52 +51,53 @@ const {
  * @throws  {AppError}        Normalized database error if the query fails.
  */
 const getPaginatedWarehouses = async ({
-                                        filters   = {},
-                                        page      = 1,
-                                        limit     = 10,
-                                        sortBy    = 'createdAt',
-                                        sortOrder = 'DESC',
-                                      }) => {
+  filters = {},
+  page = 1,
+  limit = 10,
+  sortBy = 'createdAt',
+  sortOrder = 'DESC',
+}) => {
   const context = 'warehouse-repository/getPaginatedWarehouses';
-  
+
   const { whereClause, params } = buildWarehouseFilter(filters);
-  
+
   const sortConfig = resolveSort({
     sortBy,
     sortOrder,
-    moduleKey:   'warehouseSortMap',
+    moduleKey: 'warehouseSortMap',
     defaultSort: SORTABLE_FIELDS.warehouseSortMap.defaultNaturalSort,
   });
-  
+
   // ORDER BY omitted — paginateQuery appends it from sortConfig.
   const queryText = buildWarehousePaginatedQuery(whereClause);
-  
+
   try {
     return await paginateQuery({
-      tableName:       TABLE_NAME,
-      joins:           JOINS,
+      tableName: TABLE_NAME,
+      joins: JOINS,
       whereClause,
       queryText,
       params,
       page,
       limit,
-      sortBy:          sortConfig.sortBy,
-      sortOrder:       sortConfig.sortOrder,
+      sortBy: sortConfig.sortBy,
+      sortOrder: sortConfig.sortOrder,
       additionalSorts: WAREHOUSE_ADDITIONAL_SORTS,
-      whitelistSet:    WAREHOUSE_SORT_WHITELIST,
-      meta:            { context },
+      whitelistSet: WAREHOUSE_SORT_WHITELIST,
+      meta: { context },
     });
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch paginated warehouses.',
-      meta:    { filters, page, limit, sortBy, sortOrder },
-      logFn:   (err) => logDbQueryError(
-        queryText,
-        params,
-        err,
-        { context, filters, page, limit }
-      ),
+      meta: { filters, page, limit, sortBy, sortOrder },
+      logFn: (err) =>
+        logDbQueryError(queryText, params, err, {
+          context,
+          filters,
+          page,
+          limit,
+        }),
     });
   }
 };
@@ -115,8 +116,8 @@ const getPaginatedWarehouses = async ({
  */
 const getWarehouseById = async (warehouseId) => {
   const context = 'warehouse-repository/getWarehouseById';
-  const params  = [warehouseId];
-  
+  const params = [warehouseId];
+
   try {
     const { rows } = await query(GET_WAREHOUSE_BY_ID_QUERY, params);
     return rows[0] ?? null;
@@ -124,13 +125,12 @@ const getWarehouseById = async (warehouseId) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch warehouse detail.',
-      meta:    { warehouseId },
-      logFn:   (err) => logDbQueryError(
-        GET_WAREHOUSE_BY_ID_QUERY,
-        params,
-        err,
-        { context, warehouseId }
-      ),
+      meta: { warehouseId },
+      logFn: (err) =>
+        logDbQueryError(GET_WAREHOUSE_BY_ID_QUERY, params, err, {
+          context,
+          warehouseId,
+        }),
     });
   }
 };
@@ -151,9 +151,9 @@ const getWarehouseById = async (warehouseId) => {
  */
 const getWarehouseLookup = async ({ filters = {} } = {}) => {
   const context = 'warehouse-repository/getWarehouseLookup';
-  
+
   const { whereClause, params } = buildWarehouseFilter(filters);
-  
+
   // queryText built per request because whereClause is dynamic.
   // ORDER BY is safe here — raw query(), not paginateQuery().
   const queryText = `
@@ -164,7 +164,7 @@ const getWarehouseLookup = async ({ filters = {} } = {}) => {
     WHERE ${whereClause}
     ORDER BY w.name ASC
   `;
-  
+
   try {
     const { rows } = await query(queryText, params);
     return rows;
@@ -172,13 +172,9 @@ const getWarehouseLookup = async ({ filters = {} } = {}) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch warehouse lookup options.',
-      meta:    { filters },
-      logFn:   (err) => logDbQueryError(
-        queryText,
-        params,
-        err,
-        { context, filters }
-      ),
+      meta: { filters },
+      logFn: (err) =>
+        logDbQueryError(queryText, params, err, { context, filters }),
     });
   }
 };

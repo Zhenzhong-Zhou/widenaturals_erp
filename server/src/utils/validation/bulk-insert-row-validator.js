@@ -27,12 +27,12 @@ const validateBulkInsertRows = (rows, expectedColumnCount) => {
   const invalidIndex = rows.findIndex(
     (row) => !Array.isArray(row) || row.length !== expectedColumnCount
   );
-  
+
   if (invalidIndex !== -1) {
     const actualLength = Array.isArray(rows[invalidIndex])
       ? rows[invalidIndex].length
       : 'non-array';
-    
+
     throw AppError.validationError(
       `Invalid data: row ${invalidIndex} contains ${actualLength} values but expected ${expectedColumnCount}`
     );

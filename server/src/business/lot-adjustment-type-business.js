@@ -22,15 +22,15 @@ const AppError = require('../utils/AppError');
  */
 const enforceExternalAccessPermission = async (user, includeExternal) => {
   if (!includeExternal) return false;
-  
+
   const hasPermission = await checkPermissions(user, ['view_external_data']);
-  
+
   if (!hasPermission) {
     throw AppError.businessError(
       'Access to external data is not permitted for this user.'
     );
   }
-  
+
   return true;
 };
 

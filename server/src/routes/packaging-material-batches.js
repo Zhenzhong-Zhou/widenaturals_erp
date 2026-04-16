@@ -10,11 +10,11 @@
 
 'use strict';
 
-const express                            = require('express');
-const { authorize }                      = require('../middlewares/authorize');
-const validate                           = require('../middlewares/validate');
+const express = require('express');
+const { authorize } = require('../middlewares/authorize');
+const validate = require('../middlewares/validate');
 const createQueryNormalizationMiddleware = require('../middlewares/normalize-query');
-const PERMISSION_KEYS  = require('../utils/constants/domain/permission-keys');
+const PERMISSION_KEYS = require('../utils/constants/domain/permission-keys');
 const {
   packagingMaterialBatchQuerySchema,
   packagingMaterialBatchIdParamSchema,
@@ -51,16 +51,17 @@ router.get(
   }),
   createQueryNormalizationMiddleware(
     'packagingMaterialBatchSortMap', // moduleKey — drives allowed sortBy fields
-    [                                // arrayKeys — normalized as UUID arrays
+    [
+      // arrayKeys — normalized as UUID arrays
       'statusIds',
       'packagingMaterialIds',
       'supplierIds',
     ],
-    [],                              // booleanKeys — none client-controlled
+    [], // booleanKeys — none client-controlled
     packagingMaterialBatchQuerySchema, // filterKeysOrSchema — extracts filter keys from schema
-    {},                              // options overrides — none
-    [],                              // option-level booleans — none
-    []                               // option-level strings — none
+    {}, // options overrides — none
+    [], // option-level booleans — none
+    [] // option-level strings — none
   ),
   getPaginatedPackagingMaterialBatchesController
 );

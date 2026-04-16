@@ -48,31 +48,32 @@ const buildCustomerFilter = (filters = {}) => {
   // strings and Date objects coerced by Joi's date() type.
   const normalizedFilters = normalizeDateRangeFilters(
     normalizeDateRangeFilters(filters, 'createdAfter', 'createdBefore'),
-    'statusDateAfter', 'statusDateBefore'
+    'statusDateAfter',
+    'statusDateBefore'
   );
-  
-  const conditions    = ['1=1'];
-  const params        = [];
+
+  const conditions = ['1=1'];
+  const params = [];
   const paramIndexRef = { value: 1 };
-  
+
   // ─── Customer Type ───────────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.customerType) {
     conditions.push(`c.customer_type = $${paramIndexRef.value}`);
     params.push(normalizedFilters.customerType);
     paramIndexRef.value++;
   }
-  
+
   // ─── Audit ──────────────────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.createdBy) {
     conditions.push(`c.created_by = $${paramIndexRef.value}`);
     params.push(normalizedFilters.createdBy);
     paramIndexRef.value++;
   }
-  
+
   // ─── Keyword ─────────────────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.keyword) {
     // Two params are used intentionally — name fields use prefix match for
     // typeahead UX, contact fields use contains match for broader lookup.
@@ -86,14 +87,14 @@ const buildCustomerFilter = (filters = {}) => {
       c.phone_number ILIKE $${paramIndexRef.value + 1}
     )`);
     params.push(
-      `${normalizedFilters.keyword}%`,   // prefix match
-      `%${normalizedFilters.keyword}%`   // contains match
+      `${normalizedFilters.keyword}%`, // prefix match
+      `%${normalizedFilters.keyword}%` // contains match
     );
     paramIndexRef.value += 2;
   }
-  
+
   // ─── Status ──────────────────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.statusId) {
     conditions.push(`c.status_id = $${paramIndexRef.value}`);
     params.push(normalizedFilters.statusId);
@@ -105,29 +106,29 @@ const buildCustomerFilter = (filters = {}) => {
     params.push(normalizedFilters._activeStatusId);
     paramIndexRef.value++;
   }
-  
+
   // ─── Date Range ─────────────────────────────────────────────────────────────
-  
+
   applyDateRangeConditions({
     conditions,
     params,
-    column:        'c.created_at',
-    after:         normalizedFilters.createdAfter,
-    before:        normalizedFilters.createdBefore,
+    column: 'c.created_at',
+    after: normalizedFilters.createdAfter,
+    before: normalizedFilters.createdBefore,
     paramIndexRef,
   });
-  
+
   applyDateRangeConditions({
     conditions,
     params,
-    column:        'c.status_date',
-    after:         normalizedFilters.statusDateAfter,
-    before:        normalizedFilters.statusDateBefore,
+    column: 'c.status_date',
+    after: normalizedFilters.statusDateAfter,
+    before: normalizedFilters.statusDateBefore,
     paramIndexRef,
   });
-  
+
   // ─── Address Existence ───────────────────────────────────────────────────────
-  
+
   // EXISTS/NOT EXISTS avoids row multiplication from customers with
   // multiple addresses — same pattern used in the paginated query itself.
   if (normalizedFilters.onlyWithAddress === true) {
@@ -139,7 +140,7 @@ const buildCustomerFilter = (filters = {}) => {
       `NOT EXISTS (SELECT 1 FROM addresses a WHERE a.customer_id = c.id)`
     );
   }
-  
+
   return {
     whereClause: conditions.join(' AND '),
     params,

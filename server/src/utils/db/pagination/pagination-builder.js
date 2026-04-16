@@ -35,21 +35,21 @@ const generateCountQuery = (
   distinctColumn
 ) => {
   const context = 'pagination/generateCountQuery';
-  
+
   //--------------------------------------------------
   // Validate tableName
   //--------------------------------------------------
   if (typeof tableName !== 'string' || tableName.trim().length === 0) {
     throw AppError.validationError('Invalid tableName', { context });
   }
-  
+
   //--------------------------------------------------
   // Validate joins
   //--------------------------------------------------
   if (!Array.isArray(joins)) {
     throw AppError.validationError('joins must be an array', { context });
   }
-  
+
   for (const join of joins) {
     if (typeof join !== 'string' || join.trim().length === 0) {
       throw AppError.validationError('Invalid join clause', {
@@ -58,19 +58,19 @@ const generateCountQuery = (
       });
     }
   }
-  
+
   //--------------------------------------------------
   // Validate whereClause
   //--------------------------------------------------
   if (typeof whereClause !== 'string') {
     throw AppError.validationError('Invalid whereClause', { context });
   }
-  
+
   //--------------------------------------------------
   // Validate distinct usage
   //--------------------------------------------------
   let countExpr;
-  
+
   if (useDistinct) {
     if (!distinctColumn || typeof distinctColumn !== 'string') {
       throw AppError.validationError(
@@ -78,20 +78,20 @@ const generateCountQuery = (
         { context }
       );
     }
-    
+
     // SAFE identifier quoting
     const safeColumn = q(distinctColumn);
-    
+
     countExpr = `COUNT(DISTINCT ${safeColumn})`;
   } else {
     countExpr = 'COUNT(*)';
   }
-  
+
   //--------------------------------------------------
   // Build JOIN clause
   //--------------------------------------------------
   const joinClause = joins.length ? `\n    ${joins.join('\n    ')}` : '';
-  
+
   //--------------------------------------------------
   // Construct query
   //--------------------------------------------------
@@ -144,36 +144,36 @@ const generateCountQuery = (
  * @throws {AppError} validationError
  */
 const buildPaginatedQuery = ({
-                               baseQuery,
-                               sortBy,
-                               sortOrder = 'ASC',
-                               additionalSorts = [],
-                               rawOrderBy,
-                               paramIndex,
-                               defaultSort,
-                               whitelistSet,
-                             }) => {
+  baseQuery,
+  sortBy,
+  sortOrder = 'ASC',
+  additionalSorts = [],
+  rawOrderBy,
+  paramIndex,
+  defaultSort,
+  whitelistSet,
+}) => {
   const context = 'pagination/buildPaginatedQuery';
-  
+
   //--------------------------------------------------
   // Validate required inputs
   //--------------------------------------------------
   if (typeof baseQuery !== 'string' || baseQuery.trim().length === 0) {
     throw AppError.validationError('Invalid baseQuery', { context });
   }
-  
+
   if (typeof paramIndex !== 'number' || paramIndex < 0) {
     throw AppError.validationError('Invalid paramIndex', { context });
   }
-  
+
   let query = baseQuery.trim();
-  
+
   //--------------------------------------------------
   // Normalize direction
   //--------------------------------------------------
   const normalizedOrder =
     String(sortOrder).toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
-  
+
   //--------------------------------------------------
   // PRIORITY: rawOrderBy (trusted internal use ONLY)
   //--------------------------------------------------
@@ -182,72 +182,60 @@ const buildPaginatedQuery = ({
     query += ` LIMIT $${paramIndex + 1} OFFSET $${paramIndex + 2}`;
     return query;
   }
-  
+
   //--------------------------------------------------
   // Validate whitelist ONLY for dynamic sorting
   //--------------------------------------------------
   if (!(whitelistSet instanceof Set) || whitelistSet.size === 0) {
     throw AppError.validationError('Invalid whitelistSet', { context });
   }
-  
+
   //--------------------------------------------------
   // Resolve primary sort
   //--------------------------------------------------
   const primarySort = sortBy || defaultSort;
-  
+
   if (!primarySort) {
     throw AppError.validationError('Missing sortBy/defaultSort', { context });
   }
-  
+
   //--------------------------------------------------
   // Build ORDER BY
   //--------------------------------------------------
   const orderParts = [];
-  
+
   // Primary sort
-  orderParts.push(
-    safeOrderBy(primarySort, normalizedOrder, whitelistSet)
-  );
-  
+  orderParts.push(safeOrderBy(primarySort, normalizedOrder, whitelistSet));
+
   //--------------------------------------------------
   // Secondary sorts
   //--------------------------------------------------
   for (const item of additionalSorts) {
     if (typeof item === 'string') {
-      orderParts.push(
-        safeOrderBy(item, 'ASC', whitelistSet)
-      );
+      orderParts.push(safeOrderBy(item, 'ASC', whitelistSet));
       continue;
     }
-    
-    if (
-      item &&
-      typeof item === 'object' &&
-      typeof item.column === 'string'
-    ) {
+
+    if (item && typeof item === 'object' && typeof item.column === 'string') {
       const dir =
-        String(item.direction).toUpperCase() === 'DESC'
-          ? 'DESC'
-          : 'ASC';
-      
-      orderParts.push(
-        safeOrderBy(item.column, dir, whitelistSet)
-      );
+        String(item.direction).toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+
+      orderParts.push(safeOrderBy(item.column, dir, whitelistSet));
       continue;
     }
-    
+
     throw AppError.validationError('Invalid additionalSorts entry', {
       context,
       meta: { item },
     });
   }
-  
+
   //--------------------------------------------------
   // Assemble final query
   //--------------------------------------------------
   query += ` ORDER BY ${orderParts.join(', ')}`;
   query += ` LIMIT $${paramIndex + 1} OFFSET $${paramIndex + 2}`;
-  
+
   return query;
 };
 

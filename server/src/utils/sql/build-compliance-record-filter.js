@@ -56,123 +56,131 @@ const buildComplianceRecordFilter = (filters = {}) => {
     normalizeDateRangeFilters(
       normalizeDateRangeFilters(
         normalizeDateRangeFilters(filters, 'issuedAfter', 'issuedBefore'),
-        'expiringAfter', 'expiringBefore'
+        'expiringAfter',
+        'expiringBefore'
       ),
-      'createdAfter', 'createdBefore'
+      'createdAfter',
+      'createdBefore'
     ),
-    'updatedAfter', 'updatedBefore'
+    'updatedAfter',
+    'updatedBefore'
   );
-  
-  const conditions    = ['1=1'];
-  const params        = [];
+
+  const conditions = ['1=1'];
+  const params = [];
   const paramIndexRef = { value: 1 };
-  
+
   // ─── Compliance ──────────────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.type) {
     conditions.push(`cr.type = $${paramIndexRef.value}`);
     params.push(normalizedFilters.type);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.statusIds?.length) {
     conditions.push(`cr.status_id = ANY($${paramIndexRef.value}::uuid[])`);
     params.push(normalizedFilters.statusIds);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.complianceId) {
     conditions.push(`cr.compliance_id ILIKE $${paramIndexRef.value}`);
     params.push(`%${normalizedFilters.complianceId}%`);
     paramIndexRef.value++;
   }
-  
+
   // ─── Compliance Dates ────────────────────────────────────────────────────────
-  
+
   applyDateRangeConditions({
     conditions,
     params,
-    column:        'cr.issued_date',
-    after:         normalizedFilters.issuedAfter,
-    before:        normalizedFilters.issuedBefore,
+    column: 'cr.issued_date',
+    after: normalizedFilters.issuedAfter,
+    before: normalizedFilters.issuedBefore,
     paramIndexRef,
   });
-  
+
   applyDateRangeConditions({
     conditions,
     params,
-    column:        'cr.expiry_date',
-    after:         normalizedFilters.expiringAfter,
-    before:        normalizedFilters.expiringBefore,
+    column: 'cr.expiry_date',
+    after: normalizedFilters.expiringAfter,
+    before: normalizedFilters.expiringBefore,
     paramIndexRef,
   });
-  
+
   // ─── Audit ──────────────────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.createdBy) {
     conditions.push(`cr.created_by = $${paramIndexRef.value}`);
     params.push(normalizedFilters.createdBy);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.updatedBy) {
     conditions.push(`cr.updated_by = $${paramIndexRef.value}`);
     params.push(normalizedFilters.updatedBy);
     paramIndexRef.value++;
   }
-  
+
   // ─── Audit Dates ─────────────────────────────────────────────────────────────
-  
+
   applyDateRangeConditions({
     conditions,
     params,
-    column:        'cr.created_at',
-    after:         normalizedFilters.createdAfter,
-    before:        normalizedFilters.createdBefore,
+    column: 'cr.created_at',
+    after: normalizedFilters.createdAfter,
+    before: normalizedFilters.createdBefore,
     paramIndexRef,
   });
-  
+
   applyDateRangeConditions({
     conditions,
     params,
-    column:        'cr.updated_at',
-    after:         normalizedFilters.updatedAfter,
-    before:        normalizedFilters.updatedBefore,
+    column: 'cr.updated_at',
+    after: normalizedFilters.updatedAfter,
+    before: normalizedFilters.updatedBefore,
     paramIndexRef,
   });
-  
+
   // ─── SKU ─────────────────────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.skuIds?.length) {
     conditions.push(`s.id = ANY($${paramIndexRef.value}::uuid[])`);
     params.push(normalizedFilters.skuIds);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.sku) {
     conditions.push(`s.sku ILIKE $${paramIndexRef.value}`);
     params.push(`%${normalizedFilters.sku}%`);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.sizeLabel) {
     conditions.push(`s.size_label ILIKE $${paramIndexRef.value}`);
     params.push(`%${normalizedFilters.sizeLabel}%`);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.marketRegion) {
     conditions.push(`s.market_region ILIKE $${paramIndexRef.value}`);
     params.push(`%${normalizedFilters.marketRegion}%`);
     paramIndexRef.value++;
   }
-  
+
   // ─── Product ─────────────────────────────────────────────────────────────────
-  
-  applyProductFieldConditions(conditions, params, paramIndexRef, normalizedFilters);
-  
+
+  applyProductFieldConditions(
+    conditions,
+    params,
+    paramIndexRef,
+    normalizedFilters
+  );
+
   // ─── Keyword (must remain last) ──────────────────────────────────────────────
-  
+
   // Same $N referenced five times — single param covers all columns.
   if (normalizedFilters.keyword) {
     conditions.push(`(
@@ -185,7 +193,7 @@ const buildComplianceRecordFilter = (filters = {}) => {
     params.push(`%${normalizedFilters.keyword}%`);
     paramIndexRef.value++;
   }
-  
+
   return {
     whereClause: conditions.join(' AND '),
     params,

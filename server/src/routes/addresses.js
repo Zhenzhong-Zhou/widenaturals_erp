@@ -13,10 +13,10 @@ const {
   createAddressController,
   getPaginatedAddressesController,
 } = require('../controllers/address-controller');
-const { authorize }                        = require('../middlewares/authorize');
-const validate                             = require('../middlewares/validate');
-const createQueryNormalizationMiddleware   = require('../middlewares/normalize-query');
-const PERMISSION_KEYS                         = require('../utils/constants/domain/permission-keys');
+const { authorize } = require('../middlewares/authorize');
+const validate = require('../middlewares/validate');
+const createQueryNormalizationMiddleware = require('../middlewares/normalize-query');
+const PERMISSION_KEYS = require('../utils/constants/domain/permission-keys');
 const {
   addressArraySchema,
   addressQuerySchema,
@@ -57,8 +57,8 @@ router.get(
   ),
   createQueryNormalizationMiddleware(
     'addressSortMap', // moduleKey — drives allowed sortBy fields via getSortMapForModule
-    [],               // arrayKeys
-    [],               // booleanKeys
+    [], // arrayKeys
+    [], // booleanKeys
     addressQuerySchema // filterKeysOrSchema — extracts filter keys from schema definition
   ),
   getPaginatedAddressesController

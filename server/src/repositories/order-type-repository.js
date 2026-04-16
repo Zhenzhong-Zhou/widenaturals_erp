@@ -16,12 +16,17 @@
 
 'use strict';
 
-const { paginateQuery, paginateQueryByOffset } = require('../utils/db/pagination/pagination-helpers');
+const {
+  paginateQuery,
+  paginateQueryByOffset,
+} = require('../utils/db/pagination/pagination-helpers');
 const { query } = require('../database/db');
 const { getFieldValuesByField } = require('../utils/db/record-utils');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { logDbQueryError } = require('../utils/db-logger');
-const { buildOrderTypeFilter } = require('../utils/sql/build-order-type-filter');
+const {
+  buildOrderTypeFilter,
+} = require('../utils/sql/build-order-type-filter');
 const { resolveSort } = require('../utils/query/sort-resolver');
 const { SORTABLE_FIELDS } = require('../utils/sort-field-mapping');
 const {
@@ -51,46 +56,50 @@ const {
  * @throws  {AppError}        Normalized database error if the query fails.
  */
 const getPaginatedOrderTypes = async ({
-                                        filters   = {},
-                                        page      = 1,
-                                        limit     = 10,
-                                        sortBy    = 'ot.name',
-                                        sortOrder = 'ASC',
-                                      }) => {
+  filters = {},
+  page = 1,
+  limit = 10,
+  sortBy = 'ot.name',
+  sortOrder = 'ASC',
+}) => {
   const context = 'order-type-repository/getPaginatedOrderTypes';
-  
+
   const { whereClause, params } = buildOrderTypeFilter(filters);
-  
+
   const sortConfig = resolveSort({
     sortBy,
     sortOrder,
-    moduleKey:   'orderTypeSortMap',
+    moduleKey: 'orderTypeSortMap',
     defaultSort: SORTABLE_FIELDS.orderTypeSortMap.defaultNaturalSort,
   });
-  
+
   const queryText = buildOrderTypePaginatedQuery(whereClause);
-  
+
   try {
     return await paginateQuery({
-      tableName:    ORDER_TYPE_TABLE,
-      joins:        ORDER_TYPE_JOINS,
+      tableName: ORDER_TYPE_TABLE,
+      joins: ORDER_TYPE_JOINS,
       whereClause,
       queryText,
       params,
       page,
       limit,
-      sortBy:       sortConfig.sortBy,
-      sortOrder:    sortConfig.sortOrder,
+      sortBy: sortConfig.sortBy,
+      sortOrder: sortConfig.sortOrder,
       whitelistSet: ORDER_TYPE_PAGINATED_SORT_WHITELIST,
     });
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch paginated order types.',
-      meta:    { filters, page, limit, sortBy, sortOrder },
-      logFn:   (err) => logDbQueryError(
-        queryText, params, err, { context, filters, page, limit }
-      ),
+      meta: { filters, page, limit, sortBy, sortOrder },
+      logFn: (err) =>
+        logDbQueryError(queryText, params, err, {
+          context,
+          filters,
+          page,
+          limit,
+        }),
     });
   }
 };
@@ -108,33 +117,41 @@ const getPaginatedOrderTypes = async ({
  * @returns {Promise<Object>} Paginated result with rows and pagination metadata.
  * @throws  {AppError}        Normalized database error if the query fails.
  */
-const getOrderTypeLookup = async ({ filters = {}, limit = 50, offset = 0 } = {}) => {
+const getOrderTypeLookup = async ({
+  filters = {},
+  limit = 50,
+  offset = 0,
+} = {}) => {
   const context = 'order-type-repository/getOrderTypeLookup';
-  
+
   const { whereClause, params } = buildOrderTypeFilter(filters);
   const queryText = buildOrderTypeLookupQuery(whereClause);
-  
+
   try {
     return await paginateQueryByOffset({
-      tableName:    ORDER_TYPE_LOOKUP_TABLE,
-      joins:        [],
+      tableName: ORDER_TYPE_LOOKUP_TABLE,
+      joins: [],
       whereClause,
       queryText,
       params,
       offset,
       limit,
-      sortBy:       'ot.name',
-      sortOrder:    'ASC',
+      sortBy: 'ot.name',
+      sortOrder: 'ASC',
       whitelistSet: ORDER_TYPE_LOOKUP_SORT_WHITELIST,
     });
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch order type lookup.',
-      meta:    { filters, limit, offset },
-      logFn:   (err) => logDbQueryError(
-        queryText, params, err, { context, filters, limit, offset }
-      ),
+      meta: { filters, limit, offset },
+      logFn: (err) =>
+        logDbQueryError(queryText, params, err, {
+          context,
+          filters,
+          limit,
+          offset,
+        }),
     });
   }
 };
@@ -178,18 +195,24 @@ const getOrderTypeIdsByCategory = async (category, client = null) => {
  */
 const getOrderTypeMetaByOrderId = async (orderId, client = null) => {
   const context = 'order-type-repository/getOrderTypeMetaByOrderId';
-  
+
   try {
-    const { rows } = await query(ORDER_TYPE_META_BY_ORDER_QUERY, [orderId], client);
+    const { rows } = await query(
+      ORDER_TYPE_META_BY_ORDER_QUERY,
+      [orderId],
+      client
+    );
     return rows[0] ?? null;
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch order type metadata.',
-      meta:    { orderId },
-      logFn:   (err) => logDbQueryError(
-        ORDER_TYPE_META_BY_ORDER_QUERY, [orderId], err, { context, orderId }
-      ),
+      meta: { orderId },
+      logFn: (err) =>
+        logDbQueryError(ORDER_TYPE_META_BY_ORDER_QUERY, [orderId], err, {
+          context,
+          orderId,
+        }),
     });
   }
 };

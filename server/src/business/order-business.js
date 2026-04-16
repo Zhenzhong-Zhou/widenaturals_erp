@@ -12,7 +12,10 @@ const {
   resolveOrderAccessContext,
 } = require('../services/permission-service');
 const AppError = require('../utils/AppError');
-const { logSystemWarn, logSystemException } = require('../utils/logging/system-logger');
+const {
+  logSystemWarn,
+  logSystemException,
+} = require('../utils/logging/system-logger');
 const { createSalesOrder } = require('./sales-order-business');
 const { PERMISSIONS } = require('../utils/constants/domain/order-constants');
 
@@ -31,16 +34,24 @@ const CONTEXT = 'order-business';
  */
 const STATUS_CODES_BY_CATEGORY = {
   sales: {
-    draft:        ['ORDER_PENDING', 'ORDER_EDITED'],
+    draft: ['ORDER_PENDING', 'ORDER_EDITED'],
     confirmation: ['ORDER_AWAITING_REVIEW', 'ORDER_CONFIRMED'],
-    processing:   ['ORDER_ALLOCATING', 'ORDER_PARTIALLY_ALLOCATED', 'ORDER_ALLOCATED'],
-    return:       ['RETURN_REQUESTED', 'RETURN_COMPLETED'],
-    completion:   ['ORDER_COMPLETED', 'ORDER_CANCELED'],
+    processing: [
+      'ORDER_ALLOCATING',
+      'ORDER_PARTIALLY_ALLOCATED',
+      'ORDER_ALLOCATED',
+    ],
+    return: ['RETURN_REQUESTED', 'RETURN_COMPLETED'],
+    completion: ['ORDER_COMPLETED', 'ORDER_CANCELED'],
   },
   allocatable: {
-    _virtual:     true,
+    _virtual: true,
     confirmation: ['ORDER_CONFIRMED'],
-    processing:   ['ORDER_ALLOCATING', 'ORDER_PARTIALLY_ALLOCATED', 'ORDER_ALLOCATED'],
+    processing: [
+      'ORDER_ALLOCATING',
+      'ORDER_PARTIALLY_ALLOCATED',
+      'ORDER_ALLOCATED',
+    ],
   },
 };
 
@@ -66,10 +77,10 @@ const ORDER_TYPE_PERMISSIONS = {
  */
 const TRANSITION_PERMISSION_MAP = {
   ORDER_AWAITING_REVIEW: PERMISSIONS.CONFIRM_AWAITING_REVIEW_SALES_ORDER,
-  ORDER_CONFIRMED:       PERMISSIONS.CONFIRM_SALES_ORDER,
-  ORDER_CANCELED:        PERMISSIONS.CANCEL_SALES_ORDER,
-  ORDER_SHIPPED:         PERMISSIONS.SHIP_SALES_ORDER,
-  ORDER_COMPLETED:       PERMISSIONS.COMPLETE_SALES_ORDER,
+  ORDER_CONFIRMED: PERMISSIONS.CONFIRM_SALES_ORDER,
+  ORDER_CANCELED: PERMISSIONS.CANCEL_SALES_ORDER,
+  ORDER_SHIPPED: PERMISSIONS.SHIP_SALES_ORDER,
+  ORDER_COMPLETED: PERMISSIONS.COMPLETE_SALES_ORDER,
 };
 
 /**
@@ -123,10 +134,10 @@ const canUserPerformActionOnOrderType = (
   action = 'updateStatus'
 ) => {
   if (resolvedContext.isRoot) return true;
-  
+
   const allowedRoles =
     ORDER_TYPE_PERMISSIONS[orderTypeCategory]?.[action] || [];
-  
+
   return allowedRoles.includes(resolvedContext.roleName);
 };
 
@@ -154,14 +165,14 @@ const verifyOrderCreationPermission = async (
   { action = 'CREATE' } = {}
 ) => {
   const context = `${CONTEXT}/verifyOrderCreationPermission`;
-  
+
   const { isRoot, accessibleCategories } = await resolveOrderAccessContext(
     user,
     { action }
   );
-  
+
   if (isRoot) return;
-  
+
   if (!accessibleCategories.includes(category)) {
     logSystemWarn('Permission denied for order creation', {
       context,
@@ -169,7 +180,7 @@ const verifyOrderCreationPermission = async (
       attemptedCategory: category,
       accessibleCategories,
     });
-    
+
     throw AppError.authorizationError(
       `You do not have permission to create ${category} orders.`
     );
@@ -186,13 +197,16 @@ const verifyOrderCreationPermission = async (
  * @throws {AppError} validationError if the category has no registered strategy.
  */
 const createOrderWithType = async (category, orderData, client) => {
-  const hasStrategy = Object.prototype.hasOwnProperty.call(orderCreationStrategies, category);
+  const hasStrategy = Object.prototype.hasOwnProperty.call(
+    orderCreationStrategies,
+    category
+  );
   const createFn = hasStrategy ? orderCreationStrategies[category] : null;
-  
+
   if (typeof createFn !== 'function') {
     throw AppError.validationError(`Unsupported order category: ${category}`);
   }
-  
+
   return createFn(orderData, client);
 };
 
@@ -217,16 +231,18 @@ const verifyOrderViewPermission = async (
   { action = 'VIEW', orderId } = {}
 ) => {
   const context = `${CONTEXT}/verifyOrderViewPermission`;
-  
-  const cat = String(category || '').trim().toLowerCase();
-  
+
+  const cat = String(category || '')
+    .trim()
+    .toLowerCase();
+
   const { isRoot, accessibleCategories } = await resolveOrderAccessContext(
     user,
     { action }
   );
-  
+
   if (isRoot) return;
-  
+
   if (!accessibleCategories.includes(cat)) {
     logSystemWarn('Permission denied for viewing orders in this category.', {
       context,
@@ -237,7 +253,7 @@ const verifyOrderViewPermission = async (
       accessibleCategories,
       action,
     });
-    
+
     throw AppError.authorizationError(
       `You do not have permission to ${action.toLowerCase()} ${cat} orders.`
     );
@@ -253,10 +269,10 @@ const verifyOrderViewPermission = async (
  */
 const evaluateOrdersViewAccessControl = async (user) => {
   const context = `${CONTEXT}/evaluateOrdersViewAccessControl`;
-  
+
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     return {
       canViewAllOrders:
         isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_ORDERS),
@@ -272,8 +288,10 @@ const evaluateOrdersViewAccessControl = async (user) => {
       context,
       userId: user?.id,
     });
-    
-    throw AppError.businessError('Unable to evaluate order view access control.');
+
+    throw AppError.businessError(
+      'Unable to evaluate order view access control.'
+    );
   }
 };
 
@@ -300,12 +318,12 @@ const applyOrderAccessFilters = (
   allowedStatusIds
 ) => {
   const modifiedFilters = { ...filters };
-  
+
   const hasStageAccess =
     userAccess?.canViewAllocationStage ||
     userAccess?.canViewFulfillmentStage ||
     userAccess?.canViewShippingStage;
-  
+
   if (userAccess?.canViewAllOrders) {
     if (!filters?.orderCategory) {
       // Pure global view — remove all access-based filters.
@@ -314,28 +332,28 @@ const applyOrderAccessFilters = (
     }
     return modifiedFilters;
   }
-  
+
   const hasOrderTypeAccess =
     Array.isArray(orderTypeIds) && orderTypeIds.length > 0;
-  
+
   if (hasOrderTypeAccess) {
     modifiedFilters.orderTypeId = orderTypeIds;
   } else {
     delete modifiedFilters.orderTypeId;
   }
-  
+
   if (hasStageAccess) {
     if (Array.isArray(allowedStatusIds) && allowedStatusIds.length > 0) {
       modifiedFilters.orderStatusIds = allowedStatusIds;
     }
   }
-  
+
   // Category access without stage access — restrict by orderTypeId only.
   if (!hasStageAccess && hasOrderTypeAccess) {
     delete modifiedFilters.orderStatusIds;
     return modifiedFilters;
   }
-  
+
   // No access at all — force empty result.
   if (!hasStageAccess && !hasOrderTypeAccess) {
     return {
@@ -343,7 +361,7 @@ const applyOrderAccessFilters = (
       orderStatusIds: ['__NO_ACCESS__'],
     };
   }
-  
+
   return modifiedFilters;
 };
 
@@ -356,10 +374,10 @@ const applyOrderAccessFilters = (
  */
 const evaluateOrderDetailsViewAccessControl = async (user) => {
   const context = `${CONTEXT}/evaluateOrderDetailsViewAccessControl`;
-  
+
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     return {
       canViewOrderMetadata:
         isRoot || permissions.includes(PERMISSIONS.VIEW_SALES_ORDER_METADATA),
@@ -367,11 +385,15 @@ const evaluateOrderDetailsViewAccessControl = async (user) => {
         isRoot || permissions.includes(PERMISSIONS.VIEW_ORDER_ITEM_METADATA),
     };
   } catch (err) {
-    logSystemException(err, 'Failed to evaluate order details view access control', {
-      context,
-      userId: user?.id,
-    });
-    
+    logSystemException(
+      err,
+      'Failed to evaluate order details view access control',
+      {
+        context,
+        userId: user?.id,
+      }
+    );
+
     throw AppError.businessError(
       'Unable to evaluate user access control for order details.'
     );
@@ -394,28 +416,33 @@ const getNextAllowedStatuses = (orderCategory) => {
     orderCategory && orderCategory !== 'all'
       ? [orderCategory]
       : Object.keys(STATUS_CODES_BY_CATEGORY);
-  
+
   const allowedStatuses = [];
-  
+
   for (const categoryKey of relevantCategories) {
     const categoryMap = STATUS_CODES_BY_CATEGORY[categoryKey];
     if (!categoryMap) continue;
-    
+
     // When a specific category is requested, skip virtual categories.
-    if (orderCategory && orderCategory !== 'all' && categoryMap._virtual === true) continue;
-    
+    if (
+      orderCategory &&
+      orderCategory !== 'all' &&
+      categoryMap._virtual === true
+    )
+      continue;
+
     // When no category is provided, only include virtual categories.
     if (!orderCategory && categoryMap._virtual !== true) continue;
-    
+
     for (const [statusCategory, codes] of Object.entries(categoryMap)) {
       if (statusCategory === '_virtual') continue;
-      
+
       allowedStatuses.push(
         ...codes.map((code) => ({ code, category: statusCategory }))
       );
     }
   }
-  
+
   return allowedStatuses;
 };
 
@@ -442,23 +469,23 @@ const validateStatusTransitionByCategory = (
 ) => {
   const sequence =
     STATUS_CODES_BY_CATEGORY[orderCategory]?.[currentCategory] || [];
-  
+
   const isSameCategory = currentCategory === nextCategory;
-  
+
   const isForwardWithinSameCategory =
     isSameCategory &&
     sequence.includes(currentCode) &&
     sequence.includes(nextCode) &&
     sequence.indexOf(nextCode) > sequence.indexOf(currentCode);
-  
+
   const allowedNextCategories = Object.keys(
     STATUS_CODES_BY_CATEGORY[orderCategory] || {}
   );
-  
+
   const isForwardToNextCategory =
     allowedNextCategories.includes(nextCategory) &&
     currentCategory !== nextCategory;
-  
+
   if (!isForwardWithinSameCategory && !isForwardToNextCategory) {
     throw AppError.validationError(
       `Invalid transition for ${orderCategory}: ${currentCode} (${currentCategory}) → ${nextCode} (${nextCategory})`
@@ -483,34 +510,42 @@ const validateStatusTransitionByCategory = (
  * @throws {AppError} businessError if cancellation of a locked order is attempted
  *   without override permission.
  */
-const canUpdateOrderStatus = async (user, category, orderWithMeta, nextStatusCode) => {
+const canUpdateOrderStatus = async (
+  user,
+  category,
+  orderWithMeta,
+  nextStatusCode
+) => {
   const resolved = await resolveUserPermissionContext(user);
   const { permissions, isRoot } = resolved;
-  
+
   if (isRoot) return true;
-  
+
   const requiredPermission = TRANSITION_PERMISSION_MAP[nextStatusCode];
-  
+
   if (!requiredPermission) {
     throw AppError.validationError(`Unknown status code: ${nextStatusCode}`);
   }
-  
+
   const hasPermission = permissions.includes(requiredPermission);
   const hasRoleAccess = canUserPerformActionOnOrderType(resolved, category);
-  
+
   // Strict mode — both RBAC and permission check must pass.
   if (!(hasPermission && hasRoleAccess)) {
     return false;
   }
-  
-  if (isFinanciallyLocked(orderWithMeta) && nextStatusCode === 'ORDER_CANCELED') {
+
+  if (
+    isFinanciallyLocked(orderWithMeta) &&
+    nextStatusCode === 'ORDER_CANCELED'
+  ) {
     if (!permissions.includes(PERMISSIONS.OVERRIDE_LOCKED_STATUS)) {
       throw AppError.businessError(
         'Cannot cancel a shipped or paid order unless override permission is granted.'
       );
     }
   }
-  
+
   return true;
 };
 
@@ -523,20 +558,24 @@ const canUpdateOrderStatus = async (user, category, orderWithMeta, nextStatusCod
  * @param {{ name: string, code: string, category: string }} options.orderStatusMetadata
  * @returns {{ enrichedOrder: object, enrichedItems: object[] }}
  */
-const enrichStatusMetadata = ({ updatedOrder, updatedItems, orderStatusMetadata }) => {
+const enrichStatusMetadata = ({
+  updatedOrder,
+  updatedItems,
+  orderStatusMetadata,
+}) => {
   const { name, code, category } = orderStatusMetadata;
-  
+
   return {
     enrichedOrder: {
       ...updatedOrder,
-      status_name:     name,
-      status_code:     code,
+      status_name: name,
+      status_code: code,
       status_category: category,
     },
     enrichedItems: updatedItems.map((item) => ({
       ...item,
-      status_name:     name,
-      status_code:     code,
+      status_name: name,
+      status_code: code,
       status_category: category,
     })),
   };

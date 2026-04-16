@@ -91,7 +91,7 @@ app.use(createGlobalRateLimiter());
 if (process.env.NODE_ENV === 'development') {
   const uploadsRouter = express.Router();
   const uploadsPath = path.join(__dirname, '..', 'public/uploads');
-  
+
   uploadsRouter.use(
     corsMiddleware,
     (_req, res, next) => {
@@ -102,7 +102,7 @@ if (process.env.NODE_ENV === 'development') {
     },
     express.static(uploadsPath)
   );
-  
+
   app.use('/uploads', uploadsRouter);
 }
 

@@ -36,18 +36,18 @@ const getAccessibleOrderCategoriesFromPermissions = (
   { action = 'VIEW' } = {}
 ) => {
   if (!Array.isArray(permissions)) return [];
-  
+
   const permSet = new Set(permissions);
   const actionLower = action.toLowerCase();
-  
+
   // Generic permission (e.g. 'view_order') grants access to all standard categories.
   const genericKey = `${actionLower}_order`;
   const accessible = permSet.has(genericKey)
     ? [...ORDER_CATEGORIES]
     : ORDER_CATEGORIES.filter((category) =>
-      permSet.has(toPermissionValue(action, category))
-    );
-  
+        permSet.has(toPermissionValue(action, category))
+      );
+
   // 'allocatable' is a virtual category — not in ORDER_CATEGORIES, appended
   // only when the user can view at least one fulfillment stage.
   if (
@@ -58,7 +58,7 @@ const getAccessibleOrderCategoriesFromPermissions = (
   ) {
     accessible.push('allocatable');
   }
-  
+
   return accessible;
 };
 

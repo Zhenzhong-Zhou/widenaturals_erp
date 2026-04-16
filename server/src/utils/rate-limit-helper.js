@@ -17,13 +17,13 @@
 
 'use strict';
 
-const rateLimit        = require('express-rate-limit');
+const rateLimit = require('express-rate-limit');
 const { ipKeyGenerator } = require('express-rate-limit');
-const { getClientIp }    = require('./request-context');
-const { logWarn }        = require('./logging/logger-helper');
-const { logSystemInfo }  = require('./logging/system-logger');
-const AppError           = require('./AppError');
-const RATE_LIMIT         = require('../utils/constants/domain/rate-limit');
+const { getClientIp } = require('./request-context');
+const { logWarn } = require('./logging/logger-helper');
+const { logSystemInfo } = require('./logging/system-logger');
+const AppError = require('./AppError');
+const RATE_LIMIT = require('../utils/constants/domain/rate-limit');
 
 const CONTEXT = 'utils/rate-limit-helper';
 
@@ -40,7 +40,9 @@ const CONTEXT = 'utils/rate-limit-helper';
  */
 const TRUSTED_IPS = new Set(
   process.env.TRUSTED_IPS
-    ? process.env.TRUSTED_IPS.split(',').map((ip) => ip.trim()).filter(Boolean)
+    ? process.env.TRUSTED_IPS.split(',')
+        .map((ip) => ip.trim())
+        .filter(Boolean)
     : []
 );
 
@@ -49,15 +51,13 @@ const TRUSTED_IPS = new Set(
 // Reading process.env inside a destructuring default runs on every call.
 // -----------------------------------------------------------------------------
 
-const DEFAULT_WINDOW_MS =
-  process.env.RATE_LIMIT_WINDOW_MS
-    ? parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10)
-    : RATE_LIMIT.DEFAULT_WINDOW_MS;
+const DEFAULT_WINDOW_MS = process.env.RATE_LIMIT_WINDOW_MS
+  ? parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10)
+  : RATE_LIMIT.DEFAULT_WINDOW_MS;
 
-const DEFAULT_MAX =
-  process.env.RATE_LIMIT_MAX
-    ? parseInt(process.env.RATE_LIMIT_MAX, 10)
-    : RATE_LIMIT.DEFAULT_MAX;
+const DEFAULT_MAX = process.env.RATE_LIMIT_MAX
+  ? parseInt(process.env.RATE_LIMIT_MAX, 10)
+  : RATE_LIMIT.DEFAULT_MAX;
 
 // -----------------------------------------------------------------------------
 // Default violation handler
@@ -84,29 +84,28 @@ const DEFAULT_MAX =
  */
 const defaultRateLimitHandler = (req, res, next, options) => {
   const retryAfter = Math.ceil(options.windowMs / 1000);
-  const clientKey  = options.keyGenerator
+  const clientKey = options.keyGenerator
     ? options.keyGenerator(req)
     : getClientIp(req);
-  
+
   // Inform the client when it may retry.
   res.set('Retry-After', String(retryAfter));
-  
+
   // Rate limiting is expected behaviour — log as warn, not error.
   logWarn('Rate limit exceeded', req, {
-    context:     CONTEXT,
+    context: CONTEXT,
     retryAfter,
     maxRequests: options.max,
     clientKey,
-    method:      req.method,
-    route:       req.originalUrl,
-    userAgent:   req.get('user-agent') ?? 'unknown',
+    method: req.method,
+    route: req.originalUrl,
+    userAgent: req.get('user-agent') ?? 'unknown',
   });
-  
+
   next(
-    AppError.rateLimitError(
-      'Too many requests. Please try again later.',
-      { details: { retryAfter } }
-    )
+    AppError.rateLimitError('Too many requests. Please try again later.', {
+      details: { retryAfter },
+    })
   );
 };
 
@@ -137,16 +136,16 @@ const defaultRateLimitHandler = (req, res, next, options) => {
  * @returns {import('express-rate-limit').RateLimitRequestHandler}
  */
 const createRateLimiter = ({
-                             windowMs    = DEFAULT_WINDOW_MS,
-                             max         = DEFAULT_MAX,
-                             headers     = true,
-                             statusCode  = 429,
-                             keyGenerator = ipKeyGenerator,
-                             skip = (req) => TRUSTED_IPS.has(getClientIp(req)),
-                             handler     = defaultRateLimitHandler,
-                             disableInDev = false,
-                             context     = 'rate-limiter',
-                           } = {}) => {
+  windowMs = DEFAULT_WINDOW_MS,
+  max = DEFAULT_MAX,
+  headers = true,
+  statusCode = 429,
+  keyGenerator = ipKeyGenerator,
+  skip = (req) => TRUSTED_IPS.has(getClientIp(req)),
+  handler = defaultRateLimitHandler,
+  disableInDev = false,
+  context = 'rate-limiter',
+} = {}) => {
   // In development with disableInDev, set max to MAX_SAFE_INTEGER rather than
   // skipping the middleware entirely — this keeps the middleware in the chain
   // (preserving headers and key generation) while effectively removing the limit.
@@ -156,15 +155,15 @@ const createRateLimiter = ({
       windowMs,
       max,
     });
-    
+
     return rateLimit({
       windowMs,
-      max:             Number.MAX_SAFE_INTEGER,
+      max: Number.MAX_SAFE_INTEGER,
       standardHeaders: headers,
-      legacyHeaders:   false,
+      legacyHeaders: false,
     });
   }
-  
+
   logSystemInfo('Rate limiter initialized', {
     context,
     windowMs,
@@ -172,12 +171,12 @@ const createRateLimiter = ({
     statusCode,
     headers,
   });
-  
+
   return rateLimit({
     windowMs,
     max,
     standardHeaders: headers,
-    legacyHeaders:   false,
+    legacyHeaders: false,
     statusCode,
     keyGenerator,
     skip,
@@ -186,5 +185,5 @@ const createRateLimiter = ({
 };
 
 module.exports = {
-  createRateLimiter
+  createRateLimiter,
 };

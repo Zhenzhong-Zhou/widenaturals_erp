@@ -38,28 +38,26 @@ const { applyAuditConditions } = require('./build-audit-filter');
  */
 const buildPricingTypeFilter = (filters = {}) => {
   const normalizedFilters = normalizeDateRangeFilters(
-    filters, 'createdAfter', 'createdBefore'
+    filters,
+    'createdAfter',
+    'createdBefore'
   );
-  
-  const conditions    = ['1=1'];
-  const params        = [];
+
+  const conditions = ['1=1'];
+  const params = [];
   const paramIndexRef = { value: 1 };
-  
-  const {
-    statusId,
-    canViewAllStatuses = false,
-    search,
-  } = normalizedFilters;
-  
+
+  const { statusId, canViewAllStatuses = false, search } = normalizedFilters;
+
   // ─── Status ────────────────────────────────────────────────────────────────
-  
+
   if (!canViewAllStatuses || (canViewAllStatuses && statusId)) {
     conditions.push(`pt.status_id = $${paramIndexRef.value++}`);
     params.push(statusId);
   }
-  
+
   // ─── Search ────────────────────────────────────────────────────────────────
-  
+
   // Same $N referenced twice — single param covers both columns.
   if (search) {
     conditions.push(`(
@@ -69,20 +67,26 @@ const buildPricingTypeFilter = (filters = {}) => {
     params.push(`%${String(search).trim()}%`);
     paramIndexRef.value++;
   }
-  
+
   // ─── Audit ─────────────────────────────────────────────────────────────────
-  
+
   applyDateRangeConditions({
     conditions,
     params,
-    column:        'pt.created_at',
-    after:         normalizedFilters.createdAfter,
-    before:        normalizedFilters.createdBefore,
+    column: 'pt.created_at',
+    after: normalizedFilters.createdAfter,
+    before: normalizedFilters.createdBefore,
     paramIndexRef,
   });
-  
-  applyAuditConditions(conditions, params, paramIndexRef, normalizedFilters, 'pt');
-  
+
+  applyAuditConditions(
+    conditions,
+    params,
+    paramIndexRef,
+    normalizedFilters,
+    'pt'
+  );
+
   return {
     whereClause: conditions.join(' AND '),
     params,

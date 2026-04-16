@@ -13,7 +13,7 @@
 const { query } = require('../database/db');
 const {
   VALIDATE_INVENTORY_STATUS_IDS_QUERY,
-  GET_INVENTORY_STATUS_BY_ID_QUERY
+  GET_INVENTORY_STATUS_BY_ID_QUERY,
 } = require('./queries/inventory-status-queries');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { logDbQueryError } = require('../utils/db-logger');
@@ -32,22 +32,25 @@ const CONTEXT = 'inventory-status-repository';
  */
 const validateInventoryStatusIds = async (statusIds, client) => {
   const context = `${CONTEXT}/validateInventoryStatusIds`;
-  
+
   const params = [statusIds];
-  
+
   try {
     const { rows } = await query(
-      VALIDATE_INVENTORY_STATUS_IDS_QUERY, params, client
+      VALIDATE_INVENTORY_STATUS_IDS_QUERY,
+      params,
+      client
     );
     return rows;
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to validate inventory status IDs.',
-      meta:    { statusCount: statusIds.length },
-      logFn:   (err) => logDbQueryError(
-        VALIDATE_INVENTORY_STATUS_IDS_QUERY, params, err, { context }
-      ),
+      meta: { statusCount: statusIds.length },
+      logFn: (err) =>
+        logDbQueryError(VALIDATE_INVENTORY_STATUS_IDS_QUERY, params, err, {
+          context,
+        }),
     });
   }
 };
@@ -63,20 +66,25 @@ const validateInventoryStatusIds = async (statusIds, client) => {
  */
 const getInventoryStatusById = async (statusId, client) => {
   const context = `${CONTEXT}/getInventoryStatusById`;
-  
+
   const params = [statusId];
-  
+
   try {
-    const { rows } = await query(GET_INVENTORY_STATUS_BY_ID_QUERY, params, client);
+    const { rows } = await query(
+      GET_INVENTORY_STATUS_BY_ID_QUERY,
+      params,
+      client
+    );
     return rows[0] || null;
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch inventory status by ID.',
-      meta:    { statusId },
-      logFn:   (err) => logDbQueryError(
-        GET_INVENTORY_STATUS_BY_ID_QUERY, params, err, { context }
-      ),
+      meta: { statusId },
+      logFn: (err) =>
+        logDbQueryError(GET_INVENTORY_STATUS_BY_ID_QUERY, params, err, {
+          context,
+        }),
     });
   }
 };

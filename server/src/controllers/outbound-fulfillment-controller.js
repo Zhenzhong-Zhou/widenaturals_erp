@@ -43,14 +43,14 @@ const {
  */
 const fulfillOutboundShipmentController = wrapAsyncHandler(async (req, res) => {
   const { orderId } = req.params;
-  const user        = req.auth.user;
-  
+  const user = req.auth.user;
+
   const result = await fulfillOutboundShipmentService(req.body, orderId, user);
-  
+
   res.status(200).json({
     success: true,
     message: `Outbound shipment created and linked to allocations for order ${orderId}.`,
-    data:    result,
+    data: result,
     traceId: req.traceId,
   });
 });
@@ -64,19 +64,25 @@ const fulfillOutboundShipmentController = wrapAsyncHandler(async (req, res) => {
  *
  * Requires: auth middleware, Joi body validation, CONFIRM_OUTBOUND_FULFILLMENT permission.
  */
-const confirmOutboundFulfillmentController = wrapAsyncHandler(async (req, res) => {
-  const { orderId } = req.params;
-  const user        = req.auth.user;
-  
-  const result = await confirmOutboundFulfillmentService(req.body, orderId, user);
-  
-  res.status(200).json({
-    success: true,
-    message: 'Outbound fulfillment confirmed successfully.',
-    data:    result,
-    traceId: req.traceId,
-  });
-});
+const confirmOutboundFulfillmentController = wrapAsyncHandler(
+  async (req, res) => {
+    const { orderId } = req.params;
+    const user = req.auth.user;
+
+    const result = await confirmOutboundFulfillmentService(
+      req.body,
+      orderId,
+      user
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Outbound fulfillment confirmed successfully.',
+      data: result,
+      traceId: req.traceId,
+    });
+  }
+);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /api/v1/outbound-fulfillments
@@ -88,25 +94,29 @@ const confirmOutboundFulfillmentController = wrapAsyncHandler(async (req, res) =
  * Reads from req.normalizedQuery — populated by createQueryNormalizationMiddleware.
  * Requires: auth middleware, query normalizer, VIEW_OUTBOUND_FULFILLMENTS permission.
  */
-const getPaginatedOutboundFulfillmentController = wrapAsyncHandler(async (req, res) => {
-  const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
-  
-  const { data, pagination } = await fetchPaginatedOutboundFulfillmentService({
-    filters,
-    page,
-    limit,
-    sortBy,
-    sortOrder,
-  });
-  
-  res.status(200).json({
-    success: true,
-    message: 'Outbound fulfillments retrieved successfully.',
-    data,
-    pagination,
-    traceId: req.traceId,
-  });
-});
+const getPaginatedOutboundFulfillmentController = wrapAsyncHandler(
+  async (req, res) => {
+    const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
+
+    const { data, pagination } = await fetchPaginatedOutboundFulfillmentService(
+      {
+        filters,
+        page,
+        limit,
+        sortBy,
+        sortOrder,
+      }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Outbound fulfillments retrieved successfully.',
+      data,
+      pagination,
+      traceId: req.traceId,
+    });
+  }
+);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /api/v1/shipments/:shipmentId
@@ -120,9 +130,9 @@ const getPaginatedOutboundFulfillmentController = wrapAsyncHandler(async (req, r
  */
 const getShipmentDetailsController = wrapAsyncHandler(async (req, res) => {
   const { shipmentId } = req.params;
-  
+
   const data = await fetchShipmentDetailsService(shipmentId);
-  
+
   res.status(200).json({
     success: true,
     message: 'Shipment details retrieved successfully.',
@@ -140,19 +150,25 @@ const getShipmentDetailsController = wrapAsyncHandler(async (req, res) => {
  *
  * Requires: auth middleware, Joi body validation, COMPLETE_MANUAL_FULFILLMENT permission.
  */
-const completeManualFulfillmentController = wrapAsyncHandler(async (req, res) => {
-  const { shipmentId } = req.params;
-  const user           = req.auth.user;
-  
-  const result = await completeManualFulfillmentService(req.body, shipmentId, user);
-  
-  res.status(200).json({
-    success: true,
-    message: 'Manual fulfillment completed successfully.',
-    data:    result,
-    traceId: req.traceId,
-  });
-});
+const completeManualFulfillmentController = wrapAsyncHandler(
+  async (req, res) => {
+    const { shipmentId } = req.params;
+    const user = req.auth.user;
+
+    const result = await completeManualFulfillmentService(
+      req.body,
+      shipmentId,
+      user
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Manual fulfillment completed successfully.',
+      data: result,
+      traceId: req.traceId,
+    });
+  }
+);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Exports

@@ -15,10 +15,12 @@
 
 'use strict';
 
-const { resolveUserPermissionContext } = require('../services/permission-service');
-const PRICING_CONSTANTS                = require('../utils/constants/domain/pricing-constants');
-const { logSystemException }           = require('../utils/logging/system-logger');
-const AppError                         = require('../utils/AppError');
+const {
+  resolveUserPermissionContext,
+} = require('../services/permission-service');
+const PRICING_CONSTANTS = require('../utils/constants/domain/pricing-constants');
+const { logSystemException } = require('../utils/logging/system-logger');
+const AppError = require('../utils/AppError');
 
 const CONTEXT = 'pricing-type-business';
 
@@ -34,18 +36,18 @@ const CONTEXT = 'pricing-type-business';
  */
 const evaluatePricingTypeVisibility = async (user) => {
   const context = `${CONTEXT}/evaluatePricingTypeVisibility`;
-  
+
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     const canViewAllTypes =
       isRoot ||
       permissions.includes(PRICING_CONSTANTS.PERMISSIONS.VIEW_ALL_TYPES);
-    
+
     const canManagePricingTypes =
       isRoot ||
       permissions.includes(PRICING_CONSTANTS.PERMISSIONS.MANAGE_PRICING_TYPES);
-    
+
     return {
       canViewAllTypes,
       canManagePricingTypes,
@@ -73,10 +75,10 @@ const evaluatePricingTypeVisibility = async (user) => {
  */
 const applyPricingTypeVisibilityRules = (filters, acl) => {
   const adjusted = { ...filters };
-  
+
   // Inject status visibility flag into filter builder.
   adjusted.canViewAllStatuses = acl.canViewAllTypes;
-  
+
   return adjusted;
 };
 

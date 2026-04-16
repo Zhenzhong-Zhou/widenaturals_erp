@@ -7,10 +7,10 @@
 
 'use strict';
 
-const express            = require('express');
-const { authorize }      = require('../middlewares/authorize');
-const validate           = require('../middlewares/validate');
-const PERMISSION_KEYS        = require('../utils/constants/domain/permission-keys');
+const express = require('express');
+const { authorize } = require('../middlewares/authorize');
+const validate = require('../middlewares/validate');
+const PERMISSION_KEYS = require('../utils/constants/domain/permission-keys');
 const { bomIdParamSchema } = require('../validators/bom-validators');
 const {
   getBomMaterialSupplyDetailsController,

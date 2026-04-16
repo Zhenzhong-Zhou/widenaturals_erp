@@ -17,9 +17,9 @@
 
 'use strict';
 
-const express                  = require('express');
-const { registerLookupRoute }  = require('./factories/lookup-route-factory');
-const LOOKUP       = require('../utils/constants/domain/lookup-constants');
+const express = require('express');
+const { registerLookupRoute } = require('./factories/lookup-route-factory');
+const LOOKUP = require('../utils/constants/domain/lookup-constants');
 const {
   batchRegistryLookupQuerySchema,
   warehouseLookupQuerySchema,
@@ -86,9 +86,9 @@ const router = express.Router();
  * @permission LOOKUP.PERMISSIONS.VIEW_BATCH_REGISTRY
  */
 registerLookupRoute(router, {
-  path:       '/batch-registry',
+  path: '/batch-registry',
   permission: [LOOKUP.PERMISSIONS.VIEW_BATCH_REGISTRY],
-  schema:     batchRegistryLookupQuerySchema,
+  schema: batchRegistryLookupQuerySchema,
   controller: getBatchRegistryLookupController,
   config: {
     filterKeysOrSchema: ['batchType', 'warehouseId', 'locationId'],
@@ -103,9 +103,9 @@ registerLookupRoute(router, {
  * @permission LOOKUP.PERMISSIONS.VIEW_WAREHOUSE
  */
 registerLookupRoute(router, {
-  path:       '/warehouses',
+  path: '/warehouses',
   permission: [LOOKUP.PERMISSIONS.VIEW_WAREHOUSE],
-  schema:     warehouseLookupQuerySchema,
+  schema: warehouseLookupQuerySchema,
   controller: getWarehouseLookupController,
   config: {
     filterKeysOrSchema: warehouseLookupQuerySchema,
@@ -122,9 +122,9 @@ registerLookupRoute(router, {
  * @permission LOOKUP.PERMISSIONS.VIEW_LOT_ADJUSTMENT_TYPE
  */
 registerLookupRoute(router, {
-  path:       '/lot-adjustment-types',
+  path: '/lot-adjustment-types',
   permission: [LOOKUP.PERMISSIONS.VIEW_LOT_ADJUSTMENT_TYPE],
-  schema:     lotAdjustmentTypeLookupSchema,
+  schema: lotAdjustmentTypeLookupSchema,
   controller: getLotAdjustmentLookupController,
   config: {
     booleanKeys: ['excludeInternal', 'restrictToQtyAdjustment'],
@@ -139,12 +139,12 @@ registerLookupRoute(router, {
  * @permission LOOKUP.PERMISSIONS.VIEW_CUSTOMER_ADDRESS
  */
 registerLookupRoute(router, {
-  path:       '/addresses/by-customer',
+  path: '/addresses/by-customer',
   permission: [LOOKUP.PERMISSIONS.VIEW_CUSTOMER_ADDRESS],
-  schema:     customerAddressLookupQuerySchema,
+  schema: customerAddressLookupQuerySchema,
   controller: getCustomerAddressLookupController,
   config: {
-    arrayKeys:  ['customerId'],
+    arrayKeys: ['customerId'],
     filterKeysOrSchema: customerAddressLookupQuerySchema,
   },
 });
@@ -157,9 +157,9 @@ registerLookupRoute(router, {
  * @permission LOOKUP.PERMISSIONS.VIEW_ORDER_TYPE
  */
 registerLookupRoute(router, {
-  path:       '/order-types',
+  path: '/order-types',
   permission: [LOOKUP.PERMISSIONS.VIEW_ORDER_TYPE],
-  schema:     orderTypeLookupQuerySchema,
+  schema: orderTypeLookupQuerySchema,
   controller: getOrderTypeLookupController,
   config: {
     filterKeysOrSchema: orderTypeLookupQuerySchema,
@@ -175,9 +175,9 @@ registerLookupRoute(router, {
  * @permission LOOKUP.PERMISSIONS.VIEW_SKU
  */
 registerLookupRoute(router, {
-  path:       '/skus',
+  path: '/skus',
   permission: [LOOKUP.PERMISSIONS.VIEW_SKU],
-  schema:     skuLookupQuerySchema,
+  schema: skuLookupQuerySchema,
   controller: getSkuLookupController,
   config: {
     optionBooleanKeys: ['includeBarcode'],
@@ -193,9 +193,9 @@ registerLookupRoute(router, {
  * @permission view_pricing
  */
 registerLookupRoute(router, {
-  path:       '/pricing-groups',
+  path: '/pricing-groups',
   permission: [LOOKUP.PERMISSIONS.VIEW_PRICING_GROUP],
-  schema:     pricingGroupLookupQuerySchema,
+  schema: pricingGroupLookupQuerySchema,
   controller: getPricingGroupLookupController,
   config: {
     filterKeysOrSchema: ['keyword', 'skuId'],
@@ -211,9 +211,9 @@ registerLookupRoute(router, {
  * @permission LOOKUP.PERMISSIONS.VIEW_PACKAGING_MATERIAL
  */
 registerLookupRoute(router, {
-  path:       '/packaging-materials',
+  path: '/packaging-materials',
   permission: [LOOKUP.PERMISSIONS.VIEW_PACKAGING_MATERIAL],
-  schema:     packagingMaterialLookupQuerySchema,
+  schema: packagingMaterialLookupQuerySchema,
   controller: getPackagingMaterialLookupController,
   config: {
     optionStringKeys: ['mode'],
@@ -228,9 +228,9 @@ registerLookupRoute(router, {
  * @permission LOOKUP.PERMISSIONS.VIEW_STATUS
  */
 registerLookupRoute(router, {
-  path:       '/statuses',
+  path: '/statuses',
   permission: [LOOKUP.PERMISSIONS.VIEW_STATUS],
-  schema:     statusLookupQuerySchema,
+  schema: statusLookupQuerySchema,
   controller: getStatusLookupController,
   config: {
     booleanKeys: ['is_active'],
@@ -246,9 +246,9 @@ registerLookupRoute(router, {
  * @permission LOOKUP.PERMISSIONS.VIEW_PRODUCT
  */
 registerLookupRoute(router, {
-  path:       '/products',
+  path: '/products',
   permission: [LOOKUP.PERMISSIONS.VIEW_PRODUCT],
-  schema:     productLookupQuerySchema,
+  schema: productLookupQuerySchema,
   controller: getProductLookupController,
   config: {
     filterKeysOrSchema: ['keyword', 'brand', 'category', 'series'],
@@ -263,9 +263,9 @@ registerLookupRoute(router, {
  * @permission LOOKUP.PERMISSIONS.VIEW_SKU_CODE_BASE
  */
 registerLookupRoute(router, {
-  path:       '/sku-code-bases',
+  path: '/sku-code-bases',
   permission: [LOOKUP.PERMISSIONS.VIEW_SKU_CODE_BASE],
-  schema:     skuCodeBaseLookupQuerySchema,
+  schema: skuCodeBaseLookupQuerySchema,
   controller: getSkuCodeBaseLookupController,
   config: {
     filterKeysOrSchema: ['keyword', 'brand_code', 'category_code'],
@@ -280,9 +280,9 @@ registerLookupRoute(router, {
  * @permission LOOKUP.PERMISSIONS.VIEW_DELIVERY_METHOD
  */
 registerLookupRoute(router, {
-  path:       '/delivery-methods',
+  path: '/delivery-methods',
   permission: [LOOKUP.PERMISSIONS.VIEW_DELIVERY_METHOD],
-  schema:     deliveryMethodLookupQuerySchema,
+  schema: deliveryMethodLookupQuerySchema,
   controller: getDeliveryMethodLookupController,
   config: {
     booleanKeys: ['isPickupLocation'],
@@ -297,13 +297,13 @@ registerLookupRoute(router, {
  * @permission LOOKUP.PERMISSIONS.VIEW_PACKAGING_MATERIAL_SUPPLIER
  */
 registerLookupRoute(router, {
-  path:       '/packaging-material-suppliers',
+  path: '/packaging-material-suppliers',
   permission: [LOOKUP.PERMISSIONS.VIEW_PACKAGING_MATERIAL_SUPPLIER],
-  schema:     packagingMaterialSupplierLookupQuerySchema,
+  schema: packagingMaterialSupplierLookupQuerySchema,
   controller: getPackagingMaterialSupplierLookupController,
   config: {
     booleanKeys: ['isPreferred'],
-    filterKeysOrSchema:  ['keyword'],
+    filterKeysOrSchema: ['keyword'],
   },
 });
 
@@ -319,9 +319,9 @@ registerLookupRoute(router, {
  * @permission LOOKUP.PERMISSIONS.VIEW_CUSTOMER
  */
 registerLookupRoute(router, {
-  path:       '/customers',
+  path: '/customers',
   permission: [LOOKUP.PERMISSIONS.VIEW_CUSTOMER],
-  schema:     customerLookupQuerySchema,
+  schema: customerLookupQuerySchema,
   controller: getCustomerLookupController,
 });
 
@@ -332,9 +332,9 @@ registerLookupRoute(router, {
  * @permission LOOKUP.PERMISSIONS.VIEW_SUPPLIER
  */
 registerLookupRoute(router, {
-  path:       '/suppliers',
+  path: '/suppliers',
   permission: [LOOKUP.PERMISSIONS.VIEW_SUPPLIER],
-  schema:     supplierLookupQuerySchema,
+  schema: supplierLookupQuerySchema,
   controller: getSupplierLookupController,
 });
 
@@ -345,9 +345,9 @@ registerLookupRoute(router, {
  * @permission LOOKUP.PERMISSIONS.VIEW_MANUFACTURER
  */
 registerLookupRoute(router, {
-  path:       '/manufacturers',
+  path: '/manufacturers',
   permission: [LOOKUP.PERMISSIONS.VIEW_MANUFACTURER],
-  schema:     manufacturerLookupQuerySchema,
+  schema: manufacturerLookupQuerySchema,
   controller: getManufacturerLookupController,
 });
 
@@ -358,9 +358,9 @@ registerLookupRoute(router, {
  * @permission LOOKUP.PERMISSIONS.VIEW_USER
  */
 registerLookupRoute(router, {
-  path:       '/users',
+  path: '/users',
   permission: [LOOKUP.PERMISSIONS.VIEW_USER],
-  schema:     userLookupQuerySchema,
+  schema: userLookupQuerySchema,
   controller: getUserLookupController,
 });
 
@@ -371,9 +371,9 @@ registerLookupRoute(router, {
  * @permission LOOKUP.PERMISSIONS.VIEW_ROLE
  */
 registerLookupRoute(router, {
-  path:       '/roles',
+  path: '/roles',
   permission: [LOOKUP.PERMISSIONS.VIEW_ROLE],
-  schema:     roleLookupQuerySchema,
+  schema: roleLookupQuerySchema,
   controller: getRoleLookupController,
 });
 
@@ -384,9 +384,9 @@ registerLookupRoute(router, {
  * @permission LOOKUP.PERMISSIONS.VIEW_LOCATION_TYPE
  */
 registerLookupRoute(router, {
-  path:       '/location-types',
+  path: '/location-types',
   permission: [LOOKUP.PERMISSIONS.VIEW_LOCATION_TYPE],
-  schema:     locationTypeLookupQuerySchema,
+  schema: locationTypeLookupQuerySchema,
   controller: getLocationTypeLookupController,
 });
 
@@ -397,9 +397,9 @@ registerLookupRoute(router, {
  * @permission LOOKUP.PERMISSIONS.VIEW_BATCH_STATUS
  */
 registerLookupRoute(router, {
-  path:       '/batch-statuses',
+  path: '/batch-statuses',
   permission: [LOOKUP.PERMISSIONS.VIEW_BATCH_STATUS],
-  schema:     batchStatusLookupQuerySchema,
+  schema: batchStatusLookupQuerySchema,
   controller: getBatchStatusLookupController,
 });
 
@@ -410,9 +410,9 @@ registerLookupRoute(router, {
  * @permission LOOKUP.PERMISSIONS.VIEW_PAYMENT_METHOD
  */
 registerLookupRoute(router, {
-  path:       '/payment-methods',
+  path: '/payment-methods',
   permission: [LOOKUP.PERMISSIONS.VIEW_PAYMENT_METHOD],
-  schema:     paymentMethodLookupQuerySchema,
+  schema: paymentMethodLookupQuerySchema,
   controller: getPaymentMethodLookupController,
 });
 
@@ -423,9 +423,9 @@ registerLookupRoute(router, {
  * @permission LOOKUP.PERMISSIONS.VIEW_DISCOUNT
  */
 registerLookupRoute(router, {
-  path:       '/discounts',
+  path: '/discounts',
   permission: [LOOKUP.PERMISSIONS.VIEW_DISCOUNT],
-  schema:     discountLookupQuerySchema,
+  schema: discountLookupQuerySchema,
   controller: getDiscountLookupController,
 });
 
@@ -436,9 +436,9 @@ registerLookupRoute(router, {
  * @permission LOOKUP.PERMISSIONS.VIEW_TAX_RATE
  */
 registerLookupRoute(router, {
-  path:       '/tax-rates',
+  path: '/tax-rates',
   permission: [LOOKUP.PERMISSIONS.VIEW_TAX_RATE],
-  schema:     taxRateLookupQuerySchema,
+  schema: taxRateLookupQuerySchema,
   controller: getTaxRateLookupController,
 });
 

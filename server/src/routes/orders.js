@@ -9,13 +9,13 @@
 
 'use strict';
 
-const express                            = require('express');
-const { authorize }                      = require('../middlewares/authorize');
-const validate                           = require('../middlewares/validate');
+const express = require('express');
+const { authorize } = require('../middlewares/authorize');
+const validate = require('../middlewares/validate');
 const createQueryNormalizationMiddleware = require('../middlewares/normalize-query');
-const PERMISSION_KEYS                        = require('../utils/constants/domain/permission-keys');
-const AppError                           = require('../utils/AppError');
-const salesOrderSchema                   = require('../validators/sales-order-validators');
+const PERMISSION_KEYS = require('../utils/constants/domain/permission-keys');
+const AppError = require('../utils/AppError');
+const salesOrderSchema = require('../validators/sales-order-validators');
 const {
   orderCategorySchema,
   orderIdentifierSchema,
@@ -55,14 +55,14 @@ router.post(
   authorize([PERMISSION_KEYS.ORDERS.CREATE]),
   (req, res, next) => {
     const category = req.params.category.toLowerCase();
-    const schema   = schemaMap[category];
-    
+    const schema = schemaMap[category];
+
     if (!schema) {
       return next(
         AppError.validationError(`Unsupported order category: ${category}`)
       );
     }
-    
+
     return validate(schema, 'body')(req, res, next);
   },
   createOrderController
@@ -82,10 +82,10 @@ router.get(
   validate(orderCategorySchema, 'params'),
   validate(orderQuerySchema, 'query'),
   createQueryNormalizationMiddleware(
-    'orderSortMap',    // moduleKey — drives allowed sortBy fields
-    [],                // arrayKeys — none for orders
-    [],                // booleanKeys — none client-controlled
-    orderQuerySchema   // filterKeysOrSchema — extracts filter keys from schema
+    'orderSortMap', // moduleKey — drives allowed sortBy fields
+    [], // arrayKeys — none for orders
+    [], // booleanKeys — none client-controlled
+    orderQuerySchema // filterKeysOrSchema — extracts filter keys from schema
   ),
   fetchPaginatedOrdersController
 );

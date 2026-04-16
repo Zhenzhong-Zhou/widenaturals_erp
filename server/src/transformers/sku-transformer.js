@@ -17,14 +17,16 @@
 
 'use strict';
 
-const { getProductDisplayName }           = require('../utils/display-name-utils');
-const { transformPageResult }             = require('../utils/transformer-utils');
-const { cleanObject }                     = require('../utils/object-utils');
+const { getProductDisplayName } = require('../utils/display-name-utils');
+const { transformPageResult } = require('../utils/transformer-utils');
+const { cleanObject } = require('../utils/object-utils');
 const { transformSkuImageGroupsForDetail } = require('./sku-image-transformer');
-const { transformPricingSkuList }         = require('./pricing-transformer');
-const { transformComplianceRecord }       = require('./compliance-record-transformer');
-const { makeStatus }                      = require('../utils/status-utils');
-const { compactAudit, makeAudit }         = require('../utils/audit-utils');
+const { transformPricingSkuList } = require('./pricing-transformer');
+const {
+  transformComplianceRecord,
+} = require('./compliance-record-transformer');
+const { makeStatus } = require('../utils/status-utils');
+const { compactAudit, makeAudit } = require('../utils/audit-utils');
 
 /**
  * Transforms a single SKU product card DB row into the card view shape.
@@ -37,32 +39,38 @@ const { compactAudit, makeAudit }         = require('../utils/audit-utils');
  */
 const transformSkuProductCardRow = (row) => {
   if (!row) return null;
-  
+
   const productStatus = row.product_status_name || null;
-  const skuStatus     = row.sku_status_name     || null;
-  
+  const skuStatus = row.sku_status_name || null;
+
   // Unified status — null if both absent, string if equal, object if divergent.
   const status =
-    !productStatus && !skuStatus   ? null
-      : productStatus === skuStatus  ? productStatus
+    !productStatus && !skuStatus
+      ? null
+      : productStatus === skuStatus
+        ? productStatus
         : { product: productStatus, sku: skuStatus };
-  
-  const compliance = row.compliance_type || row.compliance_id
-    ? { type: row.compliance_type || null, number: row.compliance_id || null }
-    : null;
-  
+
+  const compliance =
+    row.compliance_type || row.compliance_id
+      ? { type: row.compliance_type || null, number: row.compliance_id || null }
+      : null;
+
   return {
-    skuId:       row.sku_id,
-    skuCode:     row.sku_code,
-    barcode:     row.barcode,
+    skuId: row.sku_id,
+    skuCode: row.sku_code,
+    barcode: row.barcode,
     displayName: getProductDisplayName(row),
-    brand:       row.brand,
-    series:      row.series,
-    category:    row.category,
+    brand: row.brand,
+    series: row.series,
+    category: row.category,
     status,
     compliance,
-    price:  { msrp: row.msrp_price ? Number(row.msrp_price) : null },
-    image:  { url: row.primary_image_url || null, alt: row.image_alt_text || '' },
+    price: { msrp: row.msrp_price ? Number(row.msrp_price) : null },
+    image: {
+      url: row.primary_image_url || null,
+      alt: row.image_alt_text || '',
+    },
   };
 };
 
@@ -88,7 +96,7 @@ const transformPaginatedSkuProductCardResult = (paginatedResult) =>
  */
 const transformSkuListRecord = (row) => {
   if (!row) return null;
-  
+
   const displayLabel = [
     row.brand,
     row.product_name,
@@ -97,28 +105,28 @@ const transformSkuListRecord = (row) => {
     .filter(Boolean)
     .join(' ')
     .trim();
-  
+
   return cleanObject({
-    id:               row.sku_id,
-    productId:        row.product_id,
-    sku:              row.sku,
-    barcode:          row.barcode,
-    language:         row.language,
-    countryCode:      row.country_code,
-    marketRegion:     row.market_region,
-    sizeLabel:        row.size_label,
+    id: row.sku_id,
+    productId: row.product_id,
+    sku: row.sku,
+    barcode: row.barcode,
+    language: row.language,
+    countryCode: row.country_code,
+    marketRegion: row.market_region,
+    sizeLabel: row.size_label,
     displayLabel,
-    primaryImageUrl:  row.primary_image_url || null,
+    primaryImageUrl: row.primary_image_url || null,
     product: {
-      id:          row.product_id,
-      name:        row.product_name,
-      series:      row.series,
-      brand:       row.brand,
-      category:    row.category,
+      id: row.product_id,
+      name: row.product_name,
+      series: row.series,
+      brand: row.brand,
+      category: row.category,
       displayName: getProductDisplayName(row),
     },
     status: makeStatus(row),
-    audit:  compactAudit(makeAudit(row)),
+    audit: compactAudit(makeAudit(row)),
   });
 };
 
@@ -143,9 +151,9 @@ const transformPaginatedSkuListResults = (paginatedResult) =>
  */
 const transformSkuRecord = (skuRows, generatedSkus = []) => {
   if (!Array.isArray(skuRows) || skuRows.length === 0) return [];
-  
+
   return skuRows.map((row, idx) => ({
-    id:      row.id,
+    id: row.id,
     skuCode: generatedSkus[idx] ?? null,
   }));
 };
@@ -163,60 +171,60 @@ const transformSkuRecord = (skuRows, generatedSkus = []) => {
  */
 const transformSkuDetail = ({ sku, images, pricing, complianceRecords }) => {
   if (!sku) return null;
-  
+
   return {
-    id:          sku.sku_id,
-    sku:         sku.sku,
-    barcode:     sku.barcode,
+    id: sku.sku_id,
+    sku: sku.sku,
+    barcode: sku.barcode,
     description: sku.sku_description,
-    language:    sku.language,
-    sizeLabel:   sku.size_label,
+    language: sku.language,
+    sizeLabel: sku.size_label,
     countryCode: sku.country_code,
     marketRegion: sku.market_region,
-    
+
     product: {
-      id:          sku.product_id,
-      name:        sku.product_name,
-      series:      sku.product_series,
-      brand:       sku.product_brand,
-      category:    sku.product_category,
+      id: sku.product_id,
+      name: sku.product_name,
+      series: sku.product_series,
+      brand: sku.product_brand,
+      category: sku.product_category,
       displayName: getProductDisplayName({
         product_name: sku.product_name,
-        brand:        sku.brand,
-        sku:          sku.sku_code,
+        brand: sku.brand,
+        sku: sku.sku_code,
         country_code: sku.country_code,
-        size_label:   sku.size_label,
+        size_label: sku.size_label,
         display_name: sku.display_name,
       }),
     },
-    
+
     dimensions: {
       cm: {
         length: sku.length_cm,
-        width:  sku.width_cm,
+        width: sku.width_cm,
         height: sku.height_cm,
       },
       inches: {
         length: sku.length_inch,
-        width:  sku.width_inch,
+        width: sku.width_inch,
         height: sku.height_inch,
       },
       weight: {
-        g:  sku.weight_g,
+        g: sku.weight_g,
         lb: sku.weight_lb,
       },
     },
-    
+
     status: makeStatus(sku, {
-      id:   'sku_status_id',
+      id: 'sku_status_id',
       name: 'sku_status_name',
       date: 'sku_status_date',
     }),
-    
+
     audit: compactAudit(makeAudit(sku)),
-    
-    images:            transformSkuImageGroupsForDetail(images ?? []),
-    pricing:           pricing?.map(transformPricingSkuList)         ?? [],
+
+    images: transformSkuImageGroupsForDetail(images ?? []),
+    pricing: pricing?.map(transformPricingSkuList) ?? [],
     complianceRecords: complianceRecords?.map(transformComplianceRecord) ?? [],
   };
 };

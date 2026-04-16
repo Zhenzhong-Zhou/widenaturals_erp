@@ -42,13 +42,13 @@ const OUTBOUND_SHIPMENT_INSERT_COLUMNS = [
 const OUTBOUND_SHIPMENT_CONFLICT_COLUMNS = ['order_id', 'warehouse_id'];
 
 const OUTBOUND_SHIPMENT_UPDATE_STRATEGIES = {
-  status_id:              'overwrite',
-  shipped_at:             'overwrite',
+  status_id: 'overwrite',
+  shipped_at: 'overwrite',
   expected_delivery_date: 'overwrite',
-  notes:                  'merge_text',
-  shipment_details:       'overwrite',
-  updated_by:             'overwrite',
-  updated_at:             'overwrite',
+  notes: 'merge_text',
+  shipment_details: 'overwrite',
+  updated_by: 'overwrite',
+  updated_at: 'overwrite',
 };
 
 // ─── Single Record ────────────────────────────────────────────────────────────

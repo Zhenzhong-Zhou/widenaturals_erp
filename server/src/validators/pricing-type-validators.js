@@ -20,8 +20,9 @@ const {
  * @property {string} pricingTypeId - UUID of the target pricing type record.
  */
 const pricingTypeParamsSchema = Joi.object({
-  pricingTypeId: validateUUID('Pricing Type ID')
-    .description('UUID of the pricing type record'),
+  pricingTypeId: validateUUID('Pricing Type ID').description(
+    'UUID of the pricing type record'
+  ),
 });
 
 /**
@@ -38,12 +39,14 @@ const pricingTypeParamsSchema = Joi.object({
 const pricingTypeQuerySchema = paginationSchema
   .concat(createSortSchema('pricingTypeName'))
   .concat(createdDateRangeSchema)
-  .concat(Joi.object({
-    search:    Joi.string().max(100).optional(),
-    statusId:  validateOptionalUUID('Status ID'),
-    createdBy: validateOptionalUUID('Created By'),
-    updatedBy: validateOptionalUUID('Updated By'),
-  }));
+  .concat(
+    Joi.object({
+      search: Joi.string().max(100).optional(),
+      statusId: validateOptionalUUID('Status ID'),
+      createdBy: validateOptionalUUID('Created By'),
+      updatedBy: validateOptionalUUID('Updated By'),
+    })
+  );
 
 module.exports = {
   pricingTypeParamsSchema,

@@ -28,7 +28,7 @@ const validateBulkInputSize = (items, maxLimit, itemType = 'items') => {
   if (!Array.isArray(items) || items.length === 0) {
     throw AppError.validationError(`${itemType} list is empty.`);
   }
-  
+
   if (items.length > maxLimit) {
     throw AppError.validationError(
       `Cannot insert more than ${maxLimit} ${itemType} at once.`

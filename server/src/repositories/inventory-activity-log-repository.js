@@ -17,11 +17,19 @@
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { logBulkInsertError, logDbQueryError } = require('../utils/db-logger');
 const { bulkInsert } = require('../utils/db/write-utils');
-const { validateBulkInsertRows } = require('../utils/validation/bulk-insert-row-validator');
-const { INVENTORY_ACTIVITY_LOG_INSERT_COLUMNS, buildInventoryActivityLogPaginatedQuery, INVENTORY_ACTIVITY_LOG_TABLE,
-  INVENTORY_ACTIVITY_LOG_JOINS, INVENTORY_ACTIVITY_LOG_SORT_WHITELIST
+const {
+  validateBulkInsertRows,
+} = require('../utils/validation/bulk-insert-row-validator');
+const {
+  INVENTORY_ACTIVITY_LOG_INSERT_COLUMNS,
+  buildInventoryActivityLogPaginatedQuery,
+  INVENTORY_ACTIVITY_LOG_TABLE,
+  INVENTORY_ACTIVITY_LOG_JOINS,
+  INVENTORY_ACTIVITY_LOG_SORT_WHITELIST,
 } = require('./queries/inventory-activity-log-queries');
-const { buildInventoryActivityLogFilter } = require('../utils/sql/build-inventory-activity-log-filter');
+const {
+  buildInventoryActivityLogFilter,
+} = require('../utils/sql/build-inventory-activity-log-filter');
 const { resolveSort } = require('../utils/query/sort-resolver');
 const { SORTABLE_FIELDS } = require('../utils/sort-field-mapping');
 const { paginateQuery } = require('../utils/db/pagination/pagination-helpers');
@@ -38,38 +46,42 @@ const CONTEXT = 'inventory-activity-log-repository';
  * @returns {Promise<{ id: string }[]>}
  * @throws {AppError} Normalized database error if the insert fails.
  */
-const insertInventoryActivityLogBulk = async (logEntries, client, meta = {}) => {
+const insertInventoryActivityLogBulk = async (
+  logEntries,
+  client,
+  meta = {}
+) => {
   if (!Array.isArray(logEntries) || logEntries.length === 0) return [];
-  
+
   const context = `${CONTEXT}/insertInventoryActivityLogBulk`;
-  
+
   const rows = logEntries.map((entry) => [
     entry.warehouse_inventory_id,
     entry.inventory_action_type_id,
-    entry.adjustment_type_id       ?? null,
+    entry.adjustment_type_id ?? null,
     entry.previous_quantity,
     entry.quantity_change,
     entry.new_quantity,
-    entry.status_id                ?? null,
-    entry.status_effective_at      ?? null,
-    entry.reference_type           ?? null,
-    entry.reference_id             ?? null,
+    entry.status_id ?? null,
+    entry.status_effective_at ?? null,
+    entry.reference_type ?? null,
+    entry.reference_id ?? null,
     entry.performed_by,
-    entry.comments                 ?? null,
+    entry.comments ?? null,
     entry.checksum,
-    entry.metadata                 ?? null,
-    entry.created_by               ?? null,
+    entry.metadata ?? null,
+    entry.created_by ?? null,
   ]);
-  
+
   validateBulkInsertRows(rows, INVENTORY_ACTIVITY_LOG_INSERT_COLUMNS.length);
-  
+
   try {
     return await bulkInsert(
       'inventory_activity_log',
       INVENTORY_ACTIVITY_LOG_INSERT_COLUMNS,
       rows,
-      [],           // no conflict — logs are append-only
-      {},           // no update strategies
+      [], // no conflict — logs are append-only
+      {}, // no update strategies
       client,
       { meta: { context, ...meta } },
       'id'
@@ -78,14 +90,11 @@ const insertInventoryActivityLogBulk = async (logEntries, client, meta = {}) => 
     throw handleDbError(error, {
       context,
       message: 'Failed to insert inventory activity log records.',
-      meta:    { entryCount: logEntries.length },
-      logFn:   (err) => logBulkInsertError(
-        err,
-        'inventory_activity_log',
-        rows,
-        rows.length,
-        { context }
-      ),
+      meta: { entryCount: logEntries.length },
+      logFn: (err) =>
+        logBulkInsertError(err, 'inventory_activity_log', rows, rows.length, {
+          context,
+        }),
     });
   }
 };
@@ -104,46 +113,50 @@ const insertInventoryActivityLogBulk = async (logEntries, client, meta = {}) => 
  * @throws {AppError} Normalized database error if the query fails.
  */
 const getPaginatedInventoryActivityLog = async ({
-                                                  filters   = {},
-                                                  page      = 1,
-                                                  limit     = 20,
-                                                  sortBy    = 'performedAt',
-                                                  sortOrder = 'DESC',
-                                                }) => {
+  filters = {},
+  page = 1,
+  limit = 20,
+  sortBy = 'performedAt',
+  sortOrder = 'DESC',
+}) => {
   const context = `${CONTEXT}/getPaginatedInventoryActivityLog`;
-  
+
   const { whereClause, params } = buildInventoryActivityLogFilter(filters);
-  
+
   const sortConfig = resolveSort({
     sortBy,
     sortOrder,
-    moduleKey:   'inventoryActivityLogSortMap',
+    moduleKey: 'inventoryActivityLogSortMap',
     defaultSort: SORTABLE_FIELDS.inventoryActivityLogSortMap.defaultNaturalSort,
   });
-  
+
   const queryText = buildInventoryActivityLogPaginatedQuery(whereClause);
-  
+
   try {
     return await paginateQuery({
-      tableName:    INVENTORY_ACTIVITY_LOG_TABLE,
-      joins:        INVENTORY_ACTIVITY_LOG_JOINS,
+      tableName: INVENTORY_ACTIVITY_LOG_TABLE,
+      joins: INVENTORY_ACTIVITY_LOG_JOINS,
       whereClause,
       queryText,
       params,
       page,
       limit,
-      sortBy:       sortConfig.sortBy,
-      sortOrder:    sortConfig.sortOrder,
+      sortBy: sortConfig.sortBy,
+      sortOrder: sortConfig.sortOrder,
       whitelistSet: INVENTORY_ACTIVITY_LOG_SORT_WHITELIST,
     });
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch paginated inventory activity log.',
-      meta:    { filters, page, limit, sortBy, sortOrder },
-      logFn:   (err) => logDbQueryError(
-        queryText, params, err, { context, filters, page, limit }
-      ),
+      meta: { filters, page, limit, sortBy, sortOrder },
+      logFn: (err) =>
+        logDbQueryError(queryText, params, err, {
+          context,
+          filters,
+          page,
+          limit,
+        }),
     });
   }
 };

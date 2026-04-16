@@ -47,7 +47,7 @@ const {
   getWarehouseSummary,
   getWarehouseSummaryByStatus,
   getWarehouseProductSummary,
-  getWarehousePackagingSummary
+  getWarehousePackagingSummary,
 } = require('../repositories/warehouse-inventory-repository');
 const AppError = require('../utils/AppError');
 const {
@@ -55,7 +55,7 @@ const {
   transformWarehouseInventoryDetailRecord,
   transformWarehouseSummary,
   transformWarehouseProductSummary,
-  transformWarehousePackagingSummary
+  transformWarehousePackagingSummary,
 } = require('../transformers/warehouse-inventory-transformer');
 const {
   evaluateWarehouseInventoryVisibility,
@@ -72,16 +72,28 @@ const {
   buildOutboundLogEntries,
   buildStatusChangeLogEntries,
   assertAllInventoryRecordsFound,
-  resolveInventoryStatus
+  resolveInventoryStatus,
 } = require('../business/warehouse-inventory-business');
 const { withTransaction } = require('../database/db');
-const { insertInventoryActivityLogBulk } = require('../repositories/inventory-activity-log-repository');
+const {
+  insertInventoryActivityLogBulk,
+} = require('../repositories/inventory-activity-log-repository');
 const { getStatusId } = require('../config/status-cache');
-const { validateInventoryStatusIds } = require('../repositories/inventory-status-repository');
-const { getWarehouseZonesByInventoryId } = require('../repositories/warehouse-zone-repository');
-const { getWarehouseMovementsByInventoryId } = require('../repositories/warehouse-movement-repository');
-const { transformWarehouseZones } = require('../transformers/warehouse-zone-transformer');
-const { transformWarehouseMovements } = require('../transformers/warehouse-movement-transformer');
+const {
+  validateInventoryStatusIds,
+} = require('../repositories/inventory-status-repository');
+const {
+  getWarehouseZonesByInventoryId,
+} = require('../repositories/warehouse-zone-repository');
+const {
+  getWarehouseMovementsByInventoryId,
+} = require('../repositories/warehouse-movement-repository');
+const {
+  transformWarehouseZones,
+} = require('../transformers/warehouse-zone-transformer');
+const {
+  transformWarehouseMovements,
+} = require('../transformers/warehouse-movement-transformer');
 
 const CONTEXT = 'warehouse-inventory-service';
 
@@ -103,29 +115,32 @@ const CONTEXT = 'warehouse-inventory-service';
  * @throws {AppError} Passes through business/ACL AppErrors; wraps unexpected errors as serviceError.
  */
 const fetchPaginatedWarehouseInventoryService = async ({
-                                                         filters   = {},
-                                                         page      = 1,
-                                                         limit     = 20,
-                                                         sortBy    = 'inboundDate',
-                                                         sortOrder = 'DESC',
-                                                         user,
-                                                       }) => {
+  filters = {},
+  page = 1,
+  limit = 20,
+  sortBy = 'inboundDate',
+  sortOrder = 'DESC',
+  user,
+}) => {
   const context = `${CONTEXT}/fetchPaginatedWarehouseInventoryService`;
-  
+
   try {
     // 1. Resolve warehouse inventory visibility scope for this user.
     const access = await evaluateWarehouseInventoryVisibility(user);
-    
+
     // 2. Apply warehouse scope + batch-type visibility rules to filters.
     const adjustedFilters = /** @type {WarehouseInventoryFilters} */ (
       applyWarehouseInventoryVisibilityRules(filters, access)
     );
-    
+
     // 3. Short-circuit if user lacks access to the requested warehouse.
     if (adjustedFilters.forceEmptyResult) {
-      return { data: [], pagination: { page, limit, totalRecords: 0, totalPages: 0 } };
+      return {
+        data: [],
+        pagination: { page, limit, totalRecords: 0, totalPages: 0 },
+      };
     }
-    
+
     // 4. Query raw warehouse inventory rows.
     const rawResult = await getPaginatedWarehouseInventory({
       filters: adjustedFilters,
@@ -134,22 +149,25 @@ const fetchPaginatedWarehouseInventoryService = async ({
       sortBy,
       sortOrder,
     });
-    
+
     // 5. Return empty shape immediately — no records to process.
     if (!rawResult?.data?.length) {
-      return { data: [], pagination: { page, limit, totalRecords: 0, totalPages: 0 } };
+      return {
+        data: [],
+        pagination: { page, limit, totalRecords: 0, totalPages: 0 },
+      };
     }
-    
+
     // 6. Transform for UI consumption.
     return transformPaginatedWarehouseInventory(rawResult);
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
+
     throw AppError.serviceError(
       'Unable to retrieve warehouse inventory records at this time.',
       {
         context,
-        meta: { error: error.message }
+        meta: { error: error.message },
       }
     );
   }
@@ -172,77 +190,77 @@ const fetchPaginatedWarehouseInventoryService = async ({
  * @throws {AppError} Passes through business/ACL AppErrors; wraps unexpected errors as serviceError.
  */
 const createWarehouseInventoryService = async ({
-                                               warehouseId,
-                                               records,
-                                               user,
-                                             }) => {
+  warehouseId,
+  records,
+  user,
+}) => {
   const context = `${CONTEXT}/createWarehouseInventoryService`;
-  
+
   try {
     // 1. Warehouse scope check
     const assignedWarehouseIds = await assertWarehouseAccess(user);
     enforceWarehouseScope(assignedWarehouseIds, warehouseId);
-    
+
     return await withTransaction(async (client) => {
       // 2. Validate quantities
       validateInboundQuantities(records);
-      
+
       // 3. Validate batch IDs exist and not duplicated at this warehouse
       const batchIds = records.map((r) => r.batchId);
       await validateInboundBatches(batchIds, warehouseId, client);
-      
+
       // 4. Resolve inbound status
-      const statusId = await resolveInboundStatus(
-        client,
-        records[0]?.statusId
-      );
-      
+      const statusId = await resolveInboundStatus(client, records[0]?.statusId);
+
       // 5. Resolve inbound action type
       const actionTypeId = getStatusId('action_manual_stock_insert');
-      
+
       if (!actionTypeId) {
         throw AppError.businessError(
           'Inbound action type not found. Contact an administrator.'
         );
       }
-      
+
       // 6. Build and insert inventory records
       const inventoryRows = records.map((record) => ({
-        warehouse_id:       warehouseId,
-        batch_id:           record.batchId,
+        warehouse_id: warehouseId,
+        batch_id: record.batchId,
         warehouse_quantity: record.warehouseQuantity,
-        reserved_quantity:  0,
-        warehouse_fee:      record.warehouseFee ?? 0,
-        inbound_date:       record.inboundDate ?? new Date().toISOString(),
-        status_id:          statusId,
-        created_by:         user.id,
+        reserved_quantity: 0,
+        warehouse_fee: record.warehouseFee ?? 0,
+        inbound_date: record.inboundDate ?? new Date().toISOString(),
+        status_id: statusId,
+        created_by: user.id,
       }));
-      
+
       const insertedRecords = await insertWarehouseInventoryBulk(
-        inventoryRows, client
+        inventoryRows,
+        client
       );
-      
+
       // 7. Build and insert activity log entries
       const logEntries = buildInboundActivityLogEntries(
-        insertedRecords, actionTypeId, user.id
+        insertedRecords,
+        actionTypeId,
+        user.id
       );
-      
+
       await insertInventoryActivityLogBulk(logEntries, client);
-      
+
       // 8. Lean response
       return {
         count: insertedRecords.length,
-        ids:   insertedRecords.map((r) => r.id),
+        ids: insertedRecords.map((r) => r.id),
       };
     });
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
+
     throw AppError.serviceError(
       'Unable to record inbound inventory at this time.',
       {
         context,
-        meta: { error: error.message }
+        meta: { error: error.message },
       }
     );
   }
@@ -275,51 +293,58 @@ const createWarehouseInventoryService = async ({
  * @throws {AppError} Wraps unexpected errors as `serviceError`.
  */
 const adjustWarehouseInventoryQuantityService = async ({
-                                                         warehouseId,
-                                                         updates,
-                                                         user,
-                                                       }) => {
+  warehouseId,
+  updates,
+  user,
+}) => {
   const context = `${CONTEXT}/adjustWarehouseInventoryQuantityService`;
-  
+
   try {
     const assignedWarehouseIds = await assertWarehouseAccess(user);
     enforceWarehouseScope(assignedWarehouseIds, warehouseId);
-    
+
     validateQuantityAdjustments(updates);
-    
+
     return await withTransaction(async (client) => {
-      const ids             = updates.map((u) => u.id);
-      const previousRecords = await fetchWarehouseInventoryStateByIds(ids, warehouseId, client);
-      
+      const ids = updates.map((u) => u.id);
+      const previousRecords = await fetchWarehouseInventoryStateByIds(
+        ids,
+        warehouseId,
+        client
+      );
+
       assertAllInventoryRecordsFound(ids, previousRecords);
-      
-      const actionTypeId     = getStatusId('action_manual_stock_adjust');
+
+      const actionTypeId = getStatusId('action_manual_stock_adjust');
       const adjustmentTypeId = getStatusId('adjustment_manual_stock_insert');
-      const inStockStatusId  = getStatusId('inventory_in_stock');
+      const inStockStatusId = getStatusId('inventory_in_stock');
       const outOfStockStatusId = getStatusId('inventory_out_of_stock');
-      
+
       if (!actionTypeId) {
         throw AppError.businessError(
           'Adjustment action type not found. Contact an administrator.',
           { context }
         );
       }
-      
+
       // Resolve new status per row based on resulting warehouse quantity.
       const updateInputs = updates.map((u) => ({
-        id:               u.id,
+        id: u.id,
         warehouseQuantity: u.warehouseQuantity,
-        reservedQuantity:  u.reservedQuantity,
-        statusId:          resolveInventoryStatus(u.warehouseQuantity, { inStockStatusId, outOfStockStatusId }),
+        reservedQuantity: u.reservedQuantity,
+        statusId: resolveInventoryStatus(u.warehouseQuantity, {
+          inStockStatusId,
+          outOfStockStatusId,
+        }),
         warehouseId,
       }));
-      
+
       const updatedRecords = await updateWarehouseInventoryQuantityBulk(
         updateInputs,
         user.id,
         client
       );
-      
+
       const logEntries = buildQuantityAdjustmentLogEntries(
         previousRecords,
         updatedRecords,
@@ -327,17 +352,17 @@ const adjustWarehouseInventoryQuantityService = async ({
         adjustmentTypeId,
         user.id
       );
-      
+
       await insertInventoryActivityLogBulk(logEntries, client);
-      
+
       return {
-        count:      updatedRecords.length,
+        count: updatedRecords.length,
         updatedIds: updatedRecords.map((r) => r.id),
       };
     });
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
+
     throw AppError.serviceError(
       'Unable to adjust warehouse inventory quantities at this time.',
       {
@@ -365,26 +390,30 @@ const adjustWarehouseInventoryQuantityService = async ({
  * @throws {AppError} Passes through business/ACL AppErrors; wraps unexpected errors as serviceError.
  */
 const updateWarehouseInventoryStatusService = async ({
-                                                       warehouseId,
-                                                       updates,
-                                                       user,
-                                                     }) => {
+  warehouseId,
+  updates,
+  user,
+}) => {
   const context = `${CONTEXT}/updateWarehouseInventoryStatusService`;
-  
+
   try {
     const assignedWarehouseIds = await assertWarehouseAccess(user);
     enforceWarehouseScope(assignedWarehouseIds, warehouseId);
-    
+
     return await withTransaction(async (client) => {
       const ids = updates.map((u) => u.id);
-      const previousRecords = await fetchWarehouseInventoryStateByIds(ids, warehouseId, client);
-      
+      const previousRecords = await fetchWarehouseInventoryStateByIds(
+        ids,
+        warehouseId,
+        client
+      );
+
       assertAllInventoryRecordsFound(ids, previousRecords);
-      
+
       // Validate all status IDs exist
       const statusIds = [...new Set(updates.map((u) => u.statusId))];
       const validStatuses = await validateInventoryStatusIds(statusIds, client);
-      
+
       if (validStatuses.length !== statusIds.length) {
         const foundIds = new Set(validStatuses.map((r) => r.id));
         const invalidIds = statusIds.filter((id) => !foundIds.has(id));
@@ -393,33 +422,39 @@ const updateWarehouseInventoryStatusService = async ({
           { context, meta: { invalidStatusIds: invalidIds } }
         );
       }
-      
+
       const actionTypeId = getStatusId('action_manual_stock_adjust');
-      
+
       if (!actionTypeId) {
         throw AppError.businessError(
           'Status change action type not found. Contact an administrator.'
         );
       }
-      
+
       const updatedRecords = await updateWarehouseInventoryStatusBulk(
-        updates, warehouseId, user.id, client
+        updates,
+        warehouseId,
+        user.id,
+        client
       );
-      
+
       const logEntries = buildStatusChangeLogEntries(
-        previousRecords, updatedRecords, actionTypeId, user.id
+        previousRecords,
+        updatedRecords,
+        actionTypeId,
+        user.id
       );
-      
+
       await insertInventoryActivityLogBulk(logEntries, client);
-      
+
       return {
-        count:      updatedRecords.length,
+        count: updatedRecords.length,
         updatedIds: updatedRecords.map((r) => r.id),
       };
     });
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
+
     throw AppError.serviceError(
       'Unable to update warehouse inventory status at this time.',
       {
@@ -448,42 +483,45 @@ const updateWarehouseInventoryStatusService = async ({
  * @throws {AppError} Passes through business/ACL AppErrors; wraps unexpected errors as serviceError.
  */
 const updateWarehouseInventoryMetadataService = async ({
-                                                         warehouseId,
-                                                         id,
-                                                         fields,
-                                                         user,
-                                                       }) => {
+  warehouseId,
+  id,
+  fields,
+  user,
+}) => {
   const context = `${CONTEXT}/updateWarehouseInventoryMetadataService`;
-  
+
   try {
     const assignedWarehouseIds = await assertWarehouseAccess(user);
     enforceWarehouseScope(assignedWarehouseIds, warehouseId);
-    
+
     return await withTransaction(async (client) => {
-      const updated = await updateWarehouseInventoryMetadata({
-        id,
-        warehouseId,
-        inboundDate:  fields.inboundDate,
-        warehouseFee: fields.warehouseFee ?? null,
-        updatedBy:    user.id,
-      }, client);
-      
+      const updated = await updateWarehouseInventoryMetadata(
+        {
+          id,
+          warehouseId,
+          inboundDate: fields.inboundDate,
+          warehouseFee: fields.warehouseFee ?? null,
+          updatedBy: user.id,
+        },
+        client
+      );
+
       if (!updated) {
         throw AppError.notFoundError('Warehouse inventory record not found.');
       }
-      
+
       // No activity log for metadata corrections — not a quantity or status change
-      
+
       return {
-        id:          updated.id,
+        id: updated.id,
         inboundDate: updated.inbound_date,
         warehouseFee: updated.warehouse_fee,
-        updatedAt:   updated.updated_at,
+        updatedAt: updated.updated_at,
       };
     });
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
+
     throw AppError.serviceError(
       'Unable to update warehouse inventory metadata at this time.',
       {
@@ -512,50 +550,60 @@ const updateWarehouseInventoryMetadataService = async ({
  * @throws {AppError} Passes through business/ACL AppErrors; wraps unexpected errors as serviceError.
  */
 const recordWarehouseInventoryOutboundService = async ({
-                                                         warehouseId,
-                                                         updates,
-                                                         user,
-                                                       }) => {
+  warehouseId,
+  updates,
+  user,
+}) => {
   const context = `${CONTEXT}/recordWarehouseInventoryOutboundService`;
-  
+
   try {
     const assignedWarehouseIds = await assertWarehouseAccess(user);
     enforceWarehouseScope(assignedWarehouseIds, warehouseId);
-    
+
     validateOutboundRecords(updates);
-    
+
     return await withTransaction(async (client) => {
       const ids = updates.map((u) => u.id);
-      const previousRecords = await fetchWarehouseInventoryStateByIds(ids, warehouseId, client);
-      
+      const previousRecords = await fetchWarehouseInventoryStateByIds(
+        ids,
+        warehouseId,
+        client
+      );
+
       assertAllInventoryRecordsFound(ids, previousRecords);
-      
+
       const actionTypeId = getStatusId('action_fulfilled');
-      
+
       if (!actionTypeId) {
         throw AppError.businessError(
           'Outbound action type not found. Contact an administrator.'
         );
       }
-      
+
       const updatedRecords = await updateWarehouseInventoryOutboundBulk(
-        updates, warehouseId, user.id, client
+        updates,
+        warehouseId,
+        user.id,
+        client
       );
-      
+
       const logEntries = buildOutboundLogEntries(
-        previousRecords, updatedRecords, actionTypeId, user.id
+        previousRecords,
+        updatedRecords,
+        actionTypeId,
+        user.id
       );
-      
+
       await insertInventoryActivityLogBulk(logEntries, client);
-      
+
       return {
-        count:      updatedRecords.length,
+        count: updatedRecords.length,
         updatedIds: updatedRecords.map((r) => r.id),
       };
     });
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
+
     throw AppError.serviceError(
       'Unable to record warehouse inventory outbound at this time.',
       {
@@ -577,44 +625,44 @@ const recordWarehouseInventoryOutboundService = async ({
  * @throws {AppError} Passes through business/ACL AppErrors; wraps unexpected errors as serviceError.
  */
 const getWarehouseInventoryDetailService = async ({
-                                                    warehouseId,
-                                                    inventoryId,
-                                                    user,
-                                                  }) => {
+  warehouseId,
+  inventoryId,
+  user,
+}) => {
   const context = `${CONTEXT}/getWarehouseInventoryDetailService`;
-  
+
   try {
     // 1. Warehouse scope check
     const assignedWarehouseIds = await assertWarehouseAccess(user);
     enforceWarehouseScope(assignedWarehouseIds, warehouseId);
-    
+
     // 2. Fetch inventory detail
     const row = await getWarehouseInventoryDetailById(inventoryId, warehouseId);
-    
+
     if (!row) {
       throw AppError.notFoundError('Warehouse inventory record not found.');
     }
-    
+
     // 3. Fetch zones and movements in parallel
     const [zoneRows, movementRows] = await Promise.all([
       getWarehouseZonesByInventoryId(inventoryId),
       getWarehouseMovementsByInventoryId(inventoryId),
     ]);
-    
+
     // 4. Transform and compose response
     return {
       ...transformWarehouseInventoryDetailRecord(row),
-      zones:           transformWarehouseZones(zoneRows),
+      zones: transformWarehouseZones(zoneRows),
       recentMovements: transformWarehouseMovements(movementRows),
     };
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
+
     throw AppError.serviceError(
       'Unable to retrieve warehouse inventory detail at this time.',
       {
         context,
-        meta: { error: error.message }
+        meta: { error: error.message },
       }
     );
   }
@@ -632,32 +680,32 @@ const getWarehouseInventoryDetailService = async ({
  */
 const getWarehouseSummaryService = async ({ warehouseId, user }) => {
   const context = `${CONTEXT}/getWarehouseSummaryService`;
-  
+
   try {
     const assignedWarehouseIds = await assertWarehouseAccess(user);
     enforceWarehouseScope(assignedWarehouseIds, warehouseId);
-    
+
     const [summaryRow, statusRows] = await Promise.all([
       getWarehouseSummary(warehouseId),
       getWarehouseSummaryByStatus(warehouseId),
     ]);
-    
+
     if (!summaryRow) {
       throw AppError.notFoundError('Warehouse not found.');
     }
-    
+
     return transformWarehouseSummary(
       /** @type {WarehouseSummaryRow} */ (summaryRow),
       statusRows
     );
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
+
     throw AppError.serviceError(
       'Unable to retrieve warehouse summary at this time.',
       {
         context,
-        meta: { error: error.message }
+        meta: { error: error.message },
       }
     );
   }
@@ -674,33 +722,45 @@ const getWarehouseSummaryService = async ({ warehouseId, user }) => {
  * @returns {Promise<{ products: object[], packagingMaterials: object[] }>}
  * @throws {AppError} Passes through ACL AppErrors; wraps unexpected errors as serviceError.
  */
-const getWarehouseItemSummaryService = async ({ warehouseId, batchType, user }) => {
+const getWarehouseItemSummaryService = async ({
+  warehouseId,
+  batchType,
+  user,
+}) => {
   const context = `${CONTEXT}/getWarehouseItemSummaryService`;
-  
+
   try {
     const assignedWarehouseIds = await assertWarehouseAccess(user);
     enforceWarehouseScope(assignedWarehouseIds, warehouseId);
-    
-    const fetchProduct   = !batchType || batchType === 'product';
+
+    const fetchProduct = !batchType || batchType === 'product';
     const fetchPackaging = !batchType || batchType === 'packaging_material';
-    
+
     const [productRows, packagingRows] = await Promise.all([
-      fetchProduct   ? getWarehouseProductSummary(warehouseId)   : Promise.resolve([]),
-      fetchPackaging ? getWarehousePackagingSummary(warehouseId) : Promise.resolve([]),
+      fetchProduct
+        ? getWarehouseProductSummary(warehouseId)
+        : Promise.resolve([]),
+      fetchPackaging
+        ? getWarehousePackagingSummary(warehouseId)
+        : Promise.resolve([]),
     ]);
-    
+
     return {
-      products:           fetchProduct   ? transformWarehouseProductSummary(productRows)     : [],
-      packagingMaterials: fetchPackaging ? transformWarehousePackagingSummary(packagingRows) : [],
+      products: fetchProduct
+        ? transformWarehouseProductSummary(productRows)
+        : [],
+      packagingMaterials: fetchPackaging
+        ? transformWarehousePackagingSummary(packagingRows)
+        : [],
     };
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
+
     throw AppError.serviceError(
       'Unable to retrieve warehouse item summary at this time.',
       {
         context,
-        meta: { error: error.message }
+        meta: { error: error.message },
       }
     );
   }

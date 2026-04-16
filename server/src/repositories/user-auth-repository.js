@@ -51,11 +51,11 @@ const {
  */
 const insertUserAuth = async ({ userId, passwordHash }, client) => {
   const context = 'user-auth-repository/insertUserAuth';
-  const params  = [userId, passwordHash];
-  
+  const params = [userId, passwordHash];
+
   try {
     await query(INSERT_USER_AUTH_QUERY, params, client);
-    
+
     logSystemInfo('User auth inserted successfully', {
       context,
       userId,
@@ -87,33 +87,36 @@ const insertUserAuth = async ({ userId, passwordHash }, client) => {
  */
 const getAndLockUserAuthByEmail = async (email, activeStatusId, client) => {
   const context = 'user-auth-repository/getAndLockUserAuthByEmail';
-  
+
   try {
     const { rows } = await query(
       GET_AND_LOCK_USER_AUTH_BY_EMAIL_QUERY,
       [email, activeStatusId],
       client
     );
-    
+
     if (rows.length === 0) {
       throw AppError.notFoundError('User not found or inactive', {
         isExpected: true,
       });
     }
-    
+
     return rows[0];
   } catch (error) {
     if (error.isExpected) throw error;
-    
+
     logSystemException(error, 'Failed to fetch and lock user auth by email', {
       context,
       email,
     });
-    
-    throw AppError.databaseError('Failed to fetch user authentication details', {
-      isExpected: false,
-      details:    { email },
-    });
+
+    throw AppError.databaseError(
+      'Failed to fetch user authentication details',
+      {
+        isExpected: false,
+        details: { email },
+      }
+    );
   }
 };
 
@@ -136,36 +139,39 @@ const getAndLockUserAuthByEmail = async (email, activeStatusId, client) => {
  */
 const getAndLockUserAuthByUserId = async (userId, client) => {
   const context = 'user-auth-repository/getAndLockUserAuthByUserId';
-  
+
   if (!userId) throw AppError.validationError('User ID is required.');
   if (!client) throw AppError.serviceError('Transaction client is required.');
-  
+
   try {
     const { rows } = await query(
       GET_AND_LOCK_USER_AUTH_BY_USER_ID_QUERY,
       [userId],
       client
     );
-    
+
     if (rows.length === 0) {
       throw AppError.notFoundError('User authentication record not found.', {
         isExpected: true,
       });
     }
-    
+
     return rows[0];
   } catch (error) {
     if (error.isExpected) throw error;
-    
+
     logSystemException(error, 'Failed to fetch and lock user auth by user ID', {
       context,
       userId,
     });
-    
-    throw AppError.databaseError('Failed to fetch user authentication details.', {
-      isExpected: false,
-      details:    { userId },
-    });
+
+    throw AppError.databaseError(
+      'Failed to fetch user authentication details.',
+      {
+        isExpected: false,
+        details: { userId },
+      }
+    );
   }
 };
 
@@ -191,19 +197,26 @@ const incrementFailedAttempts = async (
   client
 ) => {
   const context = 'user-auth-repository/incrementFailedAttempts';
-  
+
   const newFailedAttempts = currentFailedAttempts + 1;
-  const lockoutTime       = newFailedAttempts >= 15
-    ? new Date(Date.now() + 30 * 60 * 1000)
-    : null;
-  const notes             = lockoutTime !== null
-    ? 'Account locked due to multiple failed login attempts.'
-    : null;
-  
+  const lockoutTime =
+    newFailedAttempts >= 15 ? new Date(Date.now() + 30 * 60 * 1000) : null;
+  const notes =
+    lockoutTime !== null
+      ? 'Account locked due to multiple failed login attempts.'
+      : null;
+
   try {
     await query(
       INCREMENT_FAILED_ATTEMPTS_QUERY,
-      [newTotalAttempts, newFailedAttempts, lockoutTime, lockoutTime, notes, authId],
+      [
+        newTotalAttempts,
+        newFailedAttempts,
+        lockoutTime,
+        lockoutTime,
+        notes,
+        authId,
+      ],
       client
     );
   } catch (error) {
@@ -232,9 +245,13 @@ const incrementFailedAttempts = async (
  * @returns {Promise<void>}
  * @throws  {AppError} databaseError if the update fails.
  */
-const resetFailedAttemptsAndUpdateLastLogin = async (authId, newTotalAttempts, client) => {
+const resetFailedAttemptsAndUpdateLastLogin = async (
+  authId,
+  newTotalAttempts,
+  client
+) => {
   const context = 'user-auth-repository/resetFailedAttemptsAndUpdateLastLogin';
-  
+
   try {
     await query(
       RESET_FAILED_ATTEMPTS_AND_UPDATE_LOGIN_QUERY,
@@ -242,14 +259,21 @@ const resetFailedAttemptsAndUpdateLastLogin = async (authId, newTotalAttempts, c
       client
     );
   } catch (error) {
-    logSystemException(error, 'Failed to reset failed login attempts and update last login', {
-      context,
-      authId,
-    });
-    throw AppError.databaseError('Failed to reset failed attempts or update last login.', {
-      cause: error,
-      context,
-    });
+    logSystemException(
+      error,
+      'Failed to reset failed login attempts and update last login',
+      {
+        context,
+        authId,
+      }
+    );
+    throw AppError.databaseError(
+      'Failed to reset failed attempts or update last login.',
+      {
+        cause: error,
+        context,
+      }
+    );
   }
 };
 
@@ -268,13 +292,22 @@ const resetFailedAttemptsAndUpdateLastLogin = async (authId, newTotalAttempts, c
  * @returns {Promise<{id: string}|null>} Updated row id, or null if not found.
  * @throws  Propagates raw DB error — auth service owns error handling.
  */
-const updatePasswordAndHistory = async (authId, newPasswordHash, updatedHistory, client = null) => {
+const updatePasswordAndHistory = async (
+  authId,
+  newPasswordHash,
+  updatedHistory,
+  client = null
+) => {
   const context = 'user-auth-repository/updatePasswordAndHistory';
-  const params  = [newPasswordHash, JSON.stringify(updatedHistory), authId];
-  
+  const params = [newPasswordHash, JSON.stringify(updatedHistory), authId];
+
   try {
-    const { rows } = await query(UPDATE_PASSWORD_AND_HISTORY_QUERY, params, client);
-    
+    const { rows } = await query(
+      UPDATE_PASSWORD_AND_HISTORY_QUERY,
+      params,
+      client
+    );
+
     if (!rows.length) {
       logSystemWarn('Password update affected no rows', {
         context,
@@ -282,12 +315,12 @@ const updatePasswordAndHistory = async (authId, newPasswordHash, updatedHistory,
       });
       return null;
     }
-    
+
     logSystemInfo('Password and history updated', {
       context,
       authId,
     });
-    
+
     return rows[0];
   } catch (error) {
     logSystemException(error, 'Failed to update password and history', {

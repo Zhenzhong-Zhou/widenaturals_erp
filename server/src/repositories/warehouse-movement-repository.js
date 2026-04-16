@@ -17,7 +17,9 @@
 const { query } = require('../database/db');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { logDbQueryError } = require('../utils/db-logger');
-const { WAREHOUSE_MOVEMENTS_BY_INVENTORY_ID_QUERY } = require('./queries/warehouse-movement-queries');
+const {
+  WAREHOUSE_MOVEMENTS_BY_INVENTORY_ID_QUERY,
+} = require('./queries/warehouse-movement-queries');
 
 const CONTEXT = 'warehouse-movement-repository';
 
@@ -32,18 +34,25 @@ const CONTEXT = 'warehouse-movement-repository';
 const getWarehouseMovementsByInventoryId = async (inventoryId) => {
   const context = `${CONTEXT}/getWarehouseMovementsByInventoryId`;
   const params = [inventoryId];
-  
+
   try {
-    const { rows } = await query(WAREHOUSE_MOVEMENTS_BY_INVENTORY_ID_QUERY, params);
+    const { rows } = await query(
+      WAREHOUSE_MOVEMENTS_BY_INVENTORY_ID_QUERY,
+      params
+    );
     return rows;
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch warehouse movements.',
-      meta:    { inventoryId },
-      logFn:   (err) => logDbQueryError(
-        WAREHOUSE_MOVEMENTS_BY_INVENTORY_ID_QUERY, params, err, { context }
-      ),
+      meta: { inventoryId },
+      logFn: (err) =>
+        logDbQueryError(
+          WAREHOUSE_MOVEMENTS_BY_INVENTORY_ID_QUERY,
+          params,
+          err,
+          { context }
+        ),
     });
   }
 };

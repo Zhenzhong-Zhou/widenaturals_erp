@@ -37,9 +37,9 @@ const validateStatusTransition = (
   actorId
 ) => {
   if (!nextStatus) return;
-  
+
   const allowed = transitionRules[currentStatus] ?? [];
-  
+
   if (!allowed.includes(nextStatus)) {
     // logSystemWarn used here — invalid transition attempts are security-relevant
     // audit events worth tracking independently of the validation error thrown.
@@ -50,7 +50,7 @@ const validateStatusTransition = (
       currentStatus,
       nextStatus,
     });
-    
+
     throw AppError.validationError(
       `Invalid status transition: ${currentStatus} → ${nextStatus}`
     );

@@ -38,24 +38,24 @@ const CONTEXT = 'packaging-material-batch-business';
  */
 const evaluatePackagingMaterialBatchVisibility = async (user) => {
   const context = `${CONTEXT}/evaluatePackagingMaterialBatchVisibility`;
-  
+
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     const canViewAllPackagingBatches =
       isRoot ||
       permissions.includes(
         BATCH_CONSTANTS.PERMISSIONS.VIEW_BATCH_ALL_VISIBILITY
       );
-    
+
     const canViewPackagingBatches =
       canViewAllPackagingBatches ||
       permissions.includes(BATCH_CONSTANTS.PERMISSIONS.VIEW_PACKAGING_BATCHES);
-    
+
     const canViewSupplier =
       canViewAllPackagingBatches ||
       permissions.includes(BATCH_CONSTANTS.PERMISSIONS.VIEW_BATCH_SUPPLIER);
-    
+
     return {
       canViewAllPackagingBatches,
       canViewPackagingBatches,
@@ -78,7 +78,7 @@ const evaluatePackagingMaterialBatchVisibility = async (user) => {
       'Failed to evaluate packaging material batch visibility',
       { context, userId: user?.id }
     );
-    
+
     throw AppError.businessError(
       'Unable to evaluate packaging material batch visibility.'
     );
@@ -102,7 +102,7 @@ const evaluatePackagingMaterialBatchVisibility = async (user) => {
  */
 const applyPackagingMaterialBatchVisibilityRules = (filters, acl) => {
   const adjusted = { ...filters };
-  
+
   // Full visibility override — enable all keyword capabilities.
   if (acl.canViewAllPackagingBatches) {
     adjusted.keywordCapabilities = {
@@ -113,13 +113,13 @@ const applyPackagingMaterialBatchVisibilityRules = (filters, acl) => {
     };
     return adjusted;
   }
-  
+
   // No packaging batch permission — fail closed.
   if (acl.canViewPackagingBatches !== true) {
     adjusted.forceEmptyResult = true;
     return adjusted;
   }
-  
+
   // Inject keyword search capabilities from ACL.
   // Internal name and supplier label are batch-owned — always searchable.
   adjusted.keywordCapabilities = {
@@ -128,7 +128,7 @@ const applyPackagingMaterialBatchVisibilityRules = (filters, acl) => {
     canSearchMaterialCode: acl.canSearchMaterial,
     canSearchSupplier: acl.canSearchSupplier,
   };
-  
+
   return adjusted;
 };
 
@@ -142,10 +142,10 @@ const applyPackagingMaterialBatchVisibilityRules = (filters, acl) => {
  */
 const evaluatePackagingMaterialBatchAccessControl = async (user) => {
   const context = `${CONTEXT}/evaluatePackagingMaterialBatchAccessControl`;
-  
+
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     return {
       isRoot,
       canEditBasicMetadata:
@@ -170,7 +170,7 @@ const evaluatePackagingMaterialBatchAccessControl = async (user) => {
       'Failed to evaluate packaging material batch access control',
       { context, userId: user?.id }
     );
-    
+
     throw AppError.businessError(
       'Unable to evaluate packaging material batch access control.'
     );
@@ -200,7 +200,12 @@ const getEditableFieldsForPackagingBatch = (access) =>
  * @returns {object} Filtered update payload.
  * @throws {AppError} validationError if fields are not permitted or none remain.
  */
-const filterUpdatablePackagingMaterialBatchFields = ({ batch, updates, access, editRules }) =>
+const filterUpdatablePackagingMaterialBatchFields = ({
+  batch,
+  updates,
+  access,
+  editRules,
+}) =>
   filterUpdatableBatchFields({
     batch,
     updates,

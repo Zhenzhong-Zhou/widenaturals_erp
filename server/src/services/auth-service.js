@@ -29,45 +29,48 @@
 
 'use strict';
 
-const { withTransaction }                          = require('../database/db');
-const { getStatusId }                              = require('../config/status-cache');
-const AppError                                     = require('../utils/AppError');
+const { withTransaction } = require('../database/db');
+const { getStatusId } = require('../config/status-cache');
+const AppError = require('../utils/AppError');
 const {
   getAndLockUserAuthByEmail,
   getAndLockUserAuthByUserId,
   incrementFailedAttempts,
   resetFailedAttemptsAndUpdateLastLogin,
   updatePasswordAndHistory,
-}                                                  = require('../repositories/user-auth-repository');
-const {
-  hashPassword,
-  verifyPassword,
-}                                                  = require('../utils/password-utils');
+} = require('../repositories/user-auth-repository');
+const { hashPassword, verifyPassword } = require('../utils/password-utils');
 const {
   logSystemInfo,
   logSystemWarn,
   logSystemException,
-}                                                  = require('../utils/logging/system-logger');
-const { signToken, verifyRefreshJwt }              = require('../utils/auth/jwt-utils');
-const { transformLoginResponse }                   = require('../transformers/session-transformer');
-const { insertLoginHistory }                       = require('../repositories/login-history-repository');
-const { insertTokenActivityLog }                   = require('../repositories/token-activity-log-repository');
-const { validateRefreshTokenState }                = require('../utils/auth/validate-token');
-const { validateSessionState }                     = require('../utils/auth/validate-session');
+} = require('../utils/logging/system-logger');
+const { signToken, verifyRefreshJwt } = require('../utils/auth/jwt-utils');
+const {
+  transformLoginResponse,
+} = require('../transformers/session-transformer');
+const {
+  insertLoginHistory,
+} = require('../repositories/login-history-repository');
+const {
+  insertTokenActivityLog,
+} = require('../repositories/token-activity-log-repository');
+const { validateRefreshTokenState } = require('../utils/auth/validate-token');
+const { validateSessionState } = require('../utils/auth/validate-session');
 const {
   revokeTokenById,
   insertToken,
   revokeAllTokensBySessionId,
-}                                                  = require('../repositories/token-repository');
-const { hashToken }                                = require('../utils/auth/token-hash');
-const { getTokenExpiry }                           = require('../utils/auth/token-expiry');
-const { getAuthUserById }                          = require('../repositories/user-repository');
-const { logoutSessionRowById }                     = require('../repositories/session-repository');
-const { validatePasswordStrength }                 = require('../security/password-policy');
+} = require('../repositories/token-repository');
+const { hashToken } = require('../utils/auth/token-hash');
+const { getTokenExpiry } = require('../utils/auth/token-expiry');
+const { getAuthUserById } = require('../repositories/user-repository');
+const { logoutSessionRowById } = require('../repositories/session-repository');
+const { validatePasswordStrength } = require('../security/password-policy');
 const {
   issueSessionWithTokens,
   revokeAllSessionsForUser,
-}                                                  = require('./session-service');
+} = require('./session-service');
 
 const CONTEXT = 'auth-service';
 
@@ -91,18 +94,18 @@ const PASSWORD_HISTORY_LIMIT = 5;
  */
 const logoutSession = async ({ sessionId, ipAddress, userAgent }, client) => {
   const context = `${CONTEXT}/logoutSession`;
-  
+
   // 1. Mark session as logged out (idempotent).
   const session = await logoutSessionRowById(sessionId, client);
-  
+
   if (!session) {
     // Already logged out or not found — nothing to do.
     return null;
   }
-  
+
   // 2. Revoke all active tokens linked to this session.
   const revokedTokens = await revokeAllTokensBySessionId(sessionId, client);
-  
+
   // 3. Record explicit logout event.
   await insertLoginHistory(
     {
@@ -116,7 +119,7 @@ const logoutSession = async ({ sessionId, ipAddress, userAgent }, client) => {
     },
     client
   );
-  
+
   // 4. Record token-level revocation events.
   await Promise.all(
     revokedTokens.map((token) =>
@@ -134,13 +137,13 @@ const logoutSession = async ({ sessionId, ipAddress, userAgent }, client) => {
       )
     )
   );
-  
+
   logSystemInfo('Session logged out successfully', {
     context,
     sessionId,
     revokedTokenCount: revokedTokens.length,
   });
-  
+
   return {
     sessionId,
     revokedTokenCount: revokedTokens.length,
@@ -176,23 +179,28 @@ const logoutSession = async ({ sessionId, ipAddress, userAgent }, client) => {
 const loginUserService = async (
   email,
   password,
-  { ipAddress = null, userAgent = null, deviceId = null, parsedUserAgent = null } = {}
+  {
+    ipAddress = null,
+    userAgent = null,
+    deviceId = null,
+    parsedUserAgent = null,
+  } = {}
 ) => {
   const context = `${CONTEXT}/loginUserService`;
-  
+
   let issued; // captured for post-commit audit log
   let userId; // captured for post-commit audit log
-  
+
   const response = await withTransaction(async (client) => {
     const activeStatusId = getStatusId('general_active');
-    
+
     if (!activeStatusId) {
       throw AppError.validationError('Active status ID is required.');
     }
-    
+
     // 1. Fetch and lock auth record by email.
     const auth = await getAndLockUserAuthByEmail(email, activeStatusId, client);
-    
+
     if (!auth) {
       await insertLoginHistory(
         {
@@ -206,11 +214,11 @@ const loginUserService = async (
         },
         client
       );
-      
+
       // Do not reveal whether the email exists or the account is inactive.
       throw AppError.authenticationError('Invalid email or password.');
     }
-    
+
     const {
       user_id,
       auth_id,
@@ -221,9 +229,9 @@ const loginUserService = async (
       failed_attempts,
       lockout_time,
     } = auth;
-    
+
     userId = user_id;
-    
+
     // 2. Lockout check — reject before password verification.
     if (lockout_time && lockout_time > new Date()) {
       await insertLoginHistory(
@@ -238,12 +246,12 @@ const loginUserService = async (
         },
         client
       );
-      
+
       throw AppError.accountLockedError('Account locked. Try again later.', {
         lockoutEndsAt: lockout_time,
       });
     }
-    
+
     // 3. Guard against missing password hash — data integrity issue, log internally.
     if (!password_hash) {
       // logSystemException used here — missing hash indicates a data integrity
@@ -253,18 +261,23 @@ const loginUserService = async (
         'Auth record has no password hash',
         { context, userId: user_id, authId: auth_id }
       );
-      
+
       // Do not expose internal state to the client.
       throw AppError.authenticationError('Invalid email or password.');
     }
-    
+
     // 4. Verify password and track attempts.
     const isValidPassword = await verifyPassword(password_hash, password);
     const newTotalAttempts = attempts + 1;
-    
+
     if (!isValidPassword) {
-      await incrementFailedAttempts(auth_id, newTotalAttempts, failed_attempts, client);
-      
+      await incrementFailedAttempts(
+        auth_id,
+        newTotalAttempts,
+        failed_attempts,
+        client
+      );
+
       await insertLoginHistory(
         {
           userId: user_id,
@@ -277,16 +290,20 @@ const loginUserService = async (
         },
         client
       );
-      
+
       throw AppError.authenticationError('Invalid email or password.');
     }
-    
+
     // 5. Successful login — reset failed attempts and update last login.
-    await resetFailedAttemptsAndUpdateLastLogin(auth_id, newTotalAttempts, client);
-    
+    await resetFailedAttemptsAndUpdateLastLogin(
+      auth_id,
+      newTotalAttempts,
+      client
+    );
+
     // Enforce single-session policy — revoke all existing sessions and tokens.
     await revokeAllSessionsForUser(user_id, {}, client);
-    
+
     // 6. Issue session and tokens.
     issued = await issueSessionWithTokens(
       {
@@ -299,18 +316,18 @@ const loginUserService = async (
       },
       client
     );
-    
+
     if (!issued) {
       throw AppError.generalError('Login succeeded but no tokens were issued.');
     }
-    
+
     return transformLoginResponse({
       accessToken: issued.accessToken,
       refreshToken: issued.refreshToken,
       last_login,
     });
   });
-  
+
   // Post-commit audit log — best effort, must not fail the login response.
   try {
     await insertLoginHistory(
@@ -332,7 +349,7 @@ const loginUserService = async (
       error: logError.message,
     });
   }
-  
+
   return response;
 };
 
@@ -357,43 +374,45 @@ const refreshTokenService = async (
   { ipAddress = null, userAgent = null } = {}
 ) => {
   const context = `${CONTEXT}/refreshTokenService`;
-  
+
   if (!refreshToken) {
-    throw AppError.refreshTokenError('Refresh token is required. Please log in again.');
+    throw AppError.refreshTokenError(
+      'Refresh token is required. Please log in again.'
+    );
   }
-  
+
   // Verify JWT cryptographic validity only — persistence and revocation enforced below.
   const payload = verifyRefreshJwt(refreshToken);
-  
+
   if (!payload?.id || !payload?.sessionId) {
     throw AppError.refreshTokenError('Invalid refresh token payload.');
   }
-  
+
   try {
     return await withTransaction(async (client) => {
       const user = await getAuthUserById(payload.id, client);
-      
+
       if (!user) {
         throw AppError.authenticationError('User not found.');
       }
-      
+
       if (user.status_name !== 'active') {
         throw AppError.authenticationError('User account is inactive.');
       }
-      
+
       // 1. Validate refresh token persistence state (not revoked, not expired).
       const token = await validateRefreshTokenState(refreshToken, {
         ipAddress,
         userAgent,
         client,
       });
-      
+
       // 2. Validate associated session (active, not expired).
       const session = await validateSessionState(token.session_id, client);
-      
+
       // 3. Revoke current refresh token to prevent replay on concurrent requests.
       await revokeTokenById(token.id, client);
-      
+
       await insertTokenActivityLog(
         {
           userId: payload.id,
@@ -406,14 +425,14 @@ const refreshTokenService = async (
         },
         client
       );
-      
+
       // 4. Issue new access and refresh tokens.
       const newAccessToken = signToken({
         id: payload.id,
         role: user.role_id,
         sessionId: session.id,
       });
-      
+
       const newRefreshToken = signToken(
         {
           id: payload.id,
@@ -422,10 +441,10 @@ const refreshTokenService = async (
         },
         true
       );
-      
+
       // 5. Persist new refresh token.
       const refreshTokenHash = hashToken(newRefreshToken);
-      
+
       const newTokenRow = await insertToken(
         {
           userId: payload.id,
@@ -437,7 +456,7 @@ const refreshTokenService = async (
         },
         client
       );
-      
+
       await insertTokenActivityLog(
         {
           userId: payload.id,
@@ -450,7 +469,7 @@ const refreshTokenService = async (
         },
         client
       );
-      
+
       return {
         accessToken: newAccessToken,
         refreshToken: newRefreshToken,
@@ -458,10 +477,10 @@ const refreshTokenService = async (
     });
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
+
     throw AppError.serviceError('Unable to refresh token.', {
       context,
-      meta: { error: error.message }
+      meta: { error: error.message },
     });
   }
 };
@@ -487,14 +506,14 @@ const logoutService = async (
 ) => {
   // No active session — nothing to revoke.
   if (!userId || !sessionId) return;
-  
+
   try {
     await withTransaction(async (client) => {
       await logoutSession({ sessionId, ipAddress, userAgent }, client);
     });
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
+
     throw AppError.serviceError('Unable to complete logout.', {
       meta: { error: error.message },
     });
@@ -526,51 +545,54 @@ const logoutService = async (
  */
 const changePasswordService = async (userId, currentPassword, newPassword) => {
   const context = `${CONTEXT}/changePasswordService`;
-  
+
   try {
     return await withTransaction(async (client) => {
       // 1. Fetch and lock auth record (single source of truth).
       const auth = await getAndLockUserAuthByUserId(userId, client);
-      
+
       const { auth_id: authId, password_hash, metadata } = auth;
-      
+
       // 2. Verify current password.
       const isValid = await verifyPassword(password_hash, currentPassword);
-      
+
       if (!isValid) {
         // Warn on deliberate invalid-credential attempts — notable but expected.
         logSystemWarn('Password change rejected: current password mismatch', {
           context,
           userId,
         });
-        
+
         throw AppError.authenticationError('Invalid credentials.');
       }
-      
+
       // 3. Validate new password strength.
       validatePasswordStrength(newPassword);
-      
+
       // 4. Enforce password reuse policy.
       const passwordHistory = metadata?.password_history ?? [];
-      
+
       for (const entry of passwordHistory) {
         const reused = await verifyPassword(entry.password_hash, newPassword);
-        
+
         if (reused) {
           throw AppError.validationError(
             'New password cannot match a previously used password.'
           );
         }
       }
-      
+
       // 5. Hash new password and build updated history entry.
       const newPasswordHash = await hashPassword(newPassword);
-      
+
       const updatedHistory = [
-        { password_hash: newPasswordHash, changed_at: new Date().toISOString() },
+        {
+          password_hash: newPasswordHash,
+          changed_at: new Date().toISOString(),
+        },
         ...passwordHistory,
       ].slice(0, PASSWORD_HISTORY_LIMIT);
-      
+
       // 6. Persist password and history atomically.
       const result = await updatePasswordAndHistory(
         authId,
@@ -578,17 +600,17 @@ const changePasswordService = async (userId, currentPassword, newPassword) => {
         updatedHistory,
         client
       );
-      
+
       if (!result) {
         throw AppError.notFoundError('Authentication record not found.');
       }
-      
+
       // 7. Revoke all active sessions — new password invalidates all existing tokens.
       await revokeAllSessionsForUser(userId, {}, client);
     });
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
+
     throw AppError.serviceError('Unable to complete password change.', {
       meta: { error: error.message },
     });

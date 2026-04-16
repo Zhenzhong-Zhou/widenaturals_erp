@@ -19,7 +19,7 @@ class AppError extends Error {
   meta;
   details;
   exposeDetails;
-  
+
   /**
    * Represents a structured application error.
    *
@@ -66,33 +66,32 @@ class AppError extends Error {
    */
   constructor(message, status = 500, options = {}) {
     super(message);
-    
+
     this.name = 'AppError';
-    
+
     // Ensure valid HTTP status code
     this.status = status >= 100 && status < 600 ? status : 500;
-    
+
     this.type = options.type || ERROR_TYPES.GENERAL;
     this.isExpected = options.isExpected ?? false;
     this.code = options.code || ERROR_CODES.GENERAL;
-    
+
     // O(1) validation using Set instead of Array.includes()
     this.logLevel = LOG_LEVEL_SET.has(options.logLevel)
       ? options.logLevel
       : 'error';
-    
+
     this.context = options.context || null;
-    
+
     // Lazy sanitization: only sanitize when data exists
     this.meta = options.meta || {};
-    this.details =
-      options.details !== undefined ? options.details : null;
-    
+    this.details = options.details !== undefined ? options.details : null;
+
     this.exposeDetails = options.exposeDetails ?? false;
-    
+
     Error.captureStackTrace(this, this.constructor);
   }
-  
+
   /**
    * Serializes the error into a client-safe response format.
    *
@@ -110,12 +109,13 @@ class AppError extends Error {
       type: this.type,
       code: this.code,
       isExpected: this.isExpected,
-      ...(this.details && (this.exposeDetails || process.env.NODE_ENV !== 'production')
+      ...(this.details &&
+      (this.exposeDetails || process.env.NODE_ENV !== 'production')
         ? { details: this.details }
         : {}),
     };
   }
-  
+
   /**
    * Serializes the error into a structured internal logging payload.
    *
@@ -137,13 +137,11 @@ class AppError extends Error {
       logLevel: this.logLevel,
       meta: this.meta,
       details: this.details,
-      ...(process.env.NODE_ENV !== 'production'
-        ? { stack: this.stack }
-        : {}),
+      ...(process.env.NODE_ENV !== 'production' ? { stack: this.stack } : {}),
       ...extraContext,
     };
   }
-  
+
   /**
    * Creates a new AppError by extending an existing error instance.
    *
@@ -197,7 +195,7 @@ class AppError extends Error {
       }
     );
   }
-  
+
   /**
    * Merges base error configuration with caller-provided overrides.
    *
@@ -210,13 +208,8 @@ class AppError extends Error {
    * @returns {object} Final merged options object
    */
   static buildOptions(base, options = {}) {
-    const {
-      details,
-      meta,
-      context,
-      ...overrides
-    } = options;
-    
+    const { details, meta, context, ...overrides } = options;
+
     return {
       ...base,
       context,
@@ -225,11 +218,11 @@ class AppError extends Error {
       ...overrides,
     };
   }
-  
+
   // =========================
   // Authentication & Authorization Errors
   // =========================
-  
+
   /**
    * Generic authentication failure.
    */
@@ -247,7 +240,7 @@ class AppError extends Error {
       )
     );
   }
-  
+
   /**
    * The Account is locked (e.g., due to failed login attempts).
    */
@@ -265,7 +258,7 @@ class AppError extends Error {
       )
     );
   }
-  
+
   /**
    * Authorization failure (e.g., missing permission).
    */
@@ -283,7 +276,7 @@ class AppError extends Error {
       )
     );
   }
-  
+
   /**
    * User session has expired (e.g., due to inactivity).
    */
@@ -301,7 +294,7 @@ class AppError extends Error {
       )
     );
   }
-  
+
   /**
    * Access token is expired and cannot be used.
    */
@@ -337,7 +330,7 @@ class AppError extends Error {
       )
     );
   }
-  
+
   /**
    * Refresh token has expired.
    */
@@ -355,7 +348,7 @@ class AppError extends Error {
       )
     );
   }
-  
+
   /**
    * Refresh token is missing or invalid.
    */
@@ -373,7 +366,7 @@ class AppError extends Error {
       )
     );
   }
-  
+
   /**
    * The Token has been revoked or blocklisted.
    */
@@ -391,11 +384,11 @@ class AppError extends Error {
       )
     );
   }
-  
+
   // =========================
   // Validation & Input Errors
   // =========================
-  
+
   /**
    * Input failed validation schema or logic.
    */
@@ -414,7 +407,7 @@ class AppError extends Error {
       )
     );
   }
-  
+
   /**
    * Sanitization failure (e.g., unsafe input).
    */
@@ -432,11 +425,11 @@ class AppError extends Error {
       )
     );
   }
-  
+
   // =========================
   // Security Errors
   // =========================
-  
+
   /**
    * CSRF token error or violation.
    */
@@ -455,7 +448,7 @@ class AppError extends Error {
       )
     );
   }
-  
+
   /**
    * CORS origin not allowed or misconfigured.
    */
@@ -473,7 +466,7 @@ class AppError extends Error {
       )
     );
   }
-  
+
   /**
    * Helmet security middleware failure.
    */
@@ -492,7 +485,7 @@ class AppError extends Error {
       )
     );
   }
-  
+
   /**
    * Too many requests — rate limit exceeded.
    */
@@ -511,11 +504,11 @@ class AppError extends Error {
       )
     );
   }
-  
+
   // =========================
   // Business & Application Errors
   // =========================
-  
+
   /**
    * Business rule violation (e.g., invalid status transition).
    */
@@ -534,7 +527,7 @@ class AppError extends Error {
       )
     );
   }
-  
+
   /**
    * Service layer failure.
    * Used when business logic execution fails unexpectedly.
@@ -554,7 +547,7 @@ class AppError extends Error {
       )
     );
   }
-  
+
   /**
    * External service failure.
    * Used when a dependent third-party or external system fails to respond correctly.
@@ -597,7 +590,7 @@ class AppError extends Error {
       )
     );
   }
-  
+
   /**
    * Controller misuse or request handling error.
    * Indicates improper usage of request/response lifecycle.
@@ -617,7 +610,7 @@ class AppError extends Error {
       )
     );
   }
-  
+
   /**
    * Transformer or DTO conversion failure.
    */
@@ -636,11 +629,11 @@ class AppError extends Error {
       )
     );
   }
-  
+
   // =========================
   // Infrastructure Errors
   // =========================
-  
+
   /**
    * Cryptographic or hashing failure.
    * Typically triggered by bcrypt or token hashing operations.
@@ -660,7 +653,7 @@ class AppError extends Error {
       )
     );
   }
-  
+
   /**
    * Failure in database query or connection.
    */
@@ -679,7 +672,7 @@ class AppError extends Error {
       )
     );
   }
-  
+
   /**
    * File upload failure (e.g., size limit, file type).
    */
@@ -697,7 +690,7 @@ class AppError extends Error {
       )
     );
   }
-  
+
   /**
    * File system–related error (e.g., read/write/delete failure).
    */
@@ -715,7 +708,7 @@ class AppError extends Error {
       )
     );
   }
-  
+
   /**
    * Health check or dependency failure.
    */
@@ -734,7 +727,7 @@ class AppError extends Error {
       )
     );
   }
-  
+
   /**
    * Initialization failure — used when a critical system part fails to initialize.
    * Commonly thrown during application startup, preloading, or dependency setup.
@@ -761,7 +754,7 @@ class AppError extends Error {
       )
     );
   }
-  
+
   // =========================
   // Resource Errors
   // =========================
@@ -801,7 +794,7 @@ class AppError extends Error {
       )
     );
   }
-  
+
   // =========================
   // Fallback Error
   // =========================
@@ -824,7 +817,7 @@ class AppError extends Error {
       )
     );
   }
-  
+
   /**
    * Creates a system-level error for unexpected infrastructure failures.
    *

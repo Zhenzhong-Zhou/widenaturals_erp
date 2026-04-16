@@ -48,15 +48,16 @@ const convertToBaseCurrency = (
 ) => {
   // Treat missing or zero amounts as 0 — nothing to convert
   if (!amount || amount === 0) return 0;
-  
+
   // No conversion needed if currency is unknown or already the base currency
-  if (!currency || currency === systemBaseCurrency) return roundCurrency(amount);
-  
+  if (!currency || currency === systemBaseCurrency)
+    return roundCurrency(amount);
+
   // Apply exchange rate if valid
   if (exchangeRate && exchangeRate > 0) {
     return roundCurrency(amount * exchangeRate);
   }
-  
+
   // Rate is missing or invalid — log and fall back to 1:1 rather than crashing
   const validationErr = AppError.validationError(
     `Missing or invalid exchange rate for ${currency}`,
@@ -67,15 +68,15 @@ const convertToBaseCurrency = (
       hint: 'Defaulting to 1:1 conversion rate.',
     }
   );
-  
+
   logSystemException(validationErr, 'Currency conversion fallback to 1:1', {
     context: 'convertToBaseCurrency',
     severity: 'warning',
   });
-  
+
   return roundCurrency(amount);
 };
 
 module.exports = {
-  convertToBaseCurrency
+  convertToBaseCurrency,
 };

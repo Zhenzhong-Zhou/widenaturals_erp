@@ -19,11 +19,15 @@
 
 const { query } = require('../database/db');
 const { bulkInsert, updateById } = require('../utils/db/write-utils');
-const { validateBulkInsertRows } = require('../utils/validation/bulk-insert-row-validator');
+const {
+  validateBulkInsertRows,
+} = require('../utils/validation/bulk-insert-row-validator');
 const { paginateQuery } = require('../utils/db/pagination/pagination-helpers');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { logDbQueryError, logBulkInsertError } = require('../utils/db-logger');
-const { buildPackagingMaterialBatchFilter } = require('../utils/sql/build-packaging-material-batch-filter');
+const {
+  buildPackagingMaterialBatchFilter,
+} = require('../utils/sql/build-packaging-material-batch-filter');
 const { SORTABLE_FIELDS } = require('../utils/sort-field-mapping');
 const { resolveSort } = require('../utils/query/sort-resolver');
 const {
@@ -54,46 +58,52 @@ const {
  * @throws  {AppError}        Normalized database error if the query fails.
  */
 const getPaginatedPackagingMaterialBatches = async ({
-                                                      filters   = {},
-                                                      page      = 1,
-                                                      limit     = 20,
-                                                      sortBy    = 'receivedAt',
-                                                      sortOrder = 'DESC',
-                                                    }) => {
-  const context = 'packaging-material-batch-repository/getPaginatedPackagingMaterialBatches';
-  
+  filters = {},
+  page = 1,
+  limit = 20,
+  sortBy = 'receivedAt',
+  sortOrder = 'DESC',
+}) => {
+  const context =
+    'packaging-material-batch-repository/getPaginatedPackagingMaterialBatches';
+
   const { whereClause, params } = buildPackagingMaterialBatchFilter(filters);
-  
+
   const sortConfig = resolveSort({
     sortBy,
     sortOrder,
-    moduleKey:   'packagingMaterialBatchSortMap',
-    defaultSort: SORTABLE_FIELDS.packagingMaterialBatchSortMap.defaultNaturalSort,
+    moduleKey: 'packagingMaterialBatchSortMap',
+    defaultSort:
+      SORTABLE_FIELDS.packagingMaterialBatchSortMap.defaultNaturalSort,
   });
-  
+
   const queryText = buildPmbPaginatedQuery(whereClause);
-  
+
   try {
     return await paginateQuery({
-      tableName:    PMB_TABLE,
-      joins:        PMB_JOINS,
+      tableName: PMB_TABLE,
+      joins: PMB_JOINS,
       whereClause,
       queryText,
       params,
       page,
       limit,
-      sortBy:       sortConfig.sortBy,
-      sortOrder:    sortConfig.sortOrder,
+      sortBy: sortConfig.sortBy,
+      sortOrder: sortConfig.sortOrder,
       whitelistSet: PMB_SORT_WHITELIST,
     });
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch paginated packaging material batches.',
-      meta:    { filters, page, limit, sortBy, sortOrder },
-      logFn:   (err) => logDbQueryError(
-        queryText, params, err, { context, filters, page, limit }
-      ),
+      meta: { filters, page, limit, sortBy, sortOrder },
+      logFn: (err) =>
+        logDbQueryError(queryText, params, err, {
+          context,
+          filters,
+          page,
+          limit,
+        }),
     });
   }
 };
@@ -118,33 +128,38 @@ const insertPackagingMaterialBatchesBulk = async (
   client,
   meta = {}
 ) => {
-  if (!Array.isArray(packagingMaterialBatches) || packagingMaterialBatches.length === 0) return [];
-  
-  const context = 'packaging-material-batch-repository/insertPackagingMaterialBatchesBulk';
-  
+  if (
+    !Array.isArray(packagingMaterialBatches) ||
+    packagingMaterialBatches.length === 0
+  )
+    return [];
+
+  const context =
+    'packaging-material-batch-repository/insertPackagingMaterialBatchesBulk';
+
   const rows = packagingMaterialBatches.map((batch) => [
     batch.packaging_material_supplier_id,
     batch.lot_number,
-    batch.material_snapshot_name  ?? null,
-    batch.received_label_name     ?? null,
+    batch.material_snapshot_name ?? null,
+    batch.received_label_name ?? null,
     batch.quantity,
     batch.unit,
-    batch.manufacture_date        ?? null,
-    batch.expiry_date             ?? null,
-    batch.unit_cost               ?? null,
-    batch.currency                ?? null,
-    batch.exchange_rate           ?? null,
-    batch.total_cost              ?? null,
+    batch.manufacture_date ?? null,
+    batch.expiry_date ?? null,
+    batch.unit_cost ?? null,
+    batch.currency ?? null,
+    batch.exchange_rate ?? null,
+    batch.total_cost ?? null,
     batch.status_id,
-    null,                                   // received_at — set on receipt, not creation
-    null,                                   // received_by — set on receipt, not creation
-    batch.created_by              ?? null,
-    null,                                   // updated_at — null at insert time
-    null,                                   // updated_by — null at insert time
+    null, // received_at — set on receipt, not creation
+    null, // received_by — set on receipt, not creation
+    batch.created_by ?? null,
+    null, // updated_at — null at insert time
+    null, // updated_by — null at insert time
   ]);
-  
+
   validateBulkInsertRows(rows, PMB_INSERT_COLUMNS.length);
-  
+
   try {
     return await bulkInsert(
       'packaging_material_batches',
@@ -160,14 +175,15 @@ const insertPackagingMaterialBatchesBulk = async (
     throw handleDbError(error, {
       context,
       message: 'Failed to insert packaging material batch records.',
-      meta:    { batchCount: packagingMaterialBatches.length },
-      logFn:   (err) => logBulkInsertError(
-        err,
-        'packaging_material_batches',
-        rows,
-        rows.length,
-        { context, conflictColumns: PMB_CONFLICT_COLUMNS }
-      ),
+      meta: { batchCount: packagingMaterialBatches.length },
+      logFn: (err) =>
+        logBulkInsertError(
+          err,
+          'packaging_material_batches',
+          rows,
+          rows.length,
+          { context, conflictColumns: PMB_CONFLICT_COLUMNS }
+        ),
     });
   }
 };
@@ -186,8 +202,9 @@ const insertPackagingMaterialBatchesBulk = async (
  * @throws  {AppError}             Normalized database error if the query fails.
  */
 const getPackagingMaterialBatchById = async (batchId, client) => {
-  const context = 'packaging-material-batch-repository/getPackagingMaterialBatchById';
-  
+  const context =
+    'packaging-material-batch-repository/getPackagingMaterialBatchById';
+
   try {
     const { rows } = await query(PMB_GET_BY_ID_QUERY, [batchId], client);
     return rows[0] ?? null;
@@ -195,10 +212,12 @@ const getPackagingMaterialBatchById = async (batchId, client) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch packaging material batch.',
-      meta:    { batchId },
-      logFn:   (err) => logDbQueryError(
-        PMB_GET_BY_ID_QUERY, [batchId], err, { context, batchId }
-      ),
+      meta: { batchId },
+      logFn: (err) =>
+        logDbQueryError(PMB_GET_BY_ID_QUERY, [batchId], err, {
+          context,
+          batchId,
+        }),
     });
   }
 };
@@ -240,7 +259,7 @@ const updatePackagingMaterialBatch = async (params, client) => {
     received_by,
     updatedBy,
   } = params;
-  
+
   const updates = {
     packaging_material_supplier_id,
     lot_number,
@@ -259,7 +278,7 @@ const updatePackagingMaterialBatch = async (params, client) => {
     received_at,
     received_by,
   };
-  
+
   return await updateById(
     'packaging_material_batches',
     batchId,
@@ -283,8 +302,9 @@ const updatePackagingMaterialBatch = async (params, client) => {
  * @throws  {AppError}             Normalized database error if the query fails.
  */
 const getPackagingMaterialBatchDetailsById = async (batchId) => {
-  const context = 'packaging-material-batch-repository/getPackagingMaterialBatchDetailsById';
-  
+  const context =
+    'packaging-material-batch-repository/getPackagingMaterialBatchDetailsById';
+
   try {
     const { rows } = await query(PMB_GET_DETAILS_BY_ID_QUERY, [batchId]);
     return rows[0] ?? null;
@@ -292,10 +312,12 @@ const getPackagingMaterialBatchDetailsById = async (batchId) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch packaging material batch detail.',
-      meta:    { batchId },
-      logFn:   (err) => logDbQueryError(
-        PMB_GET_DETAILS_BY_ID_QUERY, [batchId], err, { context, batchId }
-      ),
+      meta: { batchId },
+      logFn: (err) =>
+        logDbQueryError(PMB_GET_DETAILS_BY_ID_QUERY, [batchId], err, {
+          context,
+          batchId,
+        }),
     });
   }
 };

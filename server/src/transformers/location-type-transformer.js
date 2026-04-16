@@ -15,8 +15,8 @@
 'use strict';
 
 const { compactAudit, makeAudit } = require('../utils/audit-utils');
-const { cleanObject }             = require('../utils/object-utils');
-const { transformPageResult }     = require('../utils/transformer-utils');
+const { cleanObject } = require('../utils/object-utils');
+const { transformPageResult } = require('../utils/transformer-utils');
 
 /**
  * Transforms a single location type DB row into the UI-facing shape.
@@ -29,12 +29,12 @@ const { transformPageResult }     = require('../utils/transformer-utils');
  */
 const transformLocationTypeRow = (row) =>
   cleanObject({
-    id:          row.id,
-    code:        row.code,
-    name:        row.name,
+    id: row.id,
+    code: row.code,
+    name: row.name,
     description: row.description ?? null,
     status: {
-      id:   row.status_id   ?? null,
+      id: row.status_id ?? null,
       name: row.status_name ?? null,
       date: row.status_date ?? null,
     },

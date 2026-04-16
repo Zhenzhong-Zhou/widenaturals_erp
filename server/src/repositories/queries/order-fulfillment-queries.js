@@ -34,11 +34,11 @@ const ORDER_FULFILLMENT_CONFLICT_COLUMNS = ['order_item_id', 'shipment_id'];
 
 const ORDER_FULFILLMENT_UPDATE_STRATEGIES = {
   quantity_fulfilled: 'add',
-  status_id:          'overwrite',
-  updated_at:         'overwrite',
-  fulfillment_notes:  'merge_text',
-  fulfilled_by:       'coalesce',
-  updated_by:         'overwrite',
+  status_id: 'overwrite',
+  updated_at: 'overwrite',
+  fulfillment_notes: 'merge_text',
+  fulfilled_by: 'coalesce',
+  updated_by: 'overwrite',
 };
 
 // ─── Fetch ────────────────────────────────────────────────────────────────────

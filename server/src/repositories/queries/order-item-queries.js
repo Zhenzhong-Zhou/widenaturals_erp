@@ -40,9 +40,9 @@ const ORDER_ITEM_INSERT_COLUMNS = [
 
 const ORDER_ITEM_UPDATE_STRATEGIES = {
   quantity_ordered: 'add',
-  price:            'overwrite',
-  metadata:         'merge_jsonb',
-  updated_at:       'overwrite',
+  price: 'overwrite',
+  metadata: 'merge_jsonb',
+  updated_at: 'overwrite',
 };
 
 // Recalculates subtotal on conflict using the cumulative quantity after add.
@@ -54,8 +54,11 @@ const ORDER_ITEM_EXTRA_UPDATES = [
 ];
 
 // Conflict targets are separated by item type — each has its own unique constraint.
-const ORDER_ITEM_SKU_CONFLICT_COLUMNS       = ['order_id', 'sku_id'];
-const ORDER_ITEM_PACKAGING_CONFLICT_COLUMNS = ['order_id', 'packaging_material_id'];
+const ORDER_ITEM_SKU_CONFLICT_COLUMNS = ['order_id', 'sku_id'];
+const ORDER_ITEM_PACKAGING_CONFLICT_COLUMNS = [
+  'order_id',
+  'packaging_material_id',
+];
 
 // ─── Find By Order (full detail) ─────────────────────────────────────────────
 

@@ -13,15 +13,9 @@
 
 const SUPPLIER_TABLE = 'suppliers s';
 
-const SUPPLIER_SORT_WHITELIST = new Set([
-  's.name',
-  's.code',
-  's.id',
-]);
+const SUPPLIER_SORT_WHITELIST = new Set(['s.name', 's.code', 's.id']);
 
-const SUPPLIER_ADDITIONAL_SORTS = [
-  { column: 's.code', direction: 'ASC' },
-];
+const SUPPLIER_ADDITIONAL_SORTS = [{ column: 's.code', direction: 'ASC' }];
 
 /**
  * @param {string[]} joins       - Conditional join clauses from the caller.

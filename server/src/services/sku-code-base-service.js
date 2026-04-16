@@ -14,12 +14,12 @@
 
 'use strict';
 
-const { deduplicatePairs }         = require('../utils/array-utils');
+const { deduplicatePairs } = require('../utils/array-utils');
 const {
   getExistingBaseCodesBulk,
   insertBaseCodesBulk,
-}                                  = require('../repositories/sku-code-base-repository');
-const AppError                     = require('../utils/AppError');
+} = require('../repositories/sku-code-base-repository');
+const AppError = require('../utils/AppError');
 
 const CONTEXT = 'sku-service';
 
@@ -42,41 +42,46 @@ const CONTEXT = 'sku-service';
  */
 const getOrCreateBaseCodesBulk = async (pairs, client) => {
   const context = `${CONTEXT}/getOrCreateBaseCodesBulk`;
-  
+
   try {
     if (!Array.isArray(pairs) || pairs.length === 0) return new Map();
-    
-    const uniquePairs = deduplicatePairs(pairs, (p) => `${p.brandCode}-${p.categoryCode}`);
-    
+
+    const uniquePairs = deduplicatePairs(
+      pairs,
+      (p) => `${p.brandCode}-${p.categoryCode}`
+    );
+
     if (uniquePairs.length === 0) return new Map();
-    
+
     // 1. Fetch all existing base codes in one query.
     const existingMap = await getExistingBaseCodesBulk(uniquePairs, client);
-    
+
     // 2. Determine which pairs are missing.
     const missing = uniquePairs.filter(
       (p) => !existingMap.has(`${p.brandCode}-${p.categoryCode}`)
     );
-    
+
     // 3. Insert missing base codes and merge into the consolidated map.
     if (missing.length > 0) {
       const insertedMap = await insertBaseCodesBulk(
-        /** @type {Array<{ brandCode: string, categoryCode: string, statusId: string, userId: string }>} */ (missing),
+        /** @type {Array<{ brandCode: string, categoryCode: string, statusId: string, userId: string }>} */ (
+          missing
+        ),
         client
       );
-      
+
       for (const [key, value] of insertedMap.entries()) {
         existingMap.set(key, value);
       }
     }
-    
+
     return existingMap;
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
+
     throw AppError.serviceError('Unable to fetch or create base codes.', {
       context,
-      meta: { error: error.message }
+      meta: { error: error.message },
     });
   }
 };

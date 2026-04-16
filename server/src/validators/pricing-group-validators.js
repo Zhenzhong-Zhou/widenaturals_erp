@@ -25,8 +25,9 @@ const {
  * @property {string} pricingGroupId - UUID of the target pricing group record.
  */
 const pricingGroupParamsSchema = Joi.object({
-  pricingGroupId: validateUUID('Pricing Group ID')
-    .description('UUID of the pricing group record'),
+  pricingGroupId: validateUUID('Pricing Group ID').description(
+    'UUID of the pricing group record'
+  ),
 });
 
 // ─── Group List ───────────────────────────────────────────────────────────────
@@ -56,22 +57,24 @@ const pricingGroupQuerySchema = paginationSchema
   .concat(createSortSchema('pricingTypeName'))
   .concat(createdDateRangeSchema)
   .concat(updatedDateRangeSchema)
-  .concat(Joi.object({
-    pricingTypeId:  validateOptionalUUID('Pricing Type ID'),
-    statusId:       validateOptionalUUID('Status ID'),
-    countryCode:    Joi.string().max(10).optional(),
-    priceMin:       Joi.number().precision(2).min(0).optional(),
-    priceMax:       Joi.number().precision(2).min(0).optional(),
-    validFrom:      optionalIsoDate('Valid From'),
-    validTo:        optionalIsoDate('Valid To'),
-    validOn:        optionalIsoDate('Valid On'),
-    skuId:          validateOptionalUUID('SKU ID'),
-    productId:      validateOptionalUUID('Product ID'),
-    keyword:        validateKeyword('Keyword'),
-    currentlyValid: createBooleanFlag('currentlyValid'),
-    createdBy:      validateOptionalUUID('Created By'),
-    updatedBy:      validateOptionalUUID('Updated By'),
-  }));
+  .concat(
+    Joi.object({
+      pricingTypeId: validateOptionalUUID('Pricing Type ID'),
+      statusId: validateOptionalUUID('Status ID'),
+      countryCode: Joi.string().max(10).optional(),
+      priceMin: Joi.number().precision(2).min(0).optional(),
+      priceMax: Joi.number().precision(2).min(0).optional(),
+      validFrom: optionalIsoDate('Valid From'),
+      validTo: optionalIsoDate('Valid To'),
+      validOn: optionalIsoDate('Valid On'),
+      skuId: validateOptionalUUID('SKU ID'),
+      productId: validateOptionalUUID('Product ID'),
+      keyword: validateKeyword('Keyword'),
+      currentlyValid: createBooleanFlag('currentlyValid'),
+      createdBy: validateOptionalUUID('Created By'),
+      updatedBy: validateOptionalUUID('Updated By'),
+    })
+  );
 
 module.exports = {
   pricingGroupParamsSchema,

@@ -17,14 +17,12 @@
 
 const {
   getBomMaterialSupplyDetailsById,
-}                                    = require('../repositories/bom-item-repository');
+} = require('../repositories/bom-item-repository');
 const {
   transformBomMaterialSupplyDetails,
-}                                    = require('../transformers/bom-item-transformer');
-const {
-  calculateBomMaterialCosts,
-}                                    = require('../business/bom-item-business');
-const AppError                       = require('../utils/AppError');
+} = require('../transformers/bom-item-transformer');
+const { calculateBomMaterialCosts } = require('../business/bom-item-business');
+const AppError = require('../utils/AppError');
 
 /**
  * Fetches raw BOM material supply rows, transforms them into a structured
@@ -41,23 +39,26 @@ const fetchBomMaterialSupplyDetailsService = async (bomId) => {
   try {
     // 1. Fetch raw rows from repository.
     const rows = await getBomMaterialSupplyDetailsById(bomId);
-    
+
     // 2. Transform flat rows into structured nested format.
     const structuredResult = transformBomMaterialSupplyDetails(rows);
-    
+
     // 3. Attach aggregated cost summary.
     structuredResult.summary = calculateBomMaterialCosts(
       bomId,
       structuredResult
     );
-    
+
     return structuredResult;
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
-    throw AppError.serviceError('Unable to fetch BOM material supply details.', {
-      meta: { error: error.message },
-    });
+
+    throw AppError.serviceError(
+      'Unable to fetch BOM material supply details.',
+      {
+        meta: { error: error.message },
+      }
+    );
   }
 };
 

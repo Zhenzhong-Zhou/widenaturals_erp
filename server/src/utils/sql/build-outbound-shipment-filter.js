@@ -37,81 +37,86 @@ const {
 const buildOutboundShipmentFilter = (filters = {}) => {
   const normalizedFilters = normalizeDateRangeFilters(
     normalizeDateRangeFilters(filters, 'createdAfter', 'createdBefore'),
-    'shippedAfter', 'shippedBefore'
+    'shippedAfter',
+    'shippedBefore'
   );
-  
-  const conditions    = ['1=1'];
-  const params        = [];
+
+  const conditions = ['1=1'];
+  const params = [];
   const paramIndexRef = { value: 1 };
-  
+
   // ─── Shipment ────────────────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.statusIds?.length) {
     conditions.push(`os.status_id = ANY($${paramIndexRef.value}::uuid[])`);
     params.push(normalizedFilters.statusIds);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.warehouseIds?.length) {
     conditions.push(`os.warehouse_id = ANY($${paramIndexRef.value}::uuid[])`);
     params.push(normalizedFilters.warehouseIds);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.deliveryMethodIds?.length) {
-    conditions.push(`os.delivery_method_id = ANY($${paramIndexRef.value}::uuid[])`);
+    conditions.push(
+      `os.delivery_method_id = ANY($${paramIndexRef.value}::uuid[])`
+    );
     params.push(normalizedFilters.deliveryMethodIds);
     paramIndexRef.value++;
   }
-  
+
   // ─── Audit ──────────────────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.createdBy) {
     conditions.push(`os.created_by = $${paramIndexRef.value}`);
     params.push(normalizedFilters.createdBy);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.updatedBy) {
     conditions.push(`os.updated_by = $${paramIndexRef.value}`);
     params.push(normalizedFilters.updatedBy);
     paramIndexRef.value++;
   }
-  
+
   // ─── Date Range ─────────────────────────────────────────────────────────────
-  
+
   applyDateRangeConditions({
-    conditions, params,
-    column:        'os.created_at',
-    after:         normalizedFilters.createdAfter,
-    before:        normalizedFilters.createdBefore,
+    conditions,
+    params,
+    column: 'os.created_at',
+    after: normalizedFilters.createdAfter,
+    before: normalizedFilters.createdBefore,
     paramIndexRef,
   });
-  
+
   applyDateRangeConditions({
-    conditions, params,
-    column:        'os.shipped_at',
-    after:         normalizedFilters.shippedAfter,
-    before:        normalizedFilters.shippedBefore,
+    conditions,
+    params,
+    column: 'os.shipped_at',
+    after: normalizedFilters.shippedAfter,
+    before: normalizedFilters.shippedBefore,
     paramIndexRef,
   });
-  
+
   // ─── Order ───────────────────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.orderId) {
     conditions.push(`os.order_id = $${paramIndexRef.value}`);
     params.push(normalizedFilters.orderId);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.orderNumber) {
     conditions.push(`o.order_number ILIKE $${paramIndexRef.value}`);
     params.push(`%${normalizedFilters.orderNumber}%`);
     paramIndexRef.value++;
   }
-  
+
   // ─── Keyword (must remain last) ──────────────────────────────────────────────
-  
+
   // Same $N referenced three times — single param covers all columns.
   if (normalizedFilters.keyword) {
     conditions.push(`(
@@ -122,7 +127,7 @@ const buildOutboundShipmentFilter = (filters = {}) => {
     params.push(`%${normalizedFilters.keyword}%`);
     paramIndexRef.value++;
   }
-  
+
   return {
     whereClause: conditions.join(' AND '),
     params,

@@ -46,7 +46,7 @@ const filterAddressForViewer = async (
     checkPermissions(user, ['view_address_audit']),
     checkPermissions(user, ['view_address_detail']),
   ]);
-  
+
   const base = {
     id: address.id,
     customerId: address.customerId,
@@ -56,14 +56,14 @@ const filterAddressForViewer = async (
     label: address.label,
     displayAddress: address.displayAddress,
     customer: {
-      type:        address.customer?.type        ?? null,
-      fullName:    address.customer?.fullName    ?? null,
+      type: address.customer?.type ?? null,
+      fullName: address.customer?.fullName ?? null,
       companyName: address.customer?.companyName ?? null,
-      email:       address.customer?.email       ?? null,
+      email: address.customer?.email ?? null,
       phoneNumber: address.customer?.phoneNumber ?? null,
     },
   };
-  
+
   // Full address lines are omitted from insert responses — the caller only
   // needs confirmation fields after a create/update operation.
   if (purpose !== 'insert_response') {
@@ -75,12 +75,12 @@ const filterAddressForViewer = async (
     base.country = address.country;
     base.region = address.region;
   }
-  
+
   // detail_view routes are already access-gated, so note is always safe there.
   if (canViewDetails || purpose === 'detail_view') {
     base.note = address.note;
   }
-  
+
   // admin_view routes are already access-gated, so audit fields are always
   // safe there.
   if (canViewAudit || purpose === 'admin_view') {
@@ -89,7 +89,7 @@ const filterAddressForViewer = async (
     base.createdAt = address.createdAt;
     base.updatedAt = address.updatedAt;
   }
-  
+
   return base;
 };
 
@@ -113,19 +113,19 @@ const validateAndAssignAddressOwnership = async (
   client
 ) => {
   const context = `${CONTEXT}/validateAndAssignAddressOwnership`;
-  
+
   const address = await getAddressById(addressId, client);
-  
+
   if (!address) {
     throw AppError.notFoundError(`Address not found: ${addressId}`);
   }
-  
+
   if (address.customer_id && address.customer_id !== customerId) {
     throw AppError.validationError(
       `Address ${addressId} does not belong to the selected customer`
     );
   }
-  
+
   if (!address.customer_id) {
     await assignCustomerToAddress(addressId, customerId, client);
     logSystemInfo('Assigned orphan address to customer', {

@@ -58,47 +58,47 @@ const { buildMergeExpression } = require('./merge-utils');
  */
 const applyUpdateRule = (col, strategy, tableAlias = 't') => {
   const context = 'upsert-utils/applyUpdateRule';
-  
+
   // Validate and normalize both identifiers up front so every branch
   // below works with safe values — including the merge delegates.
-  const safeCol   = validateIdentifier(col, 'column');
+  const safeCol = validateIdentifier(col, 'column');
   const safeAlias = validateIdentifier(tableAlias, 'table alias');
-  
+
   const c = q(safeCol);
   const t = q(safeAlias);
-  
+
   switch (strategy) {
     case 'add':
       return `${c} = ${t}.${c} + EXCLUDED.${c}`;
-    
+
     case 'subtract':
       return `${c} = ${t}.${c} - EXCLUDED.${c}`;
-    
+
     case 'max':
       return `${c} = GREATEST(${t}.${c}, EXCLUDED.${c})`;
-    
+
     case 'min':
       return `${c} = LEAST(${t}.${c}, EXCLUDED.${c})`;
-    
+
     case 'coalesce':
       return `${c} = COALESCE(EXCLUDED.${c}, ${t}.${c})`;
-    
+
     case 'merge_jsonb':
       // Pass the already-validated identifiers so buildMergeExpression
       // does not re-validate from raw input.
       return buildMergeExpression(safeCol, safeAlias, 'jsonb');
-    
+
     case 'merge_text':
       return buildMergeExpression(safeCol, safeAlias, 'text');
-    
+
     case 'keep':
     case 'preserve':
       // Signals to the caller that this column should be omitted from SET.
       return null;
-    
+
     case 'overwrite':
       return `${c} = EXCLUDED.${c}`;
-    
+
     default:
       throw AppError.validationError(`Unknown update strategy: ${strategy}`, {
         context,

@@ -26,10 +26,10 @@ const CONTEXT = 'status-business';
  */
 const evaluateStatusLookupAccessControl = async (user) => {
   const context = `${CONTEXT}/evaluateStatusLookupAccessControl`;
-  
+
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     return {
       canViewAllStatuses:
         isRoot ||
@@ -43,7 +43,7 @@ const evaluateStatusLookupAccessControl = async (user) => {
       context,
       userId: user?.id,
     });
-    
+
     throw AppError.businessError(
       'Unable to evaluate access control for status lookup.'
     );
@@ -62,15 +62,15 @@ const evaluateStatusLookupAccessControl = async (user) => {
  */
 const enforceStatusLookupVisibilityRules = (filters = {}, userAccess) => {
   const adjusted = { ...filters };
-  
+
   if (!userAccess.canViewAllStatuses) {
-    adjusted.is_active         ??= true;
-    adjusted._isActiveEnforced   = true;
+    adjusted.is_active ??= true;
+    adjusted._isActiveEnforced = true;
   } else {
     delete adjusted.is_active;
     delete adjusted._isActiveEnforced;
   }
-  
+
   return adjusted;
 };
 
@@ -85,10 +85,8 @@ const enforceStatusLookupVisibilityRules = (filters = {}, userAccess) => {
  */
 const enrichStatusLookupOption = (row) => {
   const isActive =
-    typeof row.is_active === 'boolean'
-      ? row.is_active
-      : Boolean(row.isActive);
-  
+    typeof row.is_active === 'boolean' ? row.is_active : Boolean(row.isActive);
+
   return {
     ...row,
     isActive,

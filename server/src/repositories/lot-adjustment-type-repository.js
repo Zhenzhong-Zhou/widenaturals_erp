@@ -16,8 +16,12 @@
 const { query } = require('../database/db');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { logDbQueryError } = require('../utils/db-logger');
-const { buildLotAdjustmentWhereClause } = require('../utils/sql/build-lot-adjustment-type-filter');
-const { buildLotAdjustmentTypeLookupQuery } = require('./queries/lot-adjustment-type-queries');
+const {
+  buildLotAdjustmentWhereClause,
+} = require('../utils/sql/build-lot-adjustment-type-filter');
+const {
+  buildLotAdjustmentTypeLookupQuery,
+} = require('./queries/lot-adjustment-type-queries');
 
 // ─── Lookup ───────────────────────────────────────────────────────────────────
 
@@ -37,10 +41,10 @@ const { buildLotAdjustmentTypeLookupQuery } = require('./queries/lot-adjustment-
  */
 const getLotAdjustmentTypeLookup = async (filters = {}) => {
   const context = 'lot-adjustment-type-repository/getLotAdjustmentTypeLookup';
-  
+
   const { whereClause, params } = buildLotAdjustmentWhereClause(filters);
   const queryText = buildLotAdjustmentTypeLookupQuery(whereClause);
-  
+
   try {
     const result = await query(queryText, params);
     return result.rows;
@@ -48,13 +52,9 @@ const getLotAdjustmentTypeLookup = async (filters = {}) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch lot adjustment type lookup.',
-      meta:    { filters },
-      logFn:   (err) => logDbQueryError(
-        queryText,
-        params,
-        err,
-        { context, filters }
-      ),
+      meta: { filters },
+      logFn: (err) =>
+        logDbQueryError(queryText, params, err, { context, filters }),
     });
   }
 };

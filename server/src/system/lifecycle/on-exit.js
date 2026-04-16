@@ -47,9 +47,9 @@ const closeServerSafely = async () => {
     logSystemInfo('No active server instance to close.', { context: CONTEXT });
     return;
   }
-  
+
   logSystemInfo('Closing server connections...', { context: CONTEXT });
-  
+
   await Promise.race([
     new Promise((resolve) => {
       server.close(() => {
@@ -85,11 +85,11 @@ const registerShutdownHook = (fn) => {
       'registerShutdownHook: cannot register after shutdown has started'
     );
   }
-  
+
   if (typeof fn !== 'function') {
     throw new Error('registerShutdownHook: fn must be a function');
   }
-  
+
   shutdownHooks.push(fn);
 };
 
@@ -103,19 +103,19 @@ const cleanupLogic = async () => {
     });
     return;
   }
-  
+
   cleanupCalled = true;
-  
+
   logSystemInfo('Starting cleanup logic...', {
     context: CONTEXT,
     hooksCount: shutdownHooks.length,
   });
-  
+
   //--------------------------------------------------
   // 1. Stop accepting new connections FIRST
   //--------------------------------------------------
   await closeServerSafely();
-  
+
   //--------------------------------------------------
   // 2. Run shutdown hooks (monitoring, redis, etc.)
   //--------------------------------------------------
@@ -128,7 +128,7 @@ const cleanupLogic = async () => {
       });
     }
   }
-  
+
   //--------------------------------------------------
   // 3. Close DB LAST (if not already inside hook)
   //--------------------------------------------------
@@ -147,14 +147,14 @@ const handleExit = async (code = 0) => {
     });
     return;
   }
-  
+
   exitCalled = true;
-  
+
   logSystemInfo('Initiating exit process...', {
     context: CONTEXT,
     code,
   });
-  
+
   const forceExitTimer = setTimeout(() => {
     logSystemFatal('Cleanup timeout exceeded. Forcing exit.', {
       context: CONTEXT,
@@ -162,11 +162,11 @@ const handleExit = async (code = 0) => {
     });
     process.exit(code);
   }, 10000);
-  
+
   try {
     await cleanupLogic();
     clearTimeout(forceExitTimer);
-    
+
     logSystemInfo('Cleanup completed.', { context: CONTEXT });
   } catch (error) {
     logSystemException(error, 'Unexpected exit error', {

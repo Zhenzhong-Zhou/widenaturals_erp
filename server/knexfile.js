@@ -82,7 +82,7 @@ const buildEnvConfig = (env) => ({
 
 module.exports = {
   development: buildEnvConfig('development'),
-  test:        buildEnvConfig('test'),
-  staging:     buildEnvConfig('staging'),
-  production:  buildEnvConfig('production'),
+  test: buildEnvConfig('test'),
+  staging: buildEnvConfig('staging'),
+  production: buildEnvConfig('production'),
 };

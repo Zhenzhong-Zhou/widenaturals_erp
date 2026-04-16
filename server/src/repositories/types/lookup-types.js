@@ -156,4 +156,3 @@
  * @typedef {Object} LotAdjustmentLookupFilters
  * @property {boolean} [includeExternal] - Whether to include external adjustment types.
  */
- 

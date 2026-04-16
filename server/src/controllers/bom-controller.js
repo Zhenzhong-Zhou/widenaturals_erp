@@ -40,7 +40,7 @@ const {
  */
 const getPaginatedBomsController = wrapAsyncHandler(async (req, res) => {
   const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
-  
+
   const { data, pagination } = await fetchPaginatedBomsService({
     filters,
     page,
@@ -48,7 +48,7 @@ const getPaginatedBomsController = wrapAsyncHandler(async (req, res) => {
     sortBy,
     sortOrder,
   });
-  
+
   res.status(200).json({
     success: true,
     message: 'BOM list retrieved successfully.',
@@ -69,9 +69,9 @@ const getPaginatedBomsController = wrapAsyncHandler(async (req, res) => {
  */
 const getBomDetailsController = wrapAsyncHandler(async (req, res) => {
   const { bomId } = req.params;
-  
+
   const result = await fetchBomDetailsService(bomId);
-  
+
   res.status(200).json({
     success: true,
     message: 'BOM details retrieved successfully.',
@@ -92,9 +92,9 @@ const getBomDetailsController = wrapAsyncHandler(async (req, res) => {
  */
 const getBomProductionSummaryController = wrapAsyncHandler(async (req, res) => {
   const { bomId } = req.params;
-  
+
   const result = await fetchBOMProductionSummaryService(bomId);
-  
+
   res.status(200).json({
     success: true,
     message: 'BOM production summary retrieved successfully.',

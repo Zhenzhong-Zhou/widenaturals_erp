@@ -9,7 +9,9 @@
 'use strict';
 
 const { bulkInsert } = require('../utils/db/write-utils');
-const { validateBulkInsertRows } = require('../utils/validation/bulk-insert-row-validator');
+const {
+  validateBulkInsertRows,
+} = require('../utils/validation/bulk-insert-row-validator');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { logBulkInsertError } = require('../utils/db-logger');
 const {
@@ -35,21 +37,22 @@ const {
  * @throws  {AppError}               Normalized database error if the insert fails.
  */
 const insertShipmentBatchesBulk = async (shipmentBatches, client) => {
-  if (!Array.isArray(shipmentBatches) || shipmentBatches.length === 0) return [];
-  
+  if (!Array.isArray(shipmentBatches) || shipmentBatches.length === 0)
+    return [];
+
   const context = 'shipment-batch-repository/insertShipmentBatchesBulk';
-  
+
   const rows = shipmentBatches.map((b) => [
     b.shipment_id,
     b.fulfillment_id,
     b.batch_id,
     b.quantity_shipped,
-    b.notes      ?? null,
+    b.notes ?? null,
     b.created_by ?? null,
   ]);
-  
+
   validateBulkInsertRows(rows, SHIPMENT_BATCH_INSERT_COLUMNS.length);
-  
+
   try {
     return await bulkInsert(
       'shipment_batches',
@@ -65,14 +68,12 @@ const insertShipmentBatchesBulk = async (shipmentBatches, client) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to insert shipment batches.',
-      meta:    { shipmentBatchCount: shipmentBatches.length },
-      logFn:   (err) => logBulkInsertError(
-        err,
-        'shipment_batches',
-        rows,
-        rows.length,
-        { context, conflictColumns: SHIPMENT_BATCH_CONFLICT_COLUMNS }
-      ),
+      meta: { shipmentBatchCount: shipmentBatches.length },
+      logFn: (err) =>
+        logBulkInsertError(err, 'shipment_batches', rows, rows.length, {
+          context,
+          conflictColumns: SHIPMENT_BATCH_CONFLICT_COLUMNS,
+        }),
     });
   }
 };

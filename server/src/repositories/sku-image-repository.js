@@ -46,18 +46,24 @@ const {
  */
 const hasPrimaryMainImage = async (skuId, client) => {
   const context = 'sku-image-media-repository/hasPrimaryMainImage';
-  
+
   try {
-    const { rows } = await query(SKU_IMAGE_HAS_PRIMARY_MAIN_QUERY, [skuId], client);
+    const { rows } = await query(
+      SKU_IMAGE_HAS_PRIMARY_MAIN_QUERY,
+      [skuId],
+      client
+    );
     return Boolean(rows[0]?.has_primary);
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to check primary main image state.',
-      meta:    { skuId },
-      logFn:   (err) => logDbQueryError(
-        SKU_IMAGE_HAS_PRIMARY_MAIN_QUERY, [skuId], err, { context, skuId }
-      ),
+      meta: { skuId },
+      logFn: (err) =>
+        logDbQueryError(SKU_IMAGE_HAS_PRIMARY_MAIN_QUERY, [skuId], err, {
+          context,
+          skuId,
+        }),
     });
   }
 };
@@ -77,18 +83,24 @@ const hasPrimaryMainImage = async (skuId, client) => {
  */
 const getSkuImageDisplayOrderBase = async (skuId, client) => {
   const context = 'sku-image-media-repository/getSkuImageDisplayOrderBase';
-  
+
   try {
-    const { rows } = await query(SKU_IMAGE_MAX_DISPLAY_ORDER_QUERY, [skuId], client);
+    const { rows } = await query(
+      SKU_IMAGE_MAX_DISPLAY_ORDER_QUERY,
+      [skuId],
+      client
+    );
     return Number(rows[0]?.max_order ?? 0);
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch SKU image display order base.',
-      meta:    { skuId },
-      logFn:   (err) => logDbQueryError(
-        SKU_IMAGE_MAX_DISPLAY_ORDER_QUERY, [skuId], err, { context, skuId }
-      ),
+      meta: { skuId },
+      logFn: (err) =>
+        logDbQueryError(SKU_IMAGE_MAX_DISPLAY_ORDER_QUERY, [skuId], err, {
+          context,
+          skuId,
+        }),
     });
   }
 };
@@ -112,31 +124,30 @@ const getSkuImageDisplayOrderBase = async (skuId, client) => {
  */
 const insertSkuImagesBulk = async (skuId, images, createdBy, client) => {
   if (!Array.isArray(images) || images.length === 0) return [];
-  
+
   const context = 'sku-image-media-repository/insertSkuImagesBulk';
-  
+
   const payload = images.map((img) => ({
-    image_url:     img.image_url,
-    image_type:    img.image_type,
+    image_url: img.image_url,
+    image_type: img.image_type,
     display_order: img.display_order,
-    file_size_kb:  img.file_size_kb  ?? null,
-    file_format:   img.file_format   ?? null,
-    alt_text:      img.alt_text      ?? null,
-    is_primary:    img.is_primary    ?? false,
-    uploaded_by:   img.uploaded_by   || createdBy,
-    group_id:      img.group_id,
+    file_size_kb: img.file_size_kb ?? null,
+    file_format: img.file_format ?? null,
+    alt_text: img.alt_text ?? null,
+    is_primary: img.is_primary ?? false,
+    uploaded_by: img.uploaded_by || createdBy,
+    group_id: img.group_id,
   }));
-  
+
   // Validation before IO — must not be inside the try block.
   if (payload.some((p) => !p.group_id)) {
-    throw AppError.validationError(
-      'group_id is required for each SKU image.',
-      { context }
-    );
+    throw AppError.validationError('group_id is required for each SKU image.', {
+      context,
+    });
   }
-  
+
   const params = [skuId, JSON.stringify(payload)];
-  
+
   try {
     const { rows } = await query(SKU_IMAGE_INSERT_BULK_QUERY, params, client);
     return rows;
@@ -144,10 +155,12 @@ const insertSkuImagesBulk = async (skuId, images, createdBy, client) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to insert SKU images.',
-      meta:    { skuId, imageCount: images.length },
-      logFn:   (err) => logDbQueryError(
-        SKU_IMAGE_INSERT_BULK_QUERY, params, err, { context, skuId }
-      ),
+      meta: { skuId, imageCount: images.length },
+      logFn: (err) =>
+        logDbQueryError(SKU_IMAGE_INSERT_BULK_QUERY, params, err, {
+          context,
+          skuId,
+        }),
     });
   }
 };
@@ -167,7 +180,7 @@ const insertSkuImagesBulk = async (skuId, images, createdBy, client) => {
  */
 const getSkuImagesBySkuId = async (skuId) => {
   const context = 'sku-image-media-repository/getSkuImagesBySkuId';
-  
+
   try {
     const { rows } = await query(SKU_IMAGE_GET_BY_SKU_QUERY, [skuId]);
     return rows;
@@ -175,10 +188,12 @@ const getSkuImagesBySkuId = async (skuId) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch SKU images.',
-      meta:    { skuId },
-      logFn:   (err) => logDbQueryError(
-        SKU_IMAGE_GET_BY_SKU_QUERY, [skuId], err, { context, skuId }
-      ),
+      meta: { skuId },
+      logFn: (err) =>
+        logDbQueryError(SKU_IMAGE_GET_BY_SKU_QUERY, [skuId], err, {
+          context,
+          skuId,
+        }),
     });
   }
 };
@@ -205,12 +220,12 @@ const getSkuImageGroupIdsBySku = async (skuId, groupIds, client) => {
   if (!skuId) {
     throw AppError.validationError('skuId is required.');
   }
-  
+
   if (!Array.isArray(groupIds) || groupIds.length === 0) return [];
-  
+
   const context = 'sku-image-media-repository/getSkuImageGroupIdsBySku';
-  const params  = [skuId, groupIds];
-  
+  const params = [skuId, groupIds];
+
   try {
     const { rows } = await query(SKU_IMAGE_GET_GROUP_IDS_QUERY, params, client);
     return rows.map((r) => r.group_id);
@@ -218,10 +233,12 @@ const getSkuImageGroupIdsBySku = async (skuId, groupIds, client) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to validate SKU image groups.',
-      meta:    { skuId, groupCount: groupIds.length },
-      logFn:   (err) => logDbQueryError(
-        SKU_IMAGE_GET_GROUP_IDS_QUERY, params, err, { context, skuId }
-      ),
+      meta: { skuId, groupCount: groupIds.length },
+      logFn: (err) =>
+        logDbQueryError(SKU_IMAGE_GET_GROUP_IDS_QUERY, params, err, {
+          context,
+          skuId,
+        }),
     });
   }
 };
@@ -246,21 +263,27 @@ const unsetPrimaryForSku = async (skuId, uploadedBy, client) => {
   if (!skuId) {
     throw AppError.validationError('skuId is required.');
   }
-  
+
   const context = 'sku-image-media-repository/unsetPrimaryForSku';
-  const params  = [skuId, uploadedBy];
-  
+  const params = [skuId, uploadedBy];
+
   try {
-    const { rowCount } = await query(SKU_IMAGE_UNSET_PRIMARY_QUERY, params, client);
+    const { rowCount } = await query(
+      SKU_IMAGE_UNSET_PRIMARY_QUERY,
+      params,
+      client
+    );
     return rowCount;
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to unset primary image.',
-      meta:    { skuId },
-      logFn:   (err) => logDbQueryError(
-        SKU_IMAGE_UNSET_PRIMARY_QUERY, params, err, { context, skuId }
-      ),
+      meta: { skuId },
+      logFn: (err) =>
+        logDbQueryError(SKU_IMAGE_UNSET_PRIMARY_QUERY, params, err, {
+          context,
+          skuId,
+        }),
     });
   }
 };
@@ -285,37 +308,37 @@ const unsetPrimaryForSku = async (skuId, uploadedBy, client) => {
  */
 const updateSkuImagesBulk = async (skuId, images, uploadedBy, client) => {
   if (!Array.isArray(images) || images.length === 0) return [];
-  
+
   const context = 'sku-image-media-repository/updateSkuImagesBulk';
-  
+
   // Validation before IO — must not be inside the try block.
   if (!skuId) {
     throw AppError.validationError('skuId is required.', { context });
   }
-  
+
   if (images.some((u) => !u?.group_id)) {
     throw AppError.validationError(
       'Each image update must include a valid group_id.',
       { context }
     );
   }
-  
+
   const primaryUpdates = images.filter((u) => u.is_primary === true);
-  
+
   if (primaryUpdates.length > 1) {
     throw AppError.validationError(
       'Only one image group can be primary per SKU.',
       { context }
     );
   }
-  
+
   // Unset existing primary before setting new one — must be in same transaction.
   if (primaryUpdates.length === 1) {
     await unsetPrimaryForSku(skuId, uploadedBy, client);
   }
-  
+
   const params = [skuId, JSON.stringify(images), uploadedBy];
-  
+
   try {
     const { rows } = await query(SKU_IMAGE_UPDATE_BULK_QUERY, params, client);
     return rows.sort((a, b) => a.display_order - b.display_order);
@@ -323,10 +346,12 @@ const updateSkuImagesBulk = async (skuId, images, uploadedBy, client) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to update SKU images.',
-      meta:    { skuId, imageCount: images.length },
-      logFn:   (err) => logDbQueryError(
-        SKU_IMAGE_UPDATE_BULK_QUERY, params, err, { context, skuId }
-      ),
+      meta: { skuId, imageCount: images.length },
+      logFn: (err) =>
+        logDbQueryError(SKU_IMAGE_UPDATE_BULK_QUERY, params, err, {
+          context,
+          skuId,
+        }),
     });
   }
 };

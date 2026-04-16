@@ -28,22 +28,22 @@ const CONTEXT = 'role-business';
  */
 const evaluateRoleVisibilityAccessControl = async (user) => {
   const context = `${CONTEXT}/evaluateRoleVisibilityAccessControl`;
-  
+
   try {
     const { permissions, isRoot, roleName } =
       await resolveUserPermissionContext(user);
-    
+
     const isAdmin = roleName === 'admin';
     const isSystem = roleName === 'system';
-    
+
     const canViewInactiveRoles =
       isRoot ||
       permissions.includes(ROLE_CONSTANTS.PERMISSIONS.VIEW_ALL_ROLES) ||
       permissions.includes(ROLE_CONSTANTS.PERMISSIONS.VIEW_INACTIVE_ROLES);
-    
+
     const canQueryRoleHierarchy =
       isRoot || permissions.includes(ROLE_CONSTANTS.PERMISSIONS.MANAGE_ROLES);
-    
+
     return {
       canViewInactiveRoles,
       canQueryRoleHierarchy,
@@ -56,7 +56,7 @@ const evaluateRoleVisibilityAccessControl = async (user) => {
       context,
       userId: user?.id,
     });
-    
+
     throw AppError.businessError(
       'Unable to evaluate role visibility access control.'
     );
@@ -80,25 +80,25 @@ const evaluateRoleVisibilityAccessControl = async (user) => {
  */
 const applyRoleVisibilityRules = (filters, acl, activeStatusId) => {
   const adjusted = { ...filters };
-  
+
   // 1. Status enforcement — pin to active when inactive roles are not permitted.
   if (!acl.canViewInactiveRoles) {
     delete adjusted.statusIds;
     delete adjusted.status_id;
     adjusted._activeStatusId = activeStatusId;
   }
-  
+
   // 2. Hierarchy protection — strip hierarchy params for unpermitted callers.
   if (!acl.canQueryRoleHierarchy) {
     delete adjusted.parent_role_id;
     delete adjusted.hierarchy_level;
   }
-  
+
   // 3. Role tier exclusions — consumed by the filter builder.
   if (acl.excludeSystemRoles) adjusted._excludeSystemRoles = true;
   if (acl.excludeRootRoles) adjusted._excludeRootRoles = true;
   if (acl.excludeAdminRoles) adjusted._excludeAdminRoles = true;
-  
+
   return adjusted;
 };
 

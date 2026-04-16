@@ -8,12 +8,12 @@
 
 'use strict';
 
-const express                            = require('express');
-const { authorize, authorizeAny }        = require('../middlewares/authorize');
-const { createUserProfileRateLimiter }   = require('../middlewares/rate-limiter');
-const validate                           = require('../middlewares/validate');
+const express = require('express');
+const { authorize, authorizeAny } = require('../middlewares/authorize');
+const { createUserProfileRateLimiter } = require('../middlewares/rate-limiter');
+const validate = require('../middlewares/validate');
 const createQueryNormalizationMiddleware = require('../middlewares/normalize-query');
-const PERMISSION_KEYS                        = require('../utils/constants/domain/permission-keys');
+const PERMISSION_KEYS = require('../utils/constants/domain/permission-keys');
 const {
   userQuerySchema,
   userIdParamSchema,
@@ -55,18 +55,21 @@ router.post(
  */
 router.get(
   '/',
-  authorizeAny([PERMISSION_KEYS.USERS.VIEW_LIST, PERMISSION_KEYS.USERS.VIEW_CARD]),
+  authorizeAny([
+    PERMISSION_KEYS.USERS.VIEW_LIST,
+    PERMISSION_KEYS.USERS.VIEW_CARD,
+  ]),
   validate(userQuerySchema, 'query', {
     allowUnknown: true, // downstream middleware normalizes unknown keys before business layer
   }),
   createQueryNormalizationMiddleware(
-    'userSortMap',               // moduleKey — drives allowed sortBy fields
-    ['statusIds', 'roleIds'],    // arrayKeys — normalized as UUID arrays
-    [],                          // booleanKeys — none client-controlled
-    userQuerySchema,             // filterKeysOrSchema — extracts filter keys from schema
-    {},                          // options overrides — none
-    [],                          // option-level booleans — none
-    ['viewMode']                 // option-level strings — controls UI view shape
+    'userSortMap', // moduleKey — drives allowed sortBy fields
+    ['statusIds', 'roleIds'], // arrayKeys — normalized as UUID arrays
+    [], // booleanKeys — none client-controlled
+    userQuerySchema, // filterKeysOrSchema — extracts filter keys from schema
+    {}, // options overrides — none
+    [], // option-level booleans — none
+    ['viewMode'] // option-level strings — controls UI view shape
   ),
   getPaginatedUsersController
 );
@@ -104,9 +107,6 @@ router.get(
  * permissions regardless of role.
  * @access protected
  */
-router.get(
-  '/me/permissions',
-  getUserPermissionsController
-);
+router.get('/me/permissions', getUserPermissionsController);
 
 module.exports = router;

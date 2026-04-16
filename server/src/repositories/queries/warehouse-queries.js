@@ -62,8 +62,8 @@ const WAREHOUSE_SORT_WHITELIST = new Set(
 
 // Deterministic tie-breaking applied after the primary sort.
 const WAREHOUSE_ADDITIONAL_SORTS = [
-  { column: 'l.name',       direction: 'ASC'  },
-  { column: 'w.code',       direction: 'ASC'  },
+  { column: 'l.name', direction: 'ASC' },
+  { column: 'w.code', direction: 'ASC' },
   { column: 'w.created_at', direction: 'DESC' },
 ];
 

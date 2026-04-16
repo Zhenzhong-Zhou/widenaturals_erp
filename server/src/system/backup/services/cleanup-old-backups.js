@@ -21,56 +21,58 @@ const { cleanupLocalBackups } = require('../adapters/backup-fs-adapter');
  * @returns {Promise<void>}
  */
 const cleanupOldBackupsService = async ({
-                                          dir,
-                                          maxBackups,
-                                          isProduction,
-                                          bucketName,
-                                          toleranceMs = 5000,
-                                        }) => {
+  dir,
+  maxBackups,
+  isProduction,
+  bucketName,
+  toleranceMs = 5000,
+}) => {
   const CONTEXT = 'backup-cleanup';
-  
+
   try {
     // Fall back on invalid input — cleanup is secondary to the backup itself
     if (!Number.isInteger(maxBackups) || maxBackups <= 0) {
-      logSystemWarn(`Invalid maxBackups: ${maxBackups}. Falling back to default (5).`, {
-        context: CONTEXT,
-        originalValue: maxBackups,
-        fallback: 5,
-      });
+      logSystemWarn(
+        `Invalid maxBackups: ${maxBackups}. Falling back to default (5).`,
+        {
+          context: CONTEXT,
+          originalValue: maxBackups,
+          fallback: 5,
+        }
+      );
       maxBackups = 5;
     }
-    
+
     logSystemInfo('Starting backup cleanup', {
       context: CONTEXT,
       mode: isProduction ? 'S3' : 'local',
       maxBackups,
     });
-    
+
     if (isProduction && bucketName) {
       const deletedCount = await cleanupS3Backups({
         bucketName,
         maxBackups,
         toleranceMs,
       });
-      
+
       logSystemInfo('S3 backup cleanup completed', {
         context: CONTEXT,
         deletedCount,
       });
-      
+
       return;
     }
-    
+
     const deletedCount = await cleanupLocalBackups({
       dir,
       maxBackups,
     });
-    
+
     logSystemInfo('Local backup cleanup completed', {
       context: CONTEXT,
       deletedCount,
     });
-    
   } catch (error) {
     // Non-fatal — backup succeeded, only rotation failed
     logSystemWarn('Old backup cleanup failed', {

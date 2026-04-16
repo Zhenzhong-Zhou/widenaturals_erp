@@ -21,18 +21,18 @@
  * @returns {Object}
  */
 const transformSkuImageRow = (record) => ({
-  id:           record.id,
-  skuId:        record.sku_id,
-  imageUrl:     record.image_url,
-  imageType:    record.image_type,
+  id: record.id,
+  skuId: record.sku_id,
+  imageUrl: record.image_url,
+  imageType: record.image_type,
   displayOrder: record.display_order,
-  fileSizeKb:   record.file_size_kb,
-  fileFormat:   record.file_format,
-  altText:      record.alt_text,
-  isPrimary:    record.is_primary,
-  groupId:      record.group_id,
-  uploadedAt:   record.uploaded_at,
-  uploadedBy:   record.uploaded_by,
+  fileSizeKb: record.file_size_kb,
+  fileFormat: record.file_format,
+  altText: record.alt_text,
+  isPrimary: record.is_primary,
+  groupId: record.group_id,
+  uploadedAt: record.uploaded_at,
+  uploadedBy: record.uploaded_by,
 });
 
 /**
@@ -48,31 +48,31 @@ const transformSkuImageRow = (record) => ({
  */
 const transformGroupedSkuImages = (records = []) => {
   if (!Array.isArray(records) || records.length === 0) return [];
-  
-  const rows   = records.map(transformSkuImageRow);
+
+  const rows = records.map(transformSkuImageRow);
   const groups = new Map();
-  
+
   for (const r of rows) {
     if (!groups.has(r.groupId)) {
       groups.set(r.groupId, {
-        groupId:      r.groupId,
+        groupId: r.groupId,
         displayOrder: r.displayOrder,
-        altText:      r.altText,
-        uploadedAt:   r.uploadedAt,
-        uploadedBy:   r.uploadedBy,
-        variants:     {},
+        altText: r.altText,
+        uploadedAt: r.uploadedAt,
+        uploadedBy: r.uploadedBy,
+        variants: {},
       });
     }
-    
+
     groups.get(r.groupId).variants[r.imageType] = {
-      id:         r.id,
-      imageUrl:   r.imageUrl,
-      isPrimary:  r.isPrimary,
+      id: r.id,
+      imageUrl: r.imageUrl,
+      isPrimary: r.isPrimary,
       fileFormat: r.fileFormat,
       fileSizeKb: r.fileSizeKb,
     };
   }
-  
+
   return Array.from(groups.values());
 };
 
@@ -87,12 +87,13 @@ const transformGroupedSkuImages = (records = []) => {
  */
 const transformSkuImageGroupsForDetail = (rows) => {
   if (!Array.isArray(rows)) return [];
-  
+
   const groups = new Map();
-  
+
   for (const row of rows) {
-    const { groupId, type, id, imageUrl, altText, isPrimary, metadata, audit } = row;
-    
+    const { groupId, type, id, imageUrl, altText, isPrimary, metadata, audit } =
+      row;
+
     if (!groups.has(groupId)) {
       groups.set(groupId, {
         groupId,
@@ -101,7 +102,7 @@ const transformSkuImageGroupsForDetail = (rows) => {
         audit: audit ?? undefined,
       });
     }
-    
+
     groups.get(groupId).variants[type] = {
       id,
       imageUrl,
@@ -109,7 +110,7 @@ const transformSkuImageGroupsForDetail = (rows) => {
       metadata: metadata ?? undefined,
     };
   }
-  
+
   return Array.from(groups.values());
 };
 

@@ -32,8 +32,10 @@
 
 'use strict';
 
-const AppError     = require('../utils/AppError');
-const { sanitizeValidationError } = require('../utils/validation/sanitize-validation-error');
+const AppError = require('../utils/AppError');
+const {
+  sanitizeValidationError,
+} = require('../utils/validation/sanitize-validation-error');
 
 // -----------------------------------------------------------------------------
 // Module-level constants
@@ -51,7 +53,7 @@ const VALID_TARGETS = new Set(['body', 'query', 'params']);
  * @type {import('joi').ValidationOptions}
  */
 const DEFAULT_JOI_OPTIONS = {
-  abortEarly:   false,
+  abortEarly: false,
   allowUnknown: false,
 };
 
@@ -65,8 +67,8 @@ const DEFAULT_JOI_OPTIONS = {
  * @type {Record<string, string>}
  */
 const VALIDATED_TARGET_MAP = {
-  body:   'body',
-  query:  'validatedQuery',
+  body: 'body',
+  query: 'validatedQuery',
   params: 'validatedParams',
 };
 
@@ -111,8 +113,8 @@ const VALIDATED_TARGET_MAP = {
  */
 const validate = (
   schema,
-  target       = 'body',
-  options      = {},
+  target = 'body',
+  options = {},
   errorMessage = 'Validation failed.'
 ) => {
   // Factory-time guards — catch mis-configuration at startup, not per request.
@@ -121,20 +123,20 @@ const validate = (
       'validate(): invalid schema — expected a Joi schema with a .validate() method.'
     );
   }
-  
+
   if (!VALID_TARGETS.has(target)) {
     throw new Error(
       `validate(): invalid target "${target}" — must be "body", "query", or "params".`
     );
   }
-  
-  const validationOptions  = { ...DEFAULT_JOI_OPTIONS, ...options };
+
+  const validationOptions = { ...DEFAULT_JOI_OPTIONS, ...options };
   const validatedTargetKey = VALIDATED_TARGET_MAP[target];
-  
+
   // Per-request handler.
   return (req, res, next) => {
     const { error, value } = schema.validate(req[target], validationOptions);
-    
+
     if (!error) {
       // body is writable and replaced in-place.
       // query and params go to their dedicated validated properties so
@@ -143,15 +145,15 @@ const validate = (
       next();
       return;
     }
-    
+
     // Strip Joi internals (context flags, raw values) before the error
     // reaches the client response.
     const sanitizedDetails = sanitizeValidationError(error);
-    
+
     const appError = AppError.validationError(errorMessage, {
       details: sanitizedDetails,
     });
-    
+
     next(appError);
   };
 };

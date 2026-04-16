@@ -21,7 +21,7 @@ const ensureDirectory = async (dir) => {
   try {
     // Attempt to create directory (safe if already exists)
     await fs.mkdir(dir, { recursive: true });
-    
+
     // Optional: log only when directory was likely created
     // Note: Node does not explicitly tell if it was newly created
     logSystemInfo('Ensured directory exists', {
@@ -29,18 +29,17 @@ const ensureDirectory = async (dir) => {
       operation: 'ensureDirectory',
       path: dir,
     });
-    
   } catch (error) {
     logSystemException(error, 'Failed to ensure directory exists', {
       context: 'backup',
       operation: 'ensureDirectory',
       path: dir,
     });
-    
+
     throw error;
   }
 };
 
 module.exports = {
-  ensureDirectory
+  ensureDirectory,
 };

@@ -40,13 +40,13 @@ const validateBatchRegistryEntryById = async (
   client
 ) => {
   const row = await getBatchRegistryById(batchRegistryId, client);
-  
+
   if (!row) {
     throw AppError.notFoundError(
       `No batch registry found with ID: ${batchRegistryId}`
     );
   }
-  
+
   if (row.batch_type !== expectedType) {
     throw AppError.validationError(
       `Batch type mismatch: expected "${expectedType}", found "${row.batch_type}" for ID "${batchRegistryId}"`
@@ -67,32 +67,32 @@ const validateBatchRegistryEntryById = async (
  */
 const evaluateBatchRegistryVisibility = async (user) => {
   const context = `${CONTEXT}/evaluateBatchRegistryVisibility`;
-  
+
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     const canViewAllBatches =
       isRoot ||
       permissions.includes(
         BATCH_CONSTANTS.PERMISSIONS.VIEW_BATCH_ALL_VISIBILITY
       );
-    
+
     const canViewProductBatches =
       canViewAllBatches ||
       permissions.includes(BATCH_CONSTANTS.PERMISSIONS.VIEW_PRODUCT_BATCHES);
-    
+
     const canViewPackagingBatches =
       canViewAllBatches ||
       permissions.includes(BATCH_CONSTANTS.PERMISSIONS.VIEW_PACKAGING_BATCHES);
-    
+
     const canViewManufacturer =
       canViewAllBatches ||
       permissions.includes(BATCH_CONSTANTS.PERMISSIONS.VIEW_BATCH_MANUFACTURER);
-    
+
     const canViewSupplier =
       canViewAllBatches ||
       permissions.includes(BATCH_CONSTANTS.PERMISSIONS.VIEW_BATCH_SUPPLIER);
-    
+
     return {
       canViewAllBatches,
       canViewProductBatches,
@@ -111,7 +111,7 @@ const evaluateBatchRegistryVisibility = async (user) => {
       context,
       userId: user?.id,
     });
-    
+
     throw AppError.businessError(
       'Unable to evaluate batch registry visibility.'
     );
@@ -137,11 +137,11 @@ const evaluateBatchRegistryVisibility = async (user) => {
 const applyBatchRegistryVisibilityRules = (filters, acl) => {
   const adjusted = { ...filters };
   return applyBatchTypeVisibility(adjusted, {
-    canViewAllBatchTypes:    acl.canViewAllBatches,
-    canViewProductBatches:   acl.canViewProductBatches,
+    canViewAllBatchTypes: acl.canViewAllBatches,
+    canViewProductBatches: acl.canViewProductBatches,
     canViewPackagingBatches: acl.canViewPackagingBatches,
-    canViewManufacturer:     acl.canViewManufacturer,
-    canViewSupplier:         acl.canViewSupplier,
+    canViewManufacturer: acl.canViewManufacturer,
+    canViewSupplier: acl.canViewSupplier,
   });
 };
 
@@ -158,18 +158,18 @@ const sliceBatchRegistryRow = (row, access) => {
   if (access.canViewAllBatches) {
     return row;
   }
-  
+
   if (row.batch_type === 'product' && access.canViewProductBatches !== true) {
     return null;
   }
-  
+
   if (
     row.batch_type === 'packaging_material' &&
     access.canViewPackagingBatches !== true
   ) {
     return null;
   }
-  
+
   return row;
 };
 

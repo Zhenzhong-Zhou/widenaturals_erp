@@ -16,11 +16,11 @@
 
 const {
   getPaginatedComplianceRecords,
-}                                        = require('../repositories/compliance-record-repository');
+} = require('../repositories/compliance-record-repository');
 const {
   transformPaginatedComplianceRecordResults,
-}                                        = require('../transformers/compliance-record-transformer');
-const AppError                           = require('../utils/AppError');
+} = require('../transformers/compliance-record-transformer');
+const AppError = require('../utils/AppError');
 
 /**
  * Fetches paginated compliance records with optional filtering and sorting.
@@ -38,12 +38,12 @@ const AppError                           = require('../utils/AppError');
  * @throws {AppError} Wraps unexpected errors as `AppError.serviceError`.
  */
 const fetchPaginatedComplianceRecordsService = async ({
-                                                        filters   = {},
-                                                        page      = 1,
-                                                        limit     = 10,
-                                                        sortBy    = 'createdAt',
-                                                        sortOrder = 'DESC',
-                                                      }) => {
+  filters = {},
+  page = 1,
+  limit = 10,
+  sortBy = 'createdAt',
+  sortOrder = 'DESC',
+}) => {
   try {
     const rawResult = await getPaginatedComplianceRecords({
       filters,
@@ -52,11 +52,11 @@ const fetchPaginatedComplianceRecordsService = async ({
       sortBy,
       sortOrder,
     });
-    
+
     return transformPaginatedComplianceRecordResults(rawResult);
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
+
     throw AppError.serviceError('Unable to fetch compliance records.', {
       meta: { error: error.message },
     });

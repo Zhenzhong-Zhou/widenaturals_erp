@@ -37,22 +37,20 @@ let isRunning = false;
  */
 const startPoolMonitoring = (monitorPoolFn, options = {}) => {
   const context = `${CONTEXT}/startPoolMonitoring`;
-  
+
   //--------------------------------------------------
   // Validate dependency
   //--------------------------------------------------
   if (typeof monitorPoolFn !== 'function') {
-    throw new Error(
-      'startPoolMonitoring: monitorPoolFn must be a function'
-    );
+    throw new Error('startPoolMonitoring: monitorPoolFn must be a function');
   }
-  
+
   //--------------------------------------------------
   // Resolve interval
   //--------------------------------------------------
   const parsed = parseInt(process.env.POOL_MONITOR_INTERVAL, 10);
   let interval = options.interval ?? (isNaN(parsed) ? ONE_MINUTE : parsed);
-  
+
   if (isNaN(interval) || interval <= 0) {
     logSystemWarn('Invalid monitoring interval. Using default.', {
       context,
@@ -61,7 +59,7 @@ const startPoolMonitoring = (monitorPoolFn, options = {}) => {
     });
     interval = ONE_MINUTE;
   }
-  
+
   //--------------------------------------------------
   // Restart if already running
   //--------------------------------------------------
@@ -71,23 +69,23 @@ const startPoolMonitoring = (monitorPoolFn, options = {}) => {
     });
     stopPoolMonitoring();
   }
-  
+
   logSystemInfo('Starting pool monitoring', {
     context,
     interval,
     status: 'started',
   });
-  
+
   //--------------------------------------------------
   // Safe scheduler (no overlap)
   //--------------------------------------------------
   const run = () => {
     if (isRunning) return; // prevent overlap
     isRunning = true;
-    
+
     try {
       const metrics = monitorPoolFn();
-      
+
       //--------------------------------------------------
       // DEBUG: telemetry (no noise in production)
       //--------------------------------------------------
@@ -95,7 +93,7 @@ const startPoolMonitoring = (monitorPoolFn, options = {}) => {
         context,
         metrics,
       });
-      
+
       //--------------------------------------------------
       // WARN: signal-based alert
       //--------------------------------------------------
@@ -105,7 +103,7 @@ const startPoolMonitoring = (monitorPoolFn, options = {}) => {
           metrics,
         });
       }
-      
+
       //--------------------------------------------------
       // WARN: saturation
       //--------------------------------------------------
@@ -123,7 +121,7 @@ const startPoolMonitoring = (monitorPoolFn, options = {}) => {
       isRunning = false;
     }
   };
-  
+
   monitoringIntervalId = setInterval(run, interval);
 };
 
@@ -132,17 +130,17 @@ const startPoolMonitoring = (monitorPoolFn, options = {}) => {
  */
 const stopPoolMonitoring = () => {
   const context = `${CONTEXT}/stopPoolMonitoring`;
-  
+
   if (!monitoringIntervalId) {
     logSystemWarn('Pool monitoring not running', {
       context,
     });
     return;
   }
-  
+
   clearInterval(monitoringIntervalId);
   monitoringIntervalId = null;
-  
+
   logSystemInfo('Pool monitoring stopped', {
     context,
     status: 'stopped',

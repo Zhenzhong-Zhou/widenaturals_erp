@@ -116,24 +116,60 @@ const { initStatusCache, getStatusId } = require('../../config/status-cache');
       { brand_code: 'XY', category_code: 'PR' }, // should create base_code 700
       { brand_code: 'XA', category_code: 'PC' }, // should create base_code 800
     ];
-    
+
     const VARIANT_CODES = [
-      'R','S','L','A','B','C','D','E','F','G',
-      'H','I','J','K','M','N','P','Q','T','V'
+      'R',
+      'S',
+      'L',
+      'A',
+      'B',
+      'C',
+      'D',
+      'E',
+      'F',
+      'G',
+      'H',
+      'I',
+      'J',
+      'K',
+      'M',
+      'N',
+      'P',
+      'Q',
+      'T',
+      'V',
     ];
-    
+
     const REGION_CODES = [
-      'CN','CA','US','UN','EU','JP','KR','AU','MX','BR',
-      'IN','SG','HK','TW','DE','FR','IT','ES','NL','SE'
+      'CN',
+      'CA',
+      'US',
+      'UN',
+      'EU',
+      'JP',
+      'KR',
+      'AU',
+      'MX',
+      'BR',
+      'IN',
+      'SG',
+      'HK',
+      'TW',
+      'DE',
+      'FR',
+      'IT',
+      'ES',
+      'NL',
+      'SE',
     ];
-    
+
     // Use index modulo to assign different brand/category combinations per product
     const skuList = existingProducts.flatMap((p, idx) => {
       const { brand_code, category_code } =
         brandCategoryPairs[idx % brandCategoryPairs.length];
-      
+
       const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
-      
+
       return [
         {
           product_id: p.id,

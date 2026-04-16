@@ -36,41 +36,41 @@ const { addIlikeFilter } = require('./sql-helpers');
 const buildStatusFilter = (filters = {}) => {
   /** @type {string[]} */
   const conditions = ['1=1'];
-  
+
   /** @type {any[]} */
   const params = [];
-  
+
   /** @type {number} */
   let idx = 1;
-  
+
   // ─── Exact match: id ──────────────────────────────────────────────────────────
-  
+
   if (filters.id) {
     conditions.push(`s.id = $${idx}`);
     params.push(filters.id);
     idx++;
   }
-  
+
   // ─── Boolean: is_active ───────────────────────────────────────────────────────
-  
+
   if (typeof filters.is_active === 'boolean') {
     conditions.push(`s.is_active = $${idx}`);
     params.push(filters.is_active);
     idx++;
   }
-  
+
   // ─── Name: exact + ilike ─────────────────────────────────────────────────────
-  
+
   if (filters.name) {
     conditions.push(`s.name = $${idx}`);
     params.push(filters.name);
     idx++;
   }
-  
+
   idx = addIlikeFilter(conditions, params, idx, filters.name_ilike, 's.name');
-  
+
   // ─── Keyword (must remain last) ───────────────────────────────────────────────
-  
+
   if (filters.keyword) {
     // Collapse internal whitespace before wrapping — prevents double-space
     // literals from breaking ILIKE matches on normalized DB values.
@@ -82,7 +82,7 @@ const buildStatusFilter = (filters = {}) => {
     params.push(kw);
     idx++;
   }
-  
+
   return {
     whereClause: conditions.join(' AND '),
     params,

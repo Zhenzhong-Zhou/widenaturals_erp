@@ -29,13 +29,13 @@
 
 'use strict';
 
-const { wrapAsyncHandler }      = require('../middlewares/async-handler');
+const { wrapAsyncHandler } = require('../middlewares/async-handler');
 const {
   loginUserService,
   refreshTokenService,
 } = require('../services/auth-service');
 const { extractRequestContext } = require('../utils/request-context');
-const { getTtlMs }              = require('../utils/auth/jwt-utils');
+const { getTtlMs } = require('../utils/auth/jwt-utils');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/v1/auth/login
@@ -51,40 +51,41 @@ const { getTtlMs }              = require('../utils/auth/jwt-utils');
  */
 const loginController = wrapAsyncHandler(async (req, res) => {
   const { email, password } = req.body;
-  
+
   // CSRF token must be issued at login and forwarded to the client
   // for inclusion in subsequent state-changing requests
   const csrfToken = req.csrfToken();
-  
+
   // extractRequestContext is called directly — auth middleware has not run yet
-  const { ipAddress, userAgent, deviceId, parsedUserAgent } = extractRequestContext(req);
-  
+  const { ipAddress, userAgent, deviceId, parsedUserAgent } =
+    extractRequestContext(req);
+
   const result = await loginUserService(email, password, {
     ipAddress,
     userAgent,
     deviceId,
     parsedUserAgent,
   });
-  
+
   // Refresh token stored in HTTP-only cookie — never exposed to JS
   res.cookie('refreshToken', result.refreshToken, {
     httpOnly: true,
-    secure:   process.env.NODE_ENV === 'production',
+    secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
-    maxAge:   getTtlMs('REFRESH_TOKEN_TTL_SECONDS'),
-    path:     '/',
+    maxAge: getTtlMs('REFRESH_TOKEN_TTL_SECONDS'),
+    path: '/',
   });
-  
+
   // Prevent auth responses from being cached at any layer
   res.set('Cache-Control', 'no-store');
-  
+
   res.status(200).json({
     success: true,
     message: 'Login successful.',
     data: {
       accessToken: result.accessToken,
       csrfToken,
-      lastLogin:   result.lastLogin,
+      lastLogin: result.lastLogin,
     },
     traceId: req.traceId,
   });
@@ -105,24 +106,24 @@ const loginController = wrapAsyncHandler(async (req, res) => {
 const refreshTokenController = wrapAsyncHandler(async (req, res) => {
   // Refresh token is stored in HTTP-only cookie — not in the request body
   const refreshToken = req.cookies?.refreshToken;
-  
+
   // extractRequestContext is called directly — auth middleware has not run yet
   const { ipAddress, userAgent } = extractRequestContext(req);
-  
+
   const { accessToken, refreshToken: newRefreshToken } =
     await refreshTokenService(refreshToken, { ipAddress, userAgent });
-  
+
   // Persist rotated refresh token — old token is invalidated by the service
   res.cookie('refreshToken', newRefreshToken, {
     httpOnly: true,
-    secure:   process.env.NODE_ENV === 'production',
+    secure: process.env.NODE_ENV === 'production',
     sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
-    maxAge:   getTtlMs('REFRESH_TOKEN_TTL_SECONDS'),
-    path:     '/',
+    maxAge: getTtlMs('REFRESH_TOKEN_TTL_SECONDS'),
+    path: '/',
   });
-  
+
   res.set('Cache-Control', 'no-store');
-  
+
   res.status(200).json({
     success: true,
     message: 'Token refreshed successfully.',

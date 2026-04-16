@@ -15,8 +15,8 @@
 
 'use strict';
 
-const { cleanObject }             = require('../utils/object-utils');
-const { transformPageResult }     = require('../utils/transformer-utils');
+const { cleanObject } = require('../utils/object-utils');
+const { transformPageResult } = require('../utils/transformer-utils');
 const { compactAudit, makeAudit } = require('../utils/audit-utils');
 
 /**
@@ -31,14 +31,14 @@ const { compactAudit, makeAudit } = require('../utils/audit-utils');
  */
 const transformProductRow = (row, { includeDescription = false } = {}) =>
   cleanObject({
-    id:          row.id,
-    name:        row.name,
-    series:      row.series   ?? null,
-    brand:       row.brand    ?? null,
-    category:    row.category ?? null,
+    id: row.id,
+    name: row.name,
+    series: row.series ?? null,
+    brand: row.brand ?? null,
+    category: row.category ?? null,
     ...(includeDescription && { description: row.description ?? null }),
     status: {
-      id:   row.status_id,
+      id: row.status_id,
       name: row.status_name ?? null,
       date: row.status_date ?? null,
     },
@@ -69,7 +69,9 @@ const transformPaginatedProductResults = (paginatedResult) =>
  * @returns {ProductDetailRecord}
  */
 const transformProductDetail = (row) =>
-  /** @type {ProductDetailRecord} */ (transformProductRow(row, { includeDescription: true }));
+  /** @type {ProductDetailRecord} */ (
+    transformProductRow(row, { includeDescription: true })
+  );
 
 /**
  * Transforms an array of product insert rows into ID-only result records.

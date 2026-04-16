@@ -36,9 +36,7 @@ const {
   normalizeParamArray,
   normalizeSortOrder,
 } = require('../utils/query-normalizers');
-const {
-  sanitizeSortBy,
-} = require('../utils/query/sort-resolver');
+const { sanitizeSortBy } = require('../utils/query/sort-resolver');
 
 // -----------------------------------------------------------------------------
 // Module-level constants
@@ -50,7 +48,13 @@ const {
  *
  * @type {Set<string>}
  */
-const RESERVED_KEYS = new Set(['page', 'limit', 'offset', 'sortBy', 'sortOrder']);
+const RESERVED_KEYS = new Set([
+  'page',
+  'limit',
+  'offset',
+  'sortBy',
+  'sortOrder',
+]);
 
 /**
  * Valid pagination mode values.
@@ -90,26 +94,27 @@ const toBoolean = (val) =>
  */
 const extractFilterKeys = (input, nestedKey = 'filters') => {
   if (Array.isArray(input)) return input;
-  
-  const isJoiSchema = typeof Joi?.isSchema === 'function' && Joi.isSchema(input);
-  
+
+  const isJoiSchema =
+    typeof Joi?.isSchema === 'function' && Joi.isSchema(input);
+
   if (isJoiSchema) {
     const desc = input.describe?.();
-    
+
     // Case A: input is the filters schema itself.
     if (desc?.type === 'object' && desc?.keys) {
       return Object.keys(desc.keys);
     }
-    
+
     // Case B: input is a full route schema containing a nested filters object.
     const nested = desc?.keys?.[nestedKey]?.keys;
     if (nested) return Object.keys(nested);
   }
-  
+
   const kind = Array.isArray(input) ? 'array' : typeof input;
   throw new Error(
     `Invalid filterKeysOrSchema: expected string[] or Joi object schema ` +
-    `(optionally with nested "${nestedKey}"). Received: ${kind}.`
+      `(optionally with nested "${nestedKey}"). Received: ${kind}.`
   );
 };
 
@@ -212,37 +217,36 @@ const resolvePaginationParams = (trimmedQuery, mode) => {
  * // page is intentionally absent — meaningless in offset mode
  */
 const createQueryNormalizationMiddleware = (
-  moduleKey          = null,
-  arrayKeys          = [],
-  booleanKeys        = [],
+  moduleKey = null,
+  arrayKeys = [],
+  booleanKeys = [],
   filterKeysOrSchema = [],
-  factoryOptions     = {},
-  optionBooleanKeys  = [],
-  optionStringKeys   = []
+  factoryOptions = {},
+  optionBooleanKeys = [],
+  optionStringKeys = []
 ) => {
   // Resolve factory options once — not per request.
   const resolvedOptions = {
     includePagination: true,
-    includeSorting:    true,
-    paginationMode:    'page',   // default preserves backward compatibility
+    includeSorting: true,
+    paginationMode: 'page', // default preserves backward compatibility
     ...factoryOptions,
   };
-  
+
   // Fail fast at factory time — misconfigured mode is caught at startup,
   // not silently on the first request.
   if (!PAGINATION_MODES.has(resolvedOptions.paginationMode)) {
     throw new Error(
       `[createQueryNormalizationMiddleware] Invalid paginationMode: ` +
-      `"${resolvedOptions.paginationMode}". Must be "page" or "offset".`
+        `"${resolvedOptions.paginationMode}". Must be "page" or "offset".`
     );
   }
-  
+
   // Extract and validate filter keys once at factory time — not per request.
   const filterKeys = extractFilterKeys(filterKeysOrSchema);
-  
+
   // Return the per-request middleware.
   return (req, _res, next) => {
-    
     // -------------------------------------------------------------------------
     // 1. Read req.validatedQuery — fail fast if absent (pipeline misconfiguration)
     // -------------------------------------------------------------------------
@@ -250,30 +254,30 @@ const createQueryNormalizationMiddleware = (
       return next(
         new Error(
           '[createQueryNormalizationMiddleware] req.validatedQuery is undefined. ' +
-          'Ensure validate(schema, "query") runs before this middleware in the pipeline.'
+            'Ensure validate(schema, "query") runs before this middleware in the pipeline.'
         )
       );
     }
-    
+
     const rawQuery = req.validatedQuery;
-    
+
     // -------------------------------------------------------------------------
     // 2. Trim all query keys and string values
     // -------------------------------------------------------------------------
     const trimmedQuery = normalizeFilterKeys(rawQuery);
-    
+
     // -------------------------------------------------------------------------
     // 3. Pagination — mode selected at factory time, not per request
     //    'page'   → normalizePageParams   → { page, limit, offset, sortOrder }
     //    'offset' → normalizeOffsetParams → { offset, limit, sortOrder }
     // -------------------------------------------------------------------------
     const {
-      page,             // present in 'page' mode, undefined in 'offset' mode
+      page, // present in 'page' mode, undefined in 'offset' mode
       limit,
       offset,
       sortOrder: rawSortOrder,
     } = resolvePaginationParams(trimmedQuery, resolvedOptions.paginationMode);
-    
+
     // -------------------------------------------------------------------------
     // 4. Sorting
     //    Only resolved when sorting is enabled AND a moduleKey is configured.
@@ -282,12 +286,12 @@ const createQueryNormalizationMiddleware = (
     // -------------------------------------------------------------------------
     const sanitizedSortOrder = normalizeSortOrder(rawSortOrder);
     let sanitizedSortBy = undefined;
-    
+
     if (resolvedOptions.includeSorting && moduleKey) {
-      sanitizedSortBy = sanitizeSortBy(trimmedQuery.sortBy, moduleKey)
-        ?? 'defaultNaturalSort';
+      sanitizedSortBy =
+        sanitizeSortBy(trimmedQuery.sortBy, moduleKey) ?? 'defaultNaturalSort';
     }
-    
+
     // -------------------------------------------------------------------------
     // 5. Array keys → filters
     // -------------------------------------------------------------------------
@@ -298,7 +302,7 @@ const createQueryNormalizationMiddleware = (
         if (result.length > 0) normalizedArrays[key] = result;
       }
     }
-    
+
     // -------------------------------------------------------------------------
     // 6. Boolean keys → filters
     // -------------------------------------------------------------------------
@@ -308,7 +312,7 @@ const createQueryNormalizationMiddleware = (
         normalizedBooleans[key] = toBoolean(trimmedQuery[key]);
       }
     }
-    
+
     // -------------------------------------------------------------------------
     // 7. Boolean keys → options
     // -------------------------------------------------------------------------
@@ -318,7 +322,7 @@ const createQueryNormalizationMiddleware = (
         normalizedOptionBooleans[key] = toBoolean(trimmedQuery[key]);
       }
     }
-    
+
     // -------------------------------------------------------------------------
     // 8. String keys → options
     // -------------------------------------------------------------------------
@@ -328,7 +332,7 @@ const createQueryNormalizationMiddleware = (
         normalizedOptionStrings[key] = String(trimmedQuery[key]).trim();
       }
     }
-    
+
     // -------------------------------------------------------------------------
     // 9. Whitelisted plain filter keys
     //    Reserved keys are always excluded even if listed in filterKeysOrSchema.
@@ -339,7 +343,7 @@ const createQueryNormalizationMiddleware = (
         filters[key] = trimmedQuery[key];
       }
     }
-    
+
     // -------------------------------------------------------------------------
     // 10. Assemble req.normalizedQuery
     //     page is spread conditionally — it is undefined in 'offset' mode and
@@ -363,11 +367,11 @@ const createQueryNormalizationMiddleware = (
         ...(resolvedOptions.paginationMode === 'page' && { page }),
       }),
       ...(resolvedOptions.includeSorting && {
-        sortBy:    sanitizedSortBy,
+        sortBy: sanitizedSortBy,
         sortOrder: sanitizedSortOrder,
       }),
     };
-    
+
     next();
   };
 };
