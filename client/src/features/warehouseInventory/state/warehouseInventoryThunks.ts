@@ -8,6 +8,8 @@
 
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import type {
+  AdjustWarehouseInventoryQuantityRequest,
+  AdjustWarehouseInventoryQuantityResponse,
   CreateWarehouseInventoryRequest,
   CreateWarehouseInventoryResponse,
   PaginatedWarehouseInventoryListUiResponse,
@@ -52,6 +54,27 @@ export const createWarehouseInventoryThunk = createAsyncThunk<
     async ({ warehouseId, payload }, { rejectWithValue }) => {
       try {
         return await warehouseInventoryService.createWarehouseInventory(
+          warehouseId,
+          payload
+        );
+      } catch (error: unknown) {
+        return rejectWithValue(extractUiErrorPayload(error));
+      }
+    }
+);
+
+/**
+ * Adjust quantities for one or more warehouse inventory records.
+ */
+export const adjustWarehouseInventoryQuantitiesThunk = createAsyncThunk<
+  AdjustWarehouseInventoryQuantityResponse,
+  { warehouseId: string; payload: AdjustWarehouseInventoryQuantityRequest },
+  { rejectValue: UiErrorPayload }
+>(
+  'warehouseInventory/adjustQuantities',
+    async ({ warehouseId, payload }, { rejectWithValue }) => {
+      try {
+        return await warehouseInventoryService.adjustWarehouseInventoryQuantities(
           warehouseId,
           payload
         );

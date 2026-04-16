@@ -275,3 +275,30 @@ export type CreateWarehouseInventoryResponse =
 
 /** Redux mutation state for warehouse inventory create operations. */
 export type WarehouseInventoryCreateState = MutationState<WarehouseInventoryRecord[]>;
+
+// =============================================================================
+// Types
+// =============================================================================
+
+/** Single quantity adjustment item. */
+export type AdjustWarehouseInventoryQuantityItem = {
+  /** Inventory record UUID. */
+  id: string;
+  /** Updated warehouse quantity. */
+  warehouseQuantity: number;
+  /** Updated reserved quantity. Defaults to 0. */
+  reservedQuantity?: number;
+};
+
+/** Request payload for bulk quantity adjustments. */
+export type AdjustWarehouseInventoryQuantityRequest = {
+  updates: AdjustWarehouseInventoryQuantityItem[];
+};
+
+/** API response after adjusting warehouse inventory quantities. */
+export type AdjustWarehouseInventoryQuantityResponse =
+  ApiSuccessResponse<WarehouseInventoryRecord[]>;
+
+/** Redux mutation state for warehouse inventory quantity adjustments. */
+export type WarehouseInventoryAdjustQuantityState =
+  MutationState<WarehouseInventoryRecord[]>;

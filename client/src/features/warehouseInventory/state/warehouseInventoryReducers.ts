@@ -1,5 +1,6 @@
 import paginatedWarehouseInventoryReducer from './paginatedWarehouseInventorySlice';
 import warehouseInventoryCreateReducer from './warehouseInventoryCreateSlice';
+import warehouseInventoryAdjustQuantityReducer from './warehouseInventoryAdjustQuantitySlice';
 
 /**
  * Reducer map for the Warehouse Inventory feature.
@@ -15,8 +16,10 @@ import warehouseInventoryCreateReducer from './warehouseInventoryCreateSlice';
  *   index (barrel) files.
  */
 export const warehouseInventoryReducers = {
-  /** Paginated warehouse inventory list with filters and sorting */
+  /** Paginated warehouse inventory list with filters and sorting. */
   paginatedWarehouseInventory: paginatedWarehouseInventoryReducer,
   /** Warehouse inventory bulk creation mutation state. */
   warehouseInventoryCreate: warehouseInventoryCreateReducer,
+  /** Warehouse inventory bulk quantity adjustment mutation state. */
+  warehouseInventoryAdjustQuantity: warehouseInventoryAdjustQuantityReducer,
 };

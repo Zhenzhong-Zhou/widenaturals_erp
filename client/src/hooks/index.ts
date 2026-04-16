@@ -157,6 +157,7 @@ export { default as useWarehouses } from './useWarehouses';
 export { default as useWarehouseDetails } from './useWarehouseDetails';
 export { default as usePaginatedWarehouseInventory } from './usePaginatedWarehouseInventory';
 export { default as useWarehouseInventoryCreate } from './useWarehouseInventoryCreate';
+export { default as useWarehouseInventoryAdjustQuantity } from './useWarehouseInventoryAdjustQuantity';
 
 /* =====================================================
  * Lookups (Dropdown / Reference Data)

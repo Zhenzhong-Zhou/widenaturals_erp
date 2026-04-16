@@ -13,6 +13,7 @@ export { resetPaginatedWarehouseInventory } from './paginatedWarehouseInventoryS
 // --------------------------------------------------
 export * from './paginatedWarehouseInventorySelectors';
 export * from './warehouseInventoryCreateSelectors';
+export * from './warehouseInventoryAdjustQuantitySelectors';
 
 // --------------------------------------------------
 // Thunks & Types

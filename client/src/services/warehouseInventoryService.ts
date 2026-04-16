@@ -6,13 +6,14 @@
  */
 
 import type {
+  AdjustWarehouseInventoryQuantityRequest, AdjustWarehouseInventoryQuantityResponse,
   CreateWarehouseInventoryRequest, CreateWarehouseInventoryResponse,
   PaginatedWarehouseInventoryApiResponse,
   WarehouseInventoryQueryParams,
 } from '@features/warehouseInventory';
 import { buildQueryString, flattenListQueryParams } from '@utils/query';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
-import { getRequest, postRequest } from '@utils/http';
+import { getRequest, patchRequest, postRequest } from '@utils/http';
 
 /**
  * Fetch a paginated list of warehouse inventory records with optional filters and sorting.
@@ -57,7 +58,32 @@ const createWarehouseInventory = async (
   );
 };
 
+/**
+ * Adjust quantities for one or more warehouse inventory records.
+ *
+ * Issues:
+ *   PATCH /:warehouseId/inventory/quantities
+ *
+ * @param warehouseId - Target warehouse UUID.
+ * @param payload - Bulk quantity adjustment records.
+ * @returns API response containing the updated inventory record(s).
+ * @throws {AppError} When the request fails.
+ */
+const adjustWarehouseInventoryQuantities = async (
+  warehouseId: string,
+  payload: AdjustWarehouseInventoryQuantityRequest
+): Promise<AdjustWarehouseInventoryQuantityResponse> => {
+  return patchRequest<
+  AdjustWarehouseInventoryQuantityRequest,
+  AdjustWarehouseInventoryQuantityResponse
+  >(
+    API_ENDPOINTS.WAREHOUSE_INVENTORY.QUANTITIES(warehouseId),
+      payload
+  );
+};
+
 export const warehouseInventoryService = {
   fetchPaginatedWarehouseInventory,
   createWarehouseInventory,
+  adjustWarehouseInventoryQuantities,
 };
