@@ -8,6 +8,8 @@
 
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import type {
+  CreateWarehouseInventoryRequest,
+  CreateWarehouseInventoryResponse,
   PaginatedWarehouseInventoryListUiResponse,
   WarehouseInventoryQueryParams,
 } from '@features/warehouseInventory';
@@ -32,6 +34,27 @@ export const fetchPaginatedWarehouseInventoryThunk = createAsyncThunk<
           ...response,
           data: flattenWarehouseInventoryRecords(response.data),
         };
+      } catch (error: unknown) {
+        return rejectWithValue(extractUiErrorPayload(error));
+      }
+    }
+);
+
+/**
+ * Create one or more warehouse inventory records under a specific warehouse.
+ */
+export const createWarehouseInventoryThunk = createAsyncThunk<
+  CreateWarehouseInventoryResponse,
+  { warehouseId: string; payload: CreateWarehouseInventoryRequest },
+  { rejectValue: UiErrorPayload }
+>(
+  'warehouseInventory/create',
+    async ({ warehouseId, payload }, { rejectWithValue }) => {
+      try {
+        return await warehouseInventoryService.createWarehouseInventory(
+          warehouseId,
+          payload
+        );
       } catch (error: unknown) {
         return rejectWithValue(extractUiErrorPayload(error));
       }

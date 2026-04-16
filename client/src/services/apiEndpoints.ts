@@ -103,6 +103,8 @@ export const API_ENDPOINTS = {
   WAREHOUSE_INVENTORY: {
     ALL_RECORDS: (warehouseId: string) =>
       `/warehouses/${warehouseId}/inventory`,
+    CREATE: (warehouseId: string) =>
+      `/warehouses/${warehouseId}/inventory`,
     DETAIL: (warehouseId: string, inventoryId: string) =>
       `/warehouses/${warehouseId}/inventory/${inventoryId}`,
     QUANTITIES: (warehouseId: string) =>

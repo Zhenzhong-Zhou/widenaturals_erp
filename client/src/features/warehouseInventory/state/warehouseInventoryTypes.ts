@@ -8,7 +8,9 @@
  */
 
 import type {
+  ApiSuccessResponse,
   GenericStatus,
+  MutationState,
   PaginatedResponse,
   PaginationParams,
   SortConfig,
@@ -243,3 +245,33 @@ export type WarehouseInventorySortField =
   | 'sku'
   | 'materialCode'
   | 'defaultNaturalSort';
+
+// =============================================================================
+// Create Warehouse Inventory Types
+// =============================================================================
+
+/** Single inventory record for creation. */
+export type CreateWarehouseInventoryRecord = {
+  /** Batch registry UUID (product or packaging batch). */
+  batchId: string;
+  /** Quantity to inbound. */
+  warehouseQuantity: number;
+  /** Optional storage fee per unit (decimal string). */
+  warehouseFee?: number;
+  /** Optional inbound date (ISO string). Defaults to now on the server. */
+  inboundDate?: string;
+  /** Optional inventory status UUID. Defaults to server-side default. */
+  statusId?: string;
+};
+
+/** Request payload for creating warehouse inventory records. */
+export type CreateWarehouseInventoryRequest = {
+  records: CreateWarehouseInventoryRecord[];
+};
+
+/** API response after creating warehouse inventory records. */
+export type CreateWarehouseInventoryResponse =
+  ApiSuccessResponse<WarehouseInventoryRecord[]>;
+
+/** Redux mutation state for warehouse inventory create operations. */
+export type WarehouseInventoryCreateState = MutationState<WarehouseInventoryRecord[]>;

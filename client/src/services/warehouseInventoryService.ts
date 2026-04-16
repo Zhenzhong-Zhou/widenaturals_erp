@@ -6,12 +6,13 @@
  */
 
 import type {
+  CreateWarehouseInventoryRequest, CreateWarehouseInventoryResponse,
   PaginatedWarehouseInventoryApiResponse,
   WarehouseInventoryQueryParams,
 } from '@features/warehouseInventory';
 import { buildQueryString, flattenListQueryParams } from '@utils/query';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
-import { getRequest } from '@utils/http';
+import { getRequest, postRequest } from '@utils/http';
 
 /**
  * Fetch a paginated list of warehouse inventory records with optional filters and sorting.
@@ -31,6 +32,32 @@ const fetchPaginatedWarehouseInventory = async (
   });
 };
 
+/**
+ * Create one or more warehouse inventory records.
+ *
+ * Issues:
+ *   POST /:warehouseId/inventory
+ *
+ * Notes:
+ * - Accepts a bulk payload with 1–200 records.
+ * - Errors are propagated as normalized AppError instances by the transport layer.
+ *
+ * @param warehouseId - Target warehouse UUID.
+ * @param payload - Inventory records to create.
+ * @returns API response containing the created inventory record(s).
+ * @throws {AppError} When the request fails.
+ */
+const createWarehouseInventory = async (
+  warehouseId: string,
+  payload: CreateWarehouseInventoryRequest
+): Promise<CreateWarehouseInventoryResponse> => {
+  return postRequest<CreateWarehouseInventoryRequest, CreateWarehouseInventoryResponse>(
+    API_ENDPOINTS.WAREHOUSE_INVENTORY.CREATE(warehouseId),
+    payload
+  );
+};
+
 export const warehouseInventoryService = {
   fetchPaginatedWarehouseInventory,
+  createWarehouseInventory,
 };
