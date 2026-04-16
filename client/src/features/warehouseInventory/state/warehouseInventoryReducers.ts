@@ -1,8 +1,4 @@
-import warehouseInventoryItemSummaryReducer from './warehouseInventoryItemSummarySlice';
-import warehouseInventorySummaryDetailReducer from './warehouseInventorySummaryDetailSlice';
-import warehouseInventoryReducer from './warehouseInventorySlice';
-import warehouseInventoryCreateReducer from './warehouseInventoryCreateSlice';
-import warehouseInventoryAdjustReducer from './warehouseInventoryAdjustSlice';
+import paginatedWarehouseInventoryReducer from './paginatedWarehouseInventorySlice';
 
 /**
  * Reducer map for the Warehouse Inventory feature.
@@ -18,18 +14,6 @@ import warehouseInventoryAdjustReducer from './warehouseInventoryAdjustSlice';
  *   index (barrel) files.
  */
 export const warehouseInventoryReducers = {
-  /** Aggregated item-level inventory summary */
-  warehouseInventoryItemSummary: warehouseInventoryItemSummaryReducer,
-
-  /** Detailed inventory summary for a specific SKU / batch */
-  warehouseInventorySummaryDetail: warehouseInventorySummaryDetailReducer,
-
-  /** Core warehouse inventory records */
-  warehouseInventory: warehouseInventoryReducer,
-
-  /** Warehouse inventory creation workflow */
-  createWarehouseInventory: warehouseInventoryCreateReducer,
-
-  /** Inventory adjustment workflow */
-  warehouseInventoryAdjust: warehouseInventoryAdjustReducer,
+  /** Paginated warehouse inventory list with filters and sorting */
+  paginatedWarehouseInventory: paginatedWarehouseInventoryReducer,
 };

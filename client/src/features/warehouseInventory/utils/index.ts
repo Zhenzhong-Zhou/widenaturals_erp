@@ -1,0 +1,1 @@
+export { flattenWarehouseInventoryRecords } from './flattenWarehouseInventoryRecords';

@@ -1,46 +1,86 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
-  fetchWarehouseInventoryRecordsThunk,
-  selectWarehouseInventoryError,
-  selectWarehouseInventoryLoading,
-  selectWarehouseInventoryPagination,
-  selectWarehouseInventoryRecords,
+  fetchPaginatedWarehouseInventoryThunk,
+  selectPaginatedWarehouseInventoryData,
+  selectPaginatedWarehouseInventoryPagination,
+  selectPaginatedWarehouseInventoryLoading,
+  selectPaginatedWarehouseInventoryError,
+  selectPaginatedWarehouseInventoryTotalRecords,
+  selectPaginatedWarehouseInventoryIsEmpty,
 } from '@features/warehouseInventory/state';
-import type { WarehouseInventoryFilters } from '@features/warehouseInventory/state';
-import type { PaginationParams, SortConfig } from '@shared-types/api';
+import type { WarehouseInventoryQueryParams } from '@features/warehouseInventory';
+import { resetPaginatedWarehouseInventory } from '@features/warehouseInventory/state/paginatedWarehouseInventorySlice';
+import { normalizePagination } from '@utils/pagination/normalizePagination';
 
-const useWarehouseInventory = () => {
+/**
+ * React hook that provides access to paginated warehouse inventory list state and actions.
+ *
+ * Exposes:
+ * - Warehouse inventory list data
+ * - Loading & error state
+ * - Pagination metadata
+ * - Total record count
+ * - Empty state indicator
+ * - Actions to fetch or reset warehouse inventory list
+ *
+ * This hook should be used by all warehouse inventory list pages and list-based components.
+ */
+const usePaginatedWarehouseInventory = () => {
   const dispatch = useAppDispatch();
-
-  const data = useAppSelector(selectWarehouseInventoryRecords);
-  const loading = useAppSelector(selectWarehouseInventoryLoading);
-  const error = useAppSelector(selectWarehouseInventoryError);
-  const pagination = useAppSelector(selectWarehouseInventoryPagination);
-
-  const records = useMemo(() => data, [data]);
-
-  const fetchRecords = (
-    paginationParams: PaginationParams,
-    filters: WarehouseInventoryFilters,
-    sortConfig: SortConfig = {}
-  ) => {
-    dispatch(
-      fetchWarehouseInventoryRecordsThunk({
-        pagination: paginationParams,
-        filters,
-        sortConfig,
-      })
-    );
-  };
-
+  
+  // ---------------------------
+  // Selectors
+  // ---------------------------
+  const data         = useAppSelector(selectPaginatedWarehouseInventoryData);
+  const pagination   = useAppSelector(selectPaginatedWarehouseInventoryPagination);
+  const loading      = useAppSelector(selectPaginatedWarehouseInventoryLoading);
+  const error        = useAppSelector(selectPaginatedWarehouseInventoryError);
+  const totalRecords = useAppSelector(selectPaginatedWarehouseInventoryTotalRecords);
+  const isEmpty      = useAppSelector(selectPaginatedWarehouseInventoryIsEmpty);
+  
+  // ---------------------------
+  // Actions
+  // ---------------------------
+  /**
+   * Fetch paginated warehouse inventory records.
+   * Accepts warehouseId, pagination, sorting, and filter parameters.
+   */
+  const fetchWarehouseInventory = useCallback(
+    (params: WarehouseInventoryQueryParams) => {
+      dispatch(fetchPaginatedWarehouseInventoryThunk(params));
+    },
+    [dispatch]
+  );
+  
+  /**
+   * Reset warehouse inventory list state back to initial empty paginated state.
+   */
+  const resetWarehouseInventory = useCallback(() => {
+    dispatch(resetPaginatedWarehouseInventory());
+  }, [dispatch]);
+  
+  // ---------------------------
+  // Derived memoized values
+  // ---------------------------
+  const pageInfo = useMemo(() => {
+    const { page, limit } = normalizePagination(pagination);
+    return { page, limit };
+  }, [pagination]);
+  
   return {
-    records,
+    data,
+    pagination,
     loading,
     error,
-    pagination,
-    fetchRecords, // exposed fetch function
+    totalRecords,
+    isEmpty,
+    
+    pageInfo,
+    
+    fetchWarehouseInventory,
+    resetWarehouseInventory,
   };
 };
 
-export default useWarehouseInventory;
+export default usePaginatedWarehouseInventory;

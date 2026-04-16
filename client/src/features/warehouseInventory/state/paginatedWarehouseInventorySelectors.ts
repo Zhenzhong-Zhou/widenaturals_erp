@@ -3,47 +3,56 @@ import type { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 
 /**
- * Base selector to access the warehouseInventory slice from the root state.
+ * Base selector for the paginated Warehouse Inventory slice.
+ * Extracts the entire `paginatedWarehouseInventory` state from the Redux store.
  */
-const selectWarehouseInventoryState = (state: RootState) =>
-  selectRuntime(state).warehouseInventory;
+const selectPaginatedWarehouseInventoryState = (state: RootState) =>
+  selectRuntime(state).paginatedWarehouseInventory;
 
 /**
- * Selector to get the inventory record list.
- *
- * @returns {WarehouseInventoryRecord[]} Array of warehouse inventory records.
+ * Selector: Returns the array of flattened warehouse inventory records.
  */
-export const selectWarehouseInventoryRecords = createSelector(
-  [selectWarehouseInventoryState],
+export const selectPaginatedWarehouseInventoryData = createSelector(
+  [selectPaginatedWarehouseInventoryState],
   (state) => state.data
 );
 
 /**
- * Selector to get the loading state for warehouse inventory.
- *
- * @returns {boolean} True if data is being fetched.
+ * Selector: Indicates whether the warehouse inventory list request is currently loading.
  */
-export const selectWarehouseInventoryLoading = createSelector(
-  [selectWarehouseInventoryState],
+export const selectPaginatedWarehouseInventoryLoading = createSelector(
+  [selectPaginatedWarehouseInventoryState],
   (state) => state.loading
 );
 
 /**
- * Selector to get the error state for warehouse inventory.
- *
- * @returns {string | null} Error message if request failed.
+ * Selector: Returns the error message from the warehouse inventory list state, if any.
  */
-export const selectWarehouseInventoryError = createSelector(
-  [selectWarehouseInventoryState],
+export const selectPaginatedWarehouseInventoryError = createSelector(
+  [selectPaginatedWarehouseInventoryState],
   (state): string | null => state.error?.message ?? null
 );
 
 /**
- * Selector to get the pagination info for warehouse inventory.
- *
- * @returns {Pagination | null} Pagination metadata (page, limit, totalRecords, etc.)
+ * Selector: Returns the pagination metadata for the warehouse inventory list.
  */
-export const selectWarehouseInventoryPagination = createSelector(
-  [selectWarehouseInventoryState],
+export const selectPaginatedWarehouseInventoryPagination = createSelector(
+  [selectPaginatedWarehouseInventoryState],
   (state) => state.pagination
+);
+
+/**
+ * Selector: Returns `true` if the warehouse inventory list is loaded and empty.
+ */
+export const selectPaginatedWarehouseInventoryIsEmpty = createSelector(
+  [selectPaginatedWarehouseInventoryData, selectPaginatedWarehouseInventoryLoading],
+  (data, loading) => !loading && data.length === 0
+);
+
+/**
+ * Selector: Returns the total number of warehouse inventory records across all pages.
+ */
+export const selectPaginatedWarehouseInventoryTotalRecords = createSelector(
+  [selectPaginatedWarehouseInventoryPagination],
+  (pagination) => pagination?.totalRecords ?? 0
 );

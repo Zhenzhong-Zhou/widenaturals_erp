@@ -101,12 +101,24 @@ export const API_ENDPOINTS = {
       `/warehouses/${warehouseId}/details`,
   },
   WAREHOUSE_INVENTORY: {
-    ALL_RECORDS: '/warehouse-inventory',
-    SUMMARY: '/warehouse-inventory/summary',
-    SUMMARY_DETAIL: (itemId: string) =>
-      `/warehouse-inventory/summary/${itemId}/details`,
-    ADD_RECORDS: '/warehouse-inventory',
-    ADJUST_QUANTITIES: '/warehouse-inventory/adjust-quantities',
+    ALL_RECORDS: (warehouseId: string) =>
+      `/warehouses/${warehouseId}/inventory`,
+    DETAIL: (warehouseId: string, inventoryId: string) =>
+      `/warehouses/${warehouseId}/inventory/${inventoryId}`,
+    QUANTITIES: (warehouseId: string) =>
+      `/warehouses/${warehouseId}/inventory/quantities`,
+    STATUSES: (warehouseId: string) =>
+      `/warehouses/${warehouseId}/inventory/statuses`,
+    METADATA: (warehouseId: string, inventoryId: string) =>
+      `/warehouses/${warehouseId}/inventory/${inventoryId}/metadata`,
+    OUTBOUND: (warehouseId: string) =>
+      `/warehouses/${warehouseId}/inventory/outbound`,
+    ACTIVITY_LOG: (warehouseId: string) =>
+      `/warehouses/${warehouseId}/inventory/activity-log`,
+    SUMMARY: (warehouseId: string) =>
+      `/warehouses/${warehouseId}/summary`,
+    SUMMARY_ITEMS: (warehouseId: string) =>
+      `/warehouses/${warehouseId}/summary/items`,
   },
   LOOKUPS: {
     BATCH_REGISTRY: '/lookups/batch-registry',

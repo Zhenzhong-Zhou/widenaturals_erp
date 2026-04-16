@@ -1,47 +1,79 @@
-import { createSlice } from '@reduxjs/toolkit';
-import { fetchWarehouseInventoryRecordsThunk } from './warehouseInventoryThunks';
-import type {
-  WarehouseInventoryRecord,
-  WarehouseInventoryState,
-} from './warehouseInventoryTypes';
-import { applyRejected } from '@features/shared/async/asyncReducerUtils';
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { createInitialPaginatedState } from '@store/pagination';
+import { fetchPaginatedWarehouseInventoryThunk } from '@features/warehouseInventory';
+import type {
+  WarehouseInventoryListState,
+  FlattenedWarehouseInventory,
+  PaginatedWarehouseInventoryListUiResponse,
+} from '@features/warehouseInventory';
 
-const initialState: WarehouseInventoryState =
-  createInitialPaginatedState<WarehouseInventoryRecord>();
+// ---------------------------
+// Initial State
+// ---------------------------
+const initialState: WarehouseInventoryListState =
+  createInitialPaginatedState<FlattenedWarehouseInventory>();
 
-const warehouseInventorySlice = createSlice({
-  name: 'warehouseInventory',
+// ---------------------------
+// Slice
+// ---------------------------
+const paginatedWarehouseInventorySlice = createSlice({
+  name: 'paginatedWarehouseInventory',
   initialState,
+  
   reducers: {
-    resetWarehouseInventory: () => initialState,
+    /**
+     * Reset the entire paginated warehouse inventory state back to its
+     * initial, empty configuration.
+     *
+     * Typically used when:
+     * - Leaving the warehouse inventory list page
+     * - Switching warehouses
+     * - Performing a full filter reset
+     */
+    resetPaginatedWarehouseInventory: () => initialState,
   },
+  
+  // ---------------------------
+  // Extra reducers (async thunk lifecycle)
+  // ---------------------------
   extraReducers: (builder) => {
     builder
-      .addCase(fetchWarehouseInventoryRecordsThunk.pending, (state) => {
+      // ---- pending ----
+      .addCase(fetchPaginatedWarehouseInventoryThunk.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
+      
+      // ---- fulfilled ----
       .addCase(
-        fetchWarehouseInventoryRecordsThunk.fulfilled,
-        (state, action) => {
+        fetchPaginatedWarehouseInventoryThunk.fulfilled,
+        (state, action: PayloadAction<PaginatedWarehouseInventoryListUiResponse>) => {
+          const payload = action.payload;
+          
           state.loading = false;
-          state.data = action.payload.data;
-          state.pagination = action.payload.pagination;
+          state.data = payload.data;
+          
+          state.pagination = {
+            page: payload.pagination.page,
+            limit: payload.pagination.limit,
+            totalRecords: payload.pagination.totalRecords,
+            totalPages: payload.pagination.totalPages,
+          };
         }
       )
-      .addCase(
-        fetchWarehouseInventoryRecordsThunk.rejected,
-        (state, action) => {
-          applyRejected(
-            state,
-            action,
-            'Failed to fetch warehouse inventory records.'
-          );
-        }
-      );
+      
+      // ---- rejected ----
+      .addCase(fetchPaginatedWarehouseInventoryThunk.rejected, (state, action) => {
+        state.loading = false;
+        state.error =
+          (action.payload as any)?.message ??
+          action.error?.message ??
+          'Failed to fetch warehouse inventory records.';
+      });
   },
 });
 
-export const { resetWarehouseInventory } = warehouseInventorySlice.actions;
-export default warehouseInventorySlice.reducer;
+export const { resetPaginatedWarehouseInventory } =
+  paginatedWarehouseInventorySlice.actions;
+
+export default paginatedWarehouseInventorySlice.reducer;
