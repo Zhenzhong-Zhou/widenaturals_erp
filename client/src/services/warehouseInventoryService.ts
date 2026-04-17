@@ -6,9 +6,16 @@
  */
 
 import type {
-  AdjustWarehouseInventoryQuantityRequest, AdjustWarehouseInventoryQuantityResponse,
-  CreateWarehouseInventoryRequest, CreateWarehouseInventoryResponse,
-  PaginatedWarehouseInventoryApiResponse,
+  AdjustWarehouseInventoryQuantityRequest,
+  AdjustWarehouseInventoryQuantityResponse,
+  CreateWarehouseInventoryRequest,
+  CreateWarehouseInventoryResponse, InventoryActivityLogQueryParams, PaginatedInventoryActivityLogApiResponse,
+  PaginatedWarehouseInventoryApiResponse, RecordWarehouseInventoryOutboundRequest,
+  RecordWarehouseInventoryOutboundResponse,
+  UpdateWarehouseInventoryMetadataRequest,
+  UpdateWarehouseInventoryMetadataResponse,
+  UpdateWarehouseInventoryStatusRequest,
+  UpdateWarehouseInventoryStatusResponse, WarehouseInventoryDetailResponse,
   WarehouseInventoryQueryParams,
 } from '@features/warehouseInventory';
 import { buildQueryString, flattenListQueryParams } from '@utils/query';
@@ -74,16 +81,139 @@ const adjustWarehouseInventoryQuantities = async (
   payload: AdjustWarehouseInventoryQuantityRequest
 ): Promise<AdjustWarehouseInventoryQuantityResponse> => {
   return patchRequest<
-  AdjustWarehouseInventoryQuantityRequest,
-  AdjustWarehouseInventoryQuantityResponse
+    AdjustWarehouseInventoryQuantityRequest,
+    AdjustWarehouseInventoryQuantityResponse
   >(
     API_ENDPOINTS.WAREHOUSE_INVENTORY.QUANTITIES(warehouseId),
       payload
   );
 };
 
+/**
+ * Update statuses for one or more warehouse inventory records.
+ *
+ * Issues:
+ *   PATCH /:warehouseId/inventory/statuses
+ *
+ * @param warehouseId - Target warehouse UUID.
+ * @param payload - Bulk status update records.
+ * @returns API response containing the updated inventory record(s).
+ * @throws {AppError} When the request fails.
+ */
+const updateWarehouseInventoryStatuses = async (
+  warehouseId: string,
+  payload: UpdateWarehouseInventoryStatusRequest
+): Promise<UpdateWarehouseInventoryStatusResponse> => {
+  return patchRequest<
+    UpdateWarehouseInventoryStatusRequest,
+    UpdateWarehouseInventoryStatusResponse
+  >(
+    API_ENDPOINTS.WAREHOUSE_INVENTORY.STATUSES(warehouseId),
+      payload
+  );
+};
+
+/**
+ * Update metadata for a single warehouse inventory record.
+ *
+ * Issues:
+ *   PATCH /:warehouseId/inventory/:inventoryId/metadata
+ *
+ * @param warehouseId - Target warehouse UUID.
+ * @param inventoryId - Target inventory record UUID.
+ * @param payload - Metadata fields to update.
+ * @returns API response containing the updated inventory record.
+ * @throws {AppError} When the request fails.
+ */
+const updateWarehouseInventoryMetadata = async (
+  warehouseId: string,
+  inventoryId: string,
+  payload: UpdateWarehouseInventoryMetadataRequest
+): Promise<UpdateWarehouseInventoryMetadataResponse> => {
+  return patchRequest<
+    UpdateWarehouseInventoryMetadataRequest,
+    UpdateWarehouseInventoryMetadataResponse
+  >(
+    API_ENDPOINTS.WAREHOUSE_INVENTORY.METADATA(warehouseId, inventoryId),
+      payload
+  );
+};
+
+/**
+ * Record outbound for one or more warehouse inventory records.
+ *
+ * Issues:
+ *   POST /:warehouseId/inventory/outbound
+ *
+ * @param warehouseId - Target warehouse UUID.
+ * @param payload - Bulk outbound records.
+ * @returns API response containing the updated inventory record(s).
+ * @throws {AppError} When the request fails.
+ */
+const recordWarehouseInventoryOutbound = async (
+  warehouseId: string,
+  payload: RecordWarehouseInventoryOutboundRequest
+): Promise<RecordWarehouseInventoryOutboundResponse> => {
+  return postRequest<
+    RecordWarehouseInventoryOutboundRequest,
+    RecordWarehouseInventoryOutboundResponse
+  >(
+    API_ENDPOINTS.WAREHOUSE_INVENTORY.OUTBOUND(warehouseId),
+      payload
+  );
+};
+
+/**
+ * Fetch detail for a single warehouse inventory record.
+ *
+ * Issues:
+ *   GET /:warehouseId/inventory/:inventoryId
+ *
+ * @param warehouseId - Target warehouse UUID.
+ * @param inventoryId - Target inventory record UUID.
+ * @returns API response containing the full inventory detail record.
+ * @throws {AppError} When the request fails.
+ */
+const fetchWarehouseInventoryDetail = async (
+  warehouseId: string,
+  inventoryId: string
+): Promise<WarehouseInventoryDetailResponse> => {
+  return getRequest<WarehouseInventoryDetailResponse>(
+    API_ENDPOINTS.WAREHOUSE_INVENTORY.DETAIL(warehouseId, inventoryId),
+    { policy: 'READ' }
+  );
+};
+
+/**
+ * Fetch a paginated list of inventory activity log records.
+ *
+ * Issues:
+ *   GET /:warehouseId/inventory/activity-log
+ *
+ * @param params - Query parameters including warehouseId, pagination, sorting, and filters.
+ * @returns Paginated API response containing activity log records.
+ * @throws {AppError} When the request fails.
+ */
+const fetchInventoryActivityLog = async (
+  params: InventoryActivityLogQueryParams
+): Promise<PaginatedInventoryActivityLogApiResponse> => {
+  const { warehouseId, ...queryParams } = params;
+  const flatParams = flattenListQueryParams(queryParams, []);
+  const queryString = buildQueryString(flatParams);
+  const url = `${API_ENDPOINTS.WAREHOUSE_INVENTORY.ACTIVITY_LOG(warehouseId)}${queryString}`;
+  
+  return getRequest<PaginatedInventoryActivityLogApiResponse>(url, {
+    policy: 'READ',
+  });
+};
+
 export const warehouseInventoryService = {
   fetchPaginatedWarehouseInventory,
   createWarehouseInventory,
   adjustWarehouseInventoryQuantities,
+  updateWarehouseInventoryStatuses,
+  updateWarehouseInventoryMetadata,
+  recordWarehouseInventoryOutbound,
+  fetchWarehouseInventoryDetail,
+  fetchInventoryActivityLog,
 };

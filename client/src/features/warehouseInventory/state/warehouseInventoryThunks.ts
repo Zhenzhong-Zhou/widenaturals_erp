@@ -11,8 +11,13 @@ import type {
   AdjustWarehouseInventoryQuantityRequest,
   AdjustWarehouseInventoryQuantityResponse,
   CreateWarehouseInventoryRequest,
-  CreateWarehouseInventoryResponse,
+  CreateWarehouseInventoryResponse, InventoryActivityLogQueryParams, PaginatedInventoryActivityLogListUiResponse,
   PaginatedWarehouseInventoryListUiResponse,
+  RecordWarehouseInventoryOutboundRequest, RecordWarehouseInventoryOutboundResponse,
+  UpdateWarehouseInventoryMetadataRequest,
+  UpdateWarehouseInventoryMetadataResponse,
+  UpdateWarehouseInventoryStatusRequest,
+  UpdateWarehouseInventoryStatusResponse, WarehouseInventoryDetailResponse,
   WarehouseInventoryQueryParams,
 } from '@features/warehouseInventory';
 import { extractUiErrorPayload, type UiErrorPayload } from '@utils/error/uiErrorUtils';
@@ -78,6 +83,109 @@ export const adjustWarehouseInventoryQuantitiesThunk = createAsyncThunk<
           warehouseId,
           payload
         );
+      } catch (error: unknown) {
+        return rejectWithValue(extractUiErrorPayload(error));
+      }
+    }
+);
+
+/**
+ * Update statuses for one or more warehouse inventory records.
+ */
+export const updateWarehouseInventoryStatusesThunk = createAsyncThunk<
+  UpdateWarehouseInventoryStatusResponse,
+  { warehouseId: string; payload: UpdateWarehouseInventoryStatusRequest },
+  { rejectValue: UiErrorPayload }
+>(
+  'warehouseInventory/updateStatuses',
+    async ({ warehouseId, payload }, { rejectWithValue }) => {
+      try {
+        return await warehouseInventoryService.updateWarehouseInventoryStatuses(
+          warehouseId,
+          payload
+        );
+      } catch (error: unknown) {
+        return rejectWithValue(extractUiErrorPayload(error));
+      }
+    }
+);
+
+/**
+ * Update metadata for a single warehouse inventory record.
+ */
+export const updateWarehouseInventoryMetadataThunk = createAsyncThunk<
+  UpdateWarehouseInventoryMetadataResponse,
+  { warehouseId: string; inventoryId: string; payload: UpdateWarehouseInventoryMetadataRequest },
+  { rejectValue: UiErrorPayload }
+>(
+  'warehouseInventory/updateMetadata',
+    async ({ warehouseId, inventoryId, payload }, { rejectWithValue }) => {
+      try {
+        return await warehouseInventoryService.updateWarehouseInventoryMetadata(
+          warehouseId,
+          inventoryId,
+          payload
+        );
+      } catch (error: unknown) {
+        return rejectWithValue(extractUiErrorPayload(error));
+      }
+    }
+);
+
+/**
+ * Record outbound for one or more warehouse inventory records.
+ */
+export const recordWarehouseInventoryOutboundThunk = createAsyncThunk<
+  RecordWarehouseInventoryOutboundResponse,
+  { warehouseId: string; payload: RecordWarehouseInventoryOutboundRequest },
+  { rejectValue: UiErrorPayload }
+>(
+  'warehouseInventory/recordOutbound',
+    async ({ warehouseId, payload }, { rejectWithValue }) => {
+      try {
+        return await warehouseInventoryService.recordWarehouseInventoryOutbound(
+          warehouseId,
+          payload
+        );
+      } catch (error: unknown) {
+        return rejectWithValue(extractUiErrorPayload(error));
+      }
+    }
+);
+
+/**
+ * Fetch detail for a single warehouse inventory record.
+ */
+export const fetchWarehouseInventoryDetailThunk = createAsyncThunk<
+  WarehouseInventoryDetailResponse,
+  { warehouseId: string; inventoryId: string },
+  { rejectValue: UiErrorPayload }
+>(
+  'warehouseInventory/fetchDetail',
+    async ({ warehouseId, inventoryId }, { rejectWithValue }) => {
+      try {
+        return await warehouseInventoryService.fetchWarehouseInventoryDetail(
+          warehouseId,
+          inventoryId
+        );
+      } catch (error: unknown) {
+        return rejectWithValue(extractUiErrorPayload(error));
+      }
+    }
+);
+
+/**
+ * Fetch a paginated list of inventory activity log records.
+ */
+export const fetchInventoryActivityLogThunk = createAsyncThunk<
+  PaginatedInventoryActivityLogListUiResponse,
+  InventoryActivityLogQueryParams,
+  { rejectValue: UiErrorPayload }
+>(
+  'warehouseInventory/fetchActivityLog',
+    async (params, { rejectWithValue }) => {
+      try {
+        return await warehouseInventoryService.fetchInventoryActivityLog(params);
       } catch (error: unknown) {
         return rejectWithValue(extractUiErrorPayload(error));
       }

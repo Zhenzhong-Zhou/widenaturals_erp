@@ -158,6 +158,11 @@ export { default as useWarehouseDetails } from './useWarehouseDetails';
 export { default as usePaginatedWarehouseInventory } from './usePaginatedWarehouseInventory';
 export { default as useWarehouseInventoryCreate } from './useWarehouseInventoryCreate';
 export { default as useWarehouseInventoryAdjustQuantity } from './useWarehouseInventoryAdjustQuantity';
+export { default as useWarehouseInventoryUpdateStatus } from './useWarehouseInventoryUpdateStatus';
+export { default as useWarehouseInventoryUpdateMetadata } from './useWarehouseInventoryUpdateMetadata';
+export { default as useWarehouseInventoryOutbound } from './useWarehouseInventoryOutbound';
+export { default as useWarehouseInventoryDetail } from './useWarehouseInventoryDetail';
+export { default as useInventoryActivityLog } from './useInventoryActivityLog';
 
 /* =====================================================
  * Lookups (Dropdown / Reference Data)
