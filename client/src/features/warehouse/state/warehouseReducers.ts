@@ -1,5 +1,5 @@
-import warehouseReducer from './warehouseSlice';
-import warehouseDetailReducer from './warehouseDetailSlice';
+import paginatedWarehouseReducer from './paginatedWarehouseSlice';
+import warehouseDetailReducer    from './warehouseDetailSlice';
 
 /**
  * Reducer map for the Warehouse feature.
@@ -15,9 +15,9 @@ import warehouseDetailReducer from './warehouseDetailSlice';
  *   index (barrel) files.
  */
 export const warehouseReducers = {
-  /** Warehouse list and core warehouse data */
-  warehouses: warehouseReducer,
-
-  /** Single warehouse detail view */
-  warehouseDetails: warehouseDetailReducer,
+  /** Paginated warehouse list with inventory summary stats. */
+  paginatedWarehouses: paginatedWarehouseReducer,
+  
+  /** Single warehouse detail view. */
+  warehouseDetail: warehouseDetailReducer,
 };

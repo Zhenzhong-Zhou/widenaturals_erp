@@ -1,36 +1,51 @@
+/**
+ * @file warehouseThunks.ts
+ *
+ * Redux async thunks for the Warehouse domain.
+ * Each thunk calls the corresponding service function and handles error extraction.
+ */
+
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import type {
-  WarehouseDetailsResponse,
-  WarehouseResponse,
-} from '@features/warehouse';
+  WarehouseQueryParams,
+  PaginatedWarehouseListApiResponse,
+  WarehouseDetailApiResponse,
+} from '@features/warehouse/state/warehouseTypes';
+import { extractUiErrorPayload, type UiErrorPayload } from '@utils/error/uiErrorUtils';
 import { warehouseService } from '@services/warehouseService';
 
-// Define API Thunk
-export const fetchWarehousesThunk = createAsyncThunk<
-  WarehouseResponse, // Return type
-  { page?: number; limit?: number; sortBy?: string; sortOrder?: string }, // Arguments
-  { rejectValue: string } // Error type
+/**
+ * Fetch a paginated list of warehouses with optional filters and sorting.
+ */
+export const fetchPaginatedWarehousesThunk = createAsyncThunk<
+  PaginatedWarehouseListApiResponse,
+  WarehouseQueryParams,
+  { rejectValue: UiErrorPayload }
 >(
-  'warehouses/fetchWarehouses',
-  async ({ page = 1, limit = 10 }, { rejectWithValue }) => {
+  'warehouse/fetchPaginatedWarehouses',
+  async (params, { rejectWithValue }) => {
     try {
-      return await warehouseService.fetchAllWarehouses(page, limit);
-    } catch (error) {
-      return rejectWithValue('Failed to fetch warehouses.');
+      return await warehouseService.fetchPaginatedWarehouses(params);
+    } catch (error: unknown) {
+      return rejectWithValue(extractUiErrorPayload(error));
     }
   }
 );
 
-export const fetchWarehouseDetailsThunk = createAsyncThunk<
-  WarehouseDetailsResponse,
-  { warehouseId: string }
->('warehouse/fetchDetails', async ({ warehouseId }, { rejectWithValue }) => {
-  try {
-    const data = await warehouseService.fetchWarehouseDetails(warehouseId);
-    if (!data) throw new Error('No data received');
-    return data;
-  } catch (error) {
-    console.error('Error fetching warehouse details:', error);
-    return rejectWithValue('Failed to fetch warehouse details.');
+/**
+ * Fetch full warehouse detail by id.
+ */
+export const fetchWarehouseByIdThunk = createAsyncThunk<
+  WarehouseDetailApiResponse,
+  string,
+  { rejectValue: UiErrorPayload }
+>(
+  'warehouse/fetchWarehouseById',
+  async (warehouseId, { rejectWithValue }) => {
+    try {
+      return await warehouseService.fetchWarehouseById(warehouseId);
+    } catch (error: unknown) {
+      return rejectWithValue(extractUiErrorPayload(error));
+    }
   }
-});
+);

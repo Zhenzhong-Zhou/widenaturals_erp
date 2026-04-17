@@ -1,72 +1,158 @@
-// Warehouse Type
-export interface Warehouse {
+/**
+ * @file warehouseTypes.ts
+ *
+ * Type definitions for the Warehouse domain.
+ *
+ * Covers API response shapes, filter/query parameters,
+ * sort fields, and Redux state types.
+ */
+
+import type {
+  ApiSuccessResponse,
+  GenericAudit,
+  PaginatedResponse,
+  PaginationParams,
+  SortConfig,
+  AsyncState,
+  CreatedUpdatedDateFilter,
+} from '@shared-types/api';
+import type { ReduxPaginatedState } from '@shared-types/pagination';
+import type { NullableNumber, NullableString } from '@shared-types/shared';
+
+// =============================================================================
+// Shared Sub-types
+// =============================================================================
+
+/** Inventory summary aggregated from active warehouse_inventory records. */
+interface WarehouseInventorySummary {
+  /** Number of active inventory batches in the warehouse. */
+  totalBatches: number;
+  /** Total units held across all active batches. */
+  totalQuantity: number;
+  /** Total units currently reserved against orders. */
+  totalReserved: number;
+  /** Units available for new reservations (totalQuantity - totalReserved). */
+  availableQuantity: number;
+}
+
+/** Warehouse type reference. */
+interface WarehouseType {
   id: string;
-  warehouse_name: string;
-  location_name: string;
-  storage_capacity: number;
-  status_name: string;
-  created_at: string;
-  updated_at: string;
-  created_by: string;
-  updated_by: string;
+  name: string;
 }
 
-// Pagination Type
-export interface Pagination {
-  page: number;
-  limit: number;
-  totalRecords: number;
-  totalPages: number;
-}
-
-// API Response Type
-export interface WarehouseResponse {
-  success: boolean;
-  message: string;
-  warehouses: Warehouse[];
-  pagination: Pagination;
-}
-
-export interface LocationType {
+/** Warehouse status. */
+interface WarehouseStatus {
   id: string;
+  name: NullableString;
+  date: NullableString;
+}
+
+// =============================================================================
+// Core Record Types
+// =============================================================================
+
+/** Warehouse record returned by the paginated list endpoint. */
+export interface WarehouseRecord {
+  id: string;
+  name: string;
   code: string;
-  name: string;
-  description: string;
+  storageCapacity: NullableNumber;
+  defaultFee: NullableNumber;
+  isArchived: boolean;
+  location: {
+    id: string;
+    name: string;
+  };
+  warehouseType: WarehouseType | null;
+  status: WarehouseStatus;
+  summary: WarehouseInventorySummary;
+  audit: GenericAudit;
 }
 
-export interface Status {
+/** Full warehouse record returned by the detail endpoint. */
+export interface WarehouseDetailRecord {
   id: string;
   name: string;
-  statusDate?: string; // Optional as it's only present in location
+  code: string;
+  storageCapacity: NullableNumber;
+  defaultFee: NullableNumber;
+  isArchived: boolean;
+  notes: NullableString;
+  location: {
+    id: string;
+    name: string;
+    addressLine1: NullableString;
+    addressLine2: NullableString;
+    city: NullableString;
+    provinceOrState: NullableString;
+    postalCode: NullableString;
+    country: NullableString;
+    /** Pre-formatted address string for display. Null if all address fields are empty. */
+    formattedAddress: NullableString;
+    locationType: {
+      id: string;
+      name: string;
+    } | null;
+  };
+  warehouseType: WarehouseType | null;
+  status: WarehouseStatus;
+  summary: WarehouseInventorySummary;
+  audit: GenericAudit;
 }
 
-export interface Metadata {
-  createdBy?: string; // Made optional because location.metadata is sometimes empty
+// =============================================================================
+// API Response Types
+// =============================================================================
+
+export type PaginatedWarehouseListApiResponse = PaginatedResponse<WarehouseRecord>;
+
+export type WarehouseDetailApiResponse = ApiSuccessResponse<WarehouseDetailRecord>;
+
+// =============================================================================
+// Filters
+// =============================================================================
+
+export type WarehouseFilters = CreatedUpdatedDateFilter & {
+  statusId?: string;
+  isArchived?: boolean;
+  warehouseTypeId?: string;
+  locationId?: string;
+  name?: string;
+  code?: string;
+  createdBy?: string;
   updatedBy?: string;
-  createdAt?: string;
-  updatedAt?: string;
+  keyword?: string;
+};
+
+// =============================================================================
+// Query Params
+// =============================================================================
+
+export interface WarehouseQueryParams extends PaginationParams, SortConfig {
+  filters?: WarehouseFilters;
 }
 
-export interface Location {
-  id: string;
-  name: string;
-  address: string;
-  locationType: LocationType;
-  status: Status;
-  metadata: Metadata; // Location metadata now included
-}
+// =============================================================================
+// Sort Fields
+// =============================================================================
 
-export interface WarehouseDetails {
-  id: string;
-  name: string;
-  storageCapacity: number; // Added this missing field
-  location: Location;
-  status: Status;
-  metadata: Metadata;
-}
+export type WarehouseSortField =
+  | 'warehouseName'
+  | 'warehouseCode'
+  | 'locationName'
+  | 'totalQuantity'
+  | 'storageCapacity'
+  | 'statusName'
+  | 'createdAt'
+  | 'updatedAt';
 
-export interface WarehouseDetailsResponse {
-  success: boolean;
-  message: string;
-  data: WarehouseDetails;
-}
+// =============================================================================
+// Redux State
+// =============================================================================
+
+/** Paginated warehouse list slice state. */
+export type PaginatedWarehouseListState = ReduxPaginatedState<WarehouseRecord>;
+
+/** Warehouse detail slice state. */
+export type WarehouseDetailState = AsyncState<WarehouseDetailRecord | null>;
