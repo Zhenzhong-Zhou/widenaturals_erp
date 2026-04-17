@@ -20,7 +20,7 @@
 
 'use strict';
 
-const { cleanObject, cleanOrNull } = require('../utils/object-utils');
+const { cleanOrNull } = require('../utils/object-utils');
 const { makeStatus } = require('../utils/status-utils');
 const { transformPageResult } = require('../utils/transformer-utils');
 const { compactAudit, makeAudit } = require('../utils/audit-utils');
@@ -154,79 +154,83 @@ const transformPaginatedWarehouseInventory = (paginatedResult) =>
   );
 
 /**
- * Transforms a raw warehouse inventory detail DB row into a structured API record.
+ * Builds the product info subtree for the detail view.
+ * Extends the list-level builder with batch and product metadata.
  *
  * @param {WarehouseInventoryDetailRow} row
- * @returns {WarehouseInventoryDetailRecord}
  */
-const transformWarehouseInventoryDetailRecord = (row) => ({
-  id: row.id,
-  batchId: row.batch_id,
-  batchType: row.batch_type,
-  warehouseQuantity: row.warehouse_quantity,
-  reservedQuantity: row.reserved_quantity,
-  availableQuantity: row.available_quantity,
-  warehouseFee: row.warehouse_fee,
-  inboundDate: row.inbound_date,
-  outboundDate: row.outbound_date,
-  lastMovementAt: row.last_movement_at,
-  registeredAt: row.registered_at,
-  batchNote: row.batch_note,
-
-  status: makeStatus(row),
-
-  productInfo: cleanObject({
-    batch: cleanObject({
+const buildProductInfoDetail = (row) =>
+  cleanOrNull({
+    batch: {
       id: row.product_batch_id,
       lotNumber: row.product_lot_number,
       expiryDate: row.product_expiry_date,
       manufactureDate: row.product_manufacture_date,
       initialQuantity: row.product_initial_quantity,
       notes: row.product_batch_notes,
-    }),
-    sku: cleanObject({
+    },
+    sku: {
       id: row.sku_id,
       sku: row.sku,
       barcode: row.barcode,
       sizeLabel: row.size_label,
       countryCode: row.country_code,
       marketRegion: row.market_region,
-    }),
-    product: cleanObject({
+    },
+    product: {
       id: row.product_id,
       name: row.product_name,
       brand: row.brand,
       category: row.category,
       series: row.series,
       displayName: getProductDisplayName(row),
-    }),
-    manufacturer: cleanObject({
+    },
+    manufacturer: {
       id: row.manufacturer_id,
       name: row.manufacturer_name,
-    }),
-  }),
+    },
+  });
 
-  packagingInfo: cleanObject({
-    batch: cleanObject({
+/**
+ * Builds the packaging info subtree for the detail view.
+ * Extends the list-level builder with material name, category, and batch unit.
+ *
+ * @param {WarehouseInventoryDetailRow} row
+ */
+const buildPackagingInfoDetail = (row) =>
+  cleanOrNull({
+    batch: {
       id: row.packaging_batch_id,
       lotNumber: row.packaging_lot_number,
       displayName: row.packaging_display_name,
       expiryDate: row.packaging_expiry_date,
       initialQuantity: row.packaging_initial_quantity,
       unit: row.packaging_unit,
-    }),
-    material: cleanObject({
+    },
+    material: {
       id: row.packaging_material_id,
       code: row.packaging_material_code,
       name: row.packaging_material_name,
       category: row.packaging_material_category,
-    }),
-    supplier: cleanObject({
+    },
+    supplier: {
       id: row.supplier_id,
       name: row.supplier_name,
-    }),
-  }),
-
+    },
+  });
+  
+/**
+ * Transforms a raw warehouse inventory detail DB row into a structured API record.
+ *
+ * @param {WarehouseInventoryDetailRow} row
+ * @returns {WarehouseInventoryDetailRecord}
+ */
+const transformWarehouseInventoryDetailRecord = (row) => ({
+  ...mapWarehouseInventoryBase(row),
+  registeredAt: row.registered_at,
+  batchNote: row.batch_note,
+  productInfo: buildProductInfoDetail(row),
+  packagingInfo: buildPackagingInfoDetail(row),
   audit: compactAudit(makeAudit(row)),
 });
 

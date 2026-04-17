@@ -142,20 +142,6 @@ router.post(
 );
 
 /**
- * @route GET /:warehouseId/inventory/:inventoryId
- * @description Full detail view for a single warehouse inventory record,
- *   including zone assignments and recent movement history.
- * @access protected
- * @permission PERMISSION_KEYS.WAREHOUSE_INVENTORY.READ
- */
-router.get(
-  '/:warehouseId/inventory/:inventoryId',
-  authorize([PERMISSION_KEYS.WAREHOUSE_INVENTORY.READ]),
-  validate(inventoryIdParamSchema, 'params'),
-  getWarehouseInventoryDetailController
-);
-
-/**
  * @route GET /:warehouseId/inventory/activity-log
  * @description Paginated inventory activity log scoped to a given warehouse.
  *   Filters: inventoryId, actionTypeId, performedBy, dateAfter, dateBefore.
@@ -177,6 +163,21 @@ router.get(
     []
   ),
   getPaginatedActivityLogController
+);
+
+
+/**
+ * @route GET /:warehouseId/inventory/:inventoryId
+ * @description Full detail view for a single warehouse inventory record,
+ *   including zone assignments and recent movement history.
+ * @access protected
+ * @permission PERMISSION_KEYS.WAREHOUSE_INVENTORY.READ
+ */
+router.get(
+  '/:warehouseId/inventory/:inventoryId',
+  authorize([PERMISSION_KEYS.WAREHOUSE_INVENTORY.READ]),
+  validate(inventoryIdParamSchema, 'params'),
+  getWarehouseInventoryDetailController
 );
 
 /**

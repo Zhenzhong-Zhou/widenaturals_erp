@@ -18,7 +18,7 @@
  * @returns {object[]}
  */
 const transformWarehouseZones = (rows) =>
-  rows.map((row) => ({
+  (rows ?? []).map((row) => ({
     id: row.id,
     zoneCode: row.zone_code,
     quantity: row.quantity,

@@ -20,7 +20,7 @@ const { getFullName } = require('../utils/person-utils');
  * @returns {object[]}
  */
 const transformWarehouseMovements = (rows) =>
-  rows.map((row) => ({
+  (rows ?? []).map((row) => ({
     id: row.id,
     movementType: row.movement_type,
     fromZoneCode: row.from_zone_code,
