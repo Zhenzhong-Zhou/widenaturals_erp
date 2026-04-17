@@ -1,4 +1,4 @@
-import { type FC, useCallback, useEffect, useRef, useState } from 'react';
+import { type FC, useCallback, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import Grid from '@mui/material/Grid';
 import { FilterPanelLayout } from '@components/index';
@@ -7,6 +7,7 @@ import { useProductLookup, useSkuLookup } from '@hooks/index';
 import type { PricingFilters } from '@features/pricing';
 import { ProductDropdown, SkuDropdown } from '@features/lookup/components';
 import type { ProductLookupParams, SkuLookupQueryParams } from '@features/lookup';
+import { useFilterFormSync } from '@utils/filters/useFilterFormSync';
 
 // =========================================================
 // Types
@@ -76,7 +77,6 @@ const PricingFiltersPanel: FC<Props> = ({
     useForm<PricingFilters>({ defaultValues: filters });
   
   const watchedValues = watch();
-  const prevWatchedRef = useRef<string>('');
   
   const {
     product,
@@ -113,17 +113,7 @@ const PricingFiltersPanel: FC<Props> = ({
     [skuFetchParams, sku.fetch]
   );
   
-  useEffect(() => {
-    const serialized = JSON.stringify(watchedValues);
-    if (serialized === prevWatchedRef.current) return;
-    prevWatchedRef.current = serialized;
-    onFilterChange?.(watchedValues);
-  }, [watchedValues, onFilterChange]);
-  
-  // Sync external filter changes
-  useEffect(() => {
-    reset(filters);
-  }, [filters, reset]);
+  useFilterFormSync(watchedValues, filters, reset, onFilterChange);
   
   // -------------------------
   // Submit / Reset
