@@ -6,7 +6,7 @@
  * No logging — globalErrorHandler owns that layer.
  *
  * Exports:
- *  - fetchPaginatedWarehousesService  — paginated warehouse list with inventory summary
+ *  - fetchPaginatedWarehousesService  — paginated warehouse list; inventory summary gated by canViewSummary
  *  - fetchWarehouseDetailService      — full warehouse detail by id
  *  - fetchWarehouseLookupService      — dropdown/lookup list for warehouse selection
  */
@@ -32,10 +32,12 @@ const CONTEXT = 'warehouse-service';
 // ─── Paginated List ───────────────────────────────────────────────────────────
 
 /**
- * Fetches a paginated list of warehouses with inventory summary stats.
+ * Fetches a paginated list of warehouses with optional inventory summary stats.
  *
  * Evaluates ACL visibility and injects server-side filter constraints
- * before querying. Returns an empty result immediately if ACL forces it.
+ * before querying. Inventory summary fields are included only when the
+ * user holds the VIEW_SUMMARY permission. Returns an empty result
+ * immediately if ACL forces it.
  *
  * @param {AuthUser} user
  * @param {object}   [params={}]
@@ -59,7 +61,7 @@ const fetchPaginatedWarehousesService = async (
     const adjustedFilters = applyWarehouseVisibilityRules(filters, acl);
     
     if (adjustedFilters.forceEmptyResult) {
-      return transformPaginatedWarehouseResult({ data: [], pagination: {} });
+      return transformPaginatedWarehouseResult({ data: [], pagination: {} }, acl);
     }
     
     const result = await getPaginatedWarehouses({
@@ -70,7 +72,7 @@ const fetchPaginatedWarehousesService = async (
       sortOrder,
     });
     
-    return transformPaginatedWarehouseResult(result);
+    return transformPaginatedWarehouseResult(result, acl);
   } catch (error) {
     if (error instanceof AppError) throw error;
     

@@ -6,8 +6,8 @@
  * No logging, no AppError, no side effects.
  *
  * Exports:
- *  - transformWarehouseRow             — single paginated list row → WarehouseRecord
- *  - transformPaginatedWarehouseResult — paginated result set → transformed page
+ *  - transformWarehouseRow             — single paginated list row → WarehouseRecord (acl-gated)
+ *  - transformPaginatedWarehouseResult — paginated result set → transformed page (acl-gated)
  *  - transformWarehouseDetail          — single detail row → WarehouseDetailRecord
  *  - transformWarehouseLookupRows      — lookup rows array → { items, hasMore }
  */
@@ -41,10 +41,11 @@ const _parseSummary = (row) => {
 /**
  * Transforms a single raw warehouse row into the paginated list record shape.
  *
- * @param {WarehouseRow} row
+ * @param {WarehouseRow}  row
+ * @param {WarehouseAcl}  acl
  * @returns {WarehouseRecord}
  */
-const transformWarehouseRow = (row) =>
+const transformWarehouseRow = (row, acl) =>
   cleanObject({
     id:              row.id,
     name:            row.warehouse_name,
@@ -68,7 +69,7 @@ const transformWarehouseRow = (row) =>
       date: row.status_date   ?? null,
     },
     
-    summary: _parseSummary(row),
+    summary: acl.canViewSummary ? _parseSummary(row) : null,
     
     audit: compactAudit(makeAudit(row)),
   });
@@ -79,11 +80,11 @@ const transformWarehouseRow = (row) =>
  * @param {object}         paginatedResult
  * @param {WarehouseRow[]} paginatedResult.data
  * @param {object}         paginatedResult.pagination
+ * @param {WarehouseAcl}   acl
  * @returns {Promise<PaginatedResult<WarehouseRow>>}
  */
-const transformPaginatedWarehouseResult = (paginatedResult) =>
-  /** @type {Promise<PaginatedResult<WarehouseRow>>} */
-  (transformPageResult(paginatedResult, transformWarehouseRow));
+const transformPaginatedWarehouseResult = (paginatedResult, acl) =>
+  transformPageResult(paginatedResult, (row) => transformWarehouseRow(row, acl));
 
 // ─── Detail ───────────────────────────────────────────────────────────────────
 
@@ -108,15 +109,23 @@ const transformWarehouseDetail = (row) => {
     notes:           row.notes            ?? null,
     
     location: cleanObject({
-      id:              row.location_id,
-      name:            row.location_name,
-      addressLine1:    row.address_line1      ?? null,
-      addressLine2:    row.address_line2      ?? null,
-      city:            row.city               ?? null,
-      provinceOrState: row.province_or_state  ?? null,
-      postalCode:      row.postal_code        ?? null,
-      country:         row.country            ?? null,
-      locationType:    row.location_type_id
+      id:               row.location_id,
+      name:             row.location_name,
+      addressLine1:     row.address_line1     ?? null,
+      addressLine2:     row.address_line2     ?? null,
+      city:             row.city              ?? null,
+      provinceOrState:  row.province_or_state ?? null,
+      postalCode:       row.postal_code       ?? null,
+      country:          row.country           ?? null,
+      formattedAddress: [
+        row.address_line1,
+        row.address_line2,
+        row.city,
+        row.province_or_state,
+        row.postal_code,
+        row.country,
+      ].filter(Boolean).join(', ') || null,
+      locationType: row.location_type_id
         ? { id: row.location_type_id, name: row.location_type_name }
         : null,
     }),

@@ -18,6 +18,14 @@ const WAREHOUSE_CONSTANTS = {
     VIEW_ALL: 'view_all_warehouses',
     
     // ── Visibility overrides ──────────────────────────────────────────────────
+    /**
+     * Grants visibility of inventory summary stats on warehouse records.
+     *
+     * Without this, summary fields (total batches, quantities, reservations)
+     * are excluded from list and detail responses. Users with only VIEW
+     * see warehouse identity and status but not stock levels.
+     */
+    VIEW_SUMMARY: 'view_warehouse_summary',
     
     /** Allows viewing archived warehouses. */
     VIEW_ARCHIVED: 'view_archived_warehouses',

@@ -40,8 +40,9 @@ const evaluateWarehouseVisibility = async (user) => {
     
     return {
       isRoot,
-      canViewAll:        can(WAREHOUSE_CONSTANTS.PERMISSIONS.VIEW_ALL),
-      canViewArchived:   can(WAREHOUSE_CONSTANTS.PERMISSIONS.VIEW_ARCHIVED),
+      canViewAll:         can(WAREHOUSE_CONSTANTS.PERMISSIONS.VIEW_ALL),
+      canViewSummary:     can(WAREHOUSE_CONSTANTS.PERMISSIONS.VIEW_SUMMARY),
+      canViewArchived:    can(WAREHOUSE_CONSTANTS.PERMISSIONS.VIEW_ARCHIVED),
       canViewAllStatuses: can(WAREHOUSE_CONSTANTS.PERMISSIONS.VIEW_ALL_STATUSES),
     };
   } catch (err) {

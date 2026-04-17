@@ -15,4 +15,5 @@
  * @property {boolean} canViewAll          - User may see warehouses beyond their assignments.
  * @property {boolean} canViewArchived     - User may see archived warehouses.
  * @property {boolean} canViewAllStatuses  - User may see warehouses in any status.
+ * @property {boolean} canViewSummary      - User may see inventory summary stats on warehouse records.
  */
