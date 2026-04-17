@@ -2,91 +2,67 @@ import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   fetchPaginatedInventoryAllocationsThunk,
-  selectInventoryAllocations,
-  selectInventoryAllocationsError,
-  selectInventoryAllocationsHasMore,
-  selectInventoryAllocationsIsEmpty,
-  selectInventoryAllocationsLimit,
-  selectInventoryAllocationsLoading,
-  selectInventoryAllocationsPage,
-  selectInventoryAllocationsPagination,
-  selectInventoryAllocationsTotalPages,
-  selectInventoryAllocationsTotalRecords,
+  selectPaginatedInventoryAllocationData,
+  selectPaginatedInventoryAllocationPagination,
+  selectPaginatedInventoryAllocationLoading,
+  selectPaginatedInventoryAllocationError,
+  selectPaginatedInventoryAllocationTotalRecords,
+  selectPaginatedInventoryAllocationIsEmpty,
 } from '@features/inventoryAllocation/state';
-import type { FetchPaginatedInventoryAllocationsParams } from '@features/inventoryAllocation/state';
-import { resetPaginatedInventoryAllocations } from '@features/inventoryAllocation/state/paginatedInventoryAllocationsSlice';
+import type { InventoryAllocationQueryParams } from '@features/inventoryAllocation';
+import { normalizePagination } from '@utils/pagination/normalizePagination';
+import {
+  resetPaginatedInventoryAllocation
+} from '@features/inventoryAllocation/state/paginatedInventoryAllocationSlice';
 
 /**
- * Custom hook to access and manage paginated inventory allocation data from the Redux store.
- *
- * Provides memoized selectors and a memoized reset dispatcher.
- *
- * Exposes:
- * - Selectors (data, pagination, loading, etc.)
- * - reset() → resets state
- * - fetch(params) → fetches paginated inventory allocation data
+ * Custom hook to access memoized paginated inventory allocation state and actions.
+ * Automatically tracks data, loading, error, pagination, and empty state.
  */
 const usePaginatedInventoryAllocations = () => {
   const dispatch = useAppDispatch();
-
-  const data = useAppSelector(selectInventoryAllocations);
-  const pagination = useAppSelector(selectInventoryAllocationsPagination);
-  const loading = useAppSelector(selectInventoryAllocationsLoading);
-  const error = useAppSelector(selectInventoryAllocationsError);
-  const isEmpty = useAppSelector(selectInventoryAllocationsIsEmpty);
-  const hasMore = useAppSelector(selectInventoryAllocationsHasMore);
-  const page = useAppSelector(selectInventoryAllocationsPage);
-  const limit = useAppSelector(selectInventoryAllocationsLimit);
-  const totalRecords = useAppSelector(selectInventoryAllocationsTotalRecords);
-  const totalPages = useAppSelector(selectInventoryAllocationsTotalPages);
-
+  
+  const data = useAppSelector(selectPaginatedInventoryAllocationData);
+  const pagination = useAppSelector(selectPaginatedInventoryAllocationPagination);
+  const loading = useAppSelector(selectPaginatedInventoryAllocationLoading);
+  const error = useAppSelector(selectPaginatedInventoryAllocationError);
+  const totalRecords = useAppSelector(selectPaginatedInventoryAllocationTotalRecords);
+  const isEmpty = useAppSelector(selectPaginatedInventoryAllocationIsEmpty);
+  
   /**
-   * Memoized reset action for clearing inventory allocation state.
+   * Fetch paginated inventory allocation summaries.
+   * Accepts pagination, sorting, and filter parameters.
    */
-  const reset = useCallback(() => {
-    dispatch(resetPaginatedInventoryAllocations());
-  }, [dispatch]);
-
-  /**
-   * Fetch inventory allocations with filters, pagination, etc.
-   */
-  const fetch = useCallback(
-    (params: FetchPaginatedInventoryAllocationsParams = {}) => {
-      return dispatch(fetchPaginatedInventoryAllocationsThunk(params));
+  const fetchAllocations = useCallback(
+    (params: InventoryAllocationQueryParams) => {
+      dispatch(fetchPaginatedInventoryAllocationsThunk(params));
     },
     [dispatch]
   );
-
-  return useMemo(
-    () => ({
-      data,
-      pagination,
-      loading,
-      error,
-      isEmpty,
-      hasMore,
-      page,
-      limit,
-      totalRecords,
-      totalPages,
-      reset,
-      fetch,
-    }),
-    [
-      data,
-      pagination,
-      loading,
-      error,
-      isEmpty,
-      hasMore,
-      page,
-      limit,
-      totalRecords,
-      totalPages,
-      reset,
-      fetch,
-    ]
-  );
+  
+  /**
+   * Reset allocation list state back to initial empty paginated state.
+   */
+  const resetAllocations = useCallback(() => {
+    dispatch(resetPaginatedInventoryAllocation());
+  }, [dispatch]);
+  
+  const pageInfo = useMemo(() => {
+    const { page, limit } = normalizePagination(pagination);
+    return { page, limit };
+  }, [pagination]);
+  
+  return {
+    data,
+    pagination,
+    loading,
+    error,
+    totalRecords,
+    isEmpty,
+    pageInfo,
+    fetchAllocations,
+    resetAllocations,
+  };
 };
 
 export default usePaginatedInventoryAllocations;

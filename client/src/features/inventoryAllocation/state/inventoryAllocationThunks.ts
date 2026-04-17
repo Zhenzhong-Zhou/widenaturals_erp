@@ -4,10 +4,10 @@ import type {
   AllocateInventoryParams,
   AllocateInventoryResponse,
   AllocationReviewRequest,
-  FetchPaginatedInventoryAllocationsParams,
   InventoryAllocationConfirmationResponse,
-  InventoryAllocationListResponse,
+  InventoryAllocationQueryParams,
   InventoryAllocationReviewResponse,
+  PaginatedInventoryAllocationListUiResponse,
 } from '@features/inventoryAllocation/state/inventoryAllocationTypes';
 import { inventoryAllocationService } from '@services/inventoryAllocationService';
 import {
@@ -116,43 +116,27 @@ export const fetchInventoryAllocationReviewThunk = createAsyncThunk<
 );
 
 /**
- * Thunk to fetch paginated inventory allocation summaries.
- *
- * Responsibilities:
- * - Delegates to the service layer
- * - Applies canonical flattening to summary records
- * - Preserves pagination metadata
- *
- * Design Principles:
- * - No business logic in thunk
- * - Redux state stores only flattened, UI-ready rows
- *
- * Error Handling:
- * - Rejects with structured {@link UiErrorPayload}
- * - Errors normalized using `extractUiErrorPayload`
- *
- * @param params - Pagination, sorting, and filter options
- * @returns Fulfilled action containing flattened allocation summaries
+ * Fetch a paginated list of inventory allocation summaries.
  */
 export const fetchPaginatedInventoryAllocationsThunk = createAsyncThunk<
-  InventoryAllocationListResponse,
-  FetchPaginatedInventoryAllocationsParams,
+  PaginatedInventoryAllocationListUiResponse,
+  InventoryAllocationQueryParams,
   { rejectValue: UiErrorPayload }
->('inventoryAllocations/fetch', async (params, { rejectWithValue }) => {
-  try {
-    const response =
-      await inventoryAllocationService.fetchPaginatedInventoryAllocations(
-        params
-      );
-
-    return {
-      ...response,
-      data: response.data.map(flattenInventoryAllocationSummary),
-    };
-  } catch (error: unknown) {
-    return rejectWithValue(extractUiErrorPayload(error));
-  }
-});
+>(
+  'inventoryAllocations/fetchPaginated',
+    async (params, { rejectWithValue }) => {
+      try {
+        const response =
+          await inventoryAllocationService.fetchPaginatedInventoryAllocations(params);
+        return {
+          ...response,
+          data: response.data.map(flattenInventoryAllocationSummary),
+        };
+      } catch (error: unknown) {
+        return rejectWithValue(extractUiErrorPayload(error));
+      }
+    }
+);
 
 /**
  * Thunk to confirm inventory allocations for a given order.

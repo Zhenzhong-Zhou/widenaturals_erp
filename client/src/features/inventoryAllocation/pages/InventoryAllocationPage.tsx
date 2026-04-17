@@ -9,66 +9,71 @@ import InventoryAllocationTable, {
   InventoryAllocationSortControls,
 } from '@features/inventoryAllocation/components/InventoryAllocationTable';
 import { usePaginatedInventoryAllocations } from '@hooks/index';
-import { usePaginationHandlers } from '@utils/hooks';
-import { applyFiltersAndSorting } from '@utils/query';
 import type {
   InventoryAllocationFilters,
+  InventoryAllocationQueryParams,
   InventoryAllocationSortField,
 } from '@features/inventoryAllocation/state';
 
-const InventoryAllocationsPage: FC = () => {
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(25);
+const InventoryAllocationPage: FC = () => {
   const [sortBy, setSortBy] =
-    useState<InventoryAllocationSortField>('orderCreatedAt');
+    useState<InventoryAllocationSortField>('defaultNaturalSort');
   const [sortOrder, setSortOrder] = useState<'' | 'ASC' | 'DESC'>('');
   const [filters, setFilters] = useState<InventoryAllocationFilters>({});
-
-  const { handlePageChange, handleRowsPerPageChange } = usePaginationHandlers(
-    setPage,
-    setLimit
-  );
-
+  
   const {
     data: inventoryAllocations,
     loading: allocationsLoading,
     error: allocationsError,
     isEmpty: isInventoryAllocationEmpty,
     totalRecords: totalAllocationRecords,
-    totalPages: totalAllocationPages,
-    reset: resetInventoryAllocations,
-    fetch: fetchInventoryAllocations,
+    pagination: allocationPagination,
+    pageInfo: allocationPageInfo,
+    resetAllocations: resetInventoryAllocations,
+    fetchAllocations: fetchInventoryAllocations,
   } = usePaginatedInventoryAllocations();
-
-  const queryParams = useMemo(
+  
+  const queryParams = useMemo<InventoryAllocationQueryParams>(
     () => ({
-      page,
-      limit,
+      page: allocationPageInfo.page,
+      limit: allocationPageInfo.limit,
       sortBy,
       sortOrder,
       filters,
-      fetchFn: fetchInventoryAllocations,
     }),
-    [page, limit, sortBy, sortOrder, filters, fetchInventoryAllocations]
+    [allocationPageInfo.page, allocationPageInfo.limit, sortBy, sortOrder, filters]
   );
-
+  
   useEffect(() => {
-    applyFiltersAndSorting(queryParams);
-
+    fetchInventoryAllocations(queryParams);
+    
     return () => {
-      resetInventoryAllocations(); // cleanup when component unmounts
+      resetInventoryAllocations();
     };
-  }, [queryParams]);
-
+  }, [queryParams, fetchInventoryAllocations, resetInventoryAllocations]);
+  
+  const handlePageChange = useCallback(
+    (newPage: number) => {
+      fetchInventoryAllocations({ ...queryParams, page: newPage + 1 });
+    },
+    [queryParams, fetchInventoryAllocations]
+  );
+  
+  const handleRowsPerPageChange = useCallback(
+    (newLimit: number) => {
+      fetchInventoryAllocations({ ...queryParams, page: 1, limit: newLimit });
+    },
+    [queryParams, fetchInventoryAllocations]
+  );
+  
   const handleRefresh = useCallback(() => {
-    applyFiltersAndSorting(queryParams);
-  }, [queryParams]);
-
-  const handleResetFilters = () => {
+    fetchInventoryAllocations(queryParams);
+  }, [queryParams, fetchInventoryAllocations]);
+  
+  const handleResetFilters = useCallback(() => {
     resetInventoryAllocations();
     setFilters({});
-    setPage(1);
-  };
+  }, [resetInventoryAllocations]);
 
   return (
     <Box sx={{ px: 4, py: 3 }}>
@@ -95,7 +100,7 @@ const InventoryAllocationsPage: FC = () => {
             <InventoryAllocationFiltersPanel
               filters={filters}
               onChange={setFilters}
-              onApply={() => setPage(1)}
+              onApply={() => fetchInventoryAllocations({ ...queryParams, page: 1 })}
               onReset={handleResetFilters}
             />
           </Grid>
@@ -124,10 +129,10 @@ const InventoryAllocationsPage: FC = () => {
         ) : (
           <InventoryAllocationTable
             data={inventoryAllocations}
-            page={page - 1}
-            rowsPerPage={limit}
+            page={allocationPageInfo.page - 1}
+            rowsPerPage={allocationPageInfo.limit}
             totalRecords={totalAllocationRecords}
-            totalPages={totalAllocationPages}
+            totalPages={allocationPagination?.totalPages ?? 0}
             onPageChange={handlePageChange}
             onRowsPerPageChange={handleRowsPerPageChange}
             onRefresh={handleRefresh}
@@ -138,4 +143,4 @@ const InventoryAllocationsPage: FC = () => {
   );
 };
 
-export default InventoryAllocationsPage;
+export default InventoryAllocationPage;

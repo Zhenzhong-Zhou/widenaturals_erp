@@ -276,7 +276,10 @@ export interface PackagingMaterialBatchReview extends BaseBatchReview {
 }
 
 /** Discriminated union */
-export type BatchReview = ProductBatchReview | PackagingMaterialBatchReview;
+export type BatchReview =
+  | ProductBatchReview
+  | PackagingMaterialBatchReview
+  | { type: string };
 
 /** One allocation row linking an order item to a batch with quantities. */
 export interface AllocationReviewItem {
@@ -320,7 +323,7 @@ export interface AllocationReviewItem {
   orderItem: OrderItemReview;
 
   /** Snapshot of the product or SKU associated with this allocation */
-  product: ProductSummary;
+  product: ProductSummary | null;
 
   /**
    * Optional snapshot of packaging material info (if this is a packaging allocation).
@@ -467,102 +470,121 @@ export type AllocationSummaryStatus =
   | 'Pending Allocation'
   | 'Unknown';
 
-/**
- * Transformed and structured inventory allocation summary record,
- * typically used for paginated views or dashboards.
- */
+/** Order status within an inventory allocation summary. */
+export interface InventoryAllocationOrderStatus {
+  /** Display name of the order status. */
+  name: string | null;
+  /** Machine-readable status code. */
+  code: string | null;
+}
+
+/** Customer info within an inventory allocation summary. */
+export interface InventoryAllocationCustomer {
+  /** Customer type: 'individual' or 'company'. */
+  type: string | null;
+  /** Customer first name. */
+  firstname: string | null;
+  /** Customer last name. */
+  lastname: string | null;
+  /** Company name (null for individual customers). */
+  companyName: string | null;
+  /** Resolved display name based on customer type. */
+  customerName: string | null;
+}
+
+/** Payment status within an inventory allocation summary. */
+export interface InventoryAllocationPaymentStatus {
+  /** Display name of the payment status. */
+  name: string | null;
+  /** Machine-readable payment status code. */
+  code: string | null;
+}
+
+/** User identity summary for created/updated by fields. */
+export interface InventoryAllocationUserSummary {
+  /** User first name. */
+  firstname: string | null;
+  /** User last name. */
+  lastname: string | null;
+  /** Resolved full name. */
+  fullName: string | null;
+}
+
+/** Item count breakdown for an allocation. */
+export interface InventoryAllocationItemCount {
+  /** Total order items. */
+  total: number;
+  /** Items with inventory allocated. */
+  allocated: number;
+}
+
+/** Warehouses involved in an allocation. */
+export interface InventoryAllocationWarehouses {
+  /** UUIDs of warehouses used. */
+  ids: string[];
+  /** Comma-separated warehouse names. */
+  names: string;
+}
+
+/** Aggregate allocation status across all items in an order. */
+export interface InventoryAllocationStatus {
+  /** Distinct status codes across allocations. */
+  codes: string[];
+  /** Comma-separated status names. */
+  names: string;
+  /** Rolled-up summary status (e.g. 'fully_allocated', 'partial', 'pending'). */
+  summary: AllocationSummaryStatus;
+}
+
+/** Full inventory allocation summary record as returned by the paginated list API. */
 export interface InventoryAllocationSummary {
-  /** UUID of the order */
+  /** Order UUID. */
   orderId: string;
-
-  /** Human-readable order number (e.g., SO-...) */
+  /** Human-readable order number. */
   orderNumber: string;
-
-  /** Name of the order type (e.g., "Standard Sales Order") */
+  /** Order type (e.g. 'wholesale', 'retail'). */
   orderType: string | null;
-
-  /**
-   * Code of the order category (e.g., "sales", "transfer", "purchase"). Nullable if not categorized.
-   */
+  /** Order category. */
   orderCategory: string | null;
-
-  /** Order status details */
-  orderStatus: {
-    name: string;
-    code: string;
-  };
-
-  /** Customer info */
-  customer: {
-    fullName: string;
-  };
-
-  /** Payment method used (e.g., "Credit Card") */
+  
+  /** Current order status. */
+  orderStatus: InventoryAllocationOrderStatus;
+  
+  /** Customer associated with the order. */
+  customer: InventoryAllocationCustomer;
+  
+  /** Payment method used. */
   paymentMethod: string | null;
-
-  /**
-   * Payment status of the order.
-   *
-   * Includes:
-   * - `name`: Human-readable label (e.g., "Paid", "Unpaid")
-   * - `code`: System-defined code (e.g., "PAID", "UNPAID")
-   */
-  paymentStatus: {
-    name: string;
-    code: string;
-  };
-
-  /** Name of the delivery method (e.g., "Standard", "Express"). Nullable if not set. */
+  /** Current payment status. */
+  paymentStatus: InventoryAllocationPaymentStatus;
+  /** Delivery method. */
   deliveryMethod: string | null;
-
-  /** ISO timestamp of when the order was originally created. */
-  orderCreatedAt: string;
-
-  /** Full name of the user who created the order. */
-  orderCreatedBy: string;
-
-  /** ISO timestamp of the most recent update to the order. */
-  orderUpdatedAt: string;
-
-  /** Full name of the user who last updated the order. */
-  orderUpdatedBy: string;
-
-  /** Number of items in the order vs allocated */
-  itemCount: {
-    total: number;
-    allocated: number;
-  };
-
-  /** Warehouses involved in this allocation */
-  warehouses: {
-    ids: string[];
-    names: string;
-  };
-
-  /** Allocation status metadata */
-  allocationStatus: {
-    codes: string[]; // e.g., ['ALLOC_CONFIRMED']
-    names: string; // e.g., 'confirmed, pending'
-    summary: AllocationSummaryStatus;
-  };
-
-  /** All inventory allocation IDs linked to this order */
+  
+  /** User who created the order. */
+  orderCreatedBy: InventoryAllocationUserSummary;
+  /** User who last updated the order. */
+  orderUpdatedBy: InventoryAllocationUserSummary;
+  
+  /** Item count breakdown. */
+  itemCount: InventoryAllocationItemCount;
+  
+  /** Warehouses involved in the allocation. */
+  warehouses: InventoryAllocationWarehouses;
+  
+  /** Aggregate allocation status. */
+  allocationStatus: InventoryAllocationStatus;
+  
+  /** UUIDs of individual allocation records. */
   allocationIds: string[];
-
-  /** Timestamp of the most recent allocation (UTC ISO string). Nullable if no allocations exist. */
+  
+  /** Timestamp of the most recent allocation action. */
   allocatedAt: string | null;
-
-  /** Timestamp of the first allocation creation (UTC ISO string). Nullable if no allocations exist. */
+  /** Timestamp when the allocation was first created. */
   allocatedCreatedAt: string | null;
 }
 
-/**
- * Paginated API response for inventory allocation list endpoints.
- *
- * Wraps `InventoryAllocationSummary` records using the standard
- * pagination contract.
- */
-export type InventoryAllocationApiResponse =
+/** Paginated API response for inventory allocations. */
+export type PaginatedInventoryAllocationApiResponse =
   PaginatedResponse<InventoryAllocationSummary>;
 
 /**
@@ -577,148 +599,147 @@ export interface FlattenedInventoryAllocationSummary {
   orderNumber: string;
   orderType: string | null;
   orderCategory: string | null;
-
+  
   // --- Order status ---
-  orderStatusName: string;
-  orderStatusCode: string;
-
+  orderStatusName: string | null;
+  orderStatusCode: string | null;
+  
   // --- Customer ---
-  customerName: string;
-
+  customerType: string | null;
+  customerFirstname: string | null;
+  customerLastname: string | null;
+  customerCompanyName: string | null;
+  customerName: string | null;
+  
   // --- Payment ---
   paymentMethod: string | null;
-  paymentStatusName: string;
-  paymentStatusCode: string;
-
+  paymentStatusName: string | null;
+  paymentStatusCode: string | null;
+  
   // --- Delivery ---
   deliveryMethod: string | null;
-
+  
   // --- Audit ---
-  orderCreatedAt: string;
-  orderCreatedBy: string;
-  orderUpdatedAt: string;
-  orderUpdatedBy: string;
-
+  orderCreatedByFirstname: string | null;
+  orderCreatedByLastname: string | null;
+  orderCreatedBy: string | null;
+  
+  orderUpdatedByFirstname: string | null;
+  orderUpdatedByLastname: string | null;
+  orderUpdatedBy: string | null;
+  
   // --- Item counts ---
   totalItemCount: number;
   allocatedItemCount: number;
-
+  
   // --- Warehouses ---
   warehouseIds: string[];
-  warehouseNames: string; // pre-joined display string
-
+  warehouseNames: string;
+  
   // --- Allocation status ---
   allocationStatusCodes: string[];
-  allocationStatusNames: string; // comma-joined
+  allocationStatusNames: string;
   allocationSummaryStatus: AllocationSummaryStatus;
-
+  
   // --- Allocation metadata ---
   allocationIds: string[];
   allocatedAt: string | null;
   allocatedCreatedAt: string | null;
 }
 
-/**
- * Thunk/UI response for inventory allocation list.
- *
- * Contains flattened, UI-ready allocation summary rows.
- */
-export type InventoryAllocationListResponse =
+/** Paginated UI response for the inventory allocation list page. */
+export type PaginatedInventoryAllocationListUiResponse =
   PaginatedResponse<FlattenedInventoryAllocationSummary>;
 
-/**
- * Filters used when fetching paginated inventory allocations.
- * Aligned with backend filtering schema.
- */
+/** Filters available for querying the inventory allocation list. */
 export interface InventoryAllocationFilters {
-  // Allocation-level
+  // --- Allocation-level ---
+  /** Filter by allocation status UUIDs. */
   statusIds?: string[];
+  /** Filter by warehouse UUIDs. */
   warehouseIds?: string[];
+  /** Filter by batch UUIDs. */
   batchIds?: string[];
+  /** Filter by user who created the allocation (UUID). */
   allocationCreatedBy?: string;
-
-  // Order-level
+  
+  // --- Order-level ---
+  /** Filter by order number (partial match). */
   orderNumber?: string;
+  /** Filter by order status UUID. */
   orderStatusId?: string;
+  /** Filter by order type UUID. */
   orderTypeId?: string;
+  /** Filter by user who created the order (UUID). */
   orderCreatedBy?: string;
-
-  // Sales order-level
+  
+  // --- Sales order-level ---
+  /** Filter by payment status UUID. */
   paymentStatusId?: string;
-
-  // --- Date range filters (aggregated MIN(ia.allocated_at)) ---
-  aggregatedAllocatedAfter?: string; // filters `aa.allocated_at >=`
-  aggregatedAllocatedBefore?: string; // filters `aa.allocated_at <=`
-
-  // --- Date range filters (aggregated MIN(ia.created_at)) ---
-  aggregatedCreatedAfter?: string; // filters `aa.allocated_created_at >=`
-  aggregatedCreatedBefore?: string; // filters `aa.allocated_created_at <=`
-
-  // Global fuzzy keyword search
+  
+  // --- Date range (aggregated allocated_at) ---
+  /** Filter allocations on or after this date (ISO string). */
+  aggregatedAllocatedAfter?: string;
+  /** Filter allocations on or before this date (ISO string). */
+  aggregatedAllocatedBefore?: string;
+  
+  // --- Date range (aggregated created_at) ---
+  /** Filter allocation creation on or after this date (ISO string). */
+  aggregatedCreatedAfter?: string;
+  /** Filter allocation creation on or before this date (ISO string). */
+  aggregatedCreatedBefore?: string;
+  
+  // --- Search ---
+  /** Fuzzy keyword search across order number, SKU, product name, or customer. */
   keyword?: string;
 }
 
-/**
- * Params for fetching paginated inventory allocation results.
- */
-export interface FetchPaginatedInventoryAllocationsParams
-  extends PaginationParams, SortConfig {
+/** Full query parameter shape for the inventory allocation list endpoint. */
+export interface InventoryAllocationQueryParams extends PaginationParams, SortConfig {
   filters?: InventoryAllocationFilters;
 }
 
-/**
- * Sortable field keys for inventory allocations.
- * Must match keys defined in backend sort map.
- */
+/** Valid sort field keys for the inventory allocation list. */
 export type InventoryAllocationSortField =
-  // Allocation-level summary fields (FROM alloc_agg aa)
+// Allocation-level
   | 'allocationStatus'
   | 'allocationStatuses'
   | 'allocatedAt'
   | 'allocatedCreatedAt'
-
-  // Warehouse display info
   | 'warehouseNames'
-
-  // Order-level fields (FROM orders o)
+  | 'allocatedItems'
+  
+  // Order-level
   | 'orderNumber'
   | 'orderDate'
   | 'orderType'
   | 'orderStatus'
-  | 'orderStatusDate'
-
+  
   // Customer
   | 'customerName'
-  | 'customerFirstName'
-  | 'customerLastName'
-
-  // Payment-related
+  | 'customerFirstname'
+  | 'customerLastname'
+  | 'customerCompanyName'
+  
+  // Payment
   | 'paymentMethod'
   | 'paymentStatus'
   | 'deliveryMethod'
-
-  // Audit fields
-  | 'orderCreatedAt'
-  | 'orderCreatedByFirstName'
-  | 'orderCreatedByLastName'
-  | 'orderUpdatedAt'
-  | 'orderUpdatedByFirstName'
-  | 'orderUpdatedByLastName'
-
+  
+  // Audit
+  | 'createdByFirstname'
+  | 'createdByLastname'
+  | 'updatedByFirstname'
+  | 'updatedByLastname'
+  
   // Item counts
   | 'totalItems'
-  | 'allocatedItems'
-
+  
   // Fallback
   | 'defaultNaturalSort';
 
-/**
- * Redux state slice for paginated inventory allocation summaries.
- *
- * Stores flattened, UI-ready allocation summary records
- * along with standard pagination metadata.
- */
-export type PaginatedInventoryAllocationState =
+/** Redux state shape for the inventory allocation list slice. */
+export type InventoryAllocationListState =
   ReduxPaginatedState<FlattenedInventoryAllocationSummary>;
 
 /** Represents the allocation status update for a single order item */
