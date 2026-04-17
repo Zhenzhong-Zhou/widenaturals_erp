@@ -34,7 +34,7 @@ const pricingGroupRoutes             = require('./pricing-groups');
 const pricingRoutes                  = require('./pricings');
 const locationTypeRoutes             = require('./locations-types');
 const locationRoutes                 = require('./locations');
-const locationInventoryRoutes        = require('./location-inventory');
+const warehouseRoutes                = require('./warehouses');
 const warehouseInventoryRoutes       = require('./warehouse-inventory');
 const customerRoutes                 = require('./customers');
 const addressRoutes                  = require('./addresses');
@@ -45,7 +45,6 @@ const orderRoutes                    = require('./orders');
 const taxRateRoutes                  = require('./tax-rates');
 const inventoryAllocationRoutes      = require('./inventory-allocations');
 const outboundFulfillmentRoutes      = require('./outbound-fulfillments');
-const reportRoutes                   = require('./reports');
 const lookupRoutes                   = require('./lookups');
 
 const router = express.Router();
@@ -92,33 +91,30 @@ router.use('/product-batches',             authenticate(), productBatchRoutes);
 router.use('/packaging-material-batches',  authenticate(), packagingMaterialBatchRoutes);
 
 // Pricing
-router.use('/pricing-types',  authenticate(), pricingTypeRoutes);
+router.use('/pricing-types', authenticate(), pricingTypeRoutes);
 router.use('/pricing-groups', authenticate(), pricingGroupRoutes);
-router.use('/pricings',       authenticate(), pricingRoutes);
+router.use('/pricings', authenticate(), pricingRoutes);
 
 // Locations and warehouse inventory
-router.use('/location-types',       authenticate(), locationTypeRoutes);
-router.use('/locations',            authenticate(), locationRoutes);
-router.use('/location-inventory',   authenticate(), locationInventoryRoutes);
-router.use('/warehouse-inventory',  authenticate(), warehouseInventoryRoutes);
+router.use('/location-types', authenticate(), locationTypeRoutes);
+router.use('/locations', authenticate(), locationRoutes);
+router.use('/warehouses', authenticate(), warehouseRoutes);
+router.use('/warehouse-inventory', authenticate(), warehouseInventoryRoutes);
 
 // Customers and orders
-router.use('/customers',      authenticate(), customerRoutes);
-router.use('/addresses',      authenticate(), addressRoutes);
-router.use('/order-types',    authenticate(), orderTypeRoutes);
-router.use('/orders',         authenticate(), orderRoutes);
+router.use('/customers', authenticate(), customerRoutes);
+router.use('/addresses', authenticate(), addressRoutes);
+router.use('/order-types', authenticate(), orderTypeRoutes);
+router.use('/orders', authenticate(), orderRoutes);
 
 // Discounts, delivery, and tax
-router.use('/discounts',         authenticate(), discountRoutes);
-router.use('/delivery-methods',  authenticate(), deliveryMethodRoutes);
-router.use('/tax-rates',         authenticate(), taxRateRoutes);
+router.use('/discounts', authenticate(), discountRoutes);
+router.use('/delivery-methods', authenticate(), deliveryMethodRoutes);
+router.use('/tax-rates', authenticate(), taxRateRoutes);
 
 // Fulfillment
-router.use('/inventory-allocations',  authenticate(), inventoryAllocationRoutes);
-router.use('/outbound-fulfillments',  authenticate(), outboundFulfillmentRoutes);
-
-// Reports
-router.use('/reports', authenticate(), reportRoutes);
+router.use('/inventory-allocations', authenticate(), inventoryAllocationRoutes);
+router.use('/outbound-fulfillments', authenticate(), outboundFulfillmentRoutes);
 
 // Lookups
 router.use('/lookups', authenticate(), lookupRoutes);
