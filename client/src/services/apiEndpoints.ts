@@ -88,13 +88,6 @@ export const API_ENDPOINTS = {
   PACKAGING_MATERIAL_BATCHES: {
     ALL_RECORDS: '/packaging-material-batches',
   },
-  LOCATION_INVENTORY: {
-    ALL_RECORDS: '/location-inventory',
-    KPI_SUMMARY: '/location-inventory/kpi-summary',
-    SUMMARY: '/location-inventory/summary',
-    SUMMARY_DETAIL: (itemId: string) =>
-      `/location-inventory/summary/${itemId}/details`,
-  },
   WAREHOUSES: {
     ALL_RECORDS: '/warehouses',
     WAREHOUSE_DETAILS: (warehouseId: string) =>

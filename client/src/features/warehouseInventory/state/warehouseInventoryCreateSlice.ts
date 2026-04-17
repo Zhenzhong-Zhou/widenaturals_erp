@@ -31,7 +31,7 @@ const warehouseInventoryCreateSlice = createSlice({
         
         const result = action.payload as CreateWarehouseInventoryResponse;
         
-        state.data = Array.isArray(result.data) ? result.data : [result.data];
+        state.data = result.data;
         state.success = result.success;
         state.message = result.message;
       })
