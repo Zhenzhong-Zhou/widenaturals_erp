@@ -38,7 +38,6 @@ import { customerReducers } from '@features/customer';
 import { deliveryMethodReducers } from '@features/deliveryMethod';
 import { discountReducers } from '@features/discount';
 import { systemHealthReducers } from '@features/systemHealth';
-import { locationInventoryReducers } from '@features/locationInventory';
 import { locationReducers } from '@features/location';
 import { locationTypeReducers } from '@features/locationType';
 import { orderReducers } from '@features/order';
@@ -49,7 +48,6 @@ import { pricingTypeReducers } from '@features/pricingType';
 import { productReducers } from '@features/product';
 import { skuReducers } from '@features/sku';
 import { bomReducers } from '@features/bom';
-import { reportReducers } from '@features/report';
 import { lookupReducers } from '@features/lookup';
 import { taxRateReducers } from '@features/taxRate';
 import { warehouseReducers } from '@features/warehouse';
@@ -88,7 +86,6 @@ const runtimeReducer = combineReducers({
   // Inventory & Warehouse
   ...locationTypeReducers,
   ...locationReducers,
-  ...locationInventoryReducers,
   ...warehouseReducers,
   ...warehouseInventoryReducers,
 
@@ -101,7 +98,6 @@ const runtimeReducer = combineReducers({
   ...outboundFulfillmentReducers,
 
   // Reporting & Misc
-  ...reportReducers,
   ...lookupReducers,
   ...discountReducers,
   ...taxRateReducers,
