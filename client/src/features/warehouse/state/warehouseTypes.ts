@@ -7,7 +7,7 @@
  * sort fields, and Redux state types.
  */
 
-import type {
+import {
   ApiSuccessResponse,
   GenericAudit,
   PaginatedResponse,
@@ -15,6 +15,7 @@ import type {
   SortConfig,
   AsyncState,
   CreatedUpdatedDateFilter,
+  CreatedUpdatedByFilter,
 } from '@shared-types/api';
 import type { ReduxPaginatedState } from '@shared-types/pagination';
 import type { NullableNumber, NullableString } from '@shared-types/shared';
@@ -113,15 +114,13 @@ export type WarehouseDetailApiResponse = ApiSuccessResponse<WarehouseDetailRecor
 // Filters
 // =============================================================================
 
-export type WarehouseFilters = CreatedUpdatedDateFilter & {
+export type WarehouseFilters = CreatedUpdatedDateFilter & CreatedUpdatedByFilter & {
   statusId?: string;
   isArchived?: boolean;
   warehouseTypeId?: string;
   locationId?: string;
   name?: string;
   code?: string;
-  createdBy?: string;
-  updatedBy?: string;
   keyword?: string;
 };
 
@@ -140,12 +139,25 @@ export interface WarehouseQueryParams extends PaginationParams, SortConfig {
 export type WarehouseSortField =
   | 'warehouseName'
   | 'warehouseCode'
-  | 'locationName'
-  | 'totalQuantity'
   | 'storageCapacity'
+  | 'defaultFee'
+  | 'isArchived'
+  | 'warehouseTypeName'
+  | 'locationName'
+  | 'city'
+  | 'provinceOrState'
+  | 'country'
   | 'statusName'
+  | 'statusId'
+  | 'statusDate'
+  | 'totalQuantity'
   | 'createdAt'
-  | 'updatedAt';
+  | 'updatedAt'
+  | 'createdByFirstName'
+  | 'createdByLastName'
+  | 'updatedByFirstName'
+  | 'updatedByLastName'
+  | 'defaultNaturalSort';
 
 // =============================================================================
 // Redux State
