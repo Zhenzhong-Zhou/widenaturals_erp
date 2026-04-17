@@ -25,3 +25,10 @@
  * @property {boolean}       canSearchPackagingMaterial  - Keyword search includes packaging material code/name.
  * @property {boolean}       canSearchSupplier          - Keyword search includes supplier name.
  */
+
+/**
+ * @typedef {Object} WarehouseAccessResult
+ * @property {string[]|null} assignedWarehouseIds
+ * @property {boolean} canViewAll
+ * @property {boolean} canAdjustReserved
+ */

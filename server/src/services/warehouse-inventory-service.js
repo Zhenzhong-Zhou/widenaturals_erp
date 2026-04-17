@@ -198,8 +198,12 @@ const createWarehouseInventoryService = async ({
 
   try {
     // 1. Warehouse scope check
-    const assignedWarehouseIds = await assertWarehouseAccess(user);
-    enforceWarehouseScope(assignedWarehouseIds, warehouseId);
+    const { assignedWarehouseIds, canViewAll } =
+      await assertWarehouseAccess(user);
+    
+    if (!canViewAll) {
+      enforceWarehouseScope(assignedWarehouseIds, warehouseId);
+    }
 
     return await withTransaction(async (client) => {
       // 2. Validate quantities
@@ -273,12 +277,14 @@ const createWarehouseInventoryService = async ({
  * within a single warehouse.
  *
  * Flow:
- *  1. Validates the requesting user has access to the specified warehouse.
- *  2. Validates quantity adjustment inputs.
- *  3. Fetches pre-mutation inventory state for activity log generation.
- *  4. Resolves new inventory status per row based on resulting warehouse quantity.
- *  5. Applies bulk quantity updates scoped to the warehouse (atomic ACL guard).
- *  6. Builds and inserts inventory activity log entries.
+ *  1. Resolves warehouse access and permission flags.
+ *  2. Enforces warehouse scope for non-global users.
+ *  3. Validates quantity adjustment inputs (reserved quantity
+ *     requires `FORCE_ADJUST_RESERVED` permission).
+ *  4. Fetches pre-mutation inventory state for activity log generation.
+ *  5. Resolves new inventory status per row based on resulting warehouse quantity.
+ *  6. Applies bulk quantity updates scoped to the warehouse (atomic ACL guard).
+ *  7. Builds and inserts inventory activity log entries.
  *
  * @param {object}   options
  * @param {string}   options.warehouseId              - UUID of the warehouse to adjust inventory in.
@@ -287,7 +293,8 @@ const createWarehouseInventoryService = async ({
  *
  * @returns {Promise<{ count: number, updatedIds: string[] }>}
  *
- * @throws {AppError} `validationError`  — warehouse access denied or invalid quantity inputs.
+ * @throws {AppError} `forbiddenError`   — warehouse access denied or reserved adjustment without permission.
+ * @throws {AppError} `validationError`  — invalid quantity inputs.
  * @throws {AppError} `notFoundError`    — one or more inventory records not found in the warehouse.
  * @throws {AppError} Re-throws all other AppErrors from lower layers unchanged.
  * @throws {AppError} Wraps unexpected errors as `serviceError`.
@@ -300,10 +307,14 @@ const adjustWarehouseInventoryQuantityService = async ({
   const context = `${CONTEXT}/adjustWarehouseInventoryQuantityService`;
 
   try {
-    const assignedWarehouseIds = await assertWarehouseAccess(user);
-    enforceWarehouseScope(assignedWarehouseIds, warehouseId);
+    const { assignedWarehouseIds, canViewAll, canAdjustReserved } =
+      await assertWarehouseAccess(user);
+    
+    if (!canViewAll) {
+      enforceWarehouseScope(assignedWarehouseIds, warehouseId);
+    }
 
-    validateQuantityAdjustments(updates);
+    validateQuantityAdjustments(updates, canAdjustReserved);
 
     return await withTransaction(async (client) => {
       const ids = updates.map((u) => u.id);
@@ -397,8 +408,12 @@ const updateWarehouseInventoryStatusService = async ({
   const context = `${CONTEXT}/updateWarehouseInventoryStatusService`;
 
   try {
-    const assignedWarehouseIds = await assertWarehouseAccess(user);
-    enforceWarehouseScope(assignedWarehouseIds, warehouseId);
+    const { assignedWarehouseIds, canViewAll } =
+      await assertWarehouseAccess(user);
+    
+    if (!canViewAll) {
+      enforceWarehouseScope(assignedWarehouseIds, warehouseId);
+    }
 
     return await withTransaction(async (client) => {
       const ids = updates.map((u) => u.id);
@@ -491,8 +506,12 @@ const updateWarehouseInventoryMetadataService = async ({
   const context = `${CONTEXT}/updateWarehouseInventoryMetadataService`;
 
   try {
-    const assignedWarehouseIds = await assertWarehouseAccess(user);
-    enforceWarehouseScope(assignedWarehouseIds, warehouseId);
+    const { assignedWarehouseIds, canViewAll } =
+      await assertWarehouseAccess(user);
+    
+    if (!canViewAll) {
+      enforceWarehouseScope(assignedWarehouseIds, warehouseId);
+    }
 
     return await withTransaction(async (client) => {
       const updated = await updateWarehouseInventoryMetadata(
@@ -557,8 +576,12 @@ const recordWarehouseInventoryOutboundService = async ({
   const context = `${CONTEXT}/recordWarehouseInventoryOutboundService`;
 
   try {
-    const assignedWarehouseIds = await assertWarehouseAccess(user);
-    enforceWarehouseScope(assignedWarehouseIds, warehouseId);
+    const { assignedWarehouseIds, canViewAll } =
+      await assertWarehouseAccess(user);
+    
+    if (!canViewAll) {
+      enforceWarehouseScope(assignedWarehouseIds, warehouseId);
+    }
 
     validateOutboundRecords(updates);
 
@@ -633,8 +656,12 @@ const getWarehouseInventoryDetailService = async ({
 
   try {
     // 1. Warehouse scope check
-    const assignedWarehouseIds = await assertWarehouseAccess(user);
-    enforceWarehouseScope(assignedWarehouseIds, warehouseId);
+    const { assignedWarehouseIds, canViewAll } =
+      await assertWarehouseAccess(user);
+    
+    if (!canViewAll) {
+      enforceWarehouseScope(assignedWarehouseIds, warehouseId);
+    }
 
     // 2. Fetch inventory detail
     const row = await getWarehouseInventoryDetailById(inventoryId, warehouseId);
@@ -682,8 +709,12 @@ const getWarehouseSummaryService = async ({ warehouseId, user }) => {
   const context = `${CONTEXT}/getWarehouseSummaryService`;
 
   try {
-    const assignedWarehouseIds = await assertWarehouseAccess(user);
-    enforceWarehouseScope(assignedWarehouseIds, warehouseId);
+    const { assignedWarehouseIds, canViewAll } =
+      await assertWarehouseAccess(user);
+    
+    if (!canViewAll) {
+      enforceWarehouseScope(assignedWarehouseIds, warehouseId);
+    }
 
     const [summaryRow, statusRows] = await Promise.all([
       getWarehouseSummary(warehouseId),
@@ -730,8 +761,12 @@ const getWarehouseItemSummaryService = async ({
   const context = `${CONTEXT}/getWarehouseItemSummaryService`;
 
   try {
-    const assignedWarehouseIds = await assertWarehouseAccess(user);
-    enforceWarehouseScope(assignedWarehouseIds, warehouseId);
+    const { assignedWarehouseIds, canViewAll } =
+      await assertWarehouseAccess(user);
+    
+    if (!canViewAll) {
+      enforceWarehouseScope(assignedWarehouseIds, warehouseId);
+    }
 
     const fetchProduct = !batchType || batchType === 'product';
     const fetchPackaging = !batchType || batchType === 'packaging_material';

@@ -143,7 +143,7 @@ const adjustQuantityItemSchema = Joi.object({
     'number.min': 'Warehouse Quantity must be zero or greater.',
     'any.required': 'Warehouse Quantity is required.',
   }),
-  reservedQuantity: Joi.number().integer().min(0).default(0).messages({
+  reservedQuantity: Joi.number().integer().min(0).optional().messages({
     'number.base': 'Reserved Quantity must be a number.',
     'number.integer': 'Reserved Quantity must be an integer.',
     'number.min': 'Reserved Quantity must be zero or greater.',

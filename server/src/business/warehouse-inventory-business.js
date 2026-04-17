@@ -178,9 +178,10 @@ const applyWarehouseInventoryVisibilityRules = (filters, acl) => {
   const adjusted = { ...filters };
 
   // ─── 1. Warehouse scope ──────────────────────────────────────────────────────
-
+  
   if (
     !acl.canViewAllWarehouses &&
+    acl.assignedWarehouseIds &&
     !acl.assignedWarehouseIds.includes(filters.warehouseId)
   ) {
     adjusted.forceEmptyResult = true;
@@ -195,11 +196,11 @@ const applyWarehouseInventoryVisibilityRules = (filters, acl) => {
 // ── Warehouse scope check ───────────────────────────────────────────
 
 /**
- * Validates that the user has access to the target warehouse.
+ * Resolves warehouse access flags and assigned warehouse IDs for the user.
  *
  * @param {AuthUser} user
- * @returns {Promise<string[]>}
- * @throws {AppError} forbiddenError if user lacks access.
+ * @returns {Promise<WarehouseAccessResult>}
+ * @throws {AppError} businessError if permission resolution fails.
  */
 const assertWarehouseAccess = async (user) => {
   const context = `${CONTEXT}/assertWarehouseAccess`;
@@ -209,10 +210,16 @@ const assertWarehouseAccess = async (user) => {
 
     const canViewAll =
       isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_WAREHOUSES);
-
-    if (canViewAll) return null;
-
-    return await getWarehouseIdsByUserId(user.id);
+    
+    const canAdjustReserved =
+      isRoot || permissions.includes(PERMISSIONS.FORCE_ADJUST_RESERVED);
+    
+    if (canViewAll) {
+      return { assignedWarehouseIds: null, canViewAll, canAdjustReserved };
+    }
+    
+    const assignedIds = await getWarehouseIdsByUserId(user.id);
+    return { assignedWarehouseIds: assignedIds, canViewAll, canAdjustReserved };
   } catch (err) {
     logSystemException(err, 'Failed to resolve warehouse access', {
       context,
@@ -407,14 +414,19 @@ const buildInboundActivityLogEntries = (
 // ── Quantity adjustment validation ──────────────────────────────────
 
 /**
- * @param {object[]} updates
- * @param {number} updates[].warehouseQuantity
- * @param {number} updates[].reservedQuantity
- * @throws {AppError} validationError if any quantities are invalid.
+ * Validates quantity adjustment inputs.
+ *
+ * Ensures warehouse quantities are non-negative integers and reserved
+ * quantities do not exceed warehouse quantities. Rejects reserved
+ * quantity values when the user lacks the FORCE_ADJUST_RESERVED permission.
+ *
+ * @param {WarehouseInventoryQuantityUpdate[]} updates
+ * @param {boolean} canAdjustReserved - Whether the user has permission to adjust reserved quantities.
+ * @throws {AppError} validationError if any quantities are invalid or reserved adjustment is unauthorized.
  */
-const validateQuantityAdjustments = (updates) => {
+const validateQuantityAdjustments = (updates, canAdjustReserved) => {
   const invalidIndices = [];
-
+  
   updates.forEach((update, index) => {
     if (
       update.warehouseQuantity == null ||
@@ -424,18 +436,24 @@ const validateQuantityAdjustments = (updates) => {
       invalidIndices.push(index);
       return;
     }
-
+    
     const reserved = update.reservedQuantity ?? 0;
     if (reserved < 0 || !Number.isInteger(reserved)) {
       invalidIndices.push(index);
       return;
     }
-
+    
     if (reserved > update.warehouseQuantity) {
+      invalidIndices.push(index);
+      return;
+    }
+    
+    // Non-admin trying to adjust reserved
+    if (!canAdjustReserved && update.reservedQuantity != null) {
       invalidIndices.push(index);
     }
   });
-
+  
   if (invalidIndices.length > 0) {
     throw AppError.validationError(
       'Invalid quantity values. Warehouse quantity must be a non-negative integer and reserved must not exceed warehouse quantity.',

@@ -163,7 +163,7 @@
  * @property {string}      batch_id
  * @property {number}      warehouse_quantity
  * @property {number}      [reserved_quantity=0]
- * @property {number}      [warehouse_fee=0]
+ * @property {string}      [warehouse_fee=0]
  * @property {string}      inbound_date
  * @property {string}      status_id
  * @property {string|null} [status_date]
@@ -203,19 +203,6 @@
 
 /**
  * @typedef {object} WarehouseInventoryDetailRow
- * @property {string}      id
- * @property {string}      batch_id
- * @property {string}      batch_type
- * @property {number}      warehouse_quantity
- * @property {number}      reserved_quantity
- * @property {number}      available_quantity
- * @property {number}      warehouse_fee
- * @property {string}      inbound_date
- * @property {string|null} outbound_date
- * @property {string|null} last_movement_at
- * @property {string}      status_id
- * @property {string}      status_date
- * @property {string}      status_name
  * @property {string}      batch_type
  * @property {string}      registered_at
  * @property {string|null} batch_note
@@ -259,6 +246,31 @@
  * @property {string}      created_by_lastname
  * @property {string|null} updated_by_firstname
  * @property {string|null} updated_by_lastname
+ */
+
+/**
+ * @typedef {Object} WarehouseInventoryBaseRow
+ * @property {string} id
+ * @property {string} batch_id
+ * @property {string} batch_type
+ * @property {number} warehouse_quantity
+ * @property {number} reserved_quantity
+ * @property {number} available_quantity
+ * @property {string} warehouse_fee
+ * @property {string} inbound_date
+ * @property {string|null} outbound_date
+ * @property {string|null} last_movement_at
+ * @property {string} status_id
+ * @property {string} status_name
+ * @property {string} status_date
+ */
+
+/**
+ * @typedef {WarehouseInventoryBaseRow & Object} WarehouseInventoryRow
+ */
+
+/**
+ * @typedef {WarehouseInventoryBaseRow & Object} WarehouseInventoryDetailRow
  */
 
 /**
