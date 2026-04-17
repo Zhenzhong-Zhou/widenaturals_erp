@@ -401,42 +401,42 @@ const SORTABLE_FIELDS = {
     defaultNaturalSort: `pmb.received_at`,
   },
   warehouseSortMap: {
-    // Warehouse-level fields (FROM warehouses w)
-    warehouseName: 'w.name',
-    warehouseCode: 'w.code',
-    storageCapacity: 'w.storage_capacity',
-    defaultFee: 'w.default_fee',
-    isArchived: 'w.is_archived',
-
-    // Warehouse type (FROM warehouse_types wt)
-    warehouseTypeName: 'wt.name',
-
-    // Location fields (FROM locations l)
-    locationName: 'l.name',
-    city: 'l.city',
-    provinceOrState: 'l.province_or_state',
-    country: 'l.country',
-
-    // Location type (FROM location_types lt)
-    locationTypeName: 'lt.name',
-
-    // Status fields (FROM status s)
-    statusName: 's.name',
-    statusId: 'w.status_id',
-    statusDate: 'w.status_date',
-
-    // Audit timestamps (FROM warehouses w)
-    createdAt: 'w.created_at',
-    updatedAt: 'w.updated_at',
-
-    // Audit user fields (FROM users cu/uu)
-    createdByFirstName: 'cu.firstname',
-    createdByLastName: 'cu.lastname',
-    updatedByFirstName: 'uu.firstname',
-    updatedByLastName: 'uu.lastname',
-
-    // Default fallback
-    defaultNaturalSort: 'w.created_at',
+    // Warehouse-level fields
+    warehouseName:        'w.name',
+    warehouseCode:        'w.code',
+    storageCapacity:      'w.storage_capacity',
+    defaultFee:           'w.default_fee',
+    isArchived:           'w.is_archived',
+    
+    // Warehouse type
+    warehouseTypeName:    'wt.name',
+    
+    // Location fields
+    locationName:         'l.name',
+    city:                 'l.city',
+    provinceOrState:      'l.province_or_state',
+    country:              'l.country',
+    
+    // Status fields
+    statusName:           'st.name',
+    statusId:             'w.status_id',
+    statusDate:           'w.status_date',
+    
+    // Inventory summary (LATERAL subquery alias)
+    totalQuantity:        'inv.total_quantity',
+    
+    // Audit timestamps
+    createdAt:            'w.created_at',
+    updatedAt:            'w.updated_at',
+    
+    // Audit user fields
+    createdByFirstName:   'cu.firstname',
+    createdByLastName:    'cu.lastname',
+    updatedByFirstName:   'uu.firstname',
+    updatedByLastName:    'uu.lastname',
+    
+    // Default fallback — must be an array
+    defaultNaturalSort:   'w.created_at',
   },
   pricingTypeSortMap: {
     // Pricing type fields (FROM pricing_types pt)
