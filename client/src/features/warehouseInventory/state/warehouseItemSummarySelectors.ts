@@ -2,6 +2,8 @@ import { createSelector } from '@reduxjs/toolkit';
 import type { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 
+const EMPTY_ARRAY: never[] = [];
+
 /**
  * Base selector for the warehouse item summary state slice.
  */
@@ -37,7 +39,7 @@ export const selectWarehouseItemSummaryError = createSelector(
  */
 export const selectWarehouseItemSummaryProducts = createSelector(
   [selectWarehouseItemSummaryData],
-  (data) => data?.products ?? []
+  (data) => data?.products ?? EMPTY_ARRAY
 );
 
 /**
@@ -45,7 +47,7 @@ export const selectWarehouseItemSummaryProducts = createSelector(
  */
 export const selectWarehouseItemSummaryPackaging = createSelector(
   [selectWarehouseItemSummaryData],
-  (data) => data?.packagingMaterials ?? []
+  (data) => data?.packagingMaterials ?? EMPTY_ARRAY
 );
 
 /**

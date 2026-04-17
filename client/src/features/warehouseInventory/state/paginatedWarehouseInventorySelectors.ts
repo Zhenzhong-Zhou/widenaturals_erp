@@ -2,6 +2,8 @@ import { createSelector } from '@reduxjs/toolkit';
 import type { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 
+const EMPTY_ARRAY: never[] = [];
+
 /**
  * Base selector for the paginated Warehouse Inventory slice.
  * Extracts the entire `paginatedWarehouseInventory` state from the Redux store.
@@ -14,7 +16,7 @@ const selectPaginatedWarehouseInventoryState = (state: RootState) =>
  */
 export const selectPaginatedWarehouseInventoryData = createSelector(
   [selectPaginatedWarehouseInventoryState],
-  (state) => state.data
+  (state) => state.data ?? EMPTY_ARRAY
 );
 
 /**

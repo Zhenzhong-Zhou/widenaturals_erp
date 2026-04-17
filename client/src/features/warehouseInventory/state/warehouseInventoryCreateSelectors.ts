@@ -1,7 +1,8 @@
 import { createSelector } from '@reduxjs/toolkit';
 import type { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
-import type { WarehouseInventoryRecord } from '@features/warehouseInventory';
+
+const EMPTY_ARRAY: never[] = [];
 
 /**
  * Base selector for the warehouse inventory creation state slice.
@@ -50,19 +51,17 @@ export const selectWarehouseInventoryCreateResponse = createSelector(
 );
 
 /**
- * Selects and memoizes display labels for created inventory records.
- *
- * Each entry shows the batch type and lot number.
- * Defaults to an empty array when no records are present.
+ * Selects the number of inventory records created in the last create operation.
  */
-export const selectCreatedInventoryLabels = createSelector(
+export const selectCreatedInventoryCount = createSelector(
   [selectWarehouseInventoryCreateState],
-  (createState) =>
-    createState.data?.map((record: WarehouseInventoryRecord) => {
-      const lotNumber =
-        record.productInfo?.batch?.lotNumber ??
-        record.packagingInfo?.batch?.lotNumber ??
-        '—';
-      return `${record.batchType}: ${lotNumber}`;
-    }) ?? []
+  (createState) => createState.data?.count ?? 0
+);
+
+/**
+ * Selects the UUIDs of inventory records created in the last create operation.
+ */
+export const selectCreatedInventoryIds = createSelector(
+  [selectWarehouseInventoryCreateState],
+  (createState) => createState.data?.ids ?? EMPTY_ARRAY
 );

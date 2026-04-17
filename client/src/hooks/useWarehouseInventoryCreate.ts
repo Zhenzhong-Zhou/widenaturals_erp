@@ -4,7 +4,8 @@ import {
   selectWarehouseInventoryCreateError,
   selectWarehouseInventoryCreateLoading,
   selectWarehouseInventoryCreateResponse,
-  selectCreatedInventoryLabels,
+  selectCreatedInventoryCount,
+  selectCreatedInventoryIds,
   createWarehouseInventoryThunk,
 } from '@features/warehouseInventory/state';
 import type { CreateWarehouseInventoryRequest } from '@features/warehouseInventory';
@@ -20,7 +21,8 @@ const useWarehouseInventoryCreate = () => {
   const loading = useAppSelector(selectWarehouseInventoryCreateLoading);
   const error = useAppSelector(selectWarehouseInventoryCreateError);
   const createResponse = useAppSelector(selectWarehouseInventoryCreateResponse);
-  const inventoryLabels = useAppSelector(selectCreatedInventoryLabels);
+  const createdCount = useAppSelector(selectCreatedInventoryCount);
+  const createdIds = useAppSelector(selectCreatedInventoryIds);
   
   /**
    * Dispatches the thunk to create warehouse inventory records.
@@ -45,7 +47,8 @@ const useWarehouseInventoryCreate = () => {
     loading,
     error,
     createResponse,
-    inventoryLabels,
+    createdCount,
+    createdIds,
     createWarehouseInventory,
     resetCreateState,
   };

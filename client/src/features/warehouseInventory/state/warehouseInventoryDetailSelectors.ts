@@ -2,6 +2,8 @@ import { createSelector } from '@reduxjs/toolkit';
 import type { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 
+const EMPTY_ARRAY: never[] = [];
+
 /**
  * Base selector for the warehouse inventory detail state slice.
  */
@@ -53,7 +55,7 @@ export const selectWarehouseInventoryDetailPackagingInfo = createSelector(
  */
 export const selectWarehouseInventoryDetailZones = createSelector(
   [selectWarehouseInventoryDetailData],
-  (data) => data?.zones ?? []
+  (data) => data?.zones ?? EMPTY_ARRAY
 );
 
 /**
@@ -61,7 +63,7 @@ export const selectWarehouseInventoryDetailZones = createSelector(
  */
 export const selectWarehouseInventoryDetailMovements = createSelector(
   [selectWarehouseInventoryDetailData],
-  (data) => data?.movements ?? []
+  (data) => data?.movements ?? EMPTY_ARRAY
 );
 
 /**

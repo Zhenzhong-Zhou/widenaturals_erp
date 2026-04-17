@@ -2,6 +2,8 @@ import { createSelector } from '@reduxjs/toolkit';
 import type { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 
+const EMPTY_ARRAY: never[] = [];
+
 /**
  * Base selector for the inventory activity log slice.
  */
@@ -13,7 +15,7 @@ const selectInventoryActivityLogState = (state: RootState) =>
  */
 export const selectInventoryActivityLogData = createSelector(
   [selectInventoryActivityLogState],
-  (state) => state.data
+  (state) => state.data ?? EMPTY_ARRAY
 );
 
 /**
