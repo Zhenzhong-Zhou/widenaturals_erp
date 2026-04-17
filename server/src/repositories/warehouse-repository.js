@@ -25,11 +25,11 @@ const { SORTABLE_FIELDS } = require('../utils/sort-field-mapping');
 const {
   TABLE_NAME,
   JOINS,
-  SELECT_FIELDS,
   WAREHOUSE_SORT_WHITELIST,
   WAREHOUSE_ADDITIONAL_SORTS,
   buildWarehousePaginatedQuery,
   GET_WAREHOUSE_BY_ID_QUERY,
+  buildWarehouseLookupQuery,
 } = require('./queries/warehouse-queries');
 
 // ─── Paginated List ───────────────────────────────────────────────────────────
@@ -156,14 +156,7 @@ const getWarehouseLookup = async ({ filters = {} } = {}) => {
 
   // queryText built per request because whereClause is dynamic.
   // ORDER BY is safe here — raw query(), not paginateQuery().
-  const queryText = `
-    SELECT
-      ${SELECT_FIELDS.join(',\n      ')}
-    FROM ${TABLE_NAME}
-    ${JOINS.join('\n    ')}
-    WHERE ${whereClause}
-    ORDER BY w.name ASC
-  `;
+  const queryText = buildWarehouseLookupQuery(whereClause);
 
   try {
     const { rows } = await query(queryText, params);
