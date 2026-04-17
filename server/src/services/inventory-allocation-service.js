@@ -135,8 +135,12 @@ const allocateInventoryForOrderService = async (
   }
 
   // Enforce warehouse access before entering the transaction.
-  const assignedWarehouseIds = await assertWarehouseAccess(user);
-  enforceWarehouseScope(assignedWarehouseIds, warehouseId);
+  const { assignedWarehouseIds, canViewAll } =
+    await assertWarehouseAccess(user);
+  
+  if (!canViewAll) {
+    enforceWarehouseScope(assignedWarehouseIds, warehouseId);
+  }
 
   try {
     return await withTransaction(async (client) => {

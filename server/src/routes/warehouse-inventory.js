@@ -165,7 +165,6 @@ router.get(
   getPaginatedActivityLogController
 );
 
-
 /**
  * @route GET /:warehouseId/inventory/:inventoryId
  * @description Full detail view for a single warehouse inventory record,

@@ -25,22 +25,31 @@ import warehouseItemSummaryReducer from './warehouseItemSummarySlice';
 export const warehouseInventoryReducers = {
   /** Paginated warehouse inventory list with filters and sorting. */
   paginatedWarehouseInventory: paginatedWarehouseInventoryReducer,
+  
   /** Warehouse inventory bulk creation mutation state. */
   warehouseInventoryCreate: warehouseInventoryCreateReducer,
+  
   /** Warehouse inventory bulk quantity adjustment mutation state. */
   warehouseInventoryAdjustQuantity: warehouseInventoryAdjustQuantityReducer,
+  
   /** Warehouse inventory bulk status update mutation state. */
   warehouseInventoryUpdateStatus: warehouseInventoryUpdateStatusReducer,
+  
   /** Warehouse inventory single record metadata update mutation state. */
   warehouseInventoryUpdateMetadata: warehouseInventoryUpdateMetadataReducer,
+  
   /** Warehouse inventory bulk outbound recording mutation state. */
   warehouseInventoryOutbound: warehouseInventoryOutboundReducer,
+  
   /** Warehouse inventory single record detail view. */
   warehouseInventoryDetail: warehouseInventoryDetailReducer,
+  
   /** Paginated inventory activity log with filters and sorting. */
   inventoryActivityLog: inventoryActivityLogReducer,
+  
   /** Warehouse aggregate summary (totals, batch types, statuses). */
   warehouseSummary: warehouseSummaryReducer,
+  
   /** Warehouse item-level summary (products and packaging materials). */
   warehouseItemSummary: warehouseItemSummaryReducer,
 };
