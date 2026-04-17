@@ -6,6 +6,8 @@ import warehouseInventoryUpdateMetadataReducer from './warehouseInventoryUpdateM
 import warehouseInventoryOutboundReducer from './warehouseInventoryOutboundSlice';
 import warehouseInventoryDetailReducer from './warehouseInventoryDetailSlice';
 import inventoryActivityLogReducer from './inventoryActivityLogSlice';
+import warehouseSummaryReducer from './warehouseSummarySlice';
+import warehouseItemSummaryReducer from './warehouseItemSummarySlice';
 
 /**
  * Reducer map for the Warehouse Inventory feature.
@@ -37,4 +39,8 @@ export const warehouseInventoryReducers = {
   warehouseInventoryDetail: warehouseInventoryDetailReducer,
   /** Paginated inventory activity log with filters and sorting. */
   inventoryActivityLog: inventoryActivityLogReducer,
+  /** Warehouse aggregate summary (totals, batch types, statuses). */
+  warehouseSummary: warehouseSummaryReducer,
+  /** Warehouse item-level summary (products and packaging materials). */
+  warehouseItemSummary: warehouseItemSummaryReducer,
 };

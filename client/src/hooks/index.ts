@@ -163,6 +163,7 @@ export { default as useWarehouseInventoryUpdateMetadata } from './useWarehouseIn
 export { default as useWarehouseInventoryOutbound } from './useWarehouseInventoryOutbound';
 export { default as useWarehouseInventoryDetail } from './useWarehouseInventoryDetail';
 export { default as useInventoryActivityLog } from './useInventoryActivityLog';
+export { default as useWarehouseSummary } from './useWarehouseSummary';
 
 /* =====================================================
  * Lookups (Dropdown / Reference Data)

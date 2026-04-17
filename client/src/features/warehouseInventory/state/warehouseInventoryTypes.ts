@@ -655,3 +655,137 @@ export type PaginatedInventoryActivityLogListUiResponse =
 /** Redux state shape for the inventory activity log list slice. */
 export type InventoryActivityLogListState =
   ReduxPaginatedState<InventoryActivityLogRecord>;
+
+// =============================================================================
+// Warehouse Summary
+// =============================================================================
+
+/** Warehouse identity within a summary response. */
+export type WarehouseSummaryInfo = {
+  id: string;
+  name: string;
+  code: string;
+  storageCapacity: number | null;
+  defaultFee: string | null;
+  typeName: string | null;
+};
+
+/** Aggregate totals across all inventory in a warehouse. */
+export type WarehouseSummaryTotals = {
+  batches: number;
+  productSkus: number;
+  packagingMaterials: number;
+  quantity: number;
+  reserved: number;
+  available: number;
+};
+
+/** Batch type breakdown within a warehouse summary. */
+export type WarehouseSummaryBatchType = {
+  batchCount: number;
+  quantity: number;
+};
+
+/** Inventory breakdown by status. */
+export type WarehouseSummaryByStatus = {
+  statusId: string;
+  statusName: string;
+  batchCount: number;
+  quantity: number;
+  reserved: number;
+  available: number;
+};
+
+/** Full warehouse summary record as returned by the API. */
+export type WarehouseSummaryRecord = {
+  warehouse: WarehouseSummaryInfo;
+  totals: WarehouseSummaryTotals;
+  byBatchType: {
+    product: WarehouseSummaryBatchType;
+    packagingMaterial: WarehouseSummaryBatchType;
+  };
+  byStatus: WarehouseSummaryByStatus[];
+};
+
+/** API response for warehouse summary. */
+export type WarehouseSummaryResponse =
+  ApiSuccessResponse<WarehouseSummaryRecord>;
+
+/** Redux state shape for warehouse summary. */
+export type WarehouseSummaryState = {
+  data: WarehouseSummaryRecord | null;
+  loading: boolean;
+  error: UiErrorPayload | null;
+};
+
+// =============================================================================
+// Warehouse Item Summary
+// =============================================================================
+
+/** SKU-level summary within a product group. */
+export type WarehouseProductSkuSummary = {
+  skuId: string;
+  sku: string;
+  sizeLabel: string;
+  countryCode: string;
+  marketRegion: string;
+  totalQuantity: number;
+  totalReserved: number;
+  totalAvailable: number;
+  batchCount: number;
+  earliestExpiry: string | null;
+};
+
+/** Product-level summary with nested SKU breakdown. */
+export type WarehouseProductSummary = {
+  productId: string;
+  productName: string;
+  brand: string;
+  totalQuantity: number;
+  totalReserved: number;
+  totalAvailable: number;
+  batchCount: number;
+  earliestExpiry: string | null;
+  skus: WarehouseProductSkuSummary[];
+};
+
+/** Packaging material summary. */
+export type WarehousePackagingSummary = {
+  packagingMaterialId: string;
+  packagingMaterialCode: string;
+  packagingMaterialName: string;
+  packagingMaterialCategory: string | null;
+  totalQuantity: number;
+  totalReserved: number;
+  totalAvailable: number;
+  batchCount: number;
+  earliestExpiry: string | null;
+};
+
+/** Combined item summary record as returned by the API. */
+export type WarehouseItemSummaryRecord = {
+  products: WarehouseProductSummary[];
+  packagingMaterials: WarehousePackagingSummary[];
+};
+
+/** Optional batch type filter for item summary. */
+export type WarehouseItemSummaryFilters = {
+  batchType?: 'product' | 'packaging_material';
+};
+
+/** Query params for the item summary endpoint. */
+export interface WarehouseItemSummaryQueryParams {
+  warehouseId: string;
+  filters?: WarehouseItemSummaryFilters;
+}
+
+/** API response for warehouse item summary. */
+export type WarehouseItemSummaryResponse =
+  ApiSuccessResponse<WarehouseItemSummaryRecord>;
+
+/** Redux state shape for warehouse item summary. */
+export type WarehouseItemSummaryState = {
+  data: WarehouseItemSummaryRecord | null;
+  loading: boolean;
+  error: UiErrorPayload | null;
+};

@@ -9,14 +9,21 @@ import type {
   AdjustWarehouseInventoryQuantityRequest,
   AdjustWarehouseInventoryQuantityResponse,
   CreateWarehouseInventoryRequest,
-  CreateWarehouseInventoryResponse, InventoryActivityLogQueryParams, PaginatedInventoryActivityLogApiResponse,
-  PaginatedWarehouseInventoryApiResponse, RecordWarehouseInventoryOutboundRequest,
+  CreateWarehouseInventoryResponse,
+  InventoryActivityLogQueryParams,
+  PaginatedInventoryActivityLogApiResponse,
+  PaginatedWarehouseInventoryApiResponse,
+  RecordWarehouseInventoryOutboundRequest,
   RecordWarehouseInventoryOutboundResponse,
   UpdateWarehouseInventoryMetadataRequest,
   UpdateWarehouseInventoryMetadataResponse,
   UpdateWarehouseInventoryStatusRequest,
-  UpdateWarehouseInventoryStatusResponse, WarehouseInventoryDetailResponse,
+  UpdateWarehouseInventoryStatusResponse,
+  WarehouseInventoryDetailResponse,
   WarehouseInventoryQueryParams,
+  WarehouseItemSummaryQueryParams,
+  WarehouseItemSummaryResponse,
+  WarehouseSummaryResponse,
 } from '@features/warehouseInventory';
 import { buildQueryString, flattenListQueryParams } from '@utils/query';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
@@ -207,6 +214,48 @@ const fetchInventoryActivityLog = async (
   });
 };
 
+/**
+ * Fetch the aggregate summary for a single warehouse.
+ *
+ * Issues:
+ *   GET /:warehouseId/summary
+ *
+ * @param warehouseId - Target warehouse UUID.
+ * @returns API response containing the warehouse summary.
+ * @throws {AppError} When the request fails.
+ */
+const fetchWarehouseSummary = async (
+  warehouseId: string
+): Promise<WarehouseSummaryResponse> => {
+  return getRequest<WarehouseSummaryResponse>(
+    API_ENDPOINTS.WAREHOUSE_INVENTORY.SUMMARY(warehouseId),
+    { policy: 'READ' }
+  );
+};
+
+/**
+ * Fetch the item-level summary for a single warehouse.
+ *
+ * Issues:
+ *   GET /:warehouseId/summary/items
+ *
+ * @param params - Query parameters including warehouseId and optional batch type filter.
+ * @returns API response containing product and packaging material summaries.
+ * @throws {AppError} When the request fails.
+ */
+const fetchWarehouseItemSummary = async (
+  params: WarehouseItemSummaryQueryParams
+): Promise<WarehouseItemSummaryResponse> => {
+  const { warehouseId, ...queryParams } = params;
+  const flatParams = flattenListQueryParams(queryParams, []);
+  const queryString = buildQueryString(flatParams);
+  const url = `${API_ENDPOINTS.WAREHOUSE_INVENTORY.SUMMARY_ITEMS(warehouseId)}${queryString}`;
+  
+  return getRequest<WarehouseItemSummaryResponse>(url, {
+    policy: 'READ',
+  });
+};
+
 export const warehouseInventoryService = {
   fetchPaginatedWarehouseInventory,
   createWarehouseInventory,
@@ -216,4 +265,6 @@ export const warehouseInventoryService = {
   recordWarehouseInventoryOutbound,
   fetchWarehouseInventoryDetail,
   fetchInventoryActivityLog,
+  fetchWarehouseSummary,
+  fetchWarehouseItemSummary,
 };

@@ -11,14 +11,21 @@ import type {
   AdjustWarehouseInventoryQuantityRequest,
   AdjustWarehouseInventoryQuantityResponse,
   CreateWarehouseInventoryRequest,
-  CreateWarehouseInventoryResponse, InventoryActivityLogQueryParams, PaginatedInventoryActivityLogListUiResponse,
+  CreateWarehouseInventoryResponse,
+  InventoryActivityLogQueryParams,
+  PaginatedInventoryActivityLogListUiResponse,
   PaginatedWarehouseInventoryListUiResponse,
-  RecordWarehouseInventoryOutboundRequest, RecordWarehouseInventoryOutboundResponse,
+  RecordWarehouseInventoryOutboundRequest,
+  RecordWarehouseInventoryOutboundResponse,
   UpdateWarehouseInventoryMetadataRequest,
   UpdateWarehouseInventoryMetadataResponse,
   UpdateWarehouseInventoryStatusRequest,
-  UpdateWarehouseInventoryStatusResponse, WarehouseInventoryDetailResponse,
+  UpdateWarehouseInventoryStatusResponse,
+  WarehouseInventoryDetailResponse,
   WarehouseInventoryQueryParams,
+  WarehouseItemSummaryQueryParams,
+  WarehouseItemSummaryResponse,
+  WarehouseSummaryResponse,
 } from '@features/warehouseInventory';
 import { extractUiErrorPayload, type UiErrorPayload } from '@utils/error/uiErrorUtils';
 import { warehouseInventoryService } from '@services/warehouseInventoryService';
@@ -186,6 +193,42 @@ export const fetchInventoryActivityLogThunk = createAsyncThunk<
     async (params, { rejectWithValue }) => {
       try {
         return await warehouseInventoryService.fetchInventoryActivityLog(params);
+      } catch (error: unknown) {
+        return rejectWithValue(extractUiErrorPayload(error));
+      }
+    }
+);
+
+/**
+ * Fetch the aggregate summary for a single warehouse.
+ */
+export const fetchWarehouseSummaryThunk = createAsyncThunk<
+  WarehouseSummaryResponse,
+  string,
+  { rejectValue: UiErrorPayload }
+>(
+  'warehouseInventory/fetchSummary',
+    async (warehouseId, { rejectWithValue }) => {
+      try {
+        return await warehouseInventoryService.fetchWarehouseSummary(warehouseId);
+      } catch (error: unknown) {
+        return rejectWithValue(extractUiErrorPayload(error));
+      }
+    }
+);
+
+/**
+ * Fetch the item-level summary for a single warehouse.
+ */
+export const fetchWarehouseItemSummaryThunk = createAsyncThunk<
+  WarehouseItemSummaryResponse,
+  WarehouseItemSummaryQueryParams,
+  { rejectValue: UiErrorPayload }
+>(
+  'warehouseInventory/fetchItemSummary',
+    async (params, { rejectWithValue }) => {
+      try {
+        return await warehouseInventoryService.fetchWarehouseItemSummary(params);
       } catch (error: unknown) {
         return rejectWithValue(extractUiErrorPayload(error));
       }
