@@ -13,7 +13,7 @@
  * @property {boolean} [forceEmptyResult]
  */
 
-// ─── Transformer Output Types ─────────────────────────────────────────────────
+// ─── Shared Transformer Output Types ──────────────────────────────────────────
 
 /**
  * @typedef {Object} WarehouseInventoryStatus
@@ -31,11 +31,13 @@
  * @property {number}                    reservedQuantity
  * @property {number}                    availableQuantity
  * @property {string}                    warehouseFee
- * @property {string|null}              inboundDate
- * @property {string|null}              outboundDate
- * @property {string|null}              lastMovementAt
+ * @property {string|null}               inboundDate
+ * @property {string|null}               outboundDate
+ * @property {string|null}               lastMovementAt
  * @property {WarehouseInventoryStatus}  status
  */
+
+// ─── List: Nested Info Blocks ─────────────────────────────────────────────────
 
 /**
  * @typedef {Object} ProductBatchInfo
@@ -102,24 +104,104 @@
  * @property {SupplierInfo}           supplier
  */
 
+// ─── Detail: Nested Info Blocks (richer than list) ────────────────────────────
+
 /**
- * @typedef {WarehouseInventoryBase & { batchType: 'product', productInfo: ProductInfo, packagingInfo: null }} ProductWarehouseInventoryRecord
+ * @typedef {ProductBatchInfo & {
+ *   manufactureDate: string|null,
+ *   initialQuantity: number|null,
+ *   batchNotes:      string|null
+ * }} ProductBatchDetail
  */
 
 /**
- * @typedef {WarehouseInventoryBase & { batchType: 'packaging_material', productInfo: null, packagingInfo: PackagingInfo }} PackagingWarehouseInventoryRecord
+ * @typedef {ProductDetail & {
+ *   category:    string|null,
+ *   series:      string|null,
+ *   displayName: string|null
+ * }} ProductDetailExtended
  */
 
 /**
- * @typedef {WarehouseInventoryBase & { batchType: string, productInfo: null, packagingInfo: null }} UnknownWarehouseInventoryRecord
+ * @typedef {Object} ProductInfoDetail
+ * @property {ProductBatchDetail}     batch
+ * @property {SkuInfo}                sku
+ * @property {ProductDetailExtended}  product
+ * @property {ManufacturerInfo}       manufacturer
  */
+
+/**
+ * @typedef {PackagingBatchInfo & {
+ *   initialQuantity: number|null,
+ *   unit:            string|null
+ * }} PackagingBatchDetail
+ */
+
+/**
+ * @typedef {PackagingMaterialInfo & {
+ *   name:     string|null,
+ *   category: string|null
+ * }} PackagingMaterialDetail
+ */
+
+/**
+ * @typedef {Object} PackagingInfoDetail
+ * @property {PackagingBatchDetail}     batch
+ * @property {PackagingMaterialDetail}  material
+ * @property {SupplierInfo}             supplier
+ */
+
+// ─── List Record (discriminated union) ────────────────────────────────────────
+
+/** @typedef {WarehouseInventoryBase & { batchType: 'product',             productInfo: ProductInfo,   packagingInfo: null         }} ProductWarehouseInventoryRecord */
+/** @typedef {WarehouseInventoryBase & { batchType: 'packaging_material',  productInfo: null,          packagingInfo: PackagingInfo }} PackagingWarehouseInventoryRecord */
+/** @typedef {WarehouseInventoryBase & { batchType: string,                productInfo: null,          packagingInfo: null         }} UnknownWarehouseInventoryRecord */
 
 /**
  * @typedef {ProductWarehouseInventoryRecord | PackagingWarehouseInventoryRecord | UnknownWarehouseInventoryRecord} WarehouseInventoryRecord
  */
 
+// ─── Detail Record (discriminated union) ──────────────────────────────────────
+
 /**
- * @typedef {object} WarehouseInventoryRow
+ * @typedef {WarehouseInventoryBase & {
+ *   batchType:     'product',
+ *   registeredAt:  string,
+ *   batchNote:     string|null,
+ *   productInfo:   ProductInfoDetail,
+ *   packagingInfo: null,
+ *   audit:         AuditInfo
+ * }} ProductWarehouseInventoryDetailRecord
+ */
+
+/**
+ * @typedef {WarehouseInventoryBase & {
+ *   batchType:     'packaging_material',
+ *   registeredAt:  string,
+ *   batchNote:     string|null,
+ *   productInfo:   null,
+ *   packagingInfo: PackagingInfoDetail,
+ *   audit:         AuditInfo
+ * }} PackagingWarehouseInventoryDetailRecord
+ */
+
+/**
+ * @typedef {WarehouseInventoryBase & {
+ *   batchType:     string,
+ *   registeredAt:  string,
+ *   batchNote:     string|null,
+ *   productInfo:   null,
+ *   packagingInfo: null,
+ *   audit:         AuditInfo
+ * }} UnknownWarehouseInventoryDetailRecord
+ */
+
+// ─── Row Types (DB shape) ─────────────────────────────────────────────────────
+
+/**
+ * Shared base columns between list and detail row shapes.
+ *
+ * @typedef {Object} WarehouseInventoryBaseRow
  * @property {string}      id
  * @property {string}      batch_id
  * @property {string}      batch_type
@@ -127,35 +209,89 @@
  * @property {number}      reserved_quantity
  * @property {number}      available_quantity
  * @property {string}      warehouse_fee
- * @property {string}      inbound_date
+ * @property {string|null} inbound_date
  * @property {string|null} outbound_date
  * @property {string|null} last_movement_at
  * @property {string}      status_id
- * @property {string}      status_date
  * @property {string}      status_name
- * @property {string|null} product_batch_id
- * @property {string|null} product_lot_number
- * @property {string|null} product_expiry_date
- * @property {string|null} sku_id
- * @property {string|null} sku
- * @property {string|null} barcode
- * @property {string|null} size_label
- * @property {string|null} country_code
- * @property {string|null} market_region
- * @property {string|null} product_id
- * @property {string|null} product_name
- * @property {string|null} brand
- * @property {string|null} manufacturer_id
- * @property {string|null} manufacturer_name
- * @property {string|null} packaging_batch_id
- * @property {string|null} packaging_lot_number
- * @property {string|null} packaging_display_name
- * @property {string|null} packaging_expiry_date
- * @property {string|null} packaging_material_id
- * @property {string|null} packaging_material_code
- * @property {string|null} supplier_id
- * @property {string|null} supplier_name
+ * @property {string}      status_date
  */
+
+/**
+ * @typedef {WarehouseInventoryBaseRow & {
+ *   product_batch_id:        string|null,
+ *   product_lot_number:      string|null,
+ *   product_expiry_date:     string|null,
+ *   sku_id:                  string|null,
+ *   sku:                     string|null,
+ *   barcode:                 string|null,
+ *   size_label:              string|null,
+ *   country_code:            string|null,
+ *   market_region:           string|null,
+ *   product_id:              string|null,
+ *   product_name:            string|null,
+ *   brand:                   string|null,
+ *   manufacturer_id:         string|null,
+ *   manufacturer_name:       string|null,
+ *   packaging_batch_id:      string|null,
+ *   packaging_lot_number:    string|null,
+ *   packaging_display_name:  string|null,
+ *   packaging_expiry_date:   string|null,
+ *   packaging_material_id:   string|null,
+ *   packaging_material_code: string|null,
+ *   supplier_id:             string|null,
+ *   supplier_name:           string|null
+ * }} WarehouseInventoryRow
+ */
+
+/**
+ * @typedef {WarehouseInventoryBaseRow & {
+ *   registered_at:               string,
+ *   batch_note:                  string|null,
+ *   product_batch_id:            string|null,
+ *   product_lot_number:          string|null,
+ *   product_expiry_date:         string|null,
+ *   product_manufacture_date:    string|null,
+ *   product_initial_quantity:    number|null,
+ *   product_batch_notes:         string|null,
+ *   sku_id:                      string|null,
+ *   sku:                         string|null,
+ *   barcode:                     string|null,
+ *   size_label:                  string|null,
+ *   country_code:                string|null,
+ *   market_region:               string|null,
+ *   product_id:                  string|null,
+ *   product_name:                string|null,
+ *   brand:                       string|null,
+ *   category:                    string|null,
+ *   series:                      string|null,
+ *   display_name:                string|null,
+ *   manufacturer_id:             string|null,
+ *   manufacturer_name:           string|null,
+ *   packaging_batch_id:          string|null,
+ *   packaging_lot_number:        string|null,
+ *   packaging_display_name:      string|null,
+ *   packaging_expiry_date:       string|null,
+ *   packaging_initial_quantity:  number|null,
+ *   packaging_unit:              string|null,
+ *   packaging_material_id:       string|null,
+ *   packaging_material_code:     string|null,
+ *   packaging_material_name:     string|null,
+ *   packaging_material_category: string|null,
+ *   supplier_id:                 string|null,
+ *   supplier_name:               string|null,
+ *   created_by:                  string,
+ *   created_at:                  string,
+ *   updated_by:                  string|null,
+ *   updated_at:                  string|null,
+ *   created_by_firstname:        string,
+ *   created_by_lastname:         string,
+ *   updated_by_firstname:        string|null,
+ *   updated_by_lastname:         string|null
+ * }} WarehouseInventoryDetailRow
+ */
+
+// ─── Insert / Update Types (unchanged) ────────────────────────────────────────
 
 /**
  * @typedef {object} WarehouseInventoryInsertRecord
@@ -168,6 +304,16 @@
  * @property {string}      status_id
  * @property {string|null} [status_date]
  * @property {string|null} [created_by]
+ */
+
+/**
+ * @typedef {WarehouseInventoryBase & {
+ *   registeredAt:   string,
+ *   batchNote:      string|null,
+ *   productInfo:    ProductInfoDetail|null,
+ *   packagingInfo:  PackagingInfoDetail|null,
+ *   audit:          AuditInfo
+ * }} WarehouseInventoryDetailRecord
  */
 
 /**
@@ -257,7 +403,7 @@
  * @property {number} reserved_quantity
  * @property {number} available_quantity
  * @property {string} warehouse_fee
- * @property {string} inbound_date
+ * @property {string|null} inbound_date
  * @property {string|null} outbound_date
  * @property {string|null} last_movement_at
  * @property {string} status_id
@@ -271,26 +417,6 @@
 
 /**
  * @typedef {WarehouseInventoryBaseRow & Object} WarehouseInventoryDetailRow
- */
-
-/**
- * @typedef {object} WarehouseInventoryDetailRecord
- * @property {string}      id
- * @property {string}      batchId
- * @property {string}      batchType
- * @property {number}      warehouseQuantity
- * @property {number}      reservedQuantity
- * @property {number}      availableQuantity
- * @property {number}      warehouseFee
- * @property {string}      inboundDate
- * @property {string|null} outboundDate
- * @property {string|null} lastMovementAt
- * @property {string}      registeredAt
- * @property {string|null} batchNote
- * @property {object}      status
- * @property {object|null} productInfo
- * @property {object|null} packagingInfo
- * @property {object}      audit
  */
 
 /**

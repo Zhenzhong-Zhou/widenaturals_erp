@@ -158,81 +158,111 @@ const transformPaginatedWarehouseInventory = (paginatedResult) =>
  * Extends the list-level builder with batch and product metadata.
  *
  * @param {WarehouseInventoryDetailRow} row
+ * @returns {ProductInfoDetail|null}
  */
-const buildProductInfoDetail = (row) =>
-  cleanOrNull({
+const buildProductInfoDetail = (row) => {
+  if (row.batch_type !== 'product') return null;
+  return {
     batch: {
-      id: row.product_batch_id,
-      lotNumber: row.product_lot_number,
-      expiryDate: row.product_expiry_date,
-      manufactureDate: row.product_manufacture_date,
-      initialQuantity: row.product_initial_quantity,
-      notes: row.product_batch_notes,
+      id:               row.product_batch_id,
+      lotNumber:        row.product_lot_number,
+      expiryDate:       row.product_expiry_date,
+      manufactureDate:  row.product_manufacture_date,
+      initialQuantity:  row.product_initial_quantity,
+      batchNotes:       row.product_batch_notes,
     },
     sku: {
-      id: row.sku_id,
-      sku: row.sku,
-      barcode: row.barcode,
-      sizeLabel: row.size_label,
-      countryCode: row.country_code,
+      id:           row.sku_id,
+      sku:          row.sku,
+      barcode:      row.barcode,
+      sizeLabel:    row.size_label,
+      countryCode:  row.country_code,
       marketRegion: row.market_region,
     },
     product: {
-      id: row.product_id,
-      name: row.product_name,
-      brand: row.brand,
-      category: row.category,
-      series: row.series,
+      id:          row.product_id,
+      name:        row.product_name,
+      brand:       row.brand,
+      category:    row.category,
+      series:      row.series,
       displayName: getProductDisplayName(row),
     },
     manufacturer: {
-      id: row.manufacturer_id,
+      id:   row.manufacturer_id,
       name: row.manufacturer_name,
     },
-  });
+  };
+};
 
 /**
  * Builds the packaging info subtree for the detail view.
  * Extends the list-level builder with material name, category, and batch unit.
  *
  * @param {WarehouseInventoryDetailRow} row
+ * @returns {PackagingInfoDetail|null}
  */
-const buildPackagingInfoDetail = (row) =>
-  cleanOrNull({
+const buildPackagingInfoDetail = (row) => {
+  if (row.batch_type !== 'packaging_material') return null;
+  return {
     batch: {
-      id: row.packaging_batch_id,
-      lotNumber: row.packaging_lot_number,
-      displayName: row.packaging_display_name,
-      expiryDate: row.packaging_expiry_date,
+      id:              row.packaging_batch_id,
+      lotNumber:       row.packaging_lot_number,
+      displayName:     row.packaging_display_name,
+      expiryDate:      row.packaging_expiry_date,
       initialQuantity: row.packaging_initial_quantity,
-      unit: row.packaging_unit,
+      unit:            row.packaging_unit,
     },
     material: {
-      id: row.packaging_material_id,
-      code: row.packaging_material_code,
-      name: row.packaging_material_name,
+      id:       row.packaging_material_id,
+      code:     row.packaging_material_code,
+      name:     row.packaging_material_name,
       category: row.packaging_material_category,
     },
     supplier: {
-      id: row.supplier_id,
+      id:   row.supplier_id,
       name: row.supplier_name,
     },
-  });
-  
+  };
+};
+
 /**
  * Transforms a raw warehouse inventory detail DB row into a structured API record.
  *
  * @param {WarehouseInventoryDetailRow} row
  * @returns {WarehouseInventoryDetailRecord}
  */
-const transformWarehouseInventoryDetailRecord = (row) => ({
-  ...mapWarehouseInventoryBase(row),
-  registeredAt: row.registered_at,
-  batchNote: row.batch_note,
-  productInfo: buildProductInfoDetail(row),
-  packagingInfo: buildPackagingInfoDetail(row),
-  audit: compactAudit(makeAudit(row)),
-});
+const transformWarehouseInventoryDetailRecord = (row) => {
+  const base = {
+    ...mapWarehouseInventoryBase(row),
+    registeredAt: row.registered_at,
+    batchNote:    row.batch_note,
+    audit:        compactAudit(makeAudit(row)),
+  };
+  
+  if (row.batch_type === 'product') {
+    return {
+      ...base,
+      batchType:     'product',
+      productInfo:   buildProductInfoDetail(row),
+      packagingInfo: null,
+    };
+  }
+  
+  if (row.batch_type === 'packaging_material') {
+    return {
+      ...base,
+      batchType:     'packaging_material',
+      productInfo:   null,
+      packagingInfo: buildPackagingInfoDetail(row),
+    };
+  }
+  
+  return {
+    ...base,
+    productInfo:   null,
+    packagingInfo: null,
+  };
+};
 
 /**
  * Transforms a raw warehouse summary row and status breakdown rows
