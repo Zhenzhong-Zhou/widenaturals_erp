@@ -146,11 +146,11 @@ router.post(
  * @description Paginated inventory activity log scoped to a given warehouse.
  *   Filters: inventoryId, actionTypeId, performedBy, dateAfter, dateBefore.
  * @access protected
- * @permission PERMISSION_KEYS.WAREHOUSE_INVENTORY.READ
+ * @permission PERMISSION_KEYS.WAREHOUSE_INVENTORY.VIEW
  */
 router.get(
   '/:warehouseId/inventory/activity-log',
-  authorize([PERMISSION_KEYS.WAREHOUSE_INVENTORY.READ]),
+  authorize([PERMISSION_KEYS.WAREHOUSE_INVENTORY.VIEW]),
   validate(warehouseIdParamSchema, 'params'),
   validate(inventoryActivityLogQuerySchema, 'query', { allowUnknown: true }),
   createQueryNormalizationMiddleware(
@@ -170,11 +170,11 @@ router.get(
  * @description Full detail view for a single warehouse inventory record,
  *   including zone assignments and recent movement history.
  * @access protected
- * @permission PERMISSION_KEYS.WAREHOUSE_INVENTORY.READ
+ * @permission PERMISSION_KEYS.WAREHOUSE_INVENTORY.VIEW
  */
 router.get(
   '/:warehouseId/inventory/:inventoryId',
-  authorize([PERMISSION_KEYS.WAREHOUSE_INVENTORY.READ]),
+  authorize([PERMISSION_KEYS.WAREHOUSE_INVENTORY.VIEW]),
   validate(inventoryIdParamSchema, 'params'),
   getWarehouseInventoryDetailController
 );
