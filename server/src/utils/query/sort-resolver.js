@@ -143,20 +143,20 @@ const sanitizeSortBy = (
  * // → { sortBy: 'o.created_at', sortOrder: 'ASC', additionalSorts: [{ column: 'o.id', direction: 'ASC' }] }
  */
 const resolveSort = ({
-  sortBy,
-  sortOrder = 'ASC',
-  moduleKey,
-  defaultSort = null,
-}) => {
+                       sortBy,
+                       sortOrder = 'ASC',
+                       moduleKey,
+                       defaultSort = null,
+                     }) => {
   // getSortMapForModule throws on unrecognized moduleKey — no need to re-check here.
   const sortMap = getSortMapForModule(moduleKey);
-
+  
   const normalizedOrder =
     String(sortOrder).toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
 
   // Resolve the request key to a DB column via the sort map.
   const resolved = sortMap[sortBy];
-
+  
   if (resolved) {
     return {
       sortBy: resolved,
@@ -171,7 +171,7 @@ const resolveSort = ({
   const fallbackSorts = Array.isArray(defaultSort)
     ? defaultSort
     : [defaultSort].filter(Boolean);
-
+  
   if (!fallbackSorts.length) {
     throw AppError.validationError(
       `Unmapped sortBy key with no fallback: "${sortBy}"`,
@@ -181,9 +181,9 @@ const resolveSort = ({
       }
     );
   }
-
+  
   const [primary, ...rest] = fallbackSorts;
-
+  
   return {
     sortBy: primary,
     sortOrder: normalizedOrder,

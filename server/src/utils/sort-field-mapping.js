@@ -515,20 +515,7 @@ const SORTABLE_FIELDS = {
     lastMovementAt: 'wi.last_movement_at',
     statusDate: 'wi.status_date',
     batchType: 'br.batch_type',
-    defaultNaturalSort: [
-      'p.brand ASC NULLS LAST',
-      'br.batch_type ASC',
-      `CASE
-        WHEN br.batch_type = 'product' AND p.name ILIKE 'NMN%' THEN
-          LPAD(REGEXP_REPLACE(p.name, '[^0-9]', '', 'g'), 10, '0')
-        WHEN br.batch_type = 'product' THEN
-          p.name
-        ELSE
-          LPAD(REGEXP_REPLACE(COALESCE(pmb.received_label_name, pm.name), '[^0-9]', '', 'g'), 20, '0')
-      END NULLS LAST`,
-      'COALESCE(pb.lot_number, pmb.lot_number) ASC',
-      'wi.last_movement_at DESC NULLS LAST',
-    ],
+    defaultNaturalSort: 'wi.last_movement_at',
   },
   inventoryActivityLogSortMap: {
     performedAt: 'ial.performed_at',
