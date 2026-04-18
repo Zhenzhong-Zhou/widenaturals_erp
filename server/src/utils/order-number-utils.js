@@ -1,140 +1,164 @@
-const { v4: uuidv4 } = require('uuid');
-const crypto = require('crypto');
+/**
+ * @file order-number-utils.js
+ * @description
+ * Generates order identifiers (UUID + human-readable order number) used across
+ * the order domain: purchase, sales, transfer, return, manufacturing,
+ * adjustment, and logistics orders.
+ *
+ * The human-readable order number is composed of:
+ *   {categoryPrefix}-{orderTypePrefix}-{timestamp}-{uuid8}
+ *
+ * Examples:
+ *   SO-SSO-20260417093012-a1b2c3d4
+ *   PO-SPO-20260417093012-e5f6a7b8
+ *
+ * Pattern notes:
+ *   - UUID v4 is the primary key; order number is a human-readable reference.
+ *   - Uniqueness is guaranteed by the UUID; the order number is for display only.
+ *   - `generateOrderIdentifiers` validates that the order type belongs to
+ *     the expected category before emitting any identifiers.
+ *
+ * Named exports:
+ *   - generateOrderIdentifiers
+ */
+
+'use strict';
+
+const { randomUUID, createHash } = require('crypto');
 const { getFieldsById } = require('./db/record-utils');
 const AppError = require('./AppError');
 
+/** @type {string} */
+const CONTEXT = 'order-number-utils';
+
 /**
- * Maps category names to short prefixes.
+ * Maps order category names to short 2-letter prefixes used in order numbers.
+ * Keep keys lower-cased to match the `order_types.category` column values.
+ *
+ * @type {Record<string, string>}
  */
-const categoryToPrefixMap = {
-  purchase: 'PO',
-  transfer: 'TO',
-  sales: 'SO',
-  return: 'RO',
+const CATEGORY_TO_PREFIX = {
+  purchase:      'PO',
+  transfer:      'TO',
+  sales:         'SO',
+  return:        'RO',
   manufacturing: 'MO',
-  adjustment: 'AO',
-  logistics: 'LO',
+  adjustment:    'AO',
+  logistics:     'LO',
 };
 
 /**
- * Generates a new order ID and order number based on order_type_id and category integrity.
+ * Derives a short uppercase prefix from an order type name by taking the
+ * first letter of each space-separated word.
  *
- * Fetches the order type name and category from the `order_types` table,
- * verifies that the DB category matches the expected category,
- * and generates a unique order number.
+ * Example: "Standard Sales Order" -> "SSO"
  *
- * @param {string} order_type_id - The order type ID (used to fetch name and category)
- * @param {string} expectedCategory - The category expected for this order (e.g. 'sales', 'purchase')
- * @param {PoolClient} client - DB client within transaction
- * @returns {Promise<{ id: string, orderNumber: string }>} - Generated identifiers
+ * @param {string} orderTypeName
+ * @returns {string}
+ */
+const generateOrderNamePrefix = (orderTypeName) => orderTypeName
+  .split(' ')
+  .map((word) => word.charAt(0).toUpperCase())
+  .join('');
+
+/**
+ * Generates a unique order number with category prefix, order type initials,
+ * timestamp, UUID fragment, and a 10-char SHA-256 checksum for integrity.
  *
- * @throws {AppError} - Throws notFoundError if an order type not found,
- *                     or validationError if category mismatch
+ * Pure / deterministic given the same inputs at the same second.
+ *
+ * @param {string} category       Lowercase category (e.g. "purchase", "sales").
+ * @param {string} orderTypeName  Human-readable order type name.
+ * @param {string} orderId        Full UUID of the order (only first 8 chars used).
+ * @returns {string}
+ *
+ * @throws {AppError} validationError when `orderTypeName` is missing or not a string.
+ */
+const generateOrderNumber = (category, orderTypeName, orderId) => {
+  const context = `${CONTEXT}/generateOrderNumber`;
+  
+  if (!orderTypeName || typeof orderTypeName !== 'string') {
+    throw AppError.validationError('Invalid orderTypeName provided.', {
+      context,
+      meta: { orderTypeName },
+    });
+  }
+  
+  const categoryPrefix = CATEGORY_TO_PREFIX[category] || 'UN';
+  const orderTypePrefix = generateOrderNamePrefix(orderTypeName);
+  
+  const timestamp = new Date()
+    .toISOString()
+    .replace(/[-T:.Z]/g, '')
+    .slice(0, 14);
+  
+  const baseOrderNumber = `${categoryPrefix}-${orderTypePrefix}-${timestamp}-${orderId.slice(0, 8)}`;
+  
+  const checksum = createHash('sha256')
+    .update(baseOrderNumber)
+    .digest('hex')
+    .slice(0, 10);
+  
+  return `${baseOrderNumber}-${checksum}`;
+};
+
+/**
+ * Generates a new order identifier pair (UUID + human-readable order number)
+ * for a given order type, after validating that the order type belongs to
+ * the expected category.
+ *
+ * The category integrity check prevents callers from accidentally assigning
+ * a purchase-type order to the sales pipeline (or vice versa) when both
+ * order types are plausible in context.
+ *
+ * @param {string}     orderTypeId       Order type UUID (source of truth for name + category).
+ * @param {string}     expectedCategory  Category the caller expects (e.g. 'sales', 'purchase').
+ * @param {PoolClient} client            DB client within a transaction.
+ * @returns {Promise<{ id: string, orderNumber: string }>}
+ *
+ * @throws {AppError} notFoundError when the order type ID does not resolve.
+ * @throws {AppError} validationError when the order type category does not
+ *         match `expectedCategory`.
  */
 const generateOrderIdentifiers = async (
-  order_type_id,
+  orderTypeId,
   expectedCategory,
   client
 ) => {
-  const id = uuidv4();
-
+  const context = `${CONTEXT}/generateOrderIdentifiers`;
+  
+  const id = randomUUID();
+  
   const orderTypeFields = await getFieldsById(
     'order_types',
-    order_type_id,
+    orderTypeId,
     ['name', 'category'],
     client
   );
   if (!orderTypeFields) {
     throw AppError.notFoundError(
-      `Order type not found for ID: ${order_type_id}`
+      `Order type not found for ID: ${orderTypeId}`,
+      { context, meta: { orderTypeId } }
     );
   }
-
+  
   const { name, category } = orderTypeFields;
-
-  if (category !== expectedCategory.toLowerCase()) {
+  
+  if (category?.toLowerCase() !== expectedCategory?.toLowerCase()) {
     throw AppError.validationError(
-      `Order type ID does not belong to category ${expectedCategory}`
+      `Order type ID does not belong to category ${expectedCategory}`,
+      {
+        context,
+        meta: { orderTypeId, expectedCategory, actualCategory: category },
+      }
     );
   }
-
+  
   const orderNumber = generateOrderNumber(category, name, id);
-
+  
   return { id, orderNumber };
-};
-
-/**
- * Generates a prefix by taking the first letter of each word in the order type name.
- * @param {string} orderTypeName - The name of the order type (e.g., "Standard Sales Order").
- * @returns {string} - The generated prefix (e.g., "SSO" for "Standard Sales Order").
- */
-const generateOrderNamePrefix = (orderTypeName) => {
-  return orderTypeName
-    .split(' ')
-    .map((word) => word.charAt(0).toUpperCase())
-    .join('');
-};
-
-/**
- * Generates a unique order number with a prefix and SHA-256 checksum.
- * @param {string} category - Category for the order type (e.g., "purchase", "sales").
- * @param {string} orderTypeName - The name of the order type (e.g., "Standard Sales Order").
- * @param {string} orderId - The UUID or unique identifier of the order.
- * @returns {string} - Generated order number.
- */
-const generateOrderNumber = (category, orderTypeName, orderId) => {
-  if (!orderTypeName || typeof orderTypeName !== 'string') {
-    throw AppError.validationError('Invalid orderTypeName provided.');
-  }
-
-  const categoryPrefix = categoryToPrefixMap[category] || 'UN'; // 'UN' = Undefined if category not mapped
-  const orderTypePrefix = generateOrderNamePrefix(orderTypeName);
-
-  const timestamp = new Date()
-    .toISOString()
-    .replace(/[-T:.Z]/g, '')
-    .slice(0, 14);
-  const baseOrderNumber = `${categoryPrefix}-${orderTypePrefix}-${timestamp}-${orderId.slice(0, 8)}`;
-
-  // Generate SHA-256 hash and take the first 4 characters as the checksum
-  const hash = crypto
-    .createHash('sha256')
-    .update(baseOrderNumber)
-    .digest('hex');
-  const checksum = hash.slice(0, 10);
-
-  return `${baseOrderNumber}-${checksum}`;
-};
-
-/**
- * Verifies if the given order number is valid based on its SHA-256 checksum.
- * @param {string} orderNumber - The order number to validate.
- * @returns {boolean} - True if valid, false otherwise.
- */
-const verifyOrderNumber = (orderNumber) => {
-  const parts = orderNumber.split('-');
-  if (parts.length !== 5) return false;
-
-  const [
-    categoryPrefix,
-    orderTypePrefix,
-    timestamp,
-    orderId,
-    providedChecksum,
-  ] = parts;
-  const baseOrderNumber = `${categoryPrefix}-${orderTypePrefix}-${timestamp}-${orderId}`;
-
-  // Recalculate the checksum using the same hashing algorithm
-  const hash = crypto
-    .createHash('sha256')
-    .update(baseOrderNumber)
-    .digest('hex');
-  const calculatedChecksum = hash.slice(0, 10);
-
-  return providedChecksum === calculatedChecksum;
 };
 
 module.exports = {
   generateOrderIdentifiers,
-  verifyOrderNumber,
 };
