@@ -508,7 +508,6 @@ const SORTABLE_FIELDS = {
     availableQuantity: '(wi.warehouse_quantity - wi.reserved_quantity)',
     productName: 'p.name',
     packagingDisplayName: 'pmb.received_label_name',
-    lotNumber: 'COALESCE(pb.lot_number, pmb.lot_number)',
     expiryDate: 'COALESCE(pb.expiry_date, pmb.expiry_date)',
     sku: 's.sku',
     statusName: 'ist.name',
