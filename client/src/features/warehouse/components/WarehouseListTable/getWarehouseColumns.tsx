@@ -1,8 +1,11 @@
+import { Link } from 'react-router-dom';
+import InventoryIcon from '@mui/icons-material/Inventory';
 import type { Column } from '@components/common/CustomTable';
+import { CustomButton } from '@components/index';
 import type { WarehouseRecord } from '@features/warehouse/state/warehouseTypes';
 import { formatDate } from '@utils/dateTimeUtils';
-import { createDrillDownColumn } from '@utils/table/createDrillDownColumn';
 import { formatLabel } from '@utils/textUtils';
+import { createDrillDownColumn } from '@utils/table/createDrillDownColumn';
 
 /**
  * Builds column definitions for the warehouse list table.
@@ -13,54 +16,61 @@ import { formatLabel } from '@utils/textUtils';
  */
 export const getWarehouseColumns = (
   options: {
-    canViewSummary?: boolean;
-    expandedRowId?: string | null;
-    handleDrillDownToggle?: (id: string) => void;
+    canViewSummary?:          boolean;
+    canViewDetails?:          boolean;
+    canViewInventory?:        boolean;
+    expandedRowId?:           string | null;
+    handleDrillDownToggle?:   (id: string) => void;
   } = {}
 ): Column<WarehouseRecord>[] => {
-  const { canViewSummary = false, expandedRowId, handleDrillDownToggle } = options;
+  const {
+    canViewSummary    = false,
+    canViewDetails    = false,
+    canViewInventory  = false,
+    expandedRowId,
+    handleDrillDownToggle,
+  } = options;
   
   return [
     {
-      id: 'name',
-      label: 'Name',
+      id:       'name',
+      label:    'Name',
       sortable: true,
-      renderCell: (row) => row.name,
+      renderCell: (row) =>
+        canViewDetails ? (
+          <Link to={`/warehouses/${row.id}/details`}>{row.name}</Link>
+        ) : (
+          row.name
+        ),
     },
     {
-      id: 'code',
-      label: 'Code',
-      sortable: true,
-      renderCell: (row) => row.code,
-    },
-    {
-      id: 'location',
-      label: 'Location',
+      id:       'location',
+      label:    'Location',
       sortable: true,
       renderCell: (row) => row.location.name,
     },
     {
-      id: 'warehouseType',
-      label: 'Type',
+      id:       'warehouseType',
+      label:    'Type',
       sortable: true,
       renderCell: (row) => formatLabel(row.warehouseType?.name ?? '—'),
     },
     {
-      id: 'status',
-      label: 'Status',
+      id:       'status',
+      label:    'Status',
       sortable: true,
       renderCell: (row) => formatLabel(row.status.name ?? '—'),
     },
     {
-      id: 'storageCapacity',
-      label: 'Capacity',
+      id:       'storageCapacity',
+      label:    'Capacity',
       sortable: true,
       renderCell: (row) =>
         row.storageCapacity != null ? row.storageCapacity.toLocaleString() : '—',
     },
     {
-      id: 'isArchived',
-      label: 'Archived',
+      id:       'isArchived',
+      label:    'Archived',
       sortable: false,
       renderCell: (row) => (row.isArchived ? 'Yes' : 'No'),
     },
@@ -69,26 +79,26 @@ export const getWarehouseColumns = (
     ...(canViewSummary
       ? ([
         {
-          id: 'totalQuantity',
-          label: 'Total Qty',
+          id:       'totalQuantity',
+          label:    'Total Qty',
           sortable: true,
           renderCell: (row) => row.summary.totalQuantity.toLocaleString(),
         },
         {
-          id: 'totalReserved',
-          label: 'Reserved',
+          id:       'totalReserved',
+          label:    'Reserved',
           sortable: false,
           renderCell: (row) => row.summary.totalReserved.toLocaleString(),
         },
         {
-          id: 'availableQuantity',
-          label: 'Available',
+          id:       'availableQuantity',
+          label:    'Available',
           sortable: false,
           renderCell: (row) => row.summary.availableQuantity.toLocaleString(),
         },
         {
-          id: 'totalBatches',
-          label: 'Batches',
+          id:       'totalBatches',
+          label:    'Batches',
           sortable: false,
           renderCell: (row) => row.summary.totalBatches.toLocaleString(),
         },
@@ -96,11 +106,47 @@ export const getWarehouseColumns = (
       : []),
     
     {
-      id: 'statusDate',
-      label: 'Status Date',
+      id:       'statusDate',
+      label:    'Status Date',
       sortable: true,
       renderCell: (row) => (row.status.date ? formatDate(row.status.date) : '—'),
     },
+    
+    // ── Inventory link — gated by canViewInventory ────────────────────────────
+    ...(canViewInventory
+      ? ([
+        {
+          id:       'inventory',
+          label:    'Inventory',
+          sortable: false,
+          renderCell: (row) => (
+            <CustomButton
+              component={Link}
+              to={`/warehouse-inventory/${row.id}/inventory`}
+              size="small"
+              variant="text"
+              startIcon={<InventoryIcon fontSize="small" />}
+              sx={{
+                textTransform: 'none',
+                fontWeight:    500,
+                color:         'success.main',
+                display:       'inline-flex',
+                alignItems:    'center',
+                lineHeight:    1,
+                p:             '4px 8px',
+                '& .MuiButton-startIcon': {
+                  marginRight: '4px',
+                  display:     'flex',
+                  alignItems:  'center',
+                },
+              }}
+            >
+              Inventory
+            </CustomButton>
+          ),
+        },
+      ] as Column<WarehouseRecord>[])
+      : []),
     
     // ── Drill-down toggle ─────────────────────────────────────────────────────
     ...(handleDrillDownToggle

@@ -23,6 +23,8 @@ interface WarehouseListTableProps {
   onRowsPerPageChange: (rowsPerPage: number) => void;
   onRefresh: () => void;
   canViewSummary?: boolean;
+  canViewDetails?:   boolean;
+  canViewInventory?: boolean;
 }
 
 /**
@@ -42,6 +44,8 @@ const WarehouseListTable = ({
                               onRowsPerPageChange,
                               onRefresh,
                               canViewSummary = false,
+                              canViewDetails = false,
+                              canViewInventory = true,
                             }: WarehouseListTableProps) => {
   // -------------------------------------------------------
   // Drill-down state
@@ -56,13 +60,14 @@ const WarehouseListTable = ({
   // Memoize Column Definitions
   // -------------------------------------------------------
   const columns = useMemo(
-    () =>
-      getWarehouseColumns({
-        canViewSummary,
-        expandedRowId,
-        handleDrillDownToggle,
-      }),
-    [canViewSummary, expandedRowId]
+    () => getWarehouseColumns({
+      canViewSummary,
+      canViewDetails,
+      canViewInventory,
+      expandedRowId,
+      handleDrillDownToggle,
+    }),
+    [canViewSummary, canViewDetails, canViewInventory, expandedRowId]
   );
   
   // -------------------------------------------------------

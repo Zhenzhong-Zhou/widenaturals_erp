@@ -42,6 +42,8 @@ const WarehouseListPage: FC = () => {
   const hasPermission = useHasPermissionBoolean();
   
   const canViewSummary = hasPermission('view_warehouse_summary');
+  const canViewDetails   = hasPermission('view_warehouse_details');
+  const canViewInventory = hasPermission('view_warehouse_inventory');
   
   const queryParams = useMemo<WarehouseQueryParams>(
     () => ({
@@ -137,6 +139,8 @@ const WarehouseListPage: FC = () => {
           onRowsPerPageChange={handleRowsPerPageChange}
           onRefresh={handleRefresh}
           canViewSummary={canViewSummary}
+          canViewDetails={canViewDetails}
+          canViewInventory={canViewInventory}
         />
       )}
     </Box>

@@ -21,7 +21,7 @@ const WarehouseExpandedContent: FC<WarehouseExpandedContentProps> = ({ row }) =>
         sectionTitle="Configuration"
         fields={[
           { label: 'Default Fee',       value: row.defaultFee != null ? `$${row.defaultFee}` : null },
-          { label: 'Storage Capacity',  value: row.storageCapacity?.toLocaleString() ?? null },
+          { label: 'Code',  value: row.code ?? null },
         ]}
       />
       
