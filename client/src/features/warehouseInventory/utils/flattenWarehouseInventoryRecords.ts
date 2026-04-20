@@ -52,19 +52,20 @@ export const flattenWarehouseInventoryRecords = (
       // ------------------------------
       // Product (null when packaging_material)
       // ------------------------------
-      productBatchId:   product?.batch?.id         ?? null,
-      lotNumber:        product?.batch?.lotNumber   ?? null,
-      skuId:            product?.sku?.id            ?? null,
-      sku:              product?.sku?.sku           ?? null,
-      barcode:          product?.sku?.barcode       ?? null,
-      sizeLabel:        product?.sku?.sizeLabel     ?? null,
-      countryCode:      product?.sku?.countryCode   ?? null,
-      marketRegion:     product?.sku?.marketRegion  ?? null,
-      productId:        product?.product?.id        ?? null,
-      productName:      product?.product?.name      ?? null,
-      brand:            product?.product?.brand     ?? null,
-      manufacturerId:   product?.manufacturer?.id   ?? null,
-      manufacturerName: product?.manufacturer?.name ?? null,
+      productBatchId:   product?.batch?.id            ?? null,
+      lotNumber:        product?.batch?.lotNumber     ?? null,
+      skuId:            product?.sku?.id              ?? null,
+      sku:              product?.sku?.sku             ?? null,
+      barcode:          product?.sku?.barcode         ?? null,
+      sizeLabel:        product?.sku?.sizeLabel       ?? null,
+      countryCode:      product?.sku?.countryCode     ?? null,
+      marketRegion:     product?.sku?.marketRegion    ?? null,
+      productId:        product?.product?.id          ?? null,
+      productName:      product?.product?.name        ?? null,
+      displayName:      product?.product?.displayName ?? null,
+      brand:            product?.product?.brand       ?? null,
+      manufacturerId:   product?.manufacturer?.id     ?? null,
+      manufacturerName: product?.manufacturer?.name   ?? null,
       
       // ------------------------------
       // Packaging (null when product)

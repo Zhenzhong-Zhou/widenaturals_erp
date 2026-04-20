@@ -16,8 +16,10 @@ import type {
   PaginationParams,
   SortConfig,
 } from '@shared-types/api';
-import { ReduxPaginatedState } from '@shared-types/pagination';
-import { UiErrorPayload } from '@utils/error/uiErrorUtils';
+import type { ReduxPaginatedState } from '@shared-types/pagination';
+import type { UiErrorPayload } from '@utils/error/uiErrorUtils';
+import type { BatchEntityType } from '@shared-types/batch';
+import type { NullableNumber, NullableString } from '@shared-types/shared';
 
 // =============================================================================
 // Product Info
@@ -55,6 +57,8 @@ interface Product {
   name: string;
   /** Brand name (e.g. "WIDE Naturals"). */
   brand: string;
+  
+  displayName: string;
 }
 
 /** Manufacturer linked to a product batch. */
@@ -123,14 +127,14 @@ interface PackagingInfo {
 export interface WarehouseInventoryRecord {
   id: string;
   batchId: string;
-  batchType: string;
+  batchType: BatchEntityType;
   warehouseQuantity: number;
   reservedQuantity: number;
   availableQuantity: number;
   warehouseFee: string;
   inboundDate: string;
-  outboundDate: string | null;
-  lastMovementAt: string | null;
+  outboundDate: NullableString;
+  lastMovementAt: NullableString;
   status: GenericStatus;
   productInfo: ProductInfo | null;
   packagingInfo: PackagingInfo | null;
@@ -148,40 +152,41 @@ export type PaginatedWarehouseInventoryApiResponse =
 export type FlattenedWarehouseInventory = {
   id: string;
   batchId: string;
-  batchType: string;
+  batchType: BatchEntityType;
   warehouseQuantity: number;
   reservedQuantity: number;
   availableQuantity: number;
   warehouseFee: string;
   inboundDate: string;
-  outboundDate: string | null;
-  lastMovementAt: string | null;
+  outboundDate: NullableString;
+  lastMovementAt: NullableString;
   statusId: string;
   statusName: string;
   statusDate: string;
   
   // Product fields (null when batchType === 'packaging_material')
-  productBatchId: string | null;
-  lotNumber: string | null;
-  skuId: string | null;
-  sku: string | null;
-  barcode: string | null;
-  sizeLabel: string | null;
-  countryCode: string | null;
-  marketRegion: string | null;
-  productId: string | null;
-  productName: string | null;
-  brand: string | null;
-  manufacturerId: string | null;
-  manufacturerName: string | null;
+  productBatchId: NullableString;
+  lotNumber: NullableString;
+  skuId: NullableString;
+  sku: NullableString;
+  barcode: NullableString;
+  sizeLabel: NullableString;
+  countryCode: NullableString;
+  marketRegion: NullableString;
+  productId: NullableString;
+  productName: NullableString;
+  brand: NullableString;
+  displayName: NullableString;
+  manufacturerId: NullableString;
+  manufacturerName: NullableString;
   
   // Packaging fields (null when batchType === 'product')
-  packagingBatchId: string | null;
-  packagingLotNumber: string | null;
-  materialId: string | null;
-  materialCode: string | null;
-  supplierId: string | null;
-  supplierName: string | null;
+  packagingBatchId: NullableString;
+  packagingLotNumber: NullableString;
+  materialId: NullableString;
+  materialCode: NullableString;
+  supplierId: NullableString;
+  supplierName: NullableString;
 };
 
 /** Paginated UI response for the warehouse inventory list page. */
@@ -199,7 +204,7 @@ export type WarehouseInventoryListState =
 /** Filters available for querying the warehouse inventory list. */
 export type WarehouseInventoryFilters = {
   /** Filter by batch type. */
-  batchType?: 'product' | 'packaging_material';
+  batchType?: BatchEntityType;
   /** Filter by inventory status ID (UUID). */
   statusId?: string;
   /** Filter by SKU ID (UUID). */
@@ -237,15 +242,16 @@ export interface WarehouseInventoryQueryParams extends PaginationParams, SortCon
 export type WarehouseInventorySortField =
   | 'inboundDate'
   | 'outboundDate'
+  | 'lastMovementAt'
+  | 'statusDate'
   | 'warehouseQuantity'
   | 'reservedQuantity'
   | 'availableQuantity'
   | 'warehouseFee'
   | 'statusName'
-  | 'lotNumber'
+  | 'batchType'
   | 'productName'
   | 'sku'
-  | 'materialCode'
   | 'defaultNaturalSort';
 
 // =============================================================================
@@ -418,10 +424,10 @@ export type WarehouseInventoryOutboundState =
 interface ProductBatchDetail {
   id: string;
   lotNumber: string;
-  expiryDate: string | null;
-  manufactureDate: string | null;
-  initialQuantity: number | null;
-  notes: string | null;
+  expiryDate: NullableString;
+  manufactureDate: NullableString;
+  initialQuantity: NullableNumber;
+  notes: NullableString;
 }
 
 /** SKU details for detail view. */
@@ -439,8 +445,8 @@ interface ProductDetail {
   id: string;
   name: string;
   brand: string;
-  category: string | null;
-  series: string | null;
+  category: NullableString;
+  series: NullableString;
   displayName: string;
 }
 
@@ -462,18 +468,18 @@ interface ProductInfoDetail {
 interface PackagingBatchDetail {
   id: string;
   lotNumber: string;
-  displayName: string | null;
-  expiryDate: string | null;
-  initialQuantity: number | null;
-  unit: string | null;
+  displayName: NullableString;
+  expiryDate: NullableString;
+  initialQuantity: NullableNumber;
+  unit: NullableString;
 }
 
 /** Packaging material details for detail view (extended from list shape). */
 interface PackagingMaterialDetail {
   id: string;
   code: string;
-  name: string | null;
-  category: string | null;
+  name: NullableString;
+  category: NullableString;
 }
 
 /** Packaging supplier details for detail view. */
@@ -500,23 +506,23 @@ export type WarehouseZone = {
   quantity: number;
   reservedQuantity: number;
   availableQuantity: number;
-  zoneEntryDate: string | null;
-  zoneExitDate: string | null;
+  zoneEntryDate: NullableString;
+  zoneExitDate: NullableString;
 };
 
 /** Movement history entry for an inventory record. */
 export type WarehouseMovement = {
   id: string;
   movementType: string;
-  fromZoneCode: string | null;
-  toZoneCode: string | null;
+  fromZoneCode: NullableString;
+  toZoneCode: NullableString;
   quantity: number;
-  referenceType: string | null;
-  referenceId: string | null;
-  notes: string | null;
-  performedBy: string | null;
-  performedAt: string | null;
-  performedByName: string | null;
+  referenceType: NullableString;
+  referenceId: NullableString;
+  notes: NullableString;
+  performedBy: NullableString;
+  performedAt: NullableString;
+  performedByName: NullableString;
 };
 
 // =============================================================================
@@ -527,21 +533,17 @@ export type WarehouseMovement = {
 export type WarehouseInventoryDetailRecord = {
   id: string;
   batchId: string;
-  batchType: string;
+  batchType: BatchEntityType;
   warehouseQuantity: number;
   reservedQuantity: number;
   availableQuantity: number;
   warehouseFee: string;
   inboundDate: string;
-  outboundDate: string | null;
-  lastMovementAt: string | null;
-  registeredAt: string | null;
-  batchNote: string | null;
-  status: {
-    id: string;
-    name: string;
-    date: string;
-  };
+  outboundDate: NullableString;
+  lastMovementAt: NullableString;
+  registeredAt: NullableString;
+  batchNote: NullableString;
+  status: GenericStatus;
   productInfo: ProductInfoDetail | null;
   packagingInfo: PackagingInfoDetail | null;
   audit: GenericAudit | null;
@@ -572,30 +574,30 @@ export type WarehouseInventoryDetailState = {
 export type InventoryActivityLogRecord = {
   id: string;
   warehouseInventoryId: string;
-  batchType: string;
+  batchType: BatchEntityType;
   previousQuantity: number;
   quantityChange: number;
   newQuantity: number;
   actionTypeName: string;
   actionTypeCategory: string;
-  adjustmentTypeName: string | null;
+  adjustmentTypeName: NullableString;
   status: GenericStatus;
-  referenceType: string | null;
-  referenceId: string | null;
-  comments: string | null;
+  referenceType: NullableString;
+  referenceId: NullableString;
+  comments: NullableString;
   metadata: Record<string, unknown> | null;
   performedAt: string;
-  performedByName: string | null;
+  performedByName: NullableString;
   
   // Product context (null when batchType === 'packaging_material')
-  productLotNumber: string | null;
-  productName: string | null;
-  sku: string | null;
+  productLotNumber: NullableString;
+  productName: NullableString;
+  sku: NullableString;
   
   // Packaging context (null when batchType === 'product')
-  packagingLotNumber: string | null;
-  packagingDisplayName: string | null;
-  packagingMaterialCode: string | null;
+  packagingLotNumber: NullableString;
+  packagingDisplayName: NullableString;
+  packagingMaterialCode: NullableString;
 };
 
 // =============================================================================
@@ -665,9 +667,9 @@ export type WarehouseSummaryInfo = {
   id: string;
   name: string;
   code: string;
-  storageCapacity: number | null;
-  defaultFee: string | null;
-  typeName: string | null;
+  storageCapacity: NullableNumber;
+  defaultFee: NullableString;
+  typeName: NullableString;
 };
 
 /** Aggregate totals across all inventory in a warehouse. */
@@ -733,7 +735,7 @@ export type WarehouseProductSkuSummary = {
   totalReserved: number;
   totalAvailable: number;
   batchCount: number;
-  earliestExpiry: string | null;
+  earliestExpiry: NullableString;
 };
 
 /** Product-level summary with nested SKU breakdown. */
@@ -745,7 +747,7 @@ export type WarehouseProductSummary = {
   totalReserved: number;
   totalAvailable: number;
   batchCount: number;
-  earliestExpiry: string | null;
+  earliestExpiry: NullableString;
   skus: WarehouseProductSkuSummary[];
 };
 
@@ -754,12 +756,12 @@ export type WarehousePackagingSummary = {
   packagingMaterialId: string;
   packagingMaterialCode: string;
   packagingMaterialName: string;
-  packagingMaterialCategory: string | null;
+  packagingMaterialCategory: NullableString;
   totalQuantity: number;
   totalReserved: number;
   totalAvailable: number;
   batchCount: number;
-  earliestExpiry: string | null;
+  earliestExpiry: NullableString;
 };
 
 /** Combined item summary record as returned by the API. */
@@ -770,7 +772,7 @@ export type WarehouseItemSummaryRecord = {
 
 /** Optional batch type filter for item summary. */
 export type WarehouseItemSummaryFilters = {
-  batchType?: 'product' | 'packaging_material';
+  batchType?: BatchEntityType;
 };
 
 /** Query params for the item summary endpoint. */
