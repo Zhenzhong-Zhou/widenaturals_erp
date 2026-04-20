@@ -95,25 +95,25 @@ export const API_ENDPOINTS = {
   },
   WAREHOUSE_INVENTORY: {
     ALL_RECORDS: (warehouseId: string) =>
-      `/warehouses/${warehouseId}/inventory`,
+      `/warehouse-inventory/${warehouseId}/inventory`,
     CREATE: (warehouseId: string) =>
-      `/warehouses/${warehouseId}/inventory`,
+      `/warehouse-inventory/${warehouseId}/inventory`,
     DETAIL: (warehouseId: string, inventoryId: string) =>
-      `/warehouses/${warehouseId}/inventory/${inventoryId}`,
+      `/warehouse-inventory/${warehouseId}/inventory/${inventoryId}`,
     QUANTITIES: (warehouseId: string) =>
-      `/warehouses/${warehouseId}/inventory/quantities`,
+      `/warehouse-inventory/${warehouseId}/inventory/quantities`,
     STATUSES: (warehouseId: string) =>
-      `/warehouses/${warehouseId}/inventory/statuses`,
+      `/warehouse-inventory/${warehouseId}/inventory/statuses`,
     METADATA: (warehouseId: string, inventoryId: string) =>
-      `/warehouses/${warehouseId}/inventory/${inventoryId}/metadata`,
+      `/warehouse-inventory/${warehouseId}/inventory/${inventoryId}/metadata`,
     OUTBOUND: (warehouseId: string) =>
-      `/warehouses/${warehouseId}/inventory/outbound`,
+      `/warehouse-inventory/${warehouseId}/inventory/outbound`,
     ACTIVITY_LOG: (warehouseId: string) =>
-      `/warehouses/${warehouseId}/inventory/activity-log`,
+      `/warehouse-inventory/${warehouseId}/inventory/activity-log`,
     SUMMARY: (warehouseId: string) =>
-      `/warehouses/${warehouseId}/summary`,
+      `/warehouse-inventory/${warehouseId}/summary`,
     SUMMARY_ITEMS: (warehouseId: string) =>
-      `/warehouses/${warehouseId}/summary/items`,
+      `/warehouse-inventory/${warehouseId}/summary/items`,
   },
   LOOKUPS: {
     BATCH_REGISTRY: '/lookups/batch-registry',
