@@ -61,6 +61,7 @@
  * @property {string}      id
  * @property {string}      name
  * @property {string|null} brand
+ * @property {string|null} displayName
  */
 
 /**

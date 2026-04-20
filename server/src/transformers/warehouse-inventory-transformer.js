@@ -54,6 +54,7 @@ const buildProductInfo = (row) =>
       id: row.product_id,
       name: row.product_name,
       brand: row.brand,
+      displayName: getProductDisplayName(row)
     },
     manufacturer: {
       id: row.manufacturer_id,
