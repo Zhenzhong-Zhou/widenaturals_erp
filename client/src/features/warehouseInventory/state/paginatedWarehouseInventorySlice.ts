@@ -11,7 +11,7 @@ import type {
 // Initial State
 // ---------------------------
 const initialState: WarehouseInventoryListState =
-  createInitialPaginatedState<FlattenedWarehouseInventory>();
+  createInitialPaginatedState<FlattenedWarehouseInventory>(25);
 
 // ---------------------------
 // Slice
