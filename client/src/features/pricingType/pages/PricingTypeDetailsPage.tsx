@@ -22,7 +22,7 @@ import {
 } from '@features/pricingGroup/components';
 import { usePricingGroupLookups } from '@features/pricingGroup/hook';
 import { PricingTypeDetailPanel } from '@features/pricingType/components/PricingTypeDetail';
-import { createLazyOpenHandler } from '@features/lookup/utils/lookupUtils';
+import { createOnOpenHandler } from '@features/lookup/utils/lookupUtils';
 import {
   usePaginatedPricingGroups,
   usePricingTypeDetail,
@@ -143,10 +143,7 @@ const PricingTypeDetailsPage: FC = () => {
       },
       
       onOpen: {
-        status: createLazyOpenHandler(
-          lookups.status.options,
-          lookups.status.fetch
-        ),
+        status: createOnOpenHandler(lookups.status),
       },
     }),
     [lookups]

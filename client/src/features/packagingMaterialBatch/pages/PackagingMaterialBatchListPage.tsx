@@ -23,7 +23,7 @@ import type {
 import { applyFiltersAndSorting } from '@utils/query';
 import { usePaginationHandlers } from '@utils/hooks';
 import { usePackagingMaterialBatchLookups } from '@features/packagingMaterialBatch/hooks';
-import { createLazyOpenHandler } from '@features/lookup/utils/lookupUtils';
+import { createOnOpenHandler } from '@features/lookup/utils/lookupUtils';
 
 /**
  * Page-level container for displaying a paginated, sortable,
@@ -119,18 +119,9 @@ const PackagingMaterialBatchListPage = () => {
       },
 
       onOpen: {
-        status: createLazyOpenHandler(
-          lookups.status.options,
-          lookups.status.fetch
-        ),
-        supplier: createLazyOpenHandler(
-          lookups.supplier.options,
-          lookups.supplier.fetch
-        ),
-        packagingMaterial: createLazyOpenHandler(
-          lookups.packagingMaterial.options,
-          lookups.packagingMaterial.fetch
-        ),
+        status: createOnOpenHandler(lookups.status),
+        supplier: createOnOpenHandler(lookups.supplier),
+        packagingMaterial: createOnOpenHandler(lookups.packagingMaterial),
       },
     }),
     [lookups]

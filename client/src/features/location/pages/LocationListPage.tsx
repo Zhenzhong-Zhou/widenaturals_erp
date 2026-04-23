@@ -22,7 +22,7 @@ import type {
 import { usePaginatedLocations, useUserLookup } from '@hooks/index';
 import { useLocationLookups } from '@features/location/hooks';
 import { applyFiltersAndSorting } from '@utils/query';
-import { createLazyOpenHandler } from '@features/lookup/utils/lookupUtils';
+import { createOnOpenHandler } from '@features/lookup/utils/lookupUtils';
 import { usePaginationHandlers } from '@utils/hooks';
 
 const LocationListPage = () => {
@@ -114,12 +114,9 @@ const LocationListPage = () => {
       resetAll: () => {
         lookups.status.reset();
       },
-
+      
       onOpen: {
-        status: createLazyOpenHandler(
-          lookups.status.options,
-          lookups.status.fetch
-        ),
+        status: createOnOpenHandler(lookups.status),
       },
     }),
     [lookups]

@@ -23,7 +23,7 @@ import type {
 import { usePaginatedLocationTypes } from '@hooks/index';
 import { useLocationTypeLookups } from '@features/locationType/hooks';
 import { applyFiltersAndSorting } from '@utils/query';
-import { createLazyOpenHandler } from '@features/lookup/utils/lookupUtils';
+import { createOnOpenHandler } from '@features/lookup/utils/lookupUtils';
 import { useDialogFocusHandlers, usePaginationHandlers } from '@utils/hooks';
 
 const LocationTypeListPage = () => {
@@ -114,10 +114,7 @@ const LocationTypeListPage = () => {
       },
 
       onOpen: {
-        status: createLazyOpenHandler(
-          lookups.status.options,
-          lookups.status.fetch
-        ),
+        status: createOnOpenHandler(lookups.status),
       },
     }),
     [lookups]
