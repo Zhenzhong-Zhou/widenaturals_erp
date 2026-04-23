@@ -25,12 +25,12 @@ const Joi = require('joi');
 const {
   paginationSchema,
   createSortSchema,
-  validateOptionalUUID,
   optionalIsoDate,
   validateOptionalString,
   validateUUID,
   validatePositiveIntegerRequired,
   requiredIsoDate,
+  validateUUIDOrUUIDArrayOptional,
 } = require('./general-validators');
 
 // ── Param schema ────────────────────────────────────────────────────
@@ -59,18 +59,18 @@ const warehouseInventoryQuerySchema = paginationSchema
     // --------------------------------------------------
     // Inventory status filter
     // --------------------------------------------------
-    statusId: validateOptionalUUID('Inventory Status ID'),
+    statusIds: validateUUIDOrUUIDArrayOptional('Inventory Status IDs'),
 
     // --------------------------------------------------
     // Product batch filters
     // --------------------------------------------------
-    skuId: validateOptionalUUID('SKU ID'),
-    productId: validateOptionalUUID('Product ID'),
+    skuIds: validateUUIDOrUUIDArrayOptional('SKU IDs'),
+    productIds: validateUUIDOrUUIDArrayOptional('Product IDs'),
 
     // --------------------------------------------------
     // Packaging batch filter
     // --------------------------------------------------
-    packagingMaterialId: validateOptionalUUID('Packaging Material ID'),
+    packagingMaterialIds: validateUUIDOrUUIDArrayOptional('Packaging Material IDs'),
 
     // --------------------------------------------------
     // Low stock and expiry alerts

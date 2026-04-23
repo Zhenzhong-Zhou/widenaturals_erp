@@ -61,7 +61,7 @@ router.get(
   validate(warehouseInventoryQuerySchema, 'query'),
   createQueryNormalizationMiddleware(
     'warehouseInventorySortMap',
-    [], // arrayKeys
+    ['statusIds', 'skuIds', 'productIds', 'packagingMaterialIds'], // arrayKeys
     ['hasReserved'], // booleanKeys
     warehouseInventoryQuerySchema,
     {}, // filterDefaults

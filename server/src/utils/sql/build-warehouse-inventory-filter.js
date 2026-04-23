@@ -67,32 +67,31 @@ const buildWarehouseInventoryFilter = (filters = {}) => {
   }
 
   // ─── Exact-match filters ─────────────────────────────────────────────────────
-
-  if (normalizedFilters.statusId) {
-    conditions.push(`wi.status_id = $${paramIndexRef.value++}`);
-    params.push(normalizedFilters.statusId);
+  if (normalizedFilters.statusIds?.length) {
+    conditions.push(`wi.status_id = ANY($${paramIndexRef.value++}::uuid[])`);
+    params.push(normalizedFilters.statusIds);
   }
-
+  
   if (normalizedFilters.batchType) {
     conditions.push(`br.batch_type = $${paramIndexRef.value++}`);
     params.push(normalizedFilters.batchType);
   }
-
-  if (normalizedFilters.skuId) {
-    conditions.push(`pb.sku_id = $${paramIndexRef.value++}`);
-    params.push(normalizedFilters.skuId);
+  
+  if (normalizedFilters.skuIds?.length) {
+    conditions.push(`pb.sku_id = ANY($${paramIndexRef.value++}::uuid[])`);
+    params.push(normalizedFilters.skuIds);
   }
-
-  if (normalizedFilters.productId) {
-    conditions.push(`p.id = $${paramIndexRef.value++}`);
-    params.push(normalizedFilters.productId);
+  
+  if (normalizedFilters.productIds?.length) {
+    conditions.push(`s.product_id = ANY($${paramIndexRef.value++}::uuid[])`);
+    params.push(normalizedFilters.productIds);
   }
-
-  if (normalizedFilters.packagingMaterialId) {
-    conditions.push(`pm.id = $${paramIndexRef.value++}`);
-    params.push(normalizedFilters.packagingMaterialId);
+  
+  if (normalizedFilters.packagingMaterialIds?.length) {
+    conditions.push(`pm.id = ANY($${paramIndexRef.value++}::uuid[])`);
+    params.push(normalizedFilters.packagingMaterialIds);
   }
-
+  
   if (normalizedFilters.lowStockThreshold != null) {
     conditions.push(
       `(wi.warehouse_quantity - wi.reserved_quantity) <= $${paramIndexRef.value++}`
