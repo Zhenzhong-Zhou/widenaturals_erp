@@ -1,28 +1,33 @@
-import { type FC, useCallback, useState } from 'react';
+import { type FC } from 'react';
 import { useForm } from 'react-hook-form';
 import Grid from '@mui/material/Grid';
 import { FilterPanelLayout } from '@components/index';
-import { renderDateField, renderInputField, renderNumericField } from '@utils/filters/filterUtils';
 import {
-  // useInventoryStatusLookup,
+  PackagingMaterialMultiSelectDropdown,
+  ProductMultiSelectDropdown,
+  SkuMultiSelectDropdown,
+} from '@features/lookup/components';
+import {
+  renderBooleanSelectField,
+  renderDateField,
+  renderInputField,
+  renderNumericField,
+  renderSelectField,
+} from '@utils/filters/filterUtils';
+import { toISODate } from '@utils/dateTimeUtils';
+import type { WarehouseInventoryFilters } from '@features/warehouseInventory';
+import {
   usePackagingMaterialLookup,
   useProductLookup,
   useSkuLookup,
 } from '@hooks/index';
-import type { WarehouseInventoryFilters } from '@features/warehouseInventory';
 import {
-  // InventoryStatusDropdown,
-  PackagingMaterialDropdown,
-  ProductDropdown,
-  SkuDropdown,
-} from '@features/lookup/components';
-import {
-  PackagingMaterialLookupQueryParams,
-  ProductLookupParams,
-  SkuLookupQueryParams,
-} from '@features/lookup';
-import { useFilterFormSync } from '@utils/filters/useFilterFormSync';
-import { toISODate } from '@utils/dateTimeUtils';
+  useFilterLookup,
+  usePackagingMaterialSearchHandlers,
+  useProductSearchHandlers,
+  useSkuSearchHandlers,
+} from '@features/lookup/hooks';
+import type { OptionType } from '@components/common/Dropdown';
 
 // =========================================================
 // Types
@@ -50,7 +55,6 @@ interface Props {
   lookups: WarehouseInventoryFiltersPanelLookups;
   lookupHandlers: WarehouseInventoryLookupHandlers;
   onChange: (filters: WarehouseInventoryFilters) => void;
-  onFilterChange?: (filters: WarehouseInventoryFilters) => void;
   onApply: () => void;
   onReset: () => void;
 }
@@ -60,18 +64,23 @@ interface Props {
 // =========================================================
 
 const emptyFilters: WarehouseInventoryFilters = {
-  search:              '',
-  batchType:           undefined,
-  statusId:            undefined,
-  skuId:               undefined,
-  productId:           undefined,
-  packagingMaterialId: undefined,
-  lowStockThreshold:   undefined,
-  expiringWithinDays:  undefined,
-  inboundDateAfter:    undefined,
-  inboundDateBefore:   undefined,
-  hasReserved:         undefined,
+  search:                '',
+  batchType:             undefined,
+  statusIds:             undefined,
+  skuIds:                undefined,
+  productIds:            undefined,
+  packagingMaterialIds:  undefined,
+  lowStockThreshold:     undefined,
+  expiringWithinDays:    undefined,
+  inboundDateAfter:      undefined,
+  inboundDateBefore:     undefined,
+  hasReserved:           undefined,
 };
+
+const BATCH_TYPE_OPTIONS: OptionType[] = [
+  { label: 'Product',           value: 'product' },
+  { label: 'Packaging Material', value: 'packaging_material' },
+];
 
 // =========================================================
 // Component
@@ -81,11 +90,9 @@ const emptyFilters: WarehouseInventoryFilters = {
  * Filter panel for the warehouse inventory list page.
  *
  * Provides filtering by:
- * - batch type (product vs packaging material)
- * - inventory status
- * - product, SKU, packaging material (UUID lookups)
+ * - product, SKU, packaging material (multi-select UUID lookups)
  * - inbound date range
- * - low-stock threshold, expiring-within-days, has-reserved flag
+ * - low-stock threshold, expiring-within-days
  * - full-text search
  */
 const WarehouseInventoryFiltersPanel: FC<Props> = ({
@@ -93,76 +100,40 @@ const WarehouseInventoryFiltersPanel: FC<Props> = ({
                                                      lookups,
                                                      lookupHandlers,
                                                      onChange,
-                                                     onFilterChange,
                                                      onApply,
                                                      onReset,
                                                    }) => {
   const { control, handleSubmit, reset, watch, setValue } =
     useForm<WarehouseInventoryFilters>({ defaultValues: filters });
   
-  const watchedValues = watch();
-  
-  const {
-    // inventoryStatus,
-    product,
-    sku,
-    packagingMaterial,
-  } = lookups;
+  const { product, sku, packagingMaterial } = lookups;
   
   // -------------------------
-  // Product lookup: keyword fetch
+  // Lookup bindings (with debounced keyword search)
   // -------------------------
-  // todo: ajdust to array
-  const [productFetchParams, setProductFetchParams] = useState<ProductLookupParams>({
-    offset: 0,
-    limit: 10,
+  const productLookup = useFilterLookup({
+    fieldName: 'productIds',
+    lookup: product,
+    watch,
+    setValue,
+    useSearchHandlers: useProductSearchHandlers,
   });
   
-  const handleProductInputChange = useCallback(
-    (_: unknown, newValue: string, reason: string) => {
-      if (reason !== 'input') return;
-      const nextParams = { ...productFetchParams, keyword: newValue, offset: 0 };
-      setProductFetchParams(nextParams);
-      product.fetch(nextParams);
-    },
-    [productFetchParams, product.fetch]
-  );
-  
-  // -------------------------
-  // SKU lookup: keyword fetch
-  // -------------------------
-  const [skuFetchParams, setSkuFetchParams] = useState<SkuLookupQueryParams>({
-    offset: 0,
-    limit: 10,
+  const skuLookup = useFilterLookup({
+    fieldName: 'skuIds',
+    lookup: sku,
+    watch,
+    setValue,
+    useSearchHandlers: useSkuSearchHandlers,
   });
   
-  const handleSkuInputChange = useCallback(
-    (_: unknown, newValue: string, reason: string) => {
-      if (reason !== 'input') return;
-      const nextParams = { ...skuFetchParams, keyword: newValue, offset: 0 };
-      setSkuFetchParams(nextParams);
-      sku.fetch(nextParams);
-    },
-    [skuFetchParams, sku.fetch]
-  );
-  
-  // -------------------------
-  // Packaging material lookup: keyword fetch
-  // -------------------------
-  const [packagingMaterialFetchParams, setPackagingMaterialFetchParams] =
-    useState<PackagingMaterialLookupQueryParams>({ offset: 0, limit: 10 });
-  
-  const handlePackagingMaterialInputChange = useCallback(
-    (_: unknown, newValue: string, reason: string) => {
-      if (reason !== 'input') return;
-      const nextParams = { ...packagingMaterialFetchParams, keyword: newValue, offset: 0 };
-      setPackagingMaterialFetchParams(nextParams);
-      packagingMaterial.fetch(nextParams);
-    },
-    [packagingMaterialFetchParams, packagingMaterial.fetch]
-  );
-  
-  useFilterFormSync(watchedValues, filters, reset, onFilterChange);
+  const packagingLookup = useFilterLookup({
+    fieldName: 'packagingMaterialIds',
+    lookup: packagingMaterial,
+    watch,
+    setValue,
+    useSearchHandlers: usePackagingMaterialSearchHandlers,
+  });
   
   // -------------------------
   // Submit / Reset
@@ -170,10 +141,10 @@ const WarehouseInventoryFiltersPanel: FC<Props> = ({
   const submitFilters = (data: WarehouseInventoryFilters) => {
     onChange({
       ...data,
-      search:              data.search              || undefined,
-      lowStockThreshold:   data.lowStockThreshold   || undefined,
-      expiringWithinDays:  data.expiringWithinDays  || undefined,
-      inboundDateAfter:    toISODate(data.inboundDateAfter || undefined),
+      search:              data.search             || undefined,
+      lowStockThreshold:   data.lowStockThreshold  || undefined,
+      expiringWithinDays:  data.expiringWithinDays || undefined,
+      inboundDateAfter:    toISODate(data.inboundDateAfter  || undefined),
       inboundDateBefore:   toISODate(data.inboundDateBefore || undefined),
     });
     onApply();
@@ -181,23 +152,26 @@ const WarehouseInventoryFiltersPanel: FC<Props> = ({
   
   const resetFilters = () => {
     reset(emptyFilters);
+    productLookup.reset();
+    skuLookup.reset();
+    packagingLookup.reset();
     onReset();
   };
   
   // -------------------------
   // Render
   // -------------------------
+  // todo:  add go back and warehouse info
   return (
     <form onSubmit={handleSubmit(submitFilters)}>
       <FilterPanelLayout onReset={resetFilters}>
         <Grid container spacing={2}>
           {/* Batch type */}
-          {/*<Grid size={{ xs: 12, md: 6 }}>*/}
-          {/*  <BatchTypeDropdown*/}
-          {/*    value={watch('batchType') ?? null}*/}
-          {/*    onChange={(val) => setValue('batchType', val ?? undefined, { shouldDirty: true })}*/}
-          {/*  />*/}
-          {/*</Grid>*/}
+          {renderSelectField(control, 'batchType', 'Batch Type', BATCH_TYPE_OPTIONS)}
+          {renderBooleanSelectField(control, 'hasReserved', 'Has Reserved')}
+          
+          {/* Search */}
+          {renderInputField(control, 'search', 'Search', 'Lot, product, SKU, material code…')}
           
           {/* Inventory status */}
           {/*<Grid size={{ xs: 12, md: 6 }}>*/}
@@ -212,49 +186,52 @@ const WarehouseInventoryFiltersPanel: FC<Props> = ({
           
           {/* Product */}
           <Grid size={{ xs: 12, md: 6 }}>
-            <ProductDropdown
+            <ProductMultiSelectDropdown
               options={product.options}
-              value={watch('productId') ?? null}
-              onChange={(val) => setValue('productId', val ?? undefined, { shouldDirty: true })}
+              selectedOptions={productLookup.selectedOptions}
+              onChange={productLookup.handleSelect}
               onOpen={lookupHandlers.onOpen.product}
+              onInputChange={productLookup.onInputChange}
+              inputValue={productLookup.keyword}
               loading={product.loading}
-              paginationMeta={product.meta}
-              fetchParams={productFetchParams}
-              setFetchParams={setProductFetchParams}
-              onRefresh={product.fetch}
-              onInputChange={handleProductInputChange}
+              paginationMeta={{
+                ...product.meta,
+                onFetchMore: productLookup.onFetchMore,
+              }}
             />
           </Grid>
           
           {/* SKU */}
           <Grid size={{ xs: 12, md: 6 }}>
-            <SkuDropdown
+            <SkuMultiSelectDropdown
               options={sku.options}
-              value={watch('skuId') ?? null}
-              onChange={(val) => setValue('skuId', val ?? undefined, { shouldDirty: true })}
+              selectedOptions={skuLookup.selectedOptions}
+              onChange={skuLookup.handleSelect}
               onOpen={lookupHandlers.onOpen.sku}
+              onInputChange={skuLookup.onInputChange}
+              inputValue={skuLookup.keyword}
               loading={sku.loading}
-              paginationMeta={sku.meta}
-              fetchParams={skuFetchParams}
-              setFetchParams={setSkuFetchParams}
-              onRefresh={sku.fetch}
-              onInputChange={handleSkuInputChange}
+              paginationMeta={{
+                ...sku.meta,
+                onFetchMore: skuLookup.onFetchMore,
+              }}
             />
           </Grid>
           
           {/* Packaging material */}
           <Grid size={{ xs: 12, md: 6 }}>
-            <PackagingMaterialDropdown
+            <PackagingMaterialMultiSelectDropdown
               options={packagingMaterial.options}
-              value={watch('packagingMaterialId') ?? null}
-              onChange={(val) => setValue('packagingMaterialId', val ?? undefined, { shouldDirty: true })}
+              selectedOptions={packagingLookup.selectedOptions}
+              onChange={packagingLookup.handleSelect}
               onOpen={lookupHandlers.onOpen.packagingMaterial}
+              onInputChange={packagingLookup.onInputChange}
+              inputValue={packagingLookup.keyword}
               loading={packagingMaterial.loading}
-              paginationMeta={packagingMaterial.meta}
-              fetchParams={packagingMaterialFetchParams}
-              setFetchParams={setPackagingMaterialFetchParams}
-              onRefresh={packagingMaterial.fetch}
-              onInputChange={handlePackagingMaterialInputChange}
+              paginationMeta={{
+                ...packagingMaterial.meta,
+                onFetchMore: packagingLookup.onFetchMore,
+              }}
             />
           </Grid>
           
@@ -263,13 +240,8 @@ const WarehouseInventoryFiltersPanel: FC<Props> = ({
           {renderDateField(control, 'inboundDateBefore', 'Inbound Before')}
           
           {/* Numeric filters */}
-          {renderNumericField(control, 'lowStockThreshold',  'Low Stock ≤',     'e.g. 10')}
-          {renderNumericField(control, 'expiringWithinDays', 'Expires Within',  'e.g. 30 days')}
-          
-          {/* Search */}
-          {renderInputField(control, 'search', 'Search', 'Lot, product, SKU, material code…')}
-          
-          {/*{renderCheckboxField(control, 'hasReserved', 'Has Reserved')}*/}
+          {renderNumericField(control, 'lowStockThreshold',  'Low Stock ≤',    'e.g. 10')}
+          {renderNumericField(control, 'expiringWithinDays', 'Expires Within', 'e.g. 30 days')}
         </Grid>
       </FilterPanelLayout>
     </form>

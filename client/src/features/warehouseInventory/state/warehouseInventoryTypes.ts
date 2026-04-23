@@ -203,27 +203,37 @@ export type WarehouseInventoryListState =
 
 /** Filters available for querying the warehouse inventory list. */
 export type WarehouseInventoryFilters = {
-  /** Filter by batch type. */
+  /** Filter by batch type (product or packaging material). */
   batchType?: BatchEntityType;
-  /** Filter by inventory status ID (UUID). */
-  statusId?: string;
-  /** Filter by SKU ID (UUID). */
-  skuId?: string;
-  /** Filter by product ID (UUID). */
-  productId?: string;
-  /** Filter by packaging material ID (UUID). */
-  packagingMaterialId?: string;
-  /** Show items at or below this quantity threshold. */
+  
+  /** Filter by one or more inventory status IDs (UUID). */
+  statusIds?: string[];
+  
+  /** Filter by one or more SKU IDs (UUID). */
+  skuIds?: string[];
+  
+  /** Filter by one or more product IDs (UUID). */
+  productIds?: string[];
+  
+  /** Filter by one or more packaging material IDs (UUID). */
+  packagingMaterialIds?: string[];
+  
+  /** Show items at or below this on-hand quantity threshold. */
   lowStockThreshold?: number;
-  /** Show items expiring within this many days. */
+  
+  /** Show items expiring within this many days from today. */
   expiringWithinDays?: number;
-  /** Filter inbound date on or after (ISO string). */
+  
+  /** Filter inbound date on or after this ISO 8601 date (YYYY-MM-DD). */
   inboundDateAfter?: string;
-  /** Filter inbound date on or before (ISO string). */
+  
+  /** Filter inbound date on or before this ISO 8601 date (YYYY-MM-DD). */
   inboundDateBefore?: string;
-  /** Filter to items with reserved quantity. */
+  
+  /** When true, show only items with a non-zero reserved quantity. */
   hasReserved?: boolean;
-  /** Full-text search across lot number, product name, SKU, material code. */
+  
+  /** Full-text search across lot number, product name, SKU, and material code. */
   search?: string;
 };
 

@@ -13,7 +13,8 @@ import Divider from '@mui/material/Divider';
 import { CustomTypography } from '@components/index';
 import {
   WarehouseInventoryFiltersPanel,
-  WarehouseInventoryListTable, WarehouseInventorySortControls,
+  WarehouseInventoryListTable,
+  WarehouseInventorySortControls,
 } from '@features/warehouseInventory/components/WarehouseInventoryListTable';
 import type {
   WarehouseInventoryFilters,
@@ -66,12 +67,17 @@ const WarehouseInventoryListPage: FC = () => {
     },
     [warehouseId, page, limit, sortBy, sortOrder, filters]
   );
-  
+
+  // Fetch effect — fires whenever queryParams change
   useEffect(() => {
     if (!queryParams) return;
     fetchWarehouseInventory(queryParams);
+  }, [queryParams, fetchWarehouseInventory]);
+
+  // Reset effect — fires ONLY on unmount
+  useEffect(() => {
     return () => { resetWarehouseInventory(); };
-  }, [queryParams, fetchWarehouseInventory, resetWarehouseInventory]);
+  }, [resetWarehouseInventory]);
   
   const { handlePageChange, handleRowsPerPageChange } = usePaginationHandlers(
     setPage,
