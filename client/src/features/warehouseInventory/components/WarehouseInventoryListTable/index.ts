@@ -3,3 +3,4 @@ export { default as WarehouseInventoryListTable } from './WarehouseInventoryList
 export { default as WarehouseInventoryExpandedContent } from './WarehouseInventoryExpandedContent';
 export { default as WarehouseInventoryFiltersPanel } from './WarehouseInventoryFiltersPanel';
 export { default as WarehouseInventorySortControls } from './WarehouseInventorySortControls';
+export { default as WarehouseInventoryPageHeader } from './WarehouseInventoryPageHeader';

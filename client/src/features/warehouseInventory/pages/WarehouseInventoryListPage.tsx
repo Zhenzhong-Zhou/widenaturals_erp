@@ -10,10 +10,14 @@ import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Grid from '@mui/material/Grid';
 import Divider from '@mui/material/Divider';
-import { CustomTypography } from '@components/index';
+import Alert from '@mui/material/Alert';
+import {
+  CustomTypography,
+  GoBackButton,
+} from '@components/index';
 import {
   WarehouseInventoryFiltersPanel,
-  WarehouseInventoryListTable,
+  WarehouseInventoryListTable, WarehouseInventoryPageHeader,
   WarehouseInventorySortControls,
 } from '@features/warehouseInventory/components/WarehouseInventoryListTable';
 import type {
@@ -21,7 +25,10 @@ import type {
   WarehouseInventoryQueryParams,
   WarehouseInventorySortField,
 } from '@features/warehouseInventory';
-import { usePaginatedWarehouseInventory } from '@hooks/index';
+import {
+  usePaginatedWarehouseInventory,
+  useWarehouseDetail
+} from '@hooks/index';
 import { useHasPermissionBoolean } from '@features/authorize/hooks';
 import { usePaginationHandlers } from '@utils/hooks';
 import { useWarehouseInventoryLookups } from '@features/warehouseInventory/hooks';
@@ -34,6 +41,12 @@ const WarehouseInventoryListPage: FC = () => {
   const [sortBy, setSortBy]       = useState<WarehouseInventorySortField>('defaultNaturalSort');
   const [sortOrder, setSortOrder] = useState<'' | 'ASC' | 'DESC'>('');
   const [filters, setFilters]     = useState<WarehouseInventoryFilters>({});
+  
+  const {
+    data: warehouse,
+    fetchWarehouse,
+    resetWarehouse,
+  } = useWarehouseDetail();
   
   const {
     data:         inventories,
@@ -52,6 +65,16 @@ const WarehouseInventoryListPage: FC = () => {
   const canViewInventoryDetail   = hasPermission('view_warehouse_inventory_detail');
   const canAdjustInventory       = hasPermission('adjust_warehouse_inventory');
   const canUpdateInventoryStatus = hasPermission('update_warehouse_inventory_status');
+  
+  useEffect(() => {
+    if (!warehouseId) return;
+    if (warehouse?.id === warehouseId) return;
+    fetchWarehouse(warehouseId);
+  }, [warehouseId, warehouse?.id, fetchWarehouse]);
+
+  useEffect(() => {
+    return () => { resetWarehouse(); };
+  }, [resetWarehouse]);
   
   const queryParams = useMemo<WarehouseInventoryQueryParams | null>(
     () => {
@@ -118,19 +141,20 @@ const WarehouseInventoryListPage: FC = () => {
   
   return (
     <Box sx={{ px: 4, py: 3 }}>
-      {/* ── Header ────────────────────────────────────────────────── */}
-      <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        flexWrap="wrap"
-        mb={3}
-        gap={2}
-      >
-        <CustomTypography variant="h5" fontWeight={700}>
-          Warehouse Inventory
-        </CustomTypography>
+      {/* Back navigation — its own row */}
+      <Box mb={2}>
+        <GoBackButton variant="outlined" />
       </Box>
+      
+      {/* Archived banner — above identity, full width */}
+      {warehouse?.isArchived && (
+        <Alert severity="warning" sx={{ mb: 3 }}>
+          This warehouse is archived. Inventory data is read-only.
+        </Alert>
+      )}
+      
+      {/* Identity + summary stats row */}
+      <WarehouseInventoryPageHeader warehouse={warehouse} />
       
       <Divider sx={{ mb: 3 }} />
       

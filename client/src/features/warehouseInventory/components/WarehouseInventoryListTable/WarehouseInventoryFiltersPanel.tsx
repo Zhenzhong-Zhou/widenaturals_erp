@@ -161,7 +161,6 @@ const WarehouseInventoryFiltersPanel: FC<Props> = ({
   // -------------------------
   // Render
   // -------------------------
-  // todo:  add go back and warehouse info
   return (
     <form onSubmit={handleSubmit(submitFilters)}>
       <FilterPanelLayout onReset={resetFilters}>
