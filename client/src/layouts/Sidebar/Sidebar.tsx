@@ -45,8 +45,27 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
   // --------------------------------------------------
   const menuItems = useMemo(() => {
     return navigationItems.filter((item) => {
-      if (!item.requiredPermission) return true;
-      return hasPermission(item.requiredPermission);
+      const { requiredPermission } = item;
+      
+      if (!requiredPermission) return true;
+      
+      if (typeof requiredPermission === 'string') {
+        return hasPermission(requiredPermission);
+      }
+      
+      if (requiredPermission.any?.length) {
+        return requiredPermission.any.some((permission) =>
+          hasPermission(permission)
+        );
+      }
+      
+      if (requiredPermission.all?.length) {
+        return requiredPermission.all.every((permission) =>
+          hasPermission(permission)
+        );
+      }
+      
+      return true;
     });
   }, [hasPermission]);
 

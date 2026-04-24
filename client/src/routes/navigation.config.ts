@@ -110,26 +110,14 @@ export const navigationItems: NavigationItem[] = [
 
   // INVENTORY
   {
-    path: '/inventory-overview',
-    title: 'Inventory Overview',
-    requiredPermission: ROUTE_PERMISSIONS.WAREHOUSE_INVENTORY.VIEW_SUMMARY,
-  },
-  {
     path: '/warehouses',
     title: 'Warehouses',
-    requiredPermission: ROUTE_PERMISSIONS.WAREHOUSE_INVENTORY.VIEW,
-  },
-  {
-    path: '/warehouse-inventory',
-    title: 'Warehouse Inventory',
-    requiredPermission: ROUTE_PERMISSIONS.WAREHOUSE_INVENTORY.VIEW,
-  },
-
-  // REPORTS
-  {
-    path: '/reports/inventory-activity-logs',
-    title: 'Inventory Activity Logs',
-    requiredPermission: ROUTE_PERMISSIONS.REPORTS.VIEW_INVENTORY_LOGS,
+    requiredPermission: {
+      any: [
+        ROUTE_PERMISSIONS.WAREHOUSES.VIEW,
+        ROUTE_PERMISSIONS.WAREHOUSE_INVENTORY.VIEW,
+      ],
+    }
   },
 
   // CUSTOMERS

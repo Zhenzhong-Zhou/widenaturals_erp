@@ -17,7 +17,6 @@ import { lazy } from 'react';
 import type { AppRoute, DynamicPermissionResolver } from './routeTypes';
 import { defineRoute } from './routeTypes';
 import {
-  ORDER_CONSTANTS,
   toPermissionValue,
 } from '@utils/constants/orderPermissions';
 import { isValidOrderCategory } from '@features/order/utils';
@@ -218,7 +217,7 @@ export const appRoutes: AppRoute[] = [
     component: lazy(() => import('@features/order/layouts/OrdersLayout')),
     meta: {
       requiresAuth: true,
-      requiredPermission: 'view_orders',
+      requiredPermission: ROUTE_PERMISSIONS.ORDERS.VIEW,
     },
   }),
 
@@ -227,10 +226,14 @@ export const appRoutes: AppRoute[] = [
     component: lazy(() => import('@features/order/pages/OrdersListPage')),
     meta: {
       requiresAuth: true,
-      requiredPermission: ((params) =>
-        params.mode && isValidOrderCategory(params.mode)
-          ? toPermissionValue('VIEW', params.mode)
-          : null) satisfies DynamicPermissionResolver,
+      requiredPermission: ((params) => {
+        const category = params.category;
+        if (!category || !isValidOrderCategory(category)) return null;
+        
+        return {
+          any: [toPermissionValue('VIEW', category)],
+        };
+      }) satisfies DynamicPermissionResolver,
     },
   }),
 
@@ -242,7 +245,10 @@ export const appRoutes: AppRoute[] = [
       requiredPermission: ((params) => {
         const category = params.category;
         if (!category || !isValidOrderCategory(category)) return null;
-        return toPermissionValue('VIEW', category);
+        
+        return {
+          any: [toPermissionValue('VIEW', category)],
+        };
       }) satisfies DynamicPermissionResolver,
     },
   }),
@@ -253,11 +259,12 @@ export const appRoutes: AppRoute[] = [
     meta: {
       requiresAuth: true,
       requiredPermission: ((params) => {
-        const { category } = params;
+        const category = params.category;
         if (!category || !isValidOrderCategory(category)) return null;
-        return category === 'allocatable'
-          ? ORDER_CONSTANTS.PERMISSIONS.ALLOCATION.VIEW
-          : toPermissionValue('VIEW', category);
+        
+        return {
+          any: [toPermissionValue('VIEW', category)],
+        };
       }) satisfies DynamicPermissionResolver,
     },
   }),
@@ -265,33 +272,27 @@ export const appRoutes: AppRoute[] = [
   /* ---------- Inventory & Warehousing ---------- */
 
   defineRoute({
-    path: '/inventory-overview',
-    component: lazy(
-      () => import('@features/inventoryOverview/pages/InventoryOverviewPage')
-    ),
-    meta: {
-      requiresAuth: true,
-      requiredPermission: 'view_inventory_overview',
-    },
-  }),
-
-  defineRoute({
     path: '/warehouses',
-    component: lazy(() => import('@features/warehouse/pages/WarehousesPage')),
+    component: lazy(() => import('@features/warehouse/pages/WarehouseListPage')),
     meta: {
       requiresAuth: true,
-      requiredPermission: 'view_warehouses',
+      requiredPermission: {
+        any: [
+          ROUTE_PERMISSIONS.WAREHOUSES.VIEW,
+          ROUTE_PERMISSIONS.WAREHOUSE_INVENTORY.VIEW,
+        ],
+      },
     },
   }),
 
   defineRoute({
-    path: '/warehouse-inventory',
+    path: '/warehouse-inventory/:warehouseId/inventory',
     component: lazy(
-      () => import('@features/warehouseInventory/pages/WarehouseInventoryPage')
+      () => import('@features/warehouseInventory/pages/WarehouseInventoryListPage')
     ),
     meta: {
       requiresAuth: true,
-      requiredPermission: 'view_warehouses',
+      requiredPermission: ROUTE_PERMISSIONS.WAREHOUSES.VIEW,
     },
   }),
 
@@ -299,11 +300,11 @@ export const appRoutes: AppRoute[] = [
     path: '/inventory-allocations',
     component: lazy(
       () =>
-        import('@features/inventoryAllocation/pages/InventoryAllocationsPage')
+        import('@features/inventoryAllocation/pages/InventoryAllocationPage')
     ),
     meta: {
       requiresAuth: true,
-      requiredPermission: 'view_inventory_allocations',
+      requiredPermission: ROUTE_PERMISSIONS.INVENTORY_ALLOCATION.VIEW,
     },
   }),
 
@@ -335,9 +336,10 @@ export const appRoutes: AppRoute[] = [
     ),
     meta: {
       requiresAuth: true,
-      requiredPermission: 'view_price_types',
+      requiredPermission: ROUTE_PERMISSIONS.PRICING_TYPES.VIEW,
     },
   }),
+  
   defineRoute({
     path: '/pricing-types/:slug/:pricingTypeId',
     component: lazy(
@@ -345,7 +347,7 @@ export const appRoutes: AppRoute[] = [
     ),
     meta: {
       requiresAuth: true,
-      requiredPermission: 'view_price_type_details',
+      requiredPermission: ROUTE_PERMISSIONS.PRICING_TYPES.VIEW_DETAILS,
     },
   }),
 
@@ -354,16 +356,7 @@ export const appRoutes: AppRoute[] = [
     component: lazy(() => import('@features/pricing/pages/PricingListPage')),
     meta: {
       requiresAuth: true,
-      requiredPermission: 'view_prices',
-    },
-  }),
-
-  defineRoute({
-    path: '/prices/:sku/:id',
-    component: lazy(() => import('@features/pricing/pages/PricingDetailPage')),
-    meta: {
-      requiresAuth: true,
-      requiredPermission: 'view_price_details',
+      requiredPermission: ROUTE_PERMISSIONS.PRICING.VIEW,
     },
   }),
 
@@ -374,7 +367,7 @@ export const appRoutes: AppRoute[] = [
     ),
     meta: {
       requiresAuth: true,
-      requiredPermission: 'view_location_types',
+      requiredPermission: ROUTE_PERMISSIONS.LOCATIONS_TYPES.VIEW,
     },
   }),
 
@@ -383,22 +376,12 @@ export const appRoutes: AppRoute[] = [
     component: lazy(() => import('@features/location/pages/LocationListPage')),
     meta: {
       requiresAuth: true,
-      requiredPermission: 'view_locations',
+      requiredPermission: ROUTE_PERMISSIONS.LOCATIONS.VIEW,
     },
   }),
 
   /* ---------- Reports ---------- */
-
-  defineRoute({
-    path: '/reports/inventory-activity-logs',
-    component: lazy(
-      () => import('@features/report/pages/InventoryActivityLogsPage')
-    ),
-    meta: {
-      requiresAuth: true,
-      requiredPermission: 'view_inventory_logs',
-    },
-  }),
+  
 
   /* ---------- Customers & CRM ---------- */
 
@@ -434,7 +417,7 @@ export const appRoutes: AppRoute[] = [
     ),
     meta: {
       requiresAuth: true,
-      requiredPermission: 'view_outbound_fulfillments',
+      requiredPermission: ROUTE_PERMISSIONS.OUTBOUND_FULFILLMENTS.VIEW,
     },
   }),
 
@@ -446,7 +429,7 @@ export const appRoutes: AppRoute[] = [
     ),
     meta: {
       requiresAuth: true,
-      requiredPermission: 'view_outbound_fulfillments',
+      requiredPermission: ROUTE_PERMISSIONS.OUTBOUND_FULFILLMENTS.VIEW_DETAILS,
     },
   }),
 
