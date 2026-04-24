@@ -43,6 +43,7 @@ const ROUTE_PERMISSIONS = {
   },
   PRICING_TYPES: {
     VIEW: 'view_pricing_types',
+    VIEW_DETAILS: 'view_pricing_type_details',
   },
   PRICING: {
     VIEW: 'view_prices',
@@ -68,13 +69,13 @@ const ROUTE_PERMISSIONS = {
   PACKAGING_MATERIAL_BATCHES: {
     VIEW_LIST: 'view_packaging_material_batches',
   },
+  WAREHOUSES: {
+    VIEW: 'view_warehouses',
+  },
   WAREHOUSE_INVENTORY: {
     VIEW: 'view_warehouse_inventory',
     VIEW_SUMMARY: 'view_warehouse_inventory_summary',
     VIEW_SUMMARY_ITEM_DETAILS: 'view_warehouse_inventory_summary_item_details',
-  },
-  REPORTS: {
-    VIEW_INVENTORY_LOGS: 'view_inventory_logs',
   },
   CUSTOMERS: {
     VIEW: 'view_customers',
@@ -93,6 +94,7 @@ const ROUTE_PERMISSIONS = {
   },
   OUTBOUND_FULFILLMENTS: {
     VIEW: 'view_outbound_fulfillments',
+    VIEW_DETAILS: 'view_outbound_fulfillment_details',
   },
 };
 
