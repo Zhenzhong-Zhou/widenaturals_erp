@@ -1,8 +1,12 @@
+import Box from '@mui/material/Box';
 import type { Column } from '@components/common/CustomTable';
 import type { FlattenedWarehouseInventory } from '@features/warehouseInventory/state/warehouseInventoryTypes';
 import { formatDate } from '@utils/dateTimeUtils';
 import { createDrillDownColumn } from '@utils/table/createDrillDownColumn';
 import { formatLabel } from '@utils/textUtils';
+import { formatInventoryStatus } from '@utils/formatters';
+import { InventoryStatusBadge }
+  from '@features/warehouseInventory/components/WarehouseInventoryListTable';
 
 /**
  * Builds column definitions for the warehouse inventory list table.
@@ -51,14 +55,24 @@ export const getWarehouseInventoryColumns = (
       sortable: true,
       renderCell: (row) =>
         row.batchType === 'product'
-          ? (row.lotNumber ?? '—')
+          ? (row.productLotNumber ?? '—')
           : (row.packagingLotNumber ?? '—'),
     },
     {
-      id: 'sizeLabel',
-      label: 'Size',
+      id: 'expiryDate',
+      label: 'Expiry Date',
       sortable: false,
-      renderCell: (row) => row.sizeLabel ?? '—',
+      renderCell: (row) => {
+        const date = row.batchType === 'product'
+          ? row.productExpiryDate
+          : row.packagingExpiryDate;
+        return (
+          <Box display="flex" alignItems="center" gap={1}>
+            <span>{date ? formatDate(date) : '—'}</span>
+            <InventoryStatusBadge expiryDate={date ?? null} />
+          </Box>
+        );
+      },
     },
     {
       id: 'warehouseQuantity',
@@ -76,13 +90,18 @@ export const getWarehouseInventoryColumns = (
       id: 'availableQuantity',
       label: 'Available',
       sortable: true,
-      renderCell: (row) => row.availableQuantity.toLocaleString(),
+      renderCell: (row) => (
+        <Box display="flex" alignItems="center" gap={1}>
+          <span>{row.availableQuantity.toLocaleString()}</span>
+          <InventoryStatusBadge record={row} />
+        </Box>
+      ),
     },
     {
       id: 'statusName',
       label: 'Status',
       sortable: true,
-      renderCell: (row) => formatLabel(row.statusName ?? '—'),
+      renderCell: (row) => formatInventoryStatus(row.statusName ?? null),
     },
     {
       id: 'inboundDate',

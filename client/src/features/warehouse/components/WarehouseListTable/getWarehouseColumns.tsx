@@ -6,6 +6,7 @@ import type { WarehouseRecord } from '@features/warehouse/state/warehouseTypes';
 import { formatDate } from '@utils/dateTimeUtils';
 import { formatLabel } from '@utils/textUtils';
 import { createDrillDownColumn } from '@utils/table/createDrillDownColumn';
+import { formatGeneralStatus } from '@utils/formatters';
 
 /**
  * Builds column definitions for the warehouse list table.
@@ -59,7 +60,7 @@ export const getWarehouseColumns = (
       id:       'status',
       label:    'Status',
       sortable: true,
-      renderCell: (row) => formatLabel(row.status.name ?? '—'),
+      renderCell: (row) => formatGeneralStatus(row.status.name ?? '—'),
     },
     {
       id:       'storageCapacity',
