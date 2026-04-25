@@ -31,6 +31,8 @@ interface ProductBatch {
   id: string;
   /** Manufacturer-assigned lot number. */
   lotNumber: string;
+  /** Product expiry date (ISO 8601). Required for all product batches. */
+  expiryDate: string;
 }
 
 /** SKU details for a product inventory record. */
@@ -91,6 +93,8 @@ interface PackagingBatch {
   id: string;
   /** Supplier-assigned lot number. */
   lotNumber: string;
+  /** Packaging material expiry date (ISO 8601). Optional — not all materials have one. */
+  expiryDate?: string;
 }
 
 /** Packaging material details. */
@@ -166,7 +170,8 @@ export type FlattenedWarehouseInventory = {
   
   // Product fields (null when batchType === 'packaging_material')
   productBatchId: NullableString;
-  lotNumber: NullableString;
+  productLotNumber: NullableString;
+  productExpiryDate: NullableString;
   skuId: NullableString;
   sku: NullableString;
   barcode: NullableString;
@@ -183,6 +188,7 @@ export type FlattenedWarehouseInventory = {
   // Packaging fields (null when batchType === 'product')
   packagingBatchId: NullableString;
   packagingLotNumber: NullableString;
+  packagingExpiryDate: NullableString;
   materialId: NullableString;
   materialCode: NullableString;
   supplierId: NullableString;
