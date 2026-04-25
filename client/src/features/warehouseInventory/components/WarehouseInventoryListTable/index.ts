@@ -4,3 +4,4 @@ export { default as WarehouseInventoryExpandedContent } from './WarehouseInvento
 export { default as WarehouseInventoryFiltersPanel } from './WarehouseInventoryFiltersPanel';
 export { default as WarehouseInventorySortControls } from './WarehouseInventorySortControls';
 export { default as WarehouseInventoryPageHeader } from './WarehouseInventoryPageHeader';
+export { default as InventoryStatusBadge } from './InventoryStatusBadge';
