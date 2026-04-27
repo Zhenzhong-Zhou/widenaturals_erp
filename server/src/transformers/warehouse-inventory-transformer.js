@@ -270,7 +270,7 @@ const transformWarehouseInventoryDetailRecord = (row) => {
  * into a structured API record with warehouse info, quantity totals,
  * batch-type breakdown, and per-status breakdown.
  *
- * @param {WarehouseSummaryRow}         row
+ * @param {WarehouseSummaryRow}           row
  * @param {WarehouseSummaryByStatusRow[]} statusRows
  * @returns {object}
  */
@@ -282,8 +282,10 @@ const transformWarehouseSummary = (row, statusRows) => ({
     storageCapacity: row.storage_capacity,
     defaultFee: row.default_fee,
     typeName: row.warehouse_type_name,
+    isArchived: row.is_archived,
+    status: makeStatus(row),
   },
-
+  
   totals: {
     batches: parseInt(row.total_batches, 10),
     productSkus: parseInt(row.total_product_skus, 10),
@@ -292,7 +294,7 @@ const transformWarehouseSummary = (row, statusRows) => ({
     reserved: parseInt(row.total_reserved, 10),
     available: parseInt(row.total_available, 10),
   },
-
+  
   byBatchType: {
     product: {
       batchCount: parseInt(row.product_batch_count, 10),
@@ -303,7 +305,7 @@ const transformWarehouseSummary = (row, statusRows) => ({
       quantity: parseInt(row.packaging_quantity, 10),
     },
   },
-
+  
   byStatus: statusRows.map((s) => ({
     statusId: s.status_id,
     statusName: s.status_name,
@@ -312,6 +314,12 @@ const transformWarehouseSummary = (row, statusRows) => ({
     reserved: parseInt(s.total_reserved, 10),
     available: parseInt(s.total_available, 10),
   })),
+  
+  alerts: {
+    lowStock: parseInt(row.low_stock_count, 10),
+    expiringSoon: parseInt(row.expiring_soon_count, 10),
+    expired: parseInt(row.expired_count, 10),
+  },
 });
 
 /**
