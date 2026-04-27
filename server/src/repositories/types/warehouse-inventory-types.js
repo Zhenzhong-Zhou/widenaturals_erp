@@ -427,7 +427,11 @@
  * @property {string} warehouse_code
  * @property {number|null} storage_capacity
  * @property {number|null} default_fee
+ * @property {boolean} is_archived
  * @property {string|null} warehouse_type_name
+ * @property {string|null} status_id
+ * @property {string|null} status_name
+ * @property {Date|string|null} status_date
  * @property {string} total_batches
  * @property {string} total_product_skus
  * @property {string} total_packaging_materials
@@ -438,6 +442,9 @@
  * @property {string} packaging_quantity
  * @property {string} product_batch_count
  * @property {string} packaging_batch_count
+ * @property {string} low_stock_count
+ * @property {string} expired_count
+ * @property {string} expiring_soon_count
  */
 
 /**

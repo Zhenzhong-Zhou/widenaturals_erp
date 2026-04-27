@@ -340,6 +340,10 @@ const WAREHOUSE_SUMMARY_QUERY = `
     w.storage_capacity,
     w.default_fee,
     wt.name                       AS warehouse_type_name,
+    w.status_id,
+    ws.name                       AS status_name,
+    w.status_date                 AS status_date,
+    w.is_archived                 AS is_archived,
     COUNT(wi.id)                  AS total_batches,
     COUNT(DISTINCT CASE WHEN br.batch_type = 'product' THEN pb.sku_id END)
                                   AS total_product_skus,
@@ -356,16 +360,31 @@ const WAREHOUSE_SUMMARY_QUERY = `
     COUNT(CASE WHEN br.batch_type = 'product' THEN 1 END)
                                   AS product_batch_count,
     COUNT(CASE WHEN br.batch_type = 'packaging_material' THEN 1 END)
-                                  AS packaging_batch_count
+                                  AS packaging_batch_count,
+    COUNT(CASE
+      WHEN (wi.warehouse_quantity - wi.reserved_quantity) <= 10
+      THEN 1
+    END) AS low_stock_count,
+    COUNT(CASE
+      WHEN COALESCE(pb.expiry_date, pmb.expiry_date) < NOW()
+      THEN 1
+    END) AS expired_count,
+    COUNT(CASE
+      WHEN COALESCE(pb.expiry_date, pmb.expiry_date) >= NOW()
+       AND COALESCE(pb.expiry_date, pmb.expiry_date) <= NOW() + INTERVAL '30 days'
+      THEN 1
+    END) AS expiring_soon_count
   FROM warehouses w
   LEFT JOIN warehouse_types wt    ON wt.id = w.type_id
+  LEFT JOIN status ws             ON ws.id = w.status_id
   LEFT JOIN warehouse_inventory wi ON wi.warehouse_id = w.id
   LEFT JOIN batch_registry br     ON br.id = wi.batch_id
   LEFT JOIN product_batches pb    ON pb.id = br.product_batch_id
   LEFT JOIN packaging_material_batches pmb ON pmb.id = br.packaging_material_batch_id
   LEFT JOIN packaging_material_suppliers pms ON pms.id = pmb.packaging_material_supplier_id
   WHERE w.id = $1
-  GROUP BY w.id, w.name, w.code, w.storage_capacity, w.default_fee, wt.name
+  GROUP BY w.id, w.name, w.code, w.storage_capacity, w.default_fee, w.is_archived,
+           wt.name, ws.id, ws.name, w.status_date
 `;
 
 const WAREHOUSE_SUMMARY_BY_STATUS_QUERY = `
