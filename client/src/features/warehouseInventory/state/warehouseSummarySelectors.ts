@@ -65,3 +65,11 @@ export const selectWarehouseSummaryByStatus = createSelector(
   [selectWarehouseSummaryData],
   (data) => data?.byStatus ?? EMPTY_ARRAY
 );
+
+/**
+ * Selects the alert counts from the summary.
+ */
+export const selectWarehouseSummaryAlerts = createSelector(
+  [selectWarehouseSummaryData],
+  (data) => data?.alerts ?? null
+);
