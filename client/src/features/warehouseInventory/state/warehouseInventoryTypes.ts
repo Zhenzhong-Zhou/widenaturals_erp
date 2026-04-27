@@ -686,6 +686,8 @@ export type WarehouseSummaryInfo = {
   storageCapacity: NullableNumber;
   defaultFee: NullableString;
   typeName: NullableString;
+  isArchived: boolean;
+  status: GenericStatus;
 };
 
 /** Aggregate totals across all inventory in a warehouse. */
@@ -714,15 +716,50 @@ export type WarehouseSummaryByStatus = {
   available: number;
 };
 
+/**
+ * Aggregated alert counts for a single warehouse, computed server-side
+ * across all batches in the warehouse (not limited to the current page).
+ *
+ * Drives the alert summary cards on the warehouse inventory page.
+ * A count of zero means no batches currently match the condition.
+ */
+export type WarehouseSummaryAlerts = {
+  /**
+   * Number of batches whose available quantity is at or below the
+   * low-stock threshold (currently 10 units).
+   */
+  lowStock: number;
+  
+  /**
+   * Number of batches expiring within the next 30 days.
+   * Excludes batches already expired.
+   */
+  expiringSoon: number;
+  
+  /**
+   * Number of batches whose expiry date has already passed.
+   */
+  expired: number;
+};
+
+/**
+ * Aggregated batch counts and quantities split by batch type
+ * (product vs packaging material) for a single warehouse.
+ */
+export type WarehouseSummaryByBatchType = {
+  /** Totals for product batches in the warehouse. */
+  product: WarehouseSummaryBatchType;
+  /** Totals for packaging material batches in the warehouse. */
+  packagingMaterial: WarehouseSummaryBatchType;
+};
+
 /** Full warehouse summary record as returned by the API. */
 export type WarehouseSummaryRecord = {
   warehouse: WarehouseSummaryInfo;
   totals: WarehouseSummaryTotals;
-  byBatchType: {
-    product: WarehouseSummaryBatchType;
-    packagingMaterial: WarehouseSummaryBatchType;
-  };
+  byBatchType: WarehouseSummaryByBatchType;
   byStatus: WarehouseSummaryByStatus[];
+  alerts: WarehouseSummaryAlerts;
 };
 
 /** API response for warehouse summary. */
