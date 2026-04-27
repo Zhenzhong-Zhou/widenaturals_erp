@@ -121,6 +121,7 @@ const PERMISSION_KEYS = {
     INITIATE: 'initiate_outbound_fulfillment',
     CONFIRM: 'confirm_outbound_fulfillment',
     VIEW: 'view_outbound_fulfillments',
+    VIEW_DETAILS: 'view_outbound_fulfillment_details',
     COMPLETE_MANUAL: 'complete_manual_outbound_fulfillments',
   },
 };
