@@ -58,7 +58,9 @@ const cleanObject = (obj) => {
  * @returns {boolean}
  */
 const isPlainObject = (value) =>
-  value !== null && typeof value === 'object' && !Array.isArray(value);
+  value !== null &&
+  typeof value === 'object' &&
+  Object.getPrototypeOf(value) === Object.prototype;
 
 /**
  * Recursively removes null, undefined, and empty plain-object values.
@@ -66,8 +68,8 @@ const isPlainObject = (value) =>
  * Does NOT recurse into arrays — array elements pass through as-is.
  * Returns a new object; the input is not mutated.
  *
- * @param {Object} obj
- * @returns {Object}
+ * @param {*} obj
+ * @returns {*}
  */
 const deepCleanObject = (obj) => {
   if (!isPlainObject(obj)) return obj;
@@ -79,8 +81,7 @@ const deepCleanObject = (obj) => {
     ])
     .filter(([_, value]) => {
       if (value === null || value === undefined) return false;
-      if (isPlainObject(value) && Object.keys(value).length === 0) return false;
-      return true;
+      return !(isPlainObject(value) && Object.keys(/** @type {object} */ (value)).length === 0);
     });
 
   return Object.fromEntries(cleanedEntries);
