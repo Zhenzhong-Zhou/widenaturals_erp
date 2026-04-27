@@ -9,6 +9,7 @@ import { useParams } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Grid from '@mui/material/Grid';
+import Skeleton from '@mui/material/Skeleton';
 import Divider from '@mui/material/Divider';
 import Alert from '@mui/material/Alert';
 import {
@@ -17,9 +18,13 @@ import {
 } from '@components/index';
 import {
   WarehouseInventoryFiltersPanel,
-  WarehouseInventoryListTable, WarehouseInventoryPageHeader,
+  WarehouseInventoryListTable,
   WarehouseInventorySortControls,
 } from '@features/warehouseInventory/components/WarehouseInventoryListTable';
+import {
+  WarehouseInventoryAlertSummary,
+  WarehouseSummaryHeader,
+} from '@features/warehouseInventory/components/WarehouseSummaryHeader';
 import type {
   WarehouseInventoryFilters,
   WarehouseInventoryQueryParams,
@@ -27,7 +32,7 @@ import type {
 } from '@features/warehouseInventory';
 import {
   usePaginatedWarehouseInventory,
-  useWarehouseDetail
+  useWarehouseSummary,
 } from '@hooks/index';
 import { useHasPermissionBoolean } from '@features/authorize/hooks';
 import { usePaginationHandlers } from '@utils/hooks';
@@ -43,10 +48,16 @@ const WarehouseInventoryListPage: FC = () => {
   const [filters, setFilters]     = useState<WarehouseInventoryFilters>({});
   
   const {
-    data: warehouse,
-    fetchWarehouse,
-    resetWarehouse,
-  } = useWarehouseDetail();
+    warehouseInfo,
+    totals,
+    byBatchType,
+    byStatus,
+    alerts,
+    loading: summaryLoading,
+    error: summaryError,
+    fetchSummary,
+    resetSummary,
+  } = useWarehouseSummary();
   
   const {
     data:         inventories,
@@ -68,13 +79,13 @@ const WarehouseInventoryListPage: FC = () => {
   
   useEffect(() => {
     if (!warehouseId) return;
-    if (warehouse?.id === warehouseId) return;
-    fetchWarehouse(warehouseId);
-  }, [warehouseId, warehouse?.id, fetchWarehouse]);
-
-  useEffect(() => {
-    return () => { resetWarehouse(); };
-  }, [resetWarehouse]);
+    if (warehouseInfo?.id === warehouseId) return;
+    fetchSummary(warehouseId);
+  }, [warehouseId, warehouseInfo?.id, fetchSummary]);
+  
+  useEffect(() => () => {
+    resetSummary();
+    }, [resetSummary]);
   
   const queryParams = useMemo<WarehouseInventoryQueryParams | null>(
     () => {
@@ -147,14 +158,27 @@ const WarehouseInventoryListPage: FC = () => {
       </Box>
       
       {/* Archived banner — above identity, full width */}
-      {warehouse?.isArchived && (
-        <Alert severity="warning" sx={{ mb: 3 }}>
-          This warehouse is archived. Inventory data is read-only.
-        </Alert>
+      {summaryError ? (
+        <CustomTypography color="error">{summaryError}</CustomTypography>
+      ) : summaryLoading ? (
+        <Skeleton variant="rectangular" height={120} sx={{ mb: 3 }} />
+      ) : (
+        <>
+          {warehouseInfo?.isArchived && (
+            <Alert severity="warning" sx={{ mb: 3 }}>
+              This warehouse is archived. Inventory data is read-only.
+            </Alert>
+          )}
+          <WarehouseSummaryHeader
+            warehouseInfo={warehouseInfo}
+            totals={totals}
+            byBatchType={byBatchType}
+            byStatus={byStatus}
+          />
+        </>
       )}
       
-      {/* Identity + summary stats row */}
-      <WarehouseInventoryPageHeader warehouse={warehouse} />
+      <WarehouseInventoryAlertSummary alerts={alerts} />
       
       <Divider sx={{ mb: 3 }} />
       

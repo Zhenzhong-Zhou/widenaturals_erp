@@ -8,6 +8,7 @@ import {
   selectWarehouseSummaryTotals,
   selectWarehouseSummaryByBatchType,
   selectWarehouseSummaryByStatus,
+  selectWarehouseSummaryAlerts,
   fetchWarehouseSummaryThunk,
 } from '@features/warehouseInventory/state';
 import { resetWarehouseSummary } from '@features/warehouseInventory/state/warehouseSummarySlice';
@@ -26,6 +27,7 @@ const useWarehouseSummary = () => {
   const totals = useAppSelector(selectWarehouseSummaryTotals);
   const byBatchType = useAppSelector(selectWarehouseSummaryByBatchType);
   const byStatus = useAppSelector(selectWarehouseSummaryByStatus);
+  const alerts = useAppSelector(selectWarehouseSummaryAlerts);
   
   /**
    * Fetch the aggregate summary for a warehouse.
@@ -53,6 +55,7 @@ const useWarehouseSummary = () => {
     totals,
     byBatchType,
     byStatus,
+    alerts,
     fetchSummary,
     resetSummary,
   };
