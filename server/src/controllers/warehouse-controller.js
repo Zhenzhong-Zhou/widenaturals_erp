@@ -52,7 +52,7 @@ const getWarehouseDetailController = wrapAsyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
     message: 'Warehouse retrieved successfully.',
-    payload: { data: result },
+    data: result,
     traceId: req.traceId,
   });
 });
