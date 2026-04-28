@@ -86,7 +86,7 @@ const WarehouseInventoryExpandedContent: FC<WarehouseInventoryExpandedContentPro
             { label: 'Size',           value: row.sizeLabel ?? null },
             { label: 'Country',        value: row.countryCode ?? null },
             { label: 'Market Region',  value: row.marketRegion ?? null, format: formatLabel },
-            { label: 'Lot Number',     value: row.lotNumber ?? null },
+            { label: 'Lot Number',     value: row.productLotNumber ?? null },
             { label: 'Manufacturer',   value: row.manufacturerName ?? null, format: formatLabel },
           ]}
         />
