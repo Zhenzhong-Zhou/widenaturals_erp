@@ -38,6 +38,7 @@ import { usePaginationHandlers } from '@utils/hooks';
 import { useWarehouseInventoryLookups } from '@features/warehouseInventory/hooks';
 import { createOnOpenHandler } from '@features/lookup/utils/lookupUtils';
 import { WarehouseItemSummaryPanel } from '@features/warehouseInventory/components/WarehouseItemSummary';
+import { useRecentWarehouses } from '@features/warehouse/hooks';
 
 const WarehouseInventoryListPage: FC = () => {
   const { warehouseId } = useParams<{ warehouseId: string }>();
@@ -79,6 +80,8 @@ const WarehouseInventoryListPage: FC = () => {
     resetItemSummary,
   } = useWarehouseItemSummary();
   
+  const { addRecent } = useRecentWarehouses();
+  
   const lookups = useWarehouseInventoryLookups();
   
   const hasPermission = useHasPermissionBoolean();
@@ -109,6 +112,15 @@ const WarehouseInventoryListPage: FC = () => {
     },
     [resetSummary, resetItemSummary]
   );
+  
+  useEffect(() => {
+    if (!warehouseInfo) return;
+    addRecent({
+      id: warehouseInfo.id,
+      name: warehouseInfo.name,
+      code: warehouseInfo.code,
+    });
+  }, [warehouseInfo, addRecent]);
   
   const queryParams = useMemo<WarehouseInventoryQueryParams | null>(
     () => {
