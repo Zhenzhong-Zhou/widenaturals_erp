@@ -70,11 +70,17 @@ const transformBatchRegistryPaginatedLookupResult = (paginatedResult) =>
 
 const transformWarehouseLookupRows = (rows) => {
   if (!Array.isArray(rows)) return [];
-
+  
   return rows.map((row) => ({
     value: row.warehouse_id,
     label: `${row.warehouse_name} (${row.location_name}${row.warehouse_type_name ? ' - ' + row.warehouse_type_name : ''})`,
-    metadata: { locationId: row.location_id },
+    metadata: {
+      name: row.warehouse_name,
+      warehouseType: row.warehouse_type_name,
+      locationName: row.location_name,
+      code: row.warehouse_code,
+      locationId: row.location_id,
+    },
   }));
 };
 
