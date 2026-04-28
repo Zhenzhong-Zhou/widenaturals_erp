@@ -11,7 +11,6 @@ import Card from '@mui/material/Card';
 import Grid from '@mui/material/Grid';
 import Skeleton from '@mui/material/Skeleton';
 import Divider from '@mui/material/Divider';
-import Alert from '@mui/material/Alert';
 import {
   CustomTypography,
   GoBackButton,
@@ -22,8 +21,7 @@ import {
   WarehouseInventorySortControls,
 } from '@features/warehouseInventory/components/WarehouseInventoryListTable';
 import {
-  WarehouseInventoryAlertSummary,
-  WarehouseSummaryHeader,
+  WarehouseSummarySection,
 } from '@features/warehouseInventory/components/WarehouseSummaryHeader';
 import type {
   WarehouseInventoryFilters,
@@ -32,12 +30,14 @@ import type {
 } from '@features/warehouseInventory';
 import {
   usePaginatedWarehouseInventory,
+  useWarehouseItemSummary,
   useWarehouseSummary,
 } from '@hooks/index';
 import { useHasPermissionBoolean } from '@features/authorize/hooks';
 import { usePaginationHandlers } from '@utils/hooks';
 import { useWarehouseInventoryLookups } from '@features/warehouseInventory/hooks';
 import { createOnOpenHandler } from '@features/lookup/utils/lookupUtils';
+import { WarehouseItemSummaryPanel } from '@features/warehouseInventory/components/WarehouseItemSummary';
 
 const WarehouseInventoryListPage: FC = () => {
   const { warehouseId } = useParams<{ warehouseId: string }>();
@@ -69,6 +69,16 @@ const WarehouseInventoryListPage: FC = () => {
     resetWarehouseInventory,
   } = usePaginatedWarehouseInventory();
   
+  const {
+    loading: itemSummaryLoading,
+    error: itemSummaryError,
+    products,
+    packagingMaterials,
+    isEmpty: itemSummaryEmpty,
+    fetchItemSummary,
+    resetItemSummary,
+  } = useWarehouseItemSummary();
+  
   const lookups = useWarehouseInventoryLookups();
   
   const hasPermission = useHasPermissionBoolean();
@@ -76,16 +86,29 @@ const WarehouseInventoryListPage: FC = () => {
   const canViewInventoryDetail   = hasPermission('view_warehouse_inventory_detail');
   const canAdjustInventory       = hasPermission('adjust_warehouse_inventory');
   const canUpdateInventoryStatus = hasPermission('update_warehouse_inventory_status');
-  
+  const canViewWarehouseSummary = hasPermission('view_warehouse_inventory_summary');
+  const canViewWarehouseItemsSummary = hasPermission('view_warehouse_inventory_summary_item_details');
+
+  // Warehouse summary
   useEffect(() => {
-    if (!warehouseId) return;
+    if (!warehouseId || !canViewWarehouseSummary) return;
     if (warehouseInfo?.id === warehouseId) return;
     fetchSummary(warehouseId);
-  }, [warehouseId, warehouseInfo?.id, fetchSummary]);
+  }, [warehouseId, warehouseInfo?.id, canViewWarehouseSummary, fetchSummary]);
+
+  // Item summary
+  useEffect(() => {
+    if (!warehouseId || !canViewWarehouseItemsSummary) return;
+    fetchItemSummary({ warehouseId });
+  }, [warehouseId, canViewWarehouseItemsSummary, fetchItemSummary]);
   
-  useEffect(() => () => {
-    resetSummary();
-    }, [resetSummary]);
+  useEffect(
+    () => () => {
+      resetSummary();
+      resetItemSummary();
+    },
+    [resetSummary, resetItemSummary]
+  );
   
   const queryParams = useMemo<WarehouseInventoryQueryParams | null>(
     () => {
@@ -157,28 +180,17 @@ const WarehouseInventoryListPage: FC = () => {
         <GoBackButton variant="outlined" />
       </Box>
       
-      {/* Archived banner — above identity, full width */}
-      {summaryError ? (
-        <CustomTypography color="error">{summaryError}</CustomTypography>
-      ) : summaryLoading ? (
-        <Skeleton variant="rectangular" height={120} sx={{ mb: 3 }} />
-      ) : (
-        <>
-          {warehouseInfo?.isArchived && (
-            <Alert severity="warning" sx={{ mb: 3 }}>
-              This warehouse is archived. Inventory data is read-only.
-            </Alert>
-          )}
-          <WarehouseSummaryHeader
-            warehouseInfo={warehouseInfo}
-            totals={totals}
-            byBatchType={byBatchType}
-            byStatus={byStatus}
-          />
-        </>
+      {canViewWarehouseSummary && (
+        <WarehouseSummarySection
+          warehouseInfo={warehouseInfo}
+          totals={totals}
+          byBatchType={byBatchType}
+          byStatus={byStatus}
+          alerts={alerts}
+          loading={summaryLoading}
+          error={summaryError}
+        />
       )}
-      
-      <WarehouseInventoryAlertSummary alerts={alerts} />
       
       <Divider sx={{ mb: 3 }} />
       
@@ -227,6 +239,18 @@ const WarehouseInventoryListPage: FC = () => {
           canUpdateStatus={canUpdateInventoryStatus}
         />
       )}
+      
+      {/* ── Item Summary Panel ── */}
+      {canViewWarehouseItemsSummary && itemSummaryLoading ? (
+        <Skeleton variant="rectangular" height={200} sx={{ mt: 4 }} />
+      ) : canViewWarehouseItemsSummary && !itemSummaryEmpty ? (
+        <WarehouseItemSummaryPanel
+          products={products}
+          packagingMaterials={packagingMaterials}
+          loading={itemSummaryLoading}
+          error={itemSummaryError}
+        />
+      ) : null}
     </Box>
   );
 };
