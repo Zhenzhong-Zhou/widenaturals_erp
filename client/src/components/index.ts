@@ -37,6 +37,7 @@ export { default as FieldStatusHelper } from './common/FieldStatusHelper';
 export { default as RowActionMenu } from './common/RowActionMenu';
 export { default as ResultBody } from './common/ResultBody';
 export { default as SummaryStat } from './common/SummaryStat';
+export { default as StatusChip } from './common/StatusChip';
 export { default as DetailsGrid } from './layout/DetailsGrid';
 export { default as Section } from './layout/Section';
 export { default as DetailsGridItem } from './layout/DetailsGrid';

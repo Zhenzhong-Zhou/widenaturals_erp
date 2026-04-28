@@ -26,6 +26,9 @@ export interface SummaryStatProps {
   
   /** Optional Intl.NumberFormat options for value formatting. */
   numberFormatOptions?: Intl.NumberFormatOptions;
+  
+  /** Optional minimum width for the value column. Useful for aligning stats in rows. */
+  minWidth?: number | string;
 }
 
 /**
@@ -47,6 +50,7 @@ const SummaryStat: FC<SummaryStatProps> = ({
                                              tooltip,
                                              locale,
                                              numberFormatOptions,
+                                             minWidth,
                                            }) => {
   const displayValue = (() => {
     if (value == null) return fallback;
@@ -58,7 +62,7 @@ const SummaryStat: FC<SummaryStatProps> = ({
   })();
   
   const content = (
-    <Box textAlign={align}>
+    <Box textAlign={align} minWidth={minWidth}>
       <CustomTypography variant="caption" color="text.secondary" display="block">
         {label}
       </CustomTypography>
