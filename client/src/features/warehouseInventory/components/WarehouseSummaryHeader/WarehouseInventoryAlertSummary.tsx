@@ -45,9 +45,9 @@ const AlertCard: FC<AlertCardProps> = ({ icon, label, count, color }) => (
 interface WarehouseInventoryAlertSummaryProps {
   /**
    * Aggregate alert counts from the warehouse summary endpoint.
-   * Pass null while the summary is loading or has not been fetched.
+   * Pass null or undefined while the summary is loading or has not been fetched.
    */
-  alerts: WarehouseSummaryAlerts | null;
+  alerts: WarehouseSummaryAlerts | null | undefined;
 }
 
 /**

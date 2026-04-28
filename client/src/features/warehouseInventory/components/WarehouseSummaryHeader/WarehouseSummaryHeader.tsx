@@ -1,9 +1,11 @@
 import type { FC } from 'react';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
-import CustomTypography from '@components/common/CustomTypography';
-import { SummaryStat } from '@components/index';
-import StatusChip from '@components/common/StatusChip';
+import {
+  CustomTypography,
+  StatusChip,
+  SummaryStat
+} from '@components/index';
 import { formatGeneralStatus } from '@utils/formatters';
 import { formatLabel } from '@utils/textUtils';
 import type {
@@ -12,7 +14,6 @@ import type {
   WarehouseSummaryInfo,
   WarehouseSummaryTotals,
 } from '@features/warehouseInventory';
-
 
 interface Props {
   warehouseInfo: WarehouseSummaryInfo | null | undefined;
