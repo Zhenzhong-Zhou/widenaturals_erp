@@ -1,36 +1,28 @@
-import type { FC } from 'react';
-import type { DashboardPageProps } from '@features/dashboard';
-import DashboardLayout from '@features/dashboard/components/DashboardLayout';
-import CustomTypography from '@components/common/CustomTypography';
+import { type FC } from 'react';
+import Stack from '@mui/material/Stack';
 import { useAppSelector } from '@store/storeHooks';
 import { selectSelfUserFullName } from '@features/user';
-import { useHasPermission } from '@features/authorize/hooks';
-import InventoryOverviewHeaderSection from '@features/inventoryOverview/components/InventoryOverviewHeaderSection';
-import SkuWarehouseInventorySummarySection from '@features/warehouseInventory/components/SkuWarehouseInventorySummarySection';
+import CustomTypography from '@components/common/CustomTypography';
+import DashboardLayout from '@features/dashboard/components/DashboardLayout';
+import type { DashboardPageProps } from '@features/dashboard';
+import { DashboardInventoryOverview, MyWarehouses } from '@features/dashboard/components';
 
-const UserDashboardPage: FC<DashboardPageProps> = ({}) => {
+const UserDashboardPage: FC<DashboardPageProps> = () => {
   const fullName = useAppSelector(selectSelfUserFullName);
-  const hasPermission = useHasPermission();
-
-  const canShowInventoryOverview =
-    hasPermission('inventory.overview.view') === true;
-
-  const canShowWarehouseSummary =
-    hasPermission('warehouse.inventory.view') === true;
-
+  
   return (
     <DashboardLayout
       fullName={fullName ?? undefined}
       header={
-        <>
-          <CustomTypography variant="body1" gutterBottom>
-            User Overview
-          </CustomTypography>
-        </>
+        <CustomTypography variant="h6" fontWeight={600} gutterBottom>
+          Welcome
+        </CustomTypography>
       }
     >
-      {canShowInventoryOverview && <InventoryOverviewHeaderSection />}
-      {canShowWarehouseSummary && <SkuWarehouseInventorySummarySection />}
+      <Stack spacing={3}>
+        <DashboardInventoryOverview />
+        <MyWarehouses />
+      </Stack>
     </DashboardLayout>
   );
 };
