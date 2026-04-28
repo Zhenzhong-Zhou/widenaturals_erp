@@ -9,7 +9,7 @@ import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Grid from '@mui/material/Grid';
 import Divider from '@mui/material/Divider';
-import { CustomTypography } from '@components/index';
+import { CustomTypography, ErrorMessage } from '@components/index';
 import {
   WarehouseFiltersPanel,
   WarehouseListTable,
@@ -126,7 +126,7 @@ const WarehouseListPage: FC = () => {
       
       {/* ── Table ─────────────────────────────────────────────────── */}
       {warehousesError ? (
-        <CustomTypography color="error">{warehousesError}</CustomTypography>
+        <ErrorMessage message={warehousesError} showNavigation />
       ) : (
         <WarehouseListTable
           data={warehouses}
