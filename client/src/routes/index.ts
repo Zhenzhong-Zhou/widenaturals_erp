@@ -17,6 +17,3 @@ export { navigationItems } from './navigation.config';
 
 // Route typing helpers
 export * from './routeTypes';
-
-// Route utility helpers
-export * from './routeUtils';
