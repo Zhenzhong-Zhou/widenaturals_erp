@@ -89,11 +89,11 @@ router.get(
  * @route GET /outbound-fulfillments/:shipmentId/details
  * @description Full detail record for a single outbound shipment by ID.
  * @access protected
- * @permission PERMISSION_KEYS.OUTBOUND_FULFILLMENTS.VIEW
+ * @permission PERMISSION_KEYS.OUTBOUND_FULFILLMENTS.VIEW_DETAILS
  */
 router.get(
   '/:shipmentId/details',
-  authorize([PERMISSION_KEYS.OUTBOUND_FULFILLMENTS.VIEW]),
+  authorize([PERMISSION_KEYS.OUTBOUND_FULFILLMENTS.VIEW_DETAILS]),
   validate(shipmentIdParamSchema, 'params'),
   getShipmentDetailsController
 );
