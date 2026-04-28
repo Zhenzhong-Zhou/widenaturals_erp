@@ -9,7 +9,8 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import {
   CustomTypography,
   CustomMiniTable,
-  SummaryStat
+  SummaryStat,
+  TruncatedText,
 } from '@components/index';
 import { formatDate } from '@utils/dateTimeUtils';
 import {
@@ -49,9 +50,12 @@ const WarehouseProductSummaryCard: FC<Props> = ({ product }) => {
         <Box display="flex" alignItems="center" gap={2} flexWrap="wrap" width="100%">
           <Box flex={1} minWidth={200}>
             <Box display="flex" alignItems="center" gap={1}>
-              <CustomTypography variant="subtitle1" fontWeight={700}>
-                {product.productName}
-              </CustomTypography>
+              <TruncatedText
+                text={product.productName ?? '(unnamed product)'}
+                maxLength={40}
+                variant="subtitle1"
+                fontWeight={700}
+              />
               {product.brand && (
                 <Chip label={product.brand} size="small" variant="outlined" />
               )}

@@ -5,7 +5,8 @@ import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import {
   CustomTypography,
-  SummaryStat
+  SummaryStat,
+  TruncatedText,
 } from '@components/index';
 import { formatDate } from '@utils/dateTimeUtils';
 import { formatLabel } from '@utils/textUtils';
@@ -31,9 +32,12 @@ const WarehousePackagingSummaryCard: FC<Props> = ({ material }) => {
       <Box display="flex" alignItems="center" gap={2} flexWrap="wrap">
         <Box flex={1} minWidth={200}>
           <Box display="flex" alignItems="center" gap={1}>
-            <CustomTypography variant="subtitle1" fontWeight={700}>
-              {material.packagingMaterialName}
-            </CustomTypography>
+            <TruncatedText
+              text={material.packagingMaterialName ?? '(unnamed material)'}
+              maxLength={40}
+              variant="subtitle1"
+              fontWeight={700}
+            />
             {material.packagingMaterialCategory && (
               <Chip
                 label={formatLabel(material.packagingMaterialCategory)}

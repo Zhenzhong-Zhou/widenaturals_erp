@@ -1,12 +1,13 @@
 import Box from '@mui/material/Box';
+import { TruncatedText } from '@components/index';
+import { InventoryStatusBadge }
+  from '@features/warehouseInventory/components/WarehouseInventoryListTable';
 import type { Column } from '@components/common/CustomTable';
 import type { FlattenedWarehouseInventory } from '@features/warehouseInventory/state/warehouseInventoryTypes';
 import { formatDate } from '@utils/dateTimeUtils';
 import { createDrillDownColumn } from '@utils/table/createDrillDownColumn';
 import { formatLabel } from '@utils/textUtils';
 import { formatInventoryStatus } from '@utils/formatters';
-import { InventoryStatusBadge }
-  from '@features/warehouseInventory/components/WarehouseInventoryListTable';
 
 /**
  * Builds column definitions for the warehouse inventory list table.
@@ -44,10 +45,16 @@ export const getWarehouseInventoryColumns = (
       id: 'itemName',
       label: 'Name',
       sortable: false,
-      renderCell: (row) =>
-        row.batchType === 'product'
-          ? (row.displayName ?? '—')
-          : (row.materialCode ?? '—'),
+      renderCell: (row) => (
+        <TruncatedText
+          text={
+            row.batchType === 'product'
+              ? row.displayName
+              : row.materialCode
+          }
+          maxLength={30}
+        />
+      ),
     },
     {
       id: 'lotNumber',

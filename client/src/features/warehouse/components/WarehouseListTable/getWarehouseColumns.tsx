@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import InventoryIcon from '@mui/icons-material/Inventory';
 import type { Column } from '@components/common/CustomTable';
-import { CustomButton } from '@components/index';
+import { CustomButton, TruncatedText } from '@components/index';
 import type { WarehouseRecord } from '@features/warehouse/state/warehouseTypes';
 import { formatDate } from '@utils/dateTimeUtils';
 import { formatLabel } from '@utils/textUtils';
@@ -34,14 +34,16 @@ export const getWarehouseColumns = (
   
   return [
     {
-      id:       'name',
-      label:    'Name',
+      id: 'name',
+      label: 'Name',
       sortable: true,
       renderCell: (row) =>
         canViewDetails ? (
-          <Link to={`/warehouses/${row.id}/details`}>{row.name}</Link>
+          <Link to={`/warehouses/${row.id}/details`}>
+            <TruncatedText text={row.name} maxLength={30} />
+          </Link>
         ) : (
-          row.name
+          <TruncatedText text={row.name} maxLength={30} />
         ),
     },
     {
