@@ -1,7 +1,6 @@
 import { useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
-  selectWarehouseItemSummaryData,
   selectWarehouseItemSummaryLoading,
   selectWarehouseItemSummaryError,
   selectWarehouseItemSummaryProducts,
@@ -19,7 +18,6 @@ import { resetWarehouseItemSummary } from '@features/warehouseInventory/state/wa
 const useWarehouseItemSummary = () => {
   const dispatch = useAppDispatch();
   
-  const data = useAppSelector(selectWarehouseItemSummaryData);
   const loading = useAppSelector(selectWarehouseItemSummaryLoading);
   const error = useAppSelector(selectWarehouseItemSummaryError);
   const products = useAppSelector(selectWarehouseItemSummaryProducts);
@@ -45,7 +43,6 @@ const useWarehouseItemSummary = () => {
   }, [dispatch]);
   
   return {
-    data,
     loading,
     error,
     products,

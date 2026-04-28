@@ -13,7 +13,7 @@ const selectWarehouseItemSummaryState = (state: RootState) =>
 /**
  * Selects the full item summary record.
  */
-export const selectWarehouseItemSummaryData = createSelector(
+const selectWarehouseItemSummaryData = createSelector(
   [selectWarehouseItemSummaryState],
   (state) => state.data
 );

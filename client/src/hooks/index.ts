@@ -164,6 +164,7 @@ export { default as useWarehouseInventoryOutbound } from './useWarehouseInventor
 export { default as useWarehouseInventoryDetail } from './useWarehouseInventoryDetail';
 export { default as useInventoryActivityLog } from './useInventoryActivityLog';
 export { default as useWarehouseSummary } from './useWarehouseSummary';
+export { default as useWarehouseItemSummary } from './useWarehouseItemSummary';
 
 /* =====================================================
  * Lookups (Dropdown / Reference Data)
