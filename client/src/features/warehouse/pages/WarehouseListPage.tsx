@@ -56,10 +56,15 @@ const WarehouseListPage: FC = () => {
     [warehousePageInfo.page, warehousePageInfo.limit, sortBy, sortOrder, filters]
   );
   
+  // Fetch on params change
   useEffect(() => {
     fetchWarehouses(queryParams);
-    return () => { resetWarehouses(); };
-  }, [queryParams, fetchWarehouses, resetWarehouses]);
+  }, [queryParams, fetchWarehouses]);
+  
+  // Cleanup ONLY on unmount
+  useEffect(() => () => {
+    resetWarehouses();
+  }, [resetWarehouses]);
   
   const handlePageChange = useCallback(
     (newPage: number) => {
