@@ -1,12 +1,12 @@
-import { type FC, useEffect, useMemo } from 'react';
-import Card from '@mui/material/Card';
-import Skeleton from '@mui/material/Skeleton';
+import { type FC, useMemo } from 'react';
+import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
-import CustomTypography from '@components/common/CustomTypography';
-import SummaryStat from '@components/common/SummaryStat';
-import { useHasPermission } from '@features/authorize/hooks';
-import ROUTE_PERMISSIONS from '@utils/constants/routePermissionConstants';
-import { usePaginatedWarehouses } from '@hooks/index';
+import type { WarehouseRecord } from '@features/warehouse';
+import { CustomTypography, SummaryStat } from '@components/index';
+
+interface Props {
+  warehouses: WarehouseRecord[] | null | undefined;
+}
 
 /**
  * Cross-warehouse inventory KPI strip aggregated client-side from the
@@ -23,28 +23,7 @@ import { usePaginatedWarehouses } from '@hooks/index';
  * Does not include alert counts — those require the warehouse list
  * payload to expose per-warehouse alert counts or a separate endpoint.
  */
-const DashboardInventoryOverview: FC = () => {
-  const hasPermission = useHasPermission();
-  const canView = hasPermission(ROUTE_PERMISSIONS.WAREHOUSE_INVENTORY.VIEW) === true;
-  
-  const {
-    data: warehouses,
-    loading,
-    error,
-    fetchWarehouses,
-    resetWarehouses,
-  } = usePaginatedWarehouses();
-  
-  useEffect(() => {
-    if (canView) {
-      fetchWarehouses({ page: 1, limit: 100 });
-    }
-  }, [canView, fetchWarehouses]);
-  
-  useEffect(() => () => {
-    resetWarehouses();
-  }, [resetWarehouses]);
-  
+const DashboardInventoryOverview: FC<Props> = ({ warehouses }) => {
   const totals = useMemo(() => {
     if (!warehouses) return null;
     return warehouses.reduce(
@@ -59,13 +38,10 @@ const DashboardInventoryOverview: FC = () => {
     );
   }, [warehouses]);
   
-  if (!canView) return null;
-  if (error) return null;
-  if (loading) return <Skeleton variant="rectangular" height={120} sx={{ borderRadius: 2 }} />;
   if (!totals || totals.warehouseCount === 0) return null;
   
   return (
-    <Card variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
+    <Box>
       <CustomTypography variant="subtitle1" fontWeight={700} mb={2}>
         Inventory Overview
       </CustomTypography>
@@ -76,7 +52,7 @@ const DashboardInventoryOverview: FC = () => {
         <SummaryStat label="Reserved" value={totals.reserved} minWidth={100} />
         <SummaryStat label="Available" value={totals.available} minWidth={100} />
       </Stack>
-    </Card>
+    </Box>
   );
 };
 
