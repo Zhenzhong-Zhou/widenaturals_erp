@@ -11,14 +11,15 @@ export interface HeaderProps {
 
 const Header: FC<HeaderProps> = ({ onStaffLogin }) => {
   const theme = useTheme();
-
+  const isDark = theme.palette.mode === 'dark';
+  
   return (
     <AppBar
       position="sticky"
       elevation={0}
       sx={{
         zIndex: theme.zIndex.appBar,
-        backgroundColor: theme.palette.background.paper,
+        backgroundColor: 'background.paper',
         borderBottom: '1px solid',
         borderColor: 'divider',
       }}
@@ -38,35 +39,57 @@ const Header: FC<HeaderProps> = ({ onStaffLogin }) => {
       >
         {/* Brand */}
         <Stack direction="row" spacing={2} alignItems="center">
-          {/* Logo mark placeholder */}
-          <Box>
-            <a href="/" style={{ display: 'flex', alignItems: 'center' }}>
-              <img
-                src={theme.palette.mode === 'dark' ? logoDark : logoLight}
-                alt="WIDE Naturals Inc."
-                loading="eager"
-                style={{
-                  height: 50,
-                  objectFit: 'contain',
-                  filter: theme.palette.mode === 'dark' ? 'invert(1)' : 'none',
-                }}
-              />
-            </a>
+          {/* Logo */}
+          <Box
+            component="a"
+            href="/"
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <img
+              src={isDark ? logoDark : logoLight}
+              alt="WIDE Naturals Inc."
+              loading="eager"
+              style={{ height: 44, objectFit: 'contain', display: 'block' }}
+            />
           </Box>
-
-          <Box sx={{ lineHeight: 1.1 }}>
-            <CustomTypography variant="h6" fontWeight={700} color="#0f172a">
+          
+          {/* Text block */}
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              minHeight: 44, // matches logo height for clean centering
+            }}
+          >
+            <CustomTypography
+              variant="h6"
+              fontWeight={700}
+              sx={{
+                color: 'text.primary',
+                m: 0,
+              }}
+            >
               WIDE Naturals
             </CustomTypography>
             <CustomTypography
               variant="caption"
-              sx={{ color: '#475569', whiteSpace: 'nowrap' }}
+              sx={{
+                color: 'text.secondary',
+                whiteSpace: 'nowrap',
+                m: 0,
+                mt: 0.25,
+              }}
             >
               Natural Health Products • Canadian cGMP • Global Distribution
             </CustomTypography>
           </Box>
         </Stack>
-
+        
         {/* Navigation */}
         <Stack
           direction="row"
@@ -80,10 +103,11 @@ const Header: FC<HeaderProps> = ({ onStaffLogin }) => {
           <NavLink href="#capabilities">Capabilities</NavLink>
           <NavLink href="#brands">Brands</NavLink>
           <NavLink href="#contact">Contact</NavLink>
-
+          
           {onStaffLogin ? (
             <CustomButton
               variant="contained"
+              color="primary"
               size="small"
               onClick={onStaffLogin}
               sx={{
