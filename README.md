@@ -137,6 +137,40 @@ npm run dev
 
 ---
 
+## Code Quality
+
+### Lint
+```bash
+# Scan everything
+npx eslint .
+
+# Scan backend only
+npx eslint server/
+
+# Scan frontend only
+npx eslint client/
+
+# Auto-fix what ESLint can
+npx eslint server/ --fix
+npx eslint client/ --fix
+```
+
+### Format
+```bash
+# Check formatting
+npx prettier --check .
+
+# Fix formatting
+npx prettier --write .
+```
+
+### Both at once (recommended before committing)
+```bash
+npx prettier --write . && npx eslint . --fix
+```
+
+---
+
 ## **License**
 
 This project is licensed under the MIT License.
