@@ -24,6 +24,7 @@ const { getProductDisplayName } = require('../utils/display-name-utils');
 const {
   formatPackagingMaterialLabel,
 } = require('../utils/packaging-material-utils');
+const { makeAudit, compactAudit } = require('../utils/audit-utils');
 
 /**
  * Transforms the minimal result of an initial outbound fulfillment creation.
@@ -75,18 +76,18 @@ const transformFulfillmentResult = ({
  * @returns {Object}
  */
 const transformAdjustedFulfillmentResult = ({
-  orderId,
-  orderNumber,
-  fulfillments,
-  shipmentId,
-  warehouseInventoryIds,
-  orderStatusRow,
-  orderItemStatusRow,
-  inventoryAllocationStatusRow,
-  orderFulfillmentStatusRow,
-  shipmentStatusRow,
-  logMetadata,
-}) => ({
+                                              orderId,
+                                              orderNumber,
+                                              fulfillments,
+                                              shipmentId,
+                                              warehouseInventoryIds,
+                                              orderStatusRow,
+                                              orderItemStatusRow,
+                                              inventoryAllocationStatusRow,
+                                              orderFulfillmentStatusRow,
+                                              shipmentStatusRow,
+                                              logMetadata,
+                                            }) => ({
   order: {
     id: orderId,
     number: orderNumber,
@@ -146,24 +147,7 @@ const transformOutboundShipmentRow = (row) =>
     },
     notes: row.notes ?? null,
     shipmentDetails: row.shipment_details ?? null,
-    audit: {
-      createdAt: row.created_at,
-      createdBy: {
-        id: row.created_by,
-        fullName: getFullName(
-          row.created_by_firstname,
-          row.created_by_lastname
-        ),
-      },
-      updatedAt: row.updated_at,
-      updatedBy: {
-        id: row.updated_by,
-        fullName: getFullName(
-          row.updated_by_firstname,
-          row.updated_by_lastname
-        ),
-      },
-    },
+    audit: compactAudit(makeAudit(row)),
   });
 
 /**
@@ -215,24 +199,18 @@ const transformShipmentDetailsRows = (rows) => {
     expectedDeliveryDate: first.expected_delivery_date,
     notes: first.shipment_notes,
     details: first.shipment_details,
-    audit: {
-      createdAt: first.created_at,
-      createdBy: {
-        id: first.created_by,
-        name: getFullName(
-          first.shipment_created_by_firstname,
-          first.shipment_created_by_lastname
-        ),
+    audit: compactAudit(makeAudit(first, {
+      map: {
+        createdAt: 'created_at',
+        createdById: 'created_by',
+        createdByFirstName: 'shipment_created_by_firstname',
+        createdByLastName: 'shipment_created_by_lastname',
+        updatedAt: 'updated_at',
+        updatedById: 'updated_by',
+        updatedByFirstName: 'shipment_updated_by_firstname',
+        updatedByLastName: 'shipment_updated_by_lastname',
       },
-      updatedAt: first.updated_at,
-      updatedBy: {
-        id: first.updated_by,
-        name: getFullName(
-          first.shipment_updated_by_firstname,
-          first.shipment_updated_by_lastname
-        ),
-      },
-    },
+    })),
     tracking: first.tracking_id
       ? {
           id: first.tracking_id,
@@ -260,6 +238,15 @@ const transformShipmentDetailsRows = (rows) => {
       fulfillmentsMap.set(row.fulfillment_id, {
         fulfillmentId: row.fulfillment_id,
         quantityFulfilled: row.quantity_fulfilled,
+        fulfilledBy: row.fulfilled_by
+          ? {
+            id: row.fulfilled_by,
+            name: getFullName(
+              row.fulfillment_fulfilled_by_firstname,
+              row.fulfillment_fulfilled_by_lastname
+            ),
+          }
+          : null,
         fulfilledAt: row.fulfilled_at,
         notes: row.fulfillment_notes,
         status: {
@@ -267,33 +254,7 @@ const transformShipmentDetailsRows = (rows) => {
           code: row.fulfillment_status_code,
           name: row.fulfillment_status_name,
         },
-        audit: {
-          createdAt: row.fulfillment_created_at,
-          createdBy: {
-            id: row.fulfillment_created_by,
-            name: getFullName(
-              row.fulfillment_created_by_firstname,
-              row.fulfillment_created_by_lastname
-            ),
-          },
-          updatedAt: row.fulfillment_updated_at,
-          updatedBy: {
-            id: row.fulfillment_updated_by,
-            name: getFullName(
-              row.fulfillment_updated_by_firstname,
-              row.fulfillment_updated_by_lastname
-            ),
-          },
-          fulfilledBy: row.fulfilled_by
-            ? {
-                id: row.fulfilled_by,
-                name: getFullName(
-                  row.fulfillment_fulfilled_by_firstname,
-                  row.fulfillment_fulfilled_by_lastname
-                ),
-              }
-            : null,
-        },
+        audit: compactAudit(makeAudit(row, { prefix: 'fulfillment_' })),
         orderItem: row.order_item_id
           ? {
               id: row.order_item_id,
@@ -340,21 +301,13 @@ const transformShipmentDetailsRows = (rows) => {
 
     if (row.shipment_batch_id) {
       const fulfillment = fulfillmentsMap.get(row.fulfillment_id);
+      if (!fulfillment) continue;
 
       const batch = {
         shipmentBatchId: row.shipment_batch_id,
         quantityShipped: row.quantity_shipped,
         notes: row.shipment_batch_notes,
-        audit: {
-          createdAt: row.shipment_batch_created_at,
-          createdBy: {
-            id: row.shipment_batch_created_by,
-            name: getFullName(
-              row.shipment_batch_created_by_firstname,
-              row.shipment_batch_created_by_lastname
-            ),
-          },
-        },
+        audit: compactAudit(makeAudit(row, { prefix: 'shipment_batch_' })),
         batchRegistryId: row.batch_registry_id,
         batchType: row.batch_type,
       };
