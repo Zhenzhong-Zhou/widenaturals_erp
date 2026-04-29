@@ -16,7 +16,7 @@ const OutboundFulfillmentExpandedSection: FC<
   OutboundFulfillmentExpandedSectionProps
 > = ({ row }) => {
   const isPackagingMaterial = row.itemType === 'packaging_material';
-
+console.log(row)
   const itemInfoFields = isPackagingMaterial
     ? [
         {
@@ -58,14 +58,14 @@ const OutboundFulfillmentExpandedSection: FC<
                 value: row.createdAt || '—',
                 format: () => formatDateTime(row.createdAt),
               },
-              { label: 'Created By', value: row.createdByName || '—' },
+              { label: 'Created By', value: row.createdBy || '—' },
               {
                 label: 'Updated At',
                 value: row.updatedAt || '—',
                 format: () => formatDateTime(row.updatedAt),
               },
-              { label: 'Updated By', value: row.updatedByName || '—' },
-              { label: 'Fulfilled By', value: row.fulfilledByName || '—' },
+              { label: 'Updated By', value: row.updatedBy || '—' },
+              { label: 'Fulfilled By', value: row.fulfilledBy || '—' },
             ]}
           />
         </DetailsGridItem>

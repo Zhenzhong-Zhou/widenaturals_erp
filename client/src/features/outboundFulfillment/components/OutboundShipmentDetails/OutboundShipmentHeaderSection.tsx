@@ -4,7 +4,7 @@ import DetailsGrid, { DetailsGridItem } from '@components/layout/DetailsGrid';
 import MemoizedDetailsSection from '@components/common/DetailsSection';
 import { formatShipmentStatus } from '@utils/formatters';
 import type { FlattenedShipmentHeader } from '@features/outboundFulfillment/state';
-import { formatDateTime } from '@utils/dateTimeUtils';
+import { formatDate, formatDateTime } from '@utils/dateTimeUtils';
 import { formatLabel } from '@utils/textUtils';
 
 interface OutboundShipmentHeaderSectionProps {
@@ -16,13 +16,13 @@ const OutboundShipmentHeaderSection: FC<OutboundShipmentHeaderSectionProps> = ({
   orderNumber,
   flattened,
 }) => {
+  // todo: add yes no chip or another ui // todo: adjust all status to
+  //  be chip or other ui with differ color
   return (
     <Section title="Shipment Header">
       <DetailsGrid>
         {/* Left column */}
         <DetailsGridItem>
-          // todo: add yes no chip or another ui // todo: adjust all status to
-          be chip or other ui with differ color
           <MemoizedDetailsSection
             fields={[
               { label: 'Order Number', value: orderNumber },
@@ -35,7 +35,7 @@ const OutboundShipmentHeaderSection: FC<OutboundShipmentHeaderSectionProps> = ({
                     formatLabel(flattened.statusName) ?? ''
                   ),
               },
-              { label: 'Shipped At', value: flattened.shippedAt || '—' },
+              { label: 'Shipped At', value: formatDate(flattened.shippedAt || '—') },
               {
                 label: 'Delivery Methode',
                 value: flattened.deliveryMethodName || '—',
@@ -79,7 +79,7 @@ const OutboundShipmentHeaderSection: FC<OutboundShipmentHeaderSectionProps> = ({
                   ? `${flattened.trackingCarrier} (${flattened.trackingService || '—'})`
                   : '—',
               },
-              { label: 'Updated At', value: flattened.updatedAt || '—' },
+              { label: 'Updated At', value: formatDateTime(flattened.updatedAt || '—')},
               { label: 'Updated By', value: flattened.updatedByName || '—' },
             ]}
           />
