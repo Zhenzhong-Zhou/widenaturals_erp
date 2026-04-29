@@ -1,5 +1,6 @@
 import type { FC } from 'react';
 import { Chip, type SxProps, type Theme } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 
 export interface MetaPillProps {
   label: string;
@@ -16,10 +17,12 @@ const MetaPill: FC<MetaPillProps> = ({ label, sx }) => {
         fontSize: 12,
         fontWeight: 500,
         borderRadius: 999,
-        borderColor: 'rgba(255,255,255,0.4)',
-        color: '#ffffff',
-        backgroundColor: 'rgba(47,143,70,0.75)',
-        boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+        borderColor: (t) => alpha(t.palette.primary.main, 0.4),
+        color: 'primary.main',
+        backgroundColor: (t) => alpha(t.palette.primary.main, 0.08),
+        '&:hover': {
+          backgroundColor: (t) => alpha(t.palette.primary.main, 0.12),
+        },
         ...sx,
       }}
     />
