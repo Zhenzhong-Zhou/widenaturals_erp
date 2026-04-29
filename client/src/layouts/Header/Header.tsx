@@ -1,5 +1,5 @@
 import { type FC, type MouseEvent, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTheme } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import Avatar from '@mui/material/Avatar';
@@ -77,17 +77,19 @@ const Header: FC = () => {
       }}
     >
       {/* Brand */}
-      <CustomTypography
-        variant="h6"
-        sx={{
-          ...typographyStyles(theme),
-          fontWeight: 700,
-          color: theme.palette.primary.main,
-          minWidth: 200,
-        }}
-      >
-        WIDE Naturals Inc.
-      </CustomTypography>
+      <Link to="/dashboard" style={{ textDecoration: 'none' }}>
+        <CustomTypography
+          variant="h6"
+          sx={{
+            ...typographyStyles(theme),
+            fontWeight: 700,
+            color: theme.palette.primary.main,
+            minWidth: 200,
+          }}
+        >
+          WIDE Naturals Inc.
+        </CustomTypography>
+      </Link>
 
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, ml: 'auto' }}>
         <HealthStatus />

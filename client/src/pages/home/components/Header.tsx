@@ -3,6 +3,7 @@ import { AppBar, Toolbar, Box, Stack, useTheme } from '@mui/material';
 import { CustomButton, CustomTypography } from '@components/index';
 import { NavLink } from '@pages/home/components/index';
 import logoLight from '@assets/wide-logo-light.png';
+import logoDark from '@assets/wide-logo-dark.png';
 
 export interface HeaderProps {
   onStaffLogin?: () => void;
@@ -17,7 +18,7 @@ const Header: FC<HeaderProps> = ({ onStaffLogin }) => {
       elevation={0}
       sx={{
         zIndex: theme.zIndex.appBar,
-        backgroundColor: '#ffffff',
+        backgroundColor: theme.palette.background.paper,
         borderBottom: '1px solid',
         borderColor: 'divider',
       }}
@@ -39,15 +40,18 @@ const Header: FC<HeaderProps> = ({ onStaffLogin }) => {
         <Stack direction="row" spacing={2} alignItems="center">
           {/* Logo mark placeholder */}
           <Box>
-            <img
-              src={logoLight}
-              alt="WIDE Naturals Inc."
-              loading="eager"
-              style={{
-                height: 50,
-                objectFit: 'contain',
-              }}
-            />
+            <a href="/" style={{ display: 'flex', alignItems: 'center' }}>
+              <img
+                src={theme.palette.mode === 'dark' ? logoDark : logoLight}
+                alt="WIDE Naturals Inc."
+                loading="eager"
+                style={{
+                  height: 50,
+                  objectFit: 'contain',
+                  filter: theme.palette.mode === 'dark' ? 'invert(1)' : 'none',
+                }}
+              />
+            </a>
           </Box>
 
           <Box sx={{ lineHeight: 1.1 }}>
