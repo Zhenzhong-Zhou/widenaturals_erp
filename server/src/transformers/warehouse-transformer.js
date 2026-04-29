@@ -28,13 +28,26 @@ const { transformPageResult }     = require('../utils/transformer-utils');
  * @returns {{ totalBatches: number, totalQuantity: number, totalReserved: number, availableQuantity: number }}
  */
 const _parseSummary = (row) => {
-  const totalBatches    = parseInt(row.total_batches,    10) || 0;
-  const totalQuantity   = parseInt(row.total_quantity,   10) || 0;
-  const totalReserved   = parseInt(row.total_reserved,   10) || 0;
+  const totalBatches      = parseInt(row.total_batches,  10) || 0;
+  const totalQuantity     = parseInt(row.total_quantity, 10) || 0;
+  const totalReserved     = parseInt(row.total_reserved, 10) || 0;
   const availableQuantity = totalQuantity - totalReserved;
   
   return { totalBatches, totalQuantity, totalReserved, availableQuantity };
 };
+
+/**
+ * Parses LATERAL alert count fields from string to integer.
+ * Returns warehouse-wide alert counts for the dashboard alert summary.
+ *
+ * @param {WarehouseRow | WarehouseDetailRow} row
+ * @returns {{ lowStock: number, expiringSoon: number, expired: number }}
+ */
+const _parseAlerts = (row) => ({
+  lowStock:     parseInt(row.low_stock_count,     10) || 0,
+  expiringSoon: parseInt(row.expiring_soon_count, 10) || 0,
+  expired:      parseInt(row.expired_count,       10) || 0,
+});
 
 // ─── Paginated List ───────────────────────────────────────────────────────────
 
@@ -65,11 +78,12 @@ const transformWarehouseRow = (row, acl) =>
     
     status: {
       id:   row.status_id,
-      name: row.status_name   ?? null,
-      date: row.status_date   ?? null,
+      name: row.status_name ?? null,
+      date: row.status_date ?? null,
     },
     
     summary: acl.canViewSummary ? _parseSummary(row) : null,
+    alerts:  acl.canViewSummary ? _parseAlerts(row)  : null,
     
     audit: compactAudit(makeAudit(row)),
   });
