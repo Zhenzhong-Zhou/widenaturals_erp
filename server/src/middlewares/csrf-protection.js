@@ -23,9 +23,9 @@
 
 'use strict';
 
-const csrf     = require('@dr.pogodin/csurf');
+const csrf = require('@dr.pogodin/csurf');
 const AppError = require('../utils/AppError');
-const { logWarn }       = require('../utils/logging/logger-helper');
+const { logWarn } = require('../utils/logging/logger-helper');
 const { logSystemInfo } = require('../utils/logging/system-logger');
 
 const CONTEXT = 'middleware/csrf-protection';
@@ -40,21 +40,22 @@ const CONTEXT = 'middleware/csrf-protection';
  *
  * @type {import('@dr.pogodin/csurf').CookieOptions}
  */
-const csrfCookieOptions = /** @type {import('@dr.pogodin/csurf').CookieOptions} */ ({
-  httpOnly: true,
-  secure:   process.env.COOKIE_SECURE === 'true',
-  sameSite: /** @type {'strict' | 'lax' | 'none'} */ (
-    process.env.COOKIE_SAMESITE === 'lax'
-      ? 'lax'
-      : process.env.COOKIE_SAMESITE === 'none'
-        ? 'none'
-        : 'strict'
-  ),
-});
+const csrfCookieOptions =
+  /** @type {import('@dr.pogodin/csurf').CookieOptions} */ ({
+    httpOnly: true,
+    secure: process.env.COOKIE_SECURE === 'true',
+    sameSite: /** @type {'strict' | 'lax' | 'none'} */ (
+      process.env.COOKIE_SAMESITE === 'lax'
+        ? 'lax'
+        : process.env.COOKIE_SAMESITE === 'none'
+          ? 'none'
+          : 'strict'
+    ),
+  });
 
 logSystemInfo('CSRF middleware initialized', {
   context: CONTEXT,
-  cookie:  csrfCookieOptions,
+  cookie: csrfCookieOptions,
 });
 
 // -----------------------------------------------------------------------------
@@ -92,9 +93,7 @@ const EXEMPT_METHODS = new Set(['HEAD', 'OPTIONS']);
 
 // Public API paths that do not require CSRF protection.
 // Resolved here so process.env.API_PREFIX is read once.
-const EXEMPT_PATHS = new Set([
-  `${process.env.API_PREFIX}/public`,
-]);
+const EXEMPT_PATHS = new Set([`${process.env.API_PREFIX}/public`]);
 
 // -----------------------------------------------------------------------------
 // Bypass logic
@@ -121,30 +120,30 @@ const shouldBypassCSRF = (req) => {
     logWarn('CSRF validation bypassed (CSRF_TESTING=true)', null, {
       context: CONTEXT,
     });
-    
+
     // Stub req.csrfToken so downstream code that calls it doesn't crash.
     // Controllers and error handlers expect this function to exist regardless
     // of whether CSRF validation actually ran.
     req.csrfToken = () => 'csrf-bypass-token';
-    
+
     return true;
   }
-  
+
   // Exempt methods — safe by definition, no logging needed (very high volume).
   if (EXEMPT_METHODS.has(req.method)) {
     return true;
   }
-  
+
   // Exempt GET paths — GET should be idempotent, but explicit path exemptions
   // are logged so unexpected bypass activity is visible in logs.
   if (req.method === 'GET' && EXEMPT_PATHS.has(req.path)) {
     logWarn('CSRF validation bypassed for exempt path', req, {
       context: CONTEXT,
-      path:    req.path,
+      path: req.path,
     });
     return true;
   }
-  
+
   return false;
 };
 
@@ -169,7 +168,7 @@ const csrfProtection = () => {
       next();
       return;
     }
-    
+
     // Delegate to csurf with a custom next callback to intercept raw errors
     // before they reach the error handler pipeline.
     csrfMiddleware(req, res, (err) => {
@@ -178,7 +177,7 @@ const csrfProtection = () => {
         next();
         return;
       }
-      
+
       // EBADCSRFTOKEN is the only error code csurf emits for token failures.
       // Normalize it to AppError at the source so the error handler pipeline
       // always receives a consistently shaped AppError, never a raw csurf error.
@@ -188,15 +187,15 @@ const csrfProtection = () => {
             // Request context captured here for observability.
             // toJSON() strips meta so it never reaches the client response.
             meta: {
-              origin:   req.get('origin')  ?? null,
+              origin: req.get('origin') ?? null,
               referrer: req.get('referer') ?? null,
-              method:   req.method,
-              route:    req.originalUrl,
+              method: req.method,
+              route: req.originalUrl,
             },
           })
         );
       }
-      
+
       // Unknown error from csurf — forward as-is so globalErrorHandler
       // can normalize and respond. Never swallow unexpected errors.
       next(err);

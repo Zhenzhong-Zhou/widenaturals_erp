@@ -29,12 +29,12 @@
  */
 const noStore = (req, res, next) => {
   res.set({
-    'Cache-Control':    'no-store, no-cache, must-revalidate, proxy-revalidate',
-    'Surrogate-Control': 'no-store',  // CDN-level cache bypass (Fastly, Varnish)
-    'Pragma':           'no-cache',   // HTTP/1.0 backwards compatibility
-    'Expires':          '0',          // HTTP/1.0 backwards compatibility
+    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+    'Surrogate-Control': 'no-store', // CDN-level cache bypass (Fastly, Varnish)
+    Pragma: 'no-cache', // HTTP/1.0 backwards compatibility
+    Expires: '0', // HTTP/1.0 backwards compatibility
   });
-  
+
   next();
 };
 

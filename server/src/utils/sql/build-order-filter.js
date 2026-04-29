@@ -29,6 +29,8 @@ const {
  * @param {Object}          [filters={}]
  * @param {string}          [filters.orderNumber]                    - ILIKE filter on order number.
  * @param {string|string[]} [filters.orderTypeId]                    - Filter by order type UUID(s).
+ * @param {string}          [filters.customerType]                   - Filter by customer type ('individual' or 'company').
+ * @param {string} [filters.customerName]                            - ILIKE filter across firstname, lastname, and company_name.
  * @param {string}          [filters._activeStatusId]                - Server-injected status enforcement.
  * @param {string}          [filters.orderStatusId]                  - Filter by single status UUID.
  * @param {string|string[]} [filters.orderStatusIds]                 - Filter by multiple status UUIDs.
@@ -46,23 +48,24 @@ const {
 const buildOrderFilter = (filters = {}) => {
   const normalizedFilters = normalizeDateRangeFilters(
     normalizeDateRangeFilters(filters, 'createdAfter', 'createdBefore'),
-    'statusAfter', 'statusBefore'
+    'statusAfter',
+    'statusBefore'
   );
-  
-  const conditions    = ['1=1'];
-  const params        = [];
+
+  const conditions = ['1=1'];
+  const params = [];
   const paramIndexRef = { value: 1 };
-  
+
   // ─── Order Number ────────────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.orderNumber) {
     conditions.push(`o.order_number ILIKE $${paramIndexRef.value}`);
     params.push(`%${normalizedFilters.orderNumber}%`);
     paramIndexRef.value++;
   }
-  
+
   // ─── Order Type ──────────────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.orderTypeId) {
     // Scalar wrapped in array for consistent ANY pattern.
     const ids = Array.isArray(normalizedFilters.orderTypeId)
@@ -72,9 +75,30 @@ const buildOrderFilter = (filters = {}) => {
     params.push(ids);
     paramIndexRef.value++;
   }
-  
+
+  // ─── Customer Type ───────────────────────────────────────────────────────────
+
+  if (normalizedFilters.customerType) {
+    conditions.push(`c.customer_type = $${paramIndexRef.value}`);
+    params.push(normalizedFilters.customerType);
+    paramIndexRef.value++;
+  }
+
+  // ─── Customer Name ───────────────────────────────────────────────────────────
+
+  if (normalizedFilters.customerName) {
+    const kw = `%${normalizedFilters.customerName.trim().replace(/\s+/g, ' ')}%`;
+    conditions.push(`(
+    c.firstname    ILIKE $${paramIndexRef.value} OR
+    c.lastname     ILIKE $${paramIndexRef.value} OR
+    c.company_name ILIKE $${paramIndexRef.value}
+  )`);
+    params.push(kw);
+    paramIndexRef.value++;
+  }
+
   // ─── Status ──────────────────────────────────────────────────────────────────
-  
+
   // _activeStatusId takes priority — enforced by server, not user input.
   if (normalizedFilters._activeStatusId) {
     conditions.push(`o.order_status_id = $${paramIndexRef.value}`);
@@ -85,7 +109,7 @@ const buildOrderFilter = (filters = {}) => {
     params.push(normalizedFilters.orderStatusId);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.orderStatusIds != null) {
     const ids = Array.isArray(normalizedFilters.orderStatusIds)
       ? normalizedFilters.orderStatusIds
@@ -94,45 +118,47 @@ const buildOrderFilter = (filters = {}) => {
     params.push(ids);
     paramIndexRef.value++;
   }
-  
+
   // ─── Audit ──────────────────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.createdBy) {
     conditions.push(`o.created_by = $${paramIndexRef.value}`);
     params.push(normalizedFilters.createdBy);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.updatedBy) {
     conditions.push(`o.updated_by = $${paramIndexRef.value}`);
     params.push(normalizedFilters.updatedBy);
     paramIndexRef.value++;
   }
-  
+
   // ─── Date Range ─────────────────────────────────────────────────────────────
-  
+
   applyDateRangeConditions({
-    conditions, params,
-    column:        'o.created_at',
-    after:         normalizedFilters.createdAfter,
-    before:        normalizedFilters.createdBefore,
+    conditions,
+    params,
+    column: 'o.created_at',
+    after: normalizedFilters.createdAfter,
+    before: normalizedFilters.createdBefore,
     paramIndexRef,
   });
-  
+
   applyDateRangeConditions({
-    conditions, params,
-    column:        'o.status_date',
-    after:         normalizedFilters.statusAfter,
-    before:        normalizedFilters.statusBefore,
+    conditions,
+    params,
+    column: 'o.status_date',
+    after: normalizedFilters.statusAfter,
+    before: normalizedFilters.statusBefore,
     paramIndexRef,
   });
-  
+
   // ─── Keyword (must remain last) ──────────────────────────────────────────────
-  
+
   if (normalizedFilters.keyword) {
     // Collapse internal whitespace before wrapping — consistent with bom filter.
     const kw = `%${normalizedFilters.keyword.trim().replace(/\s+/g, ' ')}%`;
-    
+
     if (normalizedFilters._restrictKeywordToOrderNumberOnly) {
       // No param shared — single field, no OR needed.
       conditions.push(`o.order_number ILIKE $${paramIndexRef.value}`);
@@ -143,11 +169,11 @@ const buildOrderFilter = (filters = {}) => {
         o.note         ILIKE $${paramIndexRef.value}
       )`);
     }
-    
+
     params.push(kw);
     paramIndexRef.value++;
   }
-  
+
   return {
     whereClause: conditions.join(' AND '),
     params,

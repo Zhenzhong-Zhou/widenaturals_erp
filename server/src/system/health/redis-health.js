@@ -32,14 +32,14 @@ const checkRedisHealth = () => {
   // Validate readiness
   //--------------------------------------------------
   const ready = isRedisReady();
-  
+
   if (!ready) {
     throw AppError.healthCheckError('Redis is not ready', {
       context: CONTEXT,
       subtype: 'RedisNotReady',
     });
   }
-  
+
   //--------------------------------------------------
   // Return snapshot (no logging)
   //--------------------------------------------------

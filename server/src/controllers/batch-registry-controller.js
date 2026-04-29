@@ -40,28 +40,30 @@ const {
  *
  * Requires: auth middleware, query normalizer, VIEW_BATCH_REGISTRY permission.
  */
-const getPaginatedBatchRegistryController = wrapAsyncHandler(async (req, res) => {
-  const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
-  
-  const user = req.auth?.user;
+const getPaginatedBatchRegistryController = wrapAsyncHandler(
+  async (req, res) => {
+    const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
 
-  const { data, pagination } = await fetchPaginatedBatchRegistryService({
-    filters,
-    page,
-    limit,
-    sortBy,
-    sortOrder,
-    user,
-  });
-  
-  res.status(200).json({
-    success: true,
-    message: 'Batch registry retrieved successfully.',
-    data,
-    pagination,
-    traceId: req.traceId,
-  });
-});
+    const user = req.auth?.user;
+
+    const { data, pagination } = await fetchPaginatedBatchRegistryService({
+      filters,
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+      user,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Batch registry retrieved successfully.',
+      data,
+      pagination,
+      traceId: req.traceId,
+    });
+  }
+);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PATCH /api/v1/batch-registries/:batchRegistryId/note
@@ -79,19 +81,23 @@ const getPaginatedBatchRegistryController = wrapAsyncHandler(async (req, res) =>
  */
 const updateBatchRegistryNoteController = wrapAsyncHandler(async (req, res) => {
   const context = 'batch-registry-controller/updateBatchRegistryNoteController';
-  
+
   const { batchRegistryId } = req.params;
   const { note } = req.body;
-  
+
   const user = req.auth?.user;
-  
+
   logInfo('Updating batch registry note', req, {
     context,
     batchRegistryId,
   });
-  
-  const result = await updateBatchRegistryNoteService(batchRegistryId, note, user);
-  
+
+  const result = await updateBatchRegistryNoteService(
+    batchRegistryId,
+    note,
+    user
+  );
+
   res.status(200).json({
     success: true,
     message: 'Batch registry note updated successfully.',

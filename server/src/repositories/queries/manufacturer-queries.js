@@ -13,15 +13,9 @@
 
 const MANUFACTURER_TABLE = 'manufacturers m';
 
-const MANUFACTURER_SORT_WHITELIST = new Set([
-  'm.name',
-  'm.code',
-  'm.id',
-]);
+const MANUFACTURER_SORT_WHITELIST = new Set(['m.name', 'm.code', 'm.id']);
 
-const MANUFACTURER_ADDITIONAL_SORTS = [
-  { column: 'm.code', direction: 'ASC' },
-];
+const MANUFACTURER_ADDITIONAL_SORTS = [{ column: 'm.code', direction: 'ASC' }];
 
 /**
  * @param {string[]} joins       - Conditional join clauses from the caller.

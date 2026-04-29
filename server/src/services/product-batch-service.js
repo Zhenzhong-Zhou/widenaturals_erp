@@ -25,32 +25,43 @@ const {
   applyProductBatchVisibilityRules,
   evaluateProductBatchAccessControl,
   filterUpdatableProductBatchFields,
-}                                            = require('../business/product-batch-business');
+} = require('../business/product-batch-business');
 const {
   getPaginatedProductBatches,
   insertProductBatchesBulk,
   updateProductBatch,
   getProductBatchById,
   getProductBatchDetailsById,
-}                                            = require('../repositories/product-batch-repository');
+} = require('../repositories/product-batch-repository');
 const {
   transformPaginatedProductBatchResults,
   transformProductBatchRecords,
   transformProductBatchDetail,
-}                                            = require('../transformers/product-batch-transformer');
-const AppError                               = require('../utils/AppError');
-const { withTransaction }          = require('../database/db');
+} = require('../transformers/product-batch-transformer');
+const AppError = require('../utils/AppError');
+const { withTransaction } = require('../database/db');
 const { lockRows } = require('../utils/db/lock-modes');
-const { validateRequiredFields }             = require('../utils/validation/validate-required-fields');
-const { getStatusId }                        = require('../config/status-cache');
-const { registerBatchWorkflow, updateBatchWorkflow } = require('../business/batches/batch-workflow');
-const { getBatchActivityType }               = require('../business/batches/batch-activity-resolvers');
-const { getBatchActivityTypeId }             = require('../cache/batch-activity-type-cache');
+const {
+  validateRequiredFields,
+} = require('../utils/validation/validate-required-fields');
+const { getStatusId } = require('../config/status-cache');
+const {
+  registerBatchWorkflow,
+  updateBatchWorkflow,
+} = require('../business/batches/batch-workflow');
+const {
+  getBatchActivityType,
+} = require('../business/batches/batch-activity-resolvers');
+const {
+  getBatchActivityTypeId,
+} = require('../cache/batch-activity-type-cache');
 const {
   PRODUCT_BATCH_EDIT_RULES,
   PRODUCT_BATCH_STATUS_TRANSITIONS,
-}                                            = require('../utils/constants/domain/product-batch-constants');
-const { transformIdOnlyResult }              = require('../transformers/common/id-result-transformer');
+} = require('../utils/constants/domain/product-batch-constants');
+const {
+  transformIdOnlyResult,
+} = require('../transformers/common/id-result-transformer');
 
 const CONTEXT = 'product-batch-service';
 
@@ -70,22 +81,22 @@ const CONTEXT = 'product-batch-service';
  * @throws {AppError} Wraps unexpected errors as `AppError.serviceError`.
  */
 const fetchPaginatedProductBatchesService = async ({
-                                                     filters   = {},
-                                                     page      = 1,
-                                                     limit     = 20,
-                                                     sortBy    = 'expiryDate',
-                                                     sortOrder = 'ASC',
-                                                     user,
-                                                   }) => {
+  filters = {},
+  page = 1,
+  limit = 20,
+  sortBy = 'expiryDate',
+  sortOrder = 'ASC',
+  user,
+}) => {
   const context = `${CONTEXT}/fetchPaginatedProductBatchesService`;
-  
+
   try {
     // 1. Resolve visibility access control scope.
     const access = await evaluateProductBatchVisibility(user);
-    
+
     // 2. Apply visibility rules to filters (CRITICAL — must run before query).
     const adjustedFilters = applyProductBatchVisibilityRules(filters, access);
-    
+
     // 3. Query raw paginated rows.
     const rawResult = await getPaginatedProductBatches({
       filters: adjustedFilters,
@@ -94,20 +105,20 @@ const fetchPaginatedProductBatchesService = async ({
       sortBy,
       sortOrder,
     });
-    
+
     // 4. Return empty shape immediately — no records to process.
     if (!rawResult || rawResult.data.length === 0) {
       return {
-        data:       [],
+        data: [],
         pagination: { page, limit, totalRecords: 0, totalPages: 0 },
       };
     }
-    
+
     // 5. Transform for UI consumption.
     return transformPaginatedProductBatchResults(rawResult, access);
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
+
     throw AppError.serviceError('Unable to retrieve product batches.', {
       context,
       meta: { error: error.message },
@@ -132,34 +143,48 @@ const fetchPaginatedProductBatchesService = async ({
  */
 const createProductBatchesService = async (productBatches, user) => {
   const context = `${CONTEXT}/createProductBatchesService`;
-  
+
   return withTransaction(async (client) => {
     try {
       // 1. Validate input array.
       if (!Array.isArray(productBatches) || productBatches.length === 0) {
         throw AppError.validationError('No product batches provided.');
       }
-      
+
       validateRequiredFields(
         productBatches,
-        ['lot_number', 'sku_id', 'manufacture_date', 'expiry_date', 'initial_quantity'],
+        [
+          'lot_number',
+          'sku_id',
+          'manufacture_date',
+          'expiry_date',
+          'initial_quantity',
+        ],
         context
       );
-      
+
       // 2. Lock SKU rows to prevent concurrent batch creation.
       const uniqueSkuIds = [...new Set(productBatches.map((b) => b.sku_id))];
-      
-      const lockedSkus = await lockRows(client, 'skus', uniqueSkuIds, 'FOR UPDATE', { context });
-      
+
+      const lockedSkus = await lockRows(
+        client,
+        'skus',
+        uniqueSkuIds,
+        'FOR UPDATE',
+        { context }
+      );
+
       if (!lockedSkus || lockedSkus.length !== uniqueSkuIds.length) {
         throw AppError.notFoundError('Some SKUs could not be locked.');
       }
-      
+
       // 3. Lock manufacturer rows to preserve foreign key integrity.
       const uniqueManufacturerIds = [
-        ...new Set(productBatches.map((b) => b.manufacturer_id).filter(Boolean)),
+        ...new Set(
+          productBatches.map((b) => b.manufacturer_id).filter(Boolean)
+        ),
       ];
-      
+
       const lockedManufacturers = await lockRows(
         client,
         'manufacturers',
@@ -167,38 +192,42 @@ const createProductBatchesService = async (productBatches, user) => {
         'FOR UPDATE',
         { context }
       );
-      
-      if (!lockedManufacturers || lockedManufacturers.length !== uniqueManufacturerIds.length) {
+
+      if (
+        !lockedManufacturers ||
+        lockedManufacturers.length !== uniqueManufacturerIds.length
+      ) {
         throw AppError.notFoundError('Some manufacturers could not be locked.');
       }
-      
+
       // 4. Prepare batch records with status and actor.
       const pendingStatusId = getStatusId('batch_pending');
-      const actorId         = user?.id;
-      
+      const actorId = user?.id;
+
       const preparedBatches = productBatches.map((batch) => ({
         ...batch,
-        status_id:  pendingStatusId,
+        status_id: pendingStatusId,
         created_by: actorId,
       }));
-      
+
       // 5. Resolve activity type and run batch registration workflow.
-      const batchCreatedActivityTypeId = getBatchActivityTypeId('BATCH_CREATED');
-      
+      const batchCreatedActivityTypeId =
+        getBatchActivityTypeId('BATCH_CREATED');
+
       const insertedBatches = await registerBatchWorkflow({
-        batchType:                'product',
-        batches:                  preparedBatches,
-        insertBatchFn:            insertProductBatchesBulk,
+        batchType: 'product',
+        batches: preparedBatches,
+        insertBatchFn: insertProductBatchesBulk,
         batchCreatedActivityTypeId,
         actorId,
         client,
       });
-      
+
       // 6. Transform and return insert results.
       return transformProductBatchRecords(insertedBatches);
     } catch (error) {
       if (error instanceof AppError) throw error;
-      
+
       throw AppError.serviceError('Unable to create product batches.', {
         context,
         meta: { error: error.message },
@@ -222,37 +251,43 @@ const createProductBatchesService = async (productBatches, user) => {
  * @throws {AppError} Re-throws all other AppErrors from lower layers unchanged.
  * @throws {AppError} Wraps unexpected errors as `AppError.serviceError`.
  */
-const editProductBatchMetadataService = async (batchId, updates, user, contextOverride) => {
-  const context = contextOverride ?? `${CONTEXT}/editProductBatchMetadataService`;
-  
+const editProductBatchMetadataService = async (
+  batchId,
+  updates,
+  user,
+  contextOverride
+) => {
+  const context =
+    contextOverride ?? `${CONTEXT}/editProductBatchMetadataService`;
+
   return withTransaction(async (client) => {
     try {
       // 1. Validate updates payload.
       if (!updates || typeof updates !== 'object') {
         throw AppError.validationError('Invalid updates payload.');
       }
-      
+
       // 2. Execute shared batch update workflow.
       const updatedBatch = await updateBatchWorkflow({
         batchId,
         updates,
         user,
         client,
-        getBatchFn:               getProductBatchById,
-        updateBatchFn:            updateProductBatch,
-        editRules:                PRODUCT_BATCH_EDIT_RULES,
-        statusTransitions:        PRODUCT_BATCH_STATUS_TRANSITIONS,
-        batchType:                'product',
-        activityTypeResolver:     getBatchActivityType,
-        evaluateAccessControlFn:  evaluateProductBatchAccessControl,
-        filterUpdatableFieldsFn:  filterUpdatableProductBatchFields,
+        getBatchFn: getProductBatchById,
+        updateBatchFn: updateProductBatch,
+        editRules: PRODUCT_BATCH_EDIT_RULES,
+        statusTransitions: PRODUCT_BATCH_STATUS_TRANSITIONS,
+        batchType: 'product',
+        activityTypeResolver: getBatchActivityType,
+        evaluateAccessControlFn: evaluateProductBatchAccessControl,
+        filterUpdatableFieldsFn: filterUpdatableProductBatchFields,
       });
-      
+
       // 3. Transform and return ID-only result.
       return transformIdOnlyResult([updatedBatch])[0];
     } catch (error) {
       if (error instanceof AppError) throw error;
-      
+
       throw AppError.serviceError('Unable to update product batch metadata.', {
         context,
         meta: { error: error.message },
@@ -270,7 +305,12 @@ const editProductBatchMetadataService = async (batchId, updates, user, contextOv
  * @param {Object}      user      - Authenticated user.
  * @returns {Promise<{ id: string }>}
  */
-const updateProductBatchStatusService = async (batchId, statusId, notes, user) =>
+const updateProductBatchStatusService = async (
+  batchId,
+  statusId,
+  notes,
+  user
+) =>
   editProductBatchMetadataService(
     batchId,
     { status_id: statusId, notes: notes ?? null },
@@ -291,10 +331,10 @@ const receiveProductBatchService = async (batchId, received_at, notes, user) =>
   editProductBatchMetadataService(
     batchId,
     {
-      status_id:   getStatusId('batch_received'),
+      status_id: getStatusId('batch_received'),
       received_at: received_at ?? null,
       received_by: user.id,
-      notes:       notes ?? null,
+      notes: notes ?? null,
     },
     user,
     `${CONTEXT}/receiveProductBatchService`
@@ -309,14 +349,19 @@ const receiveProductBatchService = async (batchId, received_at, notes, user) =>
  * @param {Object}      user           - Authenticated user.
  * @returns {Promise<{ id: string }>}
  */
-const releaseProductBatchService = async (batchId, manufacturerId, notes, user) =>
+const releaseProductBatchService = async (
+  batchId,
+  manufacturerId,
+  notes,
+  user
+) =>
   editProductBatchMetadataService(
     batchId,
     {
-      status_id:                    getStatusId('batch_released'),
-      released_by:                  user.id,
-      released_by_manufacturer_id:  manufacturerId,
-      notes:                        notes ?? null,
+      status_id: getStatusId('batch_released'),
+      released_by: user.id,
+      released_by_manufacturer_id: manufacturerId,
+      notes: notes ?? null,
     },
     user,
     `${CONTEXT}/releaseProductBatchService`
@@ -334,18 +379,18 @@ const releaseProductBatchService = async (batchId, manufacturerId, notes, user) 
  */
 const fetchProductBatchDetailsService = async (batchId) => {
   const context = `${CONTEXT}/fetchProductBatchDetailsService`;
-  
+
   try {
     const rawBatch = await getProductBatchDetailsById(batchId);
-    
+
     if (!rawBatch) {
       throw AppError.notFoundError('Product batch not found.');
     }
-    
+
     return transformProductBatchDetail(rawBatch);
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
+
     throw AppError.serviceError('Unable to fetch product batch details.', {
       context,
       meta: { error: error.message },

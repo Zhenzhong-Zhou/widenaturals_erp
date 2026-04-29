@@ -21,7 +21,7 @@
 
 const AppError = require('../utils/AppError');
 const {
-  getPricingTypeList,
+  getPaginatedPricingTypes,
   getPricingTypeById,
 } = require('../repositories/pricing-type-repository');
 const {
@@ -54,41 +54,47 @@ const CONTEXT = 'pricing-type-service';
  * @throws {AppError} serviceError if an unexpected error occurs.
  */
 const fetchPaginatedPricingTypesService = async ({
-                                                   filters   = {},
-                                                   page      = 1,
-                                                   limit     = 10,
-                                                   sortBy    = 'pricingTypeName',
-                                                   sortOrder = 'ASC',
-                                                   user,
-                                                 }) => {
+  filters = {},
+  page = 1,
+  limit = 10,
+  sortBy = 'pricingTypeName',
+  sortOrder = 'ASC',
+  user,
+}) => {
   const context = `${CONTEXT}/fetchPaginatedPricingTypesService`;
-  
+
   try {
     // 1. Resolve visibility access control scope.
     const acl = await evaluatePricingTypeVisibility(user);
-    
+
     // 2. Apply visibility rules to filters (CRITICAL — must run before query).
     const adjustedFilters = applyPricingTypeVisibilityRules(filters, acl);
-    
+
     // 3. Return empty shape immediately — no permission to view.
     if (adjustedFilters.forceEmptyResult) {
-      return { data: [], pagination: { page, limit, totalRecords: 0, totalPages: 0 } };
+      return {
+        data: [],
+        pagination: { page, limit, totalRecords: 0, totalPages: 0 },
+      };
     }
-    
+
     // 4. Query raw paginated rows.
-    const rawResult = await getPricingTypeList({
+    const rawResult = await getPaginatedPricingTypes({
       filters: adjustedFilters,
       page,
       limit,
       sortBy,
       sortOrder,
     });
-    
+
     // 5. Return empty shape immediately — no records to process.
     if (!rawResult || rawResult.data.length === 0) {
-      return { data: [], pagination: { page, limit, totalRecords: 0, totalPages: 0 } };
+      return {
+        data: [],
+        pagination: { page, limit, totalRecords: 0, totalPages: 0 },
+      };
     }
-    
+
     // 6. Transform for UI consumption.
     return transformPricingTypeList(rawResult);
   } catch (error) {
@@ -108,16 +114,17 @@ const fetchPaginatedPricingTypesService = async ({
  * Throws notFoundError if no record exists for the given ID.
  *
  * @param {string} pricingTypeId - UUID of the pricing type.
- * @returns {Promise<PricingTypeFlatRecord>}
+ * @returns {Promise<PricingTypeRecord>}
  * @throws {AppError} notFoundError if the pricing type does not exist.
  * @throws {AppError} serviceError if an unexpected error occurs.
  */
 const fetchPricingTypeByIdService = async (pricingTypeId) => {
   const context = `${CONTEXT}/fetchPricingTypeByIdService`;
-  
+
   try {
     const row = await getPricingTypeById(pricingTypeId);
-    if (!row) throw AppError.notFoundError('Pricing type not found.', { context });
+    if (!row)
+      throw AppError.notFoundError('Pricing type not found.', { context });
     return transformPricingTypeRow(row);
   } catch (error) {
     if (error instanceof AppError) throw error;

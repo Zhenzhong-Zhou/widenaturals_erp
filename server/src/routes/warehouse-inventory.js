@@ -1,151 +1,211 @@
+/**
+ * @file warehouse-inventory-routes.js
+ * @description
+ * Express routes for warehouse inventory endpoints.
+ * All routes are protected and require a valid authenticated session.
+ */
+
+'use strict';
+
 const express = require('express');
 const { authorize } = require('../middlewares/authorize');
-const PERMISSIONS = require('../utils/constants/domain/permissions');
+const PERMISSION_KEYS = require('../utils/constants/domain/permission-keys');
 const {
-  getPaginatedWarehouseInventorySummaryController,
-  getWarehouseInventorySummaryDetailsController,
-  getWarehouseInventoryRecordController,
-  createWarehouseInventoryRecordController,
-  adjustInventoryQuantitiesController,
+  getPaginatedWarehouseInventoryController,
+  createWarehouseInventoryController,
+  adjustWarehouseInventoryQuantityController,
+  updateWarehouseInventoryStatusController,
+  updateWarehouseInventoryMetadataController,
+  recordWarehouseInventoryOutboundController,
+  getWarehouseInventoryDetailController,
+  getWarehouseSummaryController,
+  getWarehouseItemSummaryController,
 } = require('../controllers/warehouse-inventory-controller');
+const validate = require('../middlewares/validate');
+const {
+  warehouseIdParamSchema,
+} = require('../validators/warehouse-validators');
+const {
+  warehouseInventoryQuerySchema,
+  createWarehouseInventoryBulkSchema,
+  adjustWarehouseInventoryQuantitySchema,
+  updateWarehouseInventoryStatusSchema,
+  inventoryIdParamSchema,
+  updateWarehouseInventoryMetadataSchema,
+  recordWarehouseInventoryOutboundSchema,
+  warehouseItemSummaryQuerySchema,
+} = require('../validators/warehouse-inventory-validators');
+const createQueryNormalizationMiddleware = require('../middlewares/normalize-query');
+const {
+  inventoryActivityLogQuerySchema,
+} = require('../validators/inventory-activity-log-validators');
+const {
+  getPaginatedActivityLogController,
+} = require('../controllers/inventory-activity-log-controller');
 
 const router = express.Router();
 
 /**
- * @route GET /warehouse-inventory/summary
- * @group Warehouse Inventory - Summary
- * @description Returns a paginated summary of warehouse inventory items (products and materials),
- * grouped by SKU or material code. Supports filtering by `itemType=product` or `itemType=material`.
- *
- * @access Protected
- * @permission view_warehouse_inventory - Required to view warehouse inventory summaries.
- * @param {string} itemType.query.optional - Optional filter: 'product', 'material', or 'all'
- * @param {number} page.query.optional - Page number (default: 1)
- * @param {number} limit.query.optional - Number of records per page (default: 10)
- * @returns {object} 200 - Paginated inventory summary
- * @returns {object} 403 - Forbidden if missing required permissions
+ * @route GET /:warehouseId/inventory
+ * @description Paginated warehouse inventory records for a given warehouse.
+ *   Filters: statusId, batchType, skuId, productId, packagingMaterialId,
+ *   inboundDateAfter, inboundDateBefore, hasReserved, lowStockThreshold,
+ *   expiringWithinDays, search.
+ * @access protected
+ * @permission PERMISSION_KEYS.WAREHOUSE_INVENTORY.VIEW
  */
 router.get(
-  '/summary',
-  authorize([PERMISSIONS.WAREHOUSE_INVENTORY.VIEW_SUMMARY]),
-  getPaginatedWarehouseInventorySummaryController
+  '/:warehouseId/inventory',
+  authorize([PERMISSION_KEYS.WAREHOUSE_INVENTORY.VIEW]),
+  validate(warehouseIdParamSchema, 'params'),
+  validate(warehouseInventoryQuerySchema, 'query'),
+  createQueryNormalizationMiddleware(
+    'warehouseInventorySortMap',
+    ['statusIds', 'skuIds', 'productIds', 'packagingMaterialIds'], // arrayKeys
+    ['hasReserved'], // booleanKeys
+    warehouseInventoryQuerySchema,
+    {}, // filterDefaults
+    [], // dateRangeKeys
+    ['lowStockThreshold', 'expiringWithinDays'] // numericKeys
+  ),
+  getPaginatedWarehouseInventoryController
 );
 
 /**
- * @route GET /warehouse-inventory/summary/:itemId/details
- * @group Warehouse Inventory - Summary
- * @summary Fetch paginated warehouse inventory summary details for a specific item (SKU or packaging material)
- * @param {string} itemId.path.required - SKU ID or Material ID to filter inventory records
- * @param {number} page.query.optional - Page number for pagination (default: 1)
- * @param {number} limit.query.optional - Number of records per page (default: 10)
- * @returns {object} 200 - Success response with paginated inventory summary
- * @returns {object} 400 - Validation error if itemId is missing or invalid
- * @returns {object} 403 - Forbidden if the user lacks proper permissions
- * @returns {object} 500 - Internal server error
- * @permission view_warehouse_inventory - Only authorized roles can access this route (e.g., admin, inventory_manager, warehouse_operator)
- */
-router.get(
-  '/summary/:itemId/details',
-  authorize([PERMISSIONS.WAREHOUSE_INVENTORY.VIEW_SUMMARY_ITEM_DETAILS]),
-  getWarehouseInventorySummaryDetailsController
-);
-
-/**
- * @route GET /warehouse-inventory
- * @group Warehouse Inventory - Inventory overview at the warehouse level
- * @middleware authorize - Ensures the user has appropriate permissions
- * @middleware sanitizeInput - Sanitizes input query parameters to prevent injection
- *
- * @permissions
- * Requires one of the following permissions:
- * - view_warehouse_inventory
- *
- * @queryparam {number} [page=1] - Page number for pagination (1-based)
- * @queryparam {number} [limit=20] - Number of records per page
- * @queryparam {string} [sortBy] - Field to sort by (e.g., 'productName', 'expiryDate')
- * @queryparam {string} [sortOrder=ASC] - Sort direction ('ASC' or 'DESC')
- *
- * @queryparam {string} [batchType] - Filter by batch type ('product' | 'packaging_material')
- * @queryparam {string} [warehouseName] - Filter by warehouse name (ILIKE match)
- * @queryparam {string} [productName] - Filter by product name (ILIKE match)
- * @queryparam {string} [materialName] - Filter by material name (ILIKE match)
- * @queryparam {string} [sku] - Filter by SKU code
- * @queryparam {string} [lotNumber] - Filter by lot number
- * @queryparam {string} [status] - Filter by inventory status
- * @queryparam {string} [createdAt] - Filter by creation date (YYYY-MM-DD)
- *
- * @returns {200} JSON object containing paginated warehouse inventory records
- */
-router.get(
-  '/',
-  authorize([PERMISSIONS.WAREHOUSE_INVENTORY.VIEW]),
-  getWarehouseInventoryRecordController
-);
-
-/**
- * @route POST /warehouse-inventory
- * @group Warehouse Inventory - Operations related to warehouse and location inventory
- * @summary Create new inventory records for both warehouse and location
- * @description
- * This endpoint handles the creation of inventory records, including both warehouse and location-level entries.
- * It performs:
- * - Validation of batch registry entries
- * - Insertion of inventory records (warehouse and location)
- * - Logging of inventory activity in the inventory log tables
- *
- * Requires permission: `manage_warehouse_inventory`
- *
- * Request body should contain an array of inventory records, each with:
- * - `warehouse_id`: UUID of the warehouse
- * - `location_id`: UUID of the location
- * - `batch_id`: UUID from batch_registry
- * - `batch_type`: Either `'product'` or `'packaging_material'`
- * - `quantity`: Number
- * - `inventory_action_type_id`: UUID (e.g., for 'initial load')
- * - `adjustment_type_id`: (Optional) UUID for adjustment reason
- * - `status_id`: (Optional) UUID for inventory status
- * - `inbound_date`: Date string (ISO format)
- * - `created_by`: UUID of the user performing the action
- *
- * @returns {Object} 200 - Created inventory records (grouped by warehouse and location)
- * @returns {Error} 400 - Validation error
- * @returns {Error} 500 - Server or service error
+ * @route POST /:warehouseId/inventory
+ * @description Bulk create warehouse inventory records for a given warehouse.
+ * @access protected
+ * @permission PERMISSION_KEYS.WAREHOUSE_INVENTORY.CREATE
  */
 router.post(
-  '/',
-  authorize([PERMISSIONS.WAREHOUSE_INVENTORY.CREATE]),
-  createWarehouseInventoryRecordController
+  '/:warehouseId/inventory',
+  authorize([PERMISSION_KEYS.WAREHOUSE_INVENTORY.CREATE]),
+  validate(warehouseIdParamSchema, 'params'),
+  validate(createWarehouseInventoryBulkSchema, 'body'),
+  createWarehouseInventoryController
 );
 
 /**
- * @route PATCH /warehouse-inventory/adjust-quantities
- * @description Adjusts inventory quantities for warehouse and location inventory records.
- *              Supports bulk updates (up to 20 records), with automatic deduplication and validation.
- *              Also logs inventory activity with status changes and action metadata.
- *
- * @permissions Required:
- *   - manage_inventory
- *   - adjust_inventory
- *   - manage_warehouses
- *   - manage_warehouse_inventory
- *
- * @body {Array<Object>} records - List of inventory adjustment records.
- * Each record must include:
- *   - batch_type: 'product' | 'packaging_material'
- *   - batch_id: string
- *   - quantity: number
- *   - warehouse_id or location_id: string
- *   - inventory_action_type_id: string
- *   - adjustment_type_id: string (optional)
- *   - comments: string (optional)
- *   - meta: object (optional)
- *
- * @returns {Object} Result containing updated inventory and log records.
+ * @route PATCH /:warehouseId/inventory/quantities
+ * @description Bulk adjust warehouse and reserved quantities for inventory records.
+ * @access protected
+ * @permission PERMISSION_KEYS.WAREHOUSE_INVENTORY.ADJUST_INVENTORY
  */
 router.patch(
-  '/adjust-quantities',
-  authorize([PERMISSIONS.WAREHOUSE_INVENTORY.ADJUST]),
-  adjustInventoryQuantitiesController
+  '/:warehouseId/inventory/quantities',
+  authorize([PERMISSION_KEYS.WAREHOUSE_INVENTORY.ADJUST_INVENTORY]),
+  validate(warehouseIdParamSchema, 'params'),
+  validate(adjustWarehouseInventoryQuantitySchema, 'body'),
+  adjustWarehouseInventoryQuantityController
+);
+
+/**
+ * @route PATCH /:warehouseId/inventory/statuses
+ * @description Bulk update inventory status for a set of inventory records.
+ * @access protected
+ * @permission PERMISSION_KEYS.WAREHOUSE_INVENTORY.UPDATE_INVENTORY_STATUS
+ */
+router.patch(
+  '/:warehouseId/inventory/statuses',
+  authorize([PERMISSION_KEYS.WAREHOUSE_INVENTORY.UPDATE_INVENTORY_STATUS]),
+  validate(warehouseIdParamSchema, 'params'),
+  validate(updateWarehouseInventoryStatusSchema, 'body'),
+  updateWarehouseInventoryStatusController
+);
+
+/**
+ * @route PATCH /:warehouseId/inventory/:inventoryId/metadata
+ * @description Update inbound date and warehouse fee for a single inventory record.
+ * @access protected
+ * @permission PERMISSION_KEYS.WAREHOUSE_INVENTORY.ADJUST_INVENTORY
+ */
+router.patch(
+  '/:warehouseId/inventory/:inventoryId/metadata',
+  authorize([PERMISSION_KEYS.WAREHOUSE_INVENTORY.ADJUST_INVENTORY]),
+  validate(inventoryIdParamSchema, 'params'),
+  validate(updateWarehouseInventoryMetadataSchema, 'body'),
+  updateWarehouseInventoryMetadataController
+);
+
+/**
+ * @route POST /:warehouseId/inventory/outbound
+ * @description Record outbound stock movement for one or more inventory records.
+ * @access protected
+ * @permission PERMISSION_KEYS.WAREHOUSE_INVENTORY.CREATE_OUTBOUND
+ */
+router.post(
+  '/:warehouseId/inventory/outbound',
+  authorize([PERMISSION_KEYS.WAREHOUSE_INVENTORY.CREATE_OUTBOUND]),
+  validate(warehouseIdParamSchema, 'params'),
+  validate(recordWarehouseInventoryOutboundSchema, 'body'),
+  recordWarehouseInventoryOutboundController
+);
+
+/**
+ * @route GET /:warehouseId/inventory/activity-log
+ * @description Paginated inventory activity log scoped to a given warehouse.
+ *   Filters: inventoryId, actionTypeId, performedBy, dateAfter, dateBefore.
+ * @access protected
+ * @permission PERMISSION_KEYS.WAREHOUSE_INVENTORY.VIEW
+ */
+router.get(
+  '/:warehouseId/inventory/activity-log',
+  authorize([PERMISSION_KEYS.WAREHOUSE_INVENTORY.VIEW]),
+  validate(warehouseIdParamSchema, 'params'),
+  validate(inventoryActivityLogQuerySchema, 'query', { allowUnknown: true }),
+  createQueryNormalizationMiddleware(
+    'inventoryActivityLogSortMap',
+    [],
+    [],
+    inventoryActivityLogQuerySchema,
+    {},
+    [],
+    []
+  ),
+  getPaginatedActivityLogController
+);
+
+/**
+ * @route GET /:warehouseId/inventory/:inventoryId
+ * @description Full detail view for a single warehouse inventory record,
+ *   including zone assignments and recent movement history.
+ * @access protected
+ * @permission PERMISSION_KEYS.WAREHOUSE_INVENTORY.VIEW
+ */
+router.get(
+  '/:warehouseId/inventory/:inventoryId',
+  authorize([PERMISSION_KEYS.WAREHOUSE_INVENTORY.VIEW]),
+  validate(inventoryIdParamSchema, 'params'),
+  getWarehouseInventoryDetailController
+);
+
+/**
+ * @route GET /:warehouseId/summary
+ * @description Warehouse-level inventory summary including quantity totals,
+ *   batch-type breakdown, and per-status breakdown.
+ * @access protected
+ * @permission PERMISSION_KEYS.WAREHOUSE_INVENTORY.VIEW_SUMMARY
+ */
+router.get(
+  '/:warehouseId/summary',
+  authorize([PERMISSION_KEYS.WAREHOUSE_INVENTORY.VIEW_SUMMARY]),
+  validate(warehouseIdParamSchema, 'params'),
+  getWarehouseSummaryController
+);
+
+/**
+ * @route GET /:warehouseId/summary/items
+ * @description Paginated product and packaging material inventory summary
+ *   for a given warehouse, with optional batch-type filtering.
+ * @access protected
+ * @permission PERMISSION_KEYS.WAREHOUSE_INVENTORY.VIEW_SUMMARY_ITEM_DETAILS
+ */
+router.get(
+  '/:warehouseId/summary/items',
+  authorize([PERMISSION_KEYS.WAREHOUSE_INVENTORY.VIEW_SUMMARY_ITEM_DETAILS]),
+  validate(warehouseIdParamSchema, 'params'),
+  validate(warehouseItemSummaryQuerySchema, 'query'),
+  getWarehouseItemSummaryController
 );
 
 module.exports = router;

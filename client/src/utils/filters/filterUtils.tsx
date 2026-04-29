@@ -188,14 +188,12 @@ export const renderNumericField = <
           // ensure numbers stay numeric
           onChange={(e) => {
             const value = e.target.value;
-            // empty input → null (so filter is cleared)
             if (value === '' || value === null) {
-              field.onChange(null);
+              field.onChange(undefined);
               return;
             }
-            // convert to number
             const num = Number(value);
-            field.onChange(Number.isNaN(num) ? null : num);
+            field.onChange(Number.isNaN(num) ? undefined : num);
           }}
         />
       )}

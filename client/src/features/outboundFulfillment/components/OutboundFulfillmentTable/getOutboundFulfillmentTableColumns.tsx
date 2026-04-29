@@ -81,7 +81,7 @@ export const getOutboundFulfillmentTableColumns = (
       id: 'createdByName',
       label: 'Created By',
       minWidth: 180,
-      renderCell: (row) => formatLabel(row.createdByName) ?? '—',
+      renderCell: (row) => formatLabel(row.createdBy) ?? '—',
     },
   ];
 

@@ -42,10 +42,10 @@ const PRODUCT_CONFLICT_COLUMNS = ['name', 'brand', 'category'];
 
 const PRODUCT_UPDATE_STRATEGIES = {
   description: 'overwrite',
-  status_id:   'overwrite',
+  status_id: 'overwrite',
   status_date: 'overwrite',
-  updated_by:  'overwrite',
-  updated_at:  'overwrite',
+  updated_by: 'overwrite',
+  updated_at: 'overwrite',
 };
 
 // ─── Paginated List ───────────────────────────────────────────────────────────
@@ -125,9 +125,7 @@ const PRODUCT_DETAILS_QUERY = `
 const PRODUCT_LOOKUP_TABLE = 'products p';
 
 // Status join included — filter builder may apply status conditions.
-const PRODUCT_LOOKUP_JOINS = [
-  'LEFT JOIN status AS s ON s.id = p.status_id',
-];
+const PRODUCT_LOOKUP_JOINS = ['LEFT JOIN status AS s ON s.id = p.status_id'];
 
 const _PRODUCT_LOOKUP_JOINS_SQL = PRODUCT_LOOKUP_JOINS.join('\n  ');
 
@@ -138,7 +136,7 @@ const PRODUCT_LOOKUP_SORT_WHITELIST = new Set([
 ]);
 
 const PRODUCT_LOOKUP_ADDITIONAL_SORTS = [
-  { column: 'p.brand',    direction: 'ASC' },
+  { column: 'p.brand', direction: 'ASC' },
   { column: 'p.category', direction: 'ASC' },
 ];
 

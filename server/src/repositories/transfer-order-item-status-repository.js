@@ -30,24 +30,30 @@ const {
  */
 const getTransferItemStatusesByCodes = async (statusCodes, client) => {
   if (!Array.isArray(statusCodes) || statusCodes.length === 0) return [];
-  
-  const context = 'transfer-order-item-status-repository/getTransferItemStatusesByCodes';
-  const params  = [statusCodes];
-  
+
+  const context =
+    'transfer-order-item-status-repository/getTransferItemStatusesByCodes';
+  const params = [statusCodes];
+
   try {
-    const { rows } = await query(GET_TRANSFER_ITEM_STATUSES_BY_CODES_QUERY, params, client);
+    const { rows } = await query(
+      GET_TRANSFER_ITEM_STATUSES_BY_CODES_QUERY,
+      params,
+      client
+    );
     return rows;
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to retrieve transfer item statuses.',
-      meta:    { statusCodes },
-      logFn:   (err) => logDbQueryError(
-        GET_TRANSFER_ITEM_STATUSES_BY_CODES_QUERY,
-        params,
-        err,
-        { context, statusCodes }
-      ),
+      meta: { statusCodes },
+      logFn: (err) =>
+        logDbQueryError(
+          GET_TRANSFER_ITEM_STATUSES_BY_CODES_QUERY,
+          params,
+          err,
+          { context, statusCodes }
+        ),
     });
   }
 };

@@ -11,7 +11,9 @@
 'use strict';
 
 const { query, pool } = require('../database/db');
-const { paginateQueryByOffset } = require('../utils/db/pagination/pagination-helpers');
+const {
+  paginateQueryByOffset,
+} = require('../utils/db/pagination/pagination-helpers');
 const AppError = require('../utils/AppError');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { logDbQueryError } = require('../utils/db-logger');
@@ -41,7 +43,7 @@ const {
  */
 const getRoleById = async (roleId, client) => {
   const context = 'role-repository/getRoleById';
-  
+
   try {
     const { rows } = await query(ROLE_GET_BY_ID_QUERY, [roleId], client);
     return rows[0] ?? null;
@@ -49,10 +51,12 @@ const getRoleById = async (roleId, client) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch role by ID.',
-      meta:    { roleId },
-      logFn:   (err) => logDbQueryError(
-        ROLE_GET_BY_ID_QUERY, [roleId], err, { context, roleId }
-      ),
+      meta: { roleId },
+      logFn: (err) =>
+        logDbQueryError(ROLE_GET_BY_ID_QUERY, [roleId], err, {
+          context,
+          roleId,
+        }),
     });
   }
 };
@@ -75,37 +79,39 @@ const getRoleById = async (roleId, client) => {
  */
 const resolveRoleIdByName = async (roleName, client) => {
   const context = 'role-repository/resolveRoleIdByName';
-  
+
   const db = client ?? pool; // fall back to pool
-  
+
   if (!roleName || typeof roleName !== 'string') {
     throw AppError.validationError('Role name is required.', { context });
   }
-  
+
   let rows;
-  
+
   try {
     ({ rows } = await query(ROLE_RESOLVE_BY_NAME_QUERY, [roleName], db));
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to resolve role ID by name.',
-      meta:    { roleName },
-      logFn:   (err) => logDbQueryError(
-        ROLE_RESOLVE_BY_NAME_QUERY, [roleName], err, { context, roleName }
-      ),
+      meta: { roleName },
+      logFn: (err) =>
+        logDbQueryError(ROLE_RESOLVE_BY_NAME_QUERY, [roleName], err, {
+          context,
+          roleName,
+        }),
     });
   }
-  
+
   // Not-found check outside try — throwing notFoundError inside would be
   // caught and re-thrown as a databaseError.
   if (!rows.length) {
-    throw AppError.notFoundError(
-      `Required role "${roleName}" not found.`,
-      { context, meta: { roleName } }
-    );
+    throw AppError.notFoundError(`Required role "${roleName}" not found.`, {
+      context,
+      meta: { roleName },
+    });
   }
-  
+
   return rows[0].id;
 };
 
@@ -126,32 +132,36 @@ const resolveRoleIdByName = async (roleName, client) => {
  */
 const getRoleLookup = async ({ filters = {}, limit = 50, offset = 0 }) => {
   const context = 'role-repository/getRoleLookup';
-  
+
   const { whereClause, params } = buildRoleFilter(filters);
   const queryText = buildRoleLookupQuery(whereClause);
-  
+
   try {
     return await paginateQueryByOffset({
-      tableName:       ROLE_LOOKUP_TABLE,
-      joins:           ROLE_LOOKUP_JOINS,
+      tableName: ROLE_LOOKUP_TABLE,
+      joins: ROLE_LOOKUP_JOINS,
       whereClause,
       queryText,
       params,
       offset,
       limit,
-      sortBy:          'r.hierarchy_level',
-      sortOrder:       'ASC',
+      sortBy: 'r.hierarchy_level',
+      sortOrder: 'ASC',
       additionalSorts: ROLE_LOOKUP_ADDITIONAL_SORTS,
-      whitelistSet:    ROLE_LOOKUP_SORT_WHITELIST,
+      whitelistSet: ROLE_LOOKUP_SORT_WHITELIST,
     });
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch role lookup.',
-      meta:    { filters, limit, offset },
-      logFn:   (err) => logDbQueryError(
-        queryText, params, err, { context, filters, limit, offset }
-      ),
+      meta: { filters, limit, offset },
+      logFn: (err) =>
+        logDbQueryError(queryText, params, err, {
+          context,
+          filters,
+          limit,
+          offset,
+        }),
     });
   }
 };

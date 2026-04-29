@@ -165,7 +165,7 @@ export const outboundFulfillmentBatchColumns: MiniColumn<FlattenedBatchRow>[] =
     {
       id: 'createdByName',
       label: 'Created By',
-      renderCell: (row) => row.createdByName ?? '—',
+      renderCell: (row) => row.createdBy ?? '—',
     },
     {
       id: 'notes',

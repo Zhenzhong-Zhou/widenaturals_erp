@@ -4,6 +4,7 @@ import tsParser from '@typescript-eslint/parser';
 import eslintPluginReact from 'eslint-plugin-react';
 import eslintPluginPrettier from 'eslint-plugin-prettier';
 import eslintPluginImport from 'eslint-plugin-import';
+import pluginN from 'eslint-plugin-n';
 
 const isDev = process.env.NODE_ENV !== 'production'; // fallback workaround
 const tsRecommendedConfig = tsEslint.configs.recommended;
@@ -126,4 +127,39 @@ export default defineConfig([
       'no-process-env': 'warn',
     },
   },
+  {
+    files: ['server/src/**/*.js', 'server/knexfile.js'],
+    languageOptions: {
+      ecmaVersion: 2023,
+      sourceType: 'commonjs',
+      globals: {
+        process: 'readonly',
+        __dirname: 'readonly',
+        __filename: 'readonly',
+        require: 'readonly',
+        module: 'readonly',
+        exports: 'readonly',
+        Buffer: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly',
+        console: 'readonly',
+      },
+    },
+    plugins: {
+      n: pluginN,
+      prettier: eslintPluginPrettier,
+    },
+    rules: {
+      'prettier/prettier': 'error',
+      'no-console': isDev ? 'warn' : 'error',
+      'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+      'no-undef': 'error',
+      'no-shadow': 'warn',
+      'eqeqeq': ['error', 'always'],
+      'n/no-missing-require': 'error',
+      'n/no-unpublished-require': 'warn',
+    },
+  }
 ]);

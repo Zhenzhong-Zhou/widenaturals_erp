@@ -5,6 +5,7 @@ import type { OrderListItem } from '@features/order/state';
 import { getShortOrderNumber } from '@features/order/utils';
 import { formatDateTime } from '@utils/dateTimeUtils';
 import { formatOrderStatus, formatPaymentStatus } from '@utils/formatters';
+import { formatLabel } from '@utils/textUtils';
 
 /**
  * getOrdersTableColumns
@@ -61,8 +62,14 @@ export const getOrdersTableColumns = (
         formatOrderStatus(row.orderStatus.code, row.orderStatus.name),
     },
     {
+      id: 'customerType',
+      label: 'Customer Type',
+      format: (value) => formatLabel(value as string),
+    },
+    {
       id: 'customerName',
       label: 'Customer',
+      format: (value) => formatLabel(value as string),
     },
     {
       id: 'paymentMethod',

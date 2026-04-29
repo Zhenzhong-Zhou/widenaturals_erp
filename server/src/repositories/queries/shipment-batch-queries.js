@@ -24,9 +24,9 @@ const SHIPMENT_BATCH_INSERT_COLUMNS = [
 const SHIPMENT_BATCH_CONFLICT_COLUMNS = ['fulfillment_id', 'batch_id'];
 
 const SHIPMENT_BATCH_UPDATE_STRATEGIES = {
-  quantity_shipped: 'add',        // accumulate shipped quantity on re-insert
-  notes:           'merge_text',  // concatenate notes rather than overwrite
-  created_at:      'overwrite',   // refresh timestamp if re-inserted
+  quantity_shipped: 'add', // accumulate shipped quantity on re-insert
+  notes: 'merge_text', // concatenate notes rather than overwrite
+  created_at: 'overwrite', // refresh timestamp if re-inserted
 };
 
 module.exports = {

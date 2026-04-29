@@ -1,160 +1,227 @@
-import { useEffect, useState, useCallback } from 'react';
-import { useTheme } from '@mui/material/styles';
-import type {
-  FetchPricingParams,
-  PricingRecord,
-} from '@features/pricing/state';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Box from '@mui/material/Box';
-import Loading from '@components/common/Loading';
-import ErrorDisplay from '@components/shared/ErrorDisplay';
-import ErrorMessage from '@components/common/ErrorMessage';
-import CustomButton from '@components/common/CustomButton';
-import PricingListTable from '@features/pricing/components/PricingListTable';
-import usePricingList from '@hooks/usePricingList';
-import CustomTypography from '@components/common/CustomTypography';
-import PricingFilterPanel from '@features/pricing/components/PricingFilterPanel';
-import Stack from '@mui/material/Stack';
-import CustomModal from '@components/common/CustomModal';
-import ExportPricingForm from '../components/ExportPricingForm';
-import { extractPricingFilterOptions } from '../utils/extractPricingFilterOptions';
+import Card from '@mui/material/Card';
+import Grid from '@mui/material/Grid';
+import Divider from '@mui/material/Divider';
+import {
+  CustomTypography,
+  ErrorMessage,
+  Loading,
+  NoDataFound,
+  CustomButton,
+} from '@components/index';
+import {
+  PricingExportControls,
+  PricingFiltersPanel,
+  PricingListTable,
+  PricingSortControls,
+} from '@features/pricing/components/PricingListTable';
+import { usePaginatedPricing } from '@hooks/index';
+import { usePaginationHandlers } from '@utils/hooks';
+import {
+  PricingFilters,
+  PricingSortField,
+} from '@features/pricing';
+import { applyFiltersAndSorting } from '@utils/query';
+import { usePricingLookups } from '@features/pricing/hooks';
 
 const PricingListPage = () => {
-  const theme = useTheme();
-  const [params, setParams] = useState<FetchPricingParams>({
-    page: 1,
-    limit: 25,
-  });
-  const [exportOpen, setExportOpen] = useState(false);
-
+  // -------------------------------------------------------------
+  // Local state
+  // -------------------------------------------------------------
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(25);
+  const [sortBy, setSortBy] = useState<PricingSortField>('defaultNaturalSort');
+  const [sortOrder, setSortOrder] = useState<'' | 'ASC' | 'DESC'>('');
+  const [filters, setFilters] = useState<PricingFilters>({});
+  const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
+  
+  // -------------------------------------------------------------
+  // Export state
+  // -------------------------------------------------------------
+  const [liveFilters, setLiveFilters] = useState<PricingFilters>({});
+  
+  // -------------------------------------------------------------
+  // Pricing list fetch
+  // -------------------------------------------------------------
   const {
-    data: pricingData,
-    pagination,
-    isLoading,
-    error,
-    isEmpty,
-    fetchData,
-  } = usePricingList(params);
-
+    data: pricing,
+    pagination: pricingPagination,
+    loading: isPricingLoading,
+    error: pricingError,
+    totalRecords: pricingTotalRecords,
+    isEmpty: isPricingListEmpty,
+    fetchPricing: fetchPaginatedPricingList,
+    resetPricing: resetPricingList,
+  } = usePaginatedPricing();
+  
+  const lookups = usePricingLookups();
+  
+  // -------------------------------------------------------------
+  // Combined query object
+  // -------------------------------------------------------------
+  const fullQuery = useMemo(
+    () => ({
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+      filters,
+    }),
+    [page, limit, sortBy, sortOrder, filters],
+  );
+  
+  // -------------------------------------------------------------
+  // Refresh list
+  // -------------------------------------------------------------
+  const refreshPricingList = useCallback(() => {
+    fetchPaginatedPricingList(fullQuery);
+  }, [fullQuery, fetchPaginatedPricingList]);
+  
+  // -------------------------------------------------------------
+  // Debounced query execution payload
+  // -------------------------------------------------------------
+  const queryParams = useMemo(
+    () => ({
+      ...fullQuery,
+      fetchFn: refreshPricingList,
+    }),
+    [fullQuery, refreshPricingList],
+  );
+  
+  // -------------------------------------------------------------
+  // Debounced list fetch
+  // -------------------------------------------------------------
   useEffect(() => {
-    fetchData(params); // Will only trigger when params change
-  }, [params, fetchData]);
-
-  const { brands, countryCodes, pricingTypes, sizeLabels } =
-    extractPricingFilterOptions(pricingData);
-
-  const handlePageChange = useCallback((newPage: number) => {
-    setParams((prev) => ({ ...prev, page: newPage }));
+    const timeout = setTimeout(() => applyFiltersAndSorting(queryParams), 200);
+    return () => clearTimeout(timeout);
+  }, [queryParams]);
+  
+  // Reset on unmount
+  useEffect(() => {
+    return () => {
+      resetPricingList();
+    };
+  }, [resetPricingList]);
+  
+  // -------------------------------------------------------------
+  // Handlers
+  // -------------------------------------------------------------
+  const handleResetFilters = useCallback(() => {
+    resetPricingList();
+    setFilters({});
+    setPage(1);
+  }, [resetPricingList]);
+  
+  const { handlePageChange, handleRowsPerPageChange } = usePaginationHandlers(
+    setPage,
+    setLimit,
+  );
+  
+  const handleDrillDownToggle = useCallback((rowId: string) => {
+    setExpandedRowId((current) => (current === rowId ? null : rowId));
   }, []);
-
-  const handleRowsPerPageChange = useCallback((newLimit: number) => {
-    setParams((prev) => ({ ...prev, page: 1, limit: newLimit }));
-  }, []);
-
-  const handleRefresh = () => {
-    fetchData(params); // Refetch current params
+  
+  const lookupHandlers = {
+    onOpen: {
+      product: () => {
+        if (!lookups.product.options.length) {
+          lookups.product.fetch();
+        }
+      },
+      sku: () => {
+        if (!lookups.sku.options.length) {
+          lookups.sku.fetch();
+        }
+      },
+    },
   };
-
-  const flattened = pricingData.map((item: PricingRecord) => ({
-    pricingId: item.pricingId,
-    price: item.price,
-    pricingTypeId: item.pricingType?.id,
-    pricingTypeName: item.pricingType?.name,
-    pricingTypeCode: item.pricingType?.code,
-    pricingTypeSlug: item.pricingType?.slug,
-    productName: item.product?.name,
-    productBrand: item.product?.brand,
-    productId: item.product?.id,
-    skuValue: item.sku?.value,
-    skuId: item.sku?.id,
-    countryCode: item.sku?.countryCode,
-    sizeLabel: item.sku?.sizeLabel,
-    barcode: item.sku?.barcode,
-    validFrom: item.validFrom,
-    validTo: item.validTo,
-  }));
-
-  if (isLoading) {
-    return <Loading message="Fetching pricing records..." />;
-  }
-
-  if (error) {
-    return (
-      <ErrorDisplay>
-        <ErrorMessage message={error} />
-      </ErrorDisplay>
-    );
-  }
-
+  
+  const handleFilterChange = useCallback((live: PricingFilters) => {
+    setLiveFilters(live);
+  }, []);
+  
+  // -------------------------------------------------------------
+  // Render
+  // -------------------------------------------------------------
   return (
-    <Box
-      sx={{
-        padding: 3,
-        backgroundColor: 'background.paper',
-        borderRadius: 2,
-        boxShadow: 1,
-      }}
-    >
-      <CustomTypography variant="h4">Pricing List</CustomTypography>
-
-      <Stack
-        direction="row"
+    <Box sx={{ px: 4, py: 3 }}>
+      {/* ---------------------------------------- */}
+      {/* Header */}
+      {/* ---------------------------------------- */}
+      <Box
+        display="flex"
         justifyContent="space-between"
         alignItems="center"
-        spacing={2}
-        sx={{
-          mb: 2,
-          backgroundColor: theme.palette.stack,
-          borderRadius: 3,
-          px: 2,
-          py: 1.5,
-        }}
+        flexWrap="wrap"
+        mb={3}
+        gap={2}
       >
-        <PricingFilterPanel
-          onApply={(newParams: FetchPricingParams) => {
-            setParams((prev) => ({
-              ...prev,
-              filters: newParams.filters ?? {}, // set filters directly
-              keyword: newParams.keyword ?? '', // optional: reset keyword
-              page: 1, // reset page
-            }));
-          }}
-          onReset={() => {
-            setParams({ page: 1, limit: 25 });
-          }}
-          brandOptions={brands}
-          countryCodeOptions={countryCodes}
-          pricingTypeOptions={pricingTypes}
-          sizeLabelOptions={sizeLabels}
-        />
-        <CustomButton variant="outlined" onClick={() => setExportOpen(true)}>
-          Export
-        </CustomButton>
-        <CustomButton onClick={handleRefresh} variant="outlined">
-          Refresh
-        </CustomButton>
-      </Stack>
-
-      <CustomModal
-        open={exportOpen}
-        onClose={() => setExportOpen(false)}
-        title="Export Pricing Data"
-      >
-        <ExportPricingForm onClose={() => setExportOpen(false)} />
-      </CustomModal>
-
-      {isEmpty || !pagination ? (
-        <CustomTypography variant="h6">
-          No pricing records found.
+        <CustomTypography variant="h5" fontWeight={700}>
+          Pricing
         </CustomTypography>
+        
+        {/* ---- Export Controls ---- */}
+        <PricingExportControls liveFilters={liveFilters} />
+      </Box>
+      
+      <Divider sx={{ mb: 3 }} />
+      
+      {/* ---------------------------------------- */}
+      {/* Filter + Sort Controls */}
+      {/* ---------------------------------------- */}
+      <Card sx={{ p: 3, mb: 4, borderRadius: 2, minHeight: 200 }}>
+        <Grid container spacing={2}>
+          <Grid size={{ xs: 12, sm: 6, md: 9 }}>
+            <PricingFiltersPanel
+              filters={filters}
+              lookups={lookups}
+              lookupHandlers={lookupHandlers}
+              onChange={setFilters}
+              onFilterChange={handleFilterChange}
+              onApply={() => setPage(1)}
+              onReset={handleResetFilters}
+            />
+          </Grid>
+          
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <PricingSortControls
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              onSortByChange={setSortBy}
+              onSortOrderChange={setSortOrder}
+            />
+          </Grid>
+        </Grid>
+      </Card>
+      
+      {/* ---------------------------------------- */}
+      {/* Main Table Rendering */}
+      {/* ---------------------------------------- */}
+      {isPricingLoading && isPricingListEmpty ? (
+        <Loading variant="dotted" message="Loading Pricing..." />
+      ) : pricingError ? (
+        <ErrorMessage message={pricingError} showNavigation />
+      ) : isPricingListEmpty || !pricingPagination ? (
+        <NoDataFound
+          message="No pricing records found."
+          action={
+            <CustomButton onClick={handleResetFilters}>Reset</CustomButton>
+          }
+        />
       ) : (
         <PricingListTable
-          data={flattened}
-          page={pagination.page - 1}
-          rowsPerPage={pagination.limit}
-          totalRecords={pagination.totalRecords}
-          totalPages={pagination.totalPages}
-          onPageChange={(newPage) => handlePageChange(newPage + 1)}
+          data={pricing}
+          loading={isPricingLoading}
+          page={page - 1}
+          rowsPerPage={limit}
+          totalRecords={pricingTotalRecords}
+          totalPages={pricingPagination.totalPages}
+          onPageChange={handlePageChange}
           onRowsPerPageChange={handleRowsPerPageChange}
+          expandedRowId={expandedRowId}
+          onDrillDownToggle={handleDrillDownToggle}
+          onRefresh={refreshPricingList}
         />
       )}
     </Box>

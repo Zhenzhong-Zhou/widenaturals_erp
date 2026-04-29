@@ -18,7 +18,9 @@ const { paginateQuery } = require('../utils/db/pagination/pagination-helpers');
 const { query } = require('../database/db');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { logDbQueryError } = require('../utils/db-logger');
-const { buildComplianceRecordFilter } = require('../utils/sql/build-compliance-record-filter');
+const {
+  buildComplianceRecordFilter,
+} = require('../utils/sql/build-compliance-record-filter');
 const { resolveSort } = require('../utils/query/sort-resolver');
 const { SORTABLE_FIELDS } = require('../utils/sort-field-mapping');
 const {
@@ -47,50 +49,51 @@ const {
  * @throws  {AppError}        Normalized database error if the query fails.
  */
 const getPaginatedComplianceRecords = async ({
-                                               filters   = {},
-                                               page      = 1,
-                                               limit     = 10,
-                                               sortBy    = 'createdAt',  // map key, not DB column
-                                               sortOrder = 'DESC',
-                                             }) => {
+  filters = {},
+  page = 1,
+  limit = 10,
+  sortBy = 'createdAt', // map key, not DB column
+  sortOrder = 'DESC',
+}) => {
   const context = 'compliance-record-repository/getPaginatedComplianceRecords';
-  
+
   const { whereClause, params } = buildComplianceRecordFilter(filters);
-  
+
   const sortConfig = resolveSort({
     sortBy,
     sortOrder,
-    moduleKey:   'complianceRecordSortMap',
+    moduleKey: 'complianceRecordSortMap',
     defaultSort: SORTABLE_FIELDS.complianceRecordSortMap.defaultNaturalSort,
   });
-  
+
   // ORDER BY omitted — paginateQuery appends it from sortConfig.
   const queryText = buildComplianceRecordQuery(whereClause);
-  
+
   try {
     return await paginateQuery({
-      tableName:    COMPLIANCE_RECORD_TABLE,
-      joins:        COMPLIANCE_RECORD_JOINS,
+      tableName: COMPLIANCE_RECORD_TABLE,
+      joins: COMPLIANCE_RECORD_JOINS,
       whereClause,
       queryText,
       params,
       page,
       limit,
-      sortBy:       sortConfig.sortBy,
-      sortOrder:    sortConfig.sortOrder,
+      sortBy: sortConfig.sortBy,
+      sortOrder: sortConfig.sortOrder,
       whitelistSet: COMPLIANCE_RECORD_SORT_WHITELIST,
     });
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch paginated compliance records.',
-      meta:    { filters, page, limit, sortBy, sortOrder },
-      logFn:   (err) => logDbQueryError(
-        queryText,
-        params,
-        err,
-        { context, filters, page, limit }
-      ),
+      meta: { filters, page, limit, sortBy, sortOrder },
+      logFn: (err) =>
+        logDbQueryError(queryText, params, err, {
+          context,
+          filters,
+          page,
+          limit,
+        }),
     });
   }
 };
@@ -110,7 +113,7 @@ const getPaginatedComplianceRecords = async ({
  */
 const getComplianceBySkuId = async (skuId) => {
   const context = 'compliance-record-repository/getComplianceBySkuId';
-  
+
   try {
     const { rows } = await query(COMPLIANCE_BY_SKU_QUERY, [skuId]);
     return rows;
@@ -118,13 +121,12 @@ const getComplianceBySkuId = async (skuId) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch SKU compliance records.',
-      meta:    { skuId },
-      logFn:   (err) => logDbQueryError(
-        COMPLIANCE_BY_SKU_QUERY,
-        [skuId],
-        err,
-        { context, skuId }
-      ),
+      meta: { skuId },
+      logFn: (err) =>
+        logDbQueryError(COMPLIANCE_BY_SKU_QUERY, [skuId], err, {
+          context,
+          skuId,
+        }),
     });
   }
 };

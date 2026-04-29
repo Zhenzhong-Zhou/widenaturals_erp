@@ -49,87 +49,87 @@ const buildWarehouseFilter = (filters = {}) => {
     'updatedAfter',
     'updatedBefore'
   );
-  
-  const conditions    = ['1=1'];
-  const params        = [];
+
+  const conditions = ['1=1'];
+  const params = [];
   const paramIndexRef = { value: 1 };
-  
+
   // ─── Exact-match filters ──────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.statusId) {
     conditions.push(`w.status_id = $${paramIndexRef.value}`);
     params.push(normalizedFilters.statusId);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.isArchived !== undefined) {
     conditions.push(`w.is_archived = $${paramIndexRef.value}`);
     params.push(normalizedFilters.isArchived);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.warehouseTypeId) {
     conditions.push(`w.type_id = $${paramIndexRef.value}`);
     params.push(normalizedFilters.warehouseTypeId);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.locationId) {
     conditions.push(`w.location_id = $${paramIndexRef.value}`);
     params.push(normalizedFilters.locationId);
     paramIndexRef.value++;
   }
-  
+
   // ─── ILIKE filters ────────────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.name) {
     conditions.push(`w.name ILIKE $${paramIndexRef.value}`);
     params.push(`%${normalizedFilters.name}%`);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.code) {
     conditions.push(`w.code ILIKE $${paramIndexRef.value}`);
     params.push(`%${normalizedFilters.code}%`);
     paramIndexRef.value++;
   }
-  
+
   // ─── Audit filters ────────────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.createdBy) {
     conditions.push(`w.created_by = $${paramIndexRef.value}`);
     params.push(normalizedFilters.createdBy);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.updatedBy) {
     conditions.push(`w.updated_by = $${paramIndexRef.value}`);
     params.push(normalizedFilters.updatedBy);
     paramIndexRef.value++;
   }
-  
+
   // ─── Date range filters ───────────────────────────────────────────────────────
-  
+
   applyDateRangeConditions({
     conditions,
     params,
-    column:        'w.created_at',
-    after:         normalizedFilters.createdAfter,
-    before:        normalizedFilters.createdBefore,
+    column: 'w.created_at',
+    after: normalizedFilters.createdAfter,
+    before: normalizedFilters.createdBefore,
     paramIndexRef,
   });
-  
+
   applyDateRangeConditions({
     conditions,
     params,
-    column:        'w.updated_at',
-    after:         normalizedFilters.updatedAfter,
-    before:        normalizedFilters.updatedBefore,
+    column: 'w.updated_at',
+    after: normalizedFilters.updatedAfter,
+    before: normalizedFilters.updatedBefore,
     paramIndexRef,
   });
-  
+
   // ─── Keyword (must remain last) ───────────────────────────────────────────────
-  
+
   if (normalizedFilters.keyword) {
     // Collapse internal whitespace before wrapping — prevents double-space
     // literals from breaking ILIKE matches on normalized DB values.
@@ -141,7 +141,7 @@ const buildWarehouseFilter = (filters = {}) => {
     params.push(kw);
     paramIndexRef.value++;
   }
-  
+
   return {
     whereClause: conditions.join(' AND '),
     params,

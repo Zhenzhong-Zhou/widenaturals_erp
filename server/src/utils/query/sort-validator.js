@@ -59,28 +59,27 @@ const AppError = require('../AppError');
  * });
  */
 const validateSortingConfig = ({
-                                 sortBy,
-                                 additionalSorts = [],
-                                 rawOrderBy,
-                                 whitelistSet,
-                                 context,
-                               }) => {
+  sortBy,
+  additionalSorts = [],
+  rawOrderBy,
+  whitelistSet,
+  context,
+}) => {
   // context is required on every call so error messages are always traceable.
   if (!context || typeof context !== 'string') {
     throw AppError.validationError('Invalid context for sorting validation');
   }
-  
+
   if (!Array.isArray(additionalSorts)) {
-    throw AppError.validationError(
-      'additionalSorts must be an array',
-      { context }
-    );
+    throw AppError.validationError('additionalSorts must be an array', {
+      context,
+    });
   }
-  
+
   // Dynamic sorting is active when either a primary sort column or at least
   // one additional sort column is present.
   const hasDynamicSort = Boolean(sortBy) || additionalSorts.length > 0;
-  
+
   // rawOrderBy and dynamic sorting write to the same ORDER BY clause —
   // combining them would produce ambiguous or malformed SQL.
   if (rawOrderBy && hasDynamicSort) {
@@ -89,7 +88,7 @@ const validateSortingConfig = ({
       { context }
     );
   }
-  
+
   // Dynamic sorting delegates column safety to safeOrderBy, which requires
   // a whitelist. Failing here early is cleaner than failing inside SQL construction.
   if (hasDynamicSort) {

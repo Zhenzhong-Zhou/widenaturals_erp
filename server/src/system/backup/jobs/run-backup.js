@@ -38,10 +38,10 @@ const runBackup = async () => {
   logSystemInfo('Starting database backup process...', {
     context: CONTEXT,
   });
-  
+
   try {
     await backupDatabase();
-    
+
     logSystemInfo('Database backup completed successfully.', {
       context: CONTEXT,
     });
@@ -49,14 +49,14 @@ const runBackup = async () => {
     logSystemException(error, 'Database backup failed.', {
       context: CONTEXT,
     });
-    
+
     // Re-throw to let caller decide exit strategy
     throw error;
   }
 };
 
 module.exports = {
-  runBackup
+  runBackup,
 };
 
 //--------------------------------------------------
@@ -71,7 +71,7 @@ if (require.main === module) {
       logSystemException(error, 'Unhandled backup execution error', {
         context: CONTEXT,
       });
-      
+
       void handleExit(1);
     });
 }

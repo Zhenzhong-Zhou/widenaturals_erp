@@ -1,90 +1,69 @@
 /**
- * ================================================================
- * Pricing Thunks Module
- * ================================================================
- *
- * Responsibility:
- * - Orchestrates pricing-related asynchronous workflows.
- * - Serves as the boundary between UI and pricingService.
- *
- * Scope:
- * - Fetch paginated pricing records
- * - Fetch pricing details by pricing type
- *
- * Architecture:
- * - Delegates API calls to pricingService
- * - No transformation performed at thunk level
- * - Redux state stores service response models directly
- *
- * Error Model:
- * - All failures return `UiErrorPayload`
- * - Errors are normalized via `extractUiErrorPayload`
- * ================================================================
+ * @file pricingThunks.ts
+ * @description Async thunks for pricing join list data fetching and export.
  */
 
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import type {
-  FetchPricingParams,
-  PaginatedPricingDetailsResponse,
-  PaginatedPricingRecordsResponse,
-} from '@features/pricing/state/pricingTypes';
+  PaginatedPricingListUiResponse,
+  PricingQueryParams,
+  PricingExportQueryParams,
+} from '@features/pricing';
 import { pricingService } from '@services/pricingService';
+import { extractUiErrorPayload } from '@utils/error';
 import type { UiErrorPayload } from '@utils/error/uiErrorUtils';
-import { extractUiErrorPayload } from '@utils/error/uiErrorUtils';
+import { buildExportFileSuffix, flattenPricingJoinRecords } from '@features/pricing/utils';
 
 /**
- * Fetches a paginated list of pricing records.
- *
- * Responsibilities:
- * - Calls pricingService.fetchPaginatedPricingRecords
- * - Passes pagination, sorting, filtering, and keyword parameters
- * - Returns service response directly (no transformation)
- *
- * Error Model:
- * - Failures return `UiErrorPayload`
- *
- * @param params - Pagination, filtering, sorting, and search options
+ * Fetch a paginated list of joined pricing records with optional filters and sorting.
  */
-export const fetchPricingListDataThunk = createAsyncThunk<
-  PaginatedPricingRecordsResponse,
-  FetchPricingParams,
-  { rejectValue: UiErrorPayload }
->('pricing/fetchPricingData', async (params, { rejectWithValue }) => {
-  try {
-    return await pricingService.fetchPaginatedPricingRecords(params);
-  } catch (error: unknown) {
-    return rejectWithValue(extractUiErrorPayload(error));
-  }
-});
-
-/**
- * Fetches paginated pricing details for a specific pricing type.
- *
- * Responsibilities:
- * - Calls pricingService.fetchPricingDetailsByType
- * - Returns enriched pricing records associated with a pricing type
- * - Preserves pagination metadata
- *
- * Error Model:
- * - Failures return `UiErrorPayload`
- *
- * @param pricingTypeId - Pricing type UUID
- * @param page          - Page number (default: 1)
- * @param limit         - Page size (default: 10)
- */
-export const fetchPricingDetailsByTypeThunk = createAsyncThunk<
-  PaginatedPricingDetailsResponse,
-  { pricingTypeId: string; page?: number; limit?: number },
+export const fetchPaginatedPricingThunk = createAsyncThunk<
+  PaginatedPricingListUiResponse,
+  PricingQueryParams,
   { rejectValue: UiErrorPayload }
 >(
-  'pricing/getPricingDetailsByType',
-  async ({ pricingTypeId, page = 1, limit = 10 }, { rejectWithValue }) => {
+  'pricing/fetchPaginatedPricing',
+    async (params, { rejectWithValue }) => {
+      try {
+        const response = await pricingService.fetchPaginatedPricing(params);
+        return {
+          ...response,
+          data: flattenPricingJoinRecords(response.data),
+        };
+      } catch (error: unknown) {
+        return rejectWithValue(extractUiErrorPayload(error));
+      }
+    }
+);
+
+/**
+ * Download a pricing export file in the requested format.
+ */
+export const exportPricingThunk = createAsyncThunk<
+  void,
+  PricingExportQueryParams,
+  { rejectValue: UiErrorPayload }
+>(
+  'pricing/exportPricing',
+  async (params, { rejectWithValue }) => {
     try {
-      return await pricingService.fetchPricingDetailsByType(
-        pricingTypeId,
-        page,
-        limit
-      );
+      const blob = await pricingService.exportPricing(params);
+      const url = URL.createObjectURL(blob);
+      const now = new Date();
+      const timestamp = [
+        now.getFullYear(),
+        String(now.getMonth() + 1).padStart(2, '0'),
+        String(now.getDate()).padStart(2, '0'),
+        String(now.getHours()).padStart(2, '0'),
+        String(now.getMinutes()).padStart(2, '0'),
+      ].join('-');
+      const suffix = buildExportFileSuffix(params.filters ?? {});
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `pricing_export${suffix}_${timestamp}.${params.exportFormat ?? 'xlsx'}`;
+      a.click();
+      URL.revokeObjectURL(url);
+      return;
     } catch (error: unknown) {
       return rejectWithValue(extractUiErrorPayload(error));
     }

@@ -5,12 +5,25 @@ import UserDashboardPage from '@features/dashboard/pages/UserDashboardPage';
 import type { DashboardPageProps } from '@features/dashboard';
 import { usePermissionsContext } from '@context/PermissionsContext';
 
-type RoleName = 'root_admin' | 'admin' | 'manager';
+type RoleName =
+  | 'root_admin'
+  | 'admin'
+  | 'manager'
+  | 'warehouse_manager'
+  | 'sales_manager'
+  | 'warehouse_staff'
+  | 'sales_rep'
+  | 'auditor';
 
 const roleComponentMap: Partial<Record<RoleName, FC<DashboardPageProps>>> = {
   root_admin: AdminDashboardPage,
   admin: AdminDashboardPage,
   manager: ManagerDashboardPage,
+  warehouse_manager: ManagerDashboardPage,
+  sales_manager: ManagerDashboardPage,
+  warehouse_staff: UserDashboardPage,
+  sales_rep: UserDashboardPage,
+  auditor: AdminDashboardPage,
 };
 
 const resolveDashboardComponent = (

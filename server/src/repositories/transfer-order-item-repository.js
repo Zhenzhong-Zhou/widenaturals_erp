@@ -9,7 +9,9 @@
 'use strict';
 
 const { existsQuery } = require('./utils/repository-helper');
-const { SKU_HAS_ACTIVE_TRANSFERS_QUERY } = require('./queries/transfer-order-item-queries');
+const {
+  SKU_HAS_ACTIVE_TRANSFERS_QUERY,
+} = require('./queries/transfer-order-item-queries');
 
 // ─── Active Transfer Check ────────────────────────────────────────────────────
 
@@ -23,9 +25,13 @@ const { SKU_HAS_ACTIVE_TRANSFERS_QUERY } = require('./queries/transfer-order-ite
  * @returns {Promise<boolean>}
  * @throws  {AppError} Normalized database error if the query fails.
  */
-const skuHasActiveTransfers = async (skuId, activeTransferStatusIds, client = null) => {
+const skuHasActiveTransfers = async (
+  skuId,
+  activeTransferStatusIds,
+  client = null
+) => {
   const context = 'transfer-repository/skuHasActiveTransfers';
-  
+
   return existsQuery(
     SKU_HAS_ACTIVE_TRANSFERS_QUERY,
     [skuId, activeTransferStatusIds],

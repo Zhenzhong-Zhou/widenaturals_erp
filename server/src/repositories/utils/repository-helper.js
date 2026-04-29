@@ -27,7 +27,13 @@ const { logDbQueryError } = require('../../utils/db-logger');
  * @returns {Promise<boolean>} True if at least one row exists, false otherwise.
  * @throws  {AppError}         Normalized database error if the query fails.
  */
-const existsQuery = async (queryText, params, context, message, client = null) => {
+const existsQuery = async (
+  queryText,
+  params,
+  context,
+  message,
+  client = null
+) => {
   try {
     const { rowCount } = await query(queryText, params, client);
     return rowCount > 0;

@@ -20,34 +20,41 @@ export const flattenInventoryAllocationSummary = (
   orderNumber: record.orderNumber,
   orderType: record.orderType,
   orderCategory: record.orderCategory,
-
-  orderStatusName: record.orderStatus.name,
-  orderStatusCode: record.orderStatus.code,
-
-  customerName: record.customer.fullName,
-
-  paymentMethod: record.paymentMethod,
-  paymentStatusName: record.paymentStatus.name,
-  paymentStatusCode: record.paymentStatus.code,
-
-  deliveryMethod: record.deliveryMethod,
-
-  orderCreatedAt: record.orderCreatedAt,
-  orderCreatedBy: record.orderCreatedBy,
-  orderUpdatedAt: record.orderUpdatedAt,
-  orderUpdatedBy: record.orderUpdatedBy,
-
-  totalItemCount: record.itemCount.total,
-  allocatedItemCount: record.itemCount.allocated,
-
-  warehouseIds: record.warehouses.ids,
-  warehouseNames: record.warehouses.names,
-
-  allocationStatusCodes: record.allocationStatus.codes,
-  allocationStatusNames: record.allocationStatus.names,
-  allocationSummaryStatus: record.allocationStatus.summary,
-
-  allocationIds: record.allocationIds,
-  allocatedAt: record.allocatedAt,
-  allocatedCreatedAt: record.allocatedCreatedAt,
+  
+  orderStatusName: record.orderStatus?.name ?? null,
+  orderStatusCode: record.orderStatus?.code ?? null,
+  
+  customerType: record.customer?.type ?? null,
+  customerFirstname: record.customer?.firstname ?? null,
+  customerLastname: record.customer?.lastname ?? null,
+  customerCompanyName: record.customer?.companyName ?? null,
+  customerName: record.customer?.customerName ?? null,
+  
+  paymentMethod: record.paymentMethod ?? null,
+  paymentStatusName: record.paymentStatus?.name ?? null,
+  paymentStatusCode: record.paymentStatus?.code ?? null,
+  
+  deliveryMethod: record.deliveryMethod ?? null,
+  
+  orderCreatedByFirstname: record.orderCreatedBy?.firstname ?? null,
+  orderCreatedByLastname: record.orderCreatedBy?.lastname ?? null,
+  orderCreatedBy: record.orderCreatedBy?.fullName ?? null,
+  
+  orderUpdatedByFirstname: record.orderUpdatedBy?.firstname ?? null,
+  orderUpdatedByLastname: record.orderUpdatedBy?.lastname ?? null,
+  orderUpdatedBy: record.orderUpdatedBy?.fullName ?? null,
+  
+  totalItemCount: record.itemCount?.total ?? 0,
+  allocatedItemCount: record.itemCount?.allocated ?? 0,
+  
+  warehouseIds: record.warehouses?.ids ?? [],
+  warehouseNames: record.warehouses?.names ?? '',
+  
+  allocationStatusCodes: record.allocationStatus?.codes ?? [],
+  allocationStatusNames: record.allocationStatus?.names ?? '',
+  allocationSummaryStatus: record.allocationStatus?.summary ?? 'Unknown',
+  
+  allocationIds: record.allocationIds ?? [],
+  allocatedAt: record.allocatedAt ?? null,
+  allocatedCreatedAt: record.allocatedCreatedAt ?? null,
 });

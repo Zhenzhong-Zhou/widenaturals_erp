@@ -52,60 +52,60 @@ const buildTaxRateFilter = (filters = {}) => {
     'createdAfter',
     'createdBefore'
   );
-  
-  const conditions    = ['1=1'];
-  const params        = [];
+
+  const conditions = ['1=1'];
+  const params = [];
   const paramIndexRef = { value: 1 };
-  
+
   // ─── Exact-match filters ──────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.name) {
     conditions.push(`tr.name = $${paramIndexRef.value}`);
     params.push(normalizedFilters.name);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.region) {
     conditions.push(`tr.region = $${paramIndexRef.value}`);
     params.push(normalizedFilters.region);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.province) {
     conditions.push(`tr.province = $${paramIndexRef.value}`);
     params.push(normalizedFilters.province);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.isActive !== undefined) {
     conditions.push(`tr.is_active = $${paramIndexRef.value}`);
     params.push(normalizedFilters.isActive);
     paramIndexRef.value++;
   }
-  
+
   // ─── Audit filters ────────────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.createdBy) {
     conditions.push(`tr.created_by = $${paramIndexRef.value}`);
     params.push(normalizedFilters.createdBy);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.updatedBy) {
     conditions.push(`tr.updated_by = $${paramIndexRef.value}`);
     params.push(normalizedFilters.updatedBy);
     paramIndexRef.value++;
   }
-  
+
   // ─── Keyword search ───────────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.keyword) {
     const keywordConditions = [
       `(tr.name ILIKE $${paramIndexRef.value} OR tr.province ILIKE $${paramIndexRef.value})`,
     ];
     params.push(`%${normalizedFilters.keyword}%`);
     paramIndexRef.value++;
-    
+
     if (normalizedFilters._restrictKeywordToValidOnly) {
       // Hardcoded sentinels — no params needed.
       keywordConditions.push(`tr.valid_from <= NOW()`);
@@ -116,24 +116,24 @@ const buildTaxRateFilter = (filters = {}) => {
       params.push(normalizedFilters.isActive);
       paramIndexRef.value++;
     }
-    
+
     conditions.push(`(${keywordConditions.join(' AND ')})`);
   }
-  
+
   // ─── Validity window filters (business timestamps — not normalized) ───────────
-  
+
   if (normalizedFilters.validFrom) {
     conditions.push(`tr.valid_from >= $${paramIndexRef.value}`);
     params.push(normalizedFilters.validFrom);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.validTo) {
     conditions.push(`tr.valid_to <= $${paramIndexRef.value}`);
     params.push(normalizedFilters.validTo);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.validOn) {
     // Same $N referenced twice — single param covers both sides of the window.
     conditions.push(`(
@@ -143,18 +143,18 @@ const buildTaxRateFilter = (filters = {}) => {
     params.push(normalizedFilters.validOn);
     paramIndexRef.value++;
   }
-  
+
   // ─── Created date range ───────────────────────────────────────────────────────
-  
+
   applyDateRangeConditions({
     conditions,
     params,
-    column:        'tr.created_at',
-    after:         normalizedFilters.createdAfter,
-    before:        normalizedFilters.createdBefore,
+    column: 'tr.created_at',
+    after: normalizedFilters.createdAfter,
+    before: normalizedFilters.createdBefore,
     paramIndexRef,
   });
-  
+
   return {
     whereClause: conditions.join(' AND '),
     params,

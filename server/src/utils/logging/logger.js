@@ -104,10 +104,7 @@ const logger = createLogger({
     new transports.Console({
       format: isProduction
         ? jsonFormatter
-        : format.combine(
-          format.colorize({ all: true }),
-          format.simple()
-        ),
+        : format.combine(format.colorize({ all: true }), format.simple()),
     }),
     generalLogsTransport,
   ],
@@ -139,16 +136,16 @@ const handleRotationAndUpload = (transport, prefix) => {
     (async () => {
       try {
         const gzFile = `${oldFile}.gz`;
-        
+
         await compressFile(oldFile, gzFile);
-        
+
         if (bucketName) {
           // Lazy require — breaks the circular dependency
           const { uploadFileToS3 } = require('../aws-s3-service');
           const key = `${prefix}/${path.basename(gzFile)}`;
-          
+
           await uploadFileToS3(gzFile, bucketName, key);
-          
+
           await fs.promises.unlink(oldFile);
           await fs.promises.unlink(gzFile);
         }

@@ -9,13 +9,13 @@
 
 'use strict';
 
-const express                            = require('express');
-const { authorize }                      = require('../middlewares/authorize');
-const validate                           = require('../middlewares/validate');
+const express = require('express');
+const { authorize } = require('../middlewares/authorize');
+const validate = require('../middlewares/validate');
 const createQueryNormalizationMiddleware = require('../middlewares/normalize-query');
-const PERMISSIONS                        = require('../utils/constants/domain/permissions');
-const AppError                           = require('../utils/AppError');
-const salesOrderSchema                   = require('../validators/sales-order-validators');
+const PERMISSION_KEYS = require('../utils/constants/domain/permission-keys');
+const AppError = require('../utils/AppError');
+const salesOrderSchema = require('../validators/sales-order-validators');
 const {
   orderCategorySchema,
   orderIdentifierSchema,
@@ -48,21 +48,21 @@ const schemaMap = {
  * Unsupported categories are rejected with a validation error before reaching
  * the controller.
  * @access protected
- * @permission ORDERS.CREATE
+ * @permission PERMISSION_KEYS.ORDERS.CREATE
  */
 router.post(
   '/create/:category',
-  authorize([PERMISSIONS.ORDERS.CREATE]),
+  authorize([PERMISSION_KEYS.ORDERS.CREATE]),
   (req, res, next) => {
     const category = req.params.category.toLowerCase();
-    const schema   = schemaMap[category];
-    
+    const schema = schemaMap[category];
+
     if (!schema) {
       return next(
         AppError.validationError(`Unsupported order category: ${category}`)
       );
     }
-    
+
     return validate(schema, 'body')(req, res, next);
   },
   createOrderController
@@ -74,18 +74,18 @@ router.post(
  * and sorting.
  * Sorting: sortBy, sortOrder (uses orderSortMap).
  * @access protected
- * @permission ORDERS.VIEW
+ * @permission PERMISSION_KEYS.ORDERS.VIEW
  */
 router.get(
   '/:category',
-  authorize([PERMISSIONS.ORDERS.VIEW]),
+  authorize([PERMISSION_KEYS.ORDERS.VIEW]),
   validate(orderCategorySchema, 'params'),
   validate(orderQuerySchema, 'query'),
   createQueryNormalizationMiddleware(
-    'orderSortMap',    // moduleKey — drives allowed sortBy fields
-    [],                // arrayKeys — none for orders
-    [],                // booleanKeys — none client-controlled
-    orderQuerySchema   // filterKeysOrSchema — extracts filter keys from schema
+    'orderSortMap', // moduleKey — drives allowed sortBy fields
+    [], // arrayKeys — none for orders
+    [], // booleanKeys — none client-controlled
+    orderQuerySchema // filterKeysOrSchema — extracts filter keys from schema
   ),
   fetchPaginatedOrdersController
 );
@@ -94,11 +94,11 @@ router.get(
  * @route GET /orders/:category/:orderId
  * @description Full detail record for a single order by category and order ID.
  * @access protected
- * @permission ORDERS.VIEW
+ * @permission PERMISSION_KEYS.ORDERS.VIEW
  */
 router.get(
   '/:category/:orderId',
-  authorize([PERMISSIONS.ORDERS.VIEW]),
+  authorize([PERMISSION_KEYS.ORDERS.VIEW]),
   validate(orderIdentifierSchema, 'params'),
   getOrderDetailsByIdController
 );
@@ -108,11 +108,11 @@ router.get(
  * @description Update the status of a specific order. Validates both the order
  * identifier and the status transition payload before delegating to the controller.
  * @access protected
- * @permission ORDERS.UPDATE_STATUS
+ * @permission PERMISSION_KEYS.ORDERS.UPDATE_STATUS
  */
 router.patch(
   '/:category/:orderId/status',
-  authorize([PERMISSIONS.ORDERS.UPDATE_STATUS]),
+  authorize([PERMISSION_KEYS.ORDERS.UPDATE_STATUS]),
   validate(orderIdentifierSchema, 'params'),
   validate(updateOrderStatusSchema, 'body'),
   updateOrderStatusController

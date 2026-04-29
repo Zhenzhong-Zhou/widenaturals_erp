@@ -29,12 +29,18 @@
 
 'use strict';
 
-const { logInfo, logWarn, logError } = require('../utils/logging/logger-helper');
-const { extractRequestContext }       = require('../utils/request-context');
-const { maskSensitiveParams }         = require('../utils/masking/mask-sensitive-params');
+const {
+  logInfo,
+  logWarn,
+  logError,
+} = require('../utils/logging/logger-helper');
+const { extractRequestContext } = require('../utils/request-context');
+const {
+  maskSensitiveParams,
+} = require('../utils/masking/mask-sensitive-params');
 
 const CONTEXT = 'middleware/request-logger';
-const isDev   = process.env.NODE_ENV === 'development';
+const isDev = process.env.NODE_ENV === 'development';
 
 // -----------------------------------------------------------------------------
 // Ignored routes — resolved once at module load
@@ -96,23 +102,23 @@ const requestLogger = (req, res, next) => {
     next();
     return;
   }
-  
+
   // ---------------------------------------------------------------------------
   // finish — response fully sent
   // Fires after res.end() completes and all data has been flushed.
   // ---------------------------------------------------------------------------
   res.on('finish', () => {
-    const statusCode     = res.statusCode;
-    const durationMs     = getDurationMs(req);
+    const statusCode = res.statusCode;
+    const durationMs = getDurationMs(req);
     const requestContext = extractRequestContext(req);
-    
+
     const logMeta = {
       ...requestContext,
       context: CONTEXT,
       statusCode,
       durationMs,
     };
-    
+
     // 5xx — server fault.
     // Log request metadata only — the error itself was already normalized and
     // logged once by globalErrorHandler. Logging it again here would create
@@ -121,7 +127,7 @@ const requestLogger = (req, res, next) => {
       logError('Server error response', req, logMeta);
       return;
     }
-    
+
     // 4xx — client fault.
     // Include the masked request body in development to aid debugging of
     // validation and auth errors without risking credential exposure in prod.
@@ -129,15 +135,15 @@ const requestLogger = (req, res, next) => {
       if (isDev) {
         logMeta.requestBody = maskSensitiveParams(req.body);
       }
-      
+
       logWarn('Client error response', req, logMeta);
       return;
     }
-    
+
     // 2xx / 3xx — success or redirect.
     logInfo('Request completed', req, logMeta);
   });
-  
+
   // ---------------------------------------------------------------------------
   // close — connection dropped before response was fully sent.
   // writableEnded being true means the response finished normally and the
@@ -145,15 +151,15 @@ const requestLogger = (req, res, next) => {
   // ---------------------------------------------------------------------------
   res.on('close', () => {
     if (res.writableEnded) return;
-    
+
     logWarn('Request aborted by client', req, {
       ...extractRequestContext(req),
-      context:    CONTEXT,
+      context: CONTEXT,
       durationMs: getDurationMs(req),
-      event:      'aborted',
+      event: 'aborted',
     });
   });
-  
+
   next();
 };
 

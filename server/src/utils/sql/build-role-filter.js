@@ -38,17 +38,18 @@
  * @returns {{ whereClause: string, params: Array }}
  */
 const buildRoleFilter = (filters = {}) => {
-  const conditions    = ['1=1'];
-  const params        = [];
+  const conditions = ['1=1'];
+  const params = [];
   const paramIndexRef = { value: 1 };
-  
+
   // ─── Status ──────────────────────────────────────────────────────────────────
-  
-  const statusFilterValue =
-    filters.statusIds?.length ? filters.statusIds  :
-      filters.status_id         ? filters.status_id  :
-        filters._activeStatusId;
-  
+
+  const statusFilterValue = filters.statusIds?.length
+    ? filters.statusIds
+    : filters.status_id
+      ? filters.status_id
+      : filters._activeStatusId;
+
   if (statusFilterValue != null) {
     conditions.push(
       Array.isArray(statusFilterValue)
@@ -58,58 +59,58 @@ const buildRoleFilter = (filters = {}) => {
     params.push(statusFilterValue);
     paramIndexRef.value++;
   }
-  
+
   // ─── ACL Enforcement (server-injected only) ───────────────────────────────────
-  
+
   // These flags restrict visibility based on the caller's role hierarchy.
   // They must never be derived from client input.
   if (filters._excludeSystemRoles) {
     conditions.push(`r.name <> 'system'`);
   }
-  
+
   if (filters._excludeRootRoles) {
     conditions.push(`r.name <> 'root_admin'`);
   }
-  
+
   if (filters._excludeAdminRoles) {
     conditions.push(`r.name <> 'admin'`);
   }
-  
+
   if (filters._maxHierarchyLevel !== undefined) {
     // Only show roles below the caller's hierarchy level.
     conditions.push(`r.hierarchy_level > $${paramIndexRef.value}`);
     params.push(filters._maxHierarchyLevel);
     paramIndexRef.value++;
   }
-  
+
   // ─── Structural ──────────────────────────────────────────────────────────────
-  
+
   if (filters.role_group) {
     conditions.push(`r.role_group = $${paramIndexRef.value}`);
     params.push(filters.role_group);
     paramIndexRef.value++;
   }
-  
+
   if (filters.is_active !== undefined) {
     conditions.push(`r.is_active = $${paramIndexRef.value}`);
     params.push(filters.is_active);
     paramIndexRef.value++;
   }
-  
+
   if (filters.parent_role_id) {
     conditions.push(`r.parent_role_id = $${paramIndexRef.value}`);
     params.push(filters.parent_role_id);
     paramIndexRef.value++;
   }
-  
+
   if (filters.hierarchy_level !== undefined) {
     conditions.push(`r.hierarchy_level = $${paramIndexRef.value}`);
     params.push(filters.hierarchy_level);
     paramIndexRef.value++;
   }
-  
+
   // ─── Keyword (must remain last) ──────────────────────────────────────────────
-  
+
   // Same $N referenced three times — single param covers all columns.
   if (filters.keyword) {
     conditions.push(`(
@@ -120,7 +121,7 @@ const buildRoleFilter = (filters = {}) => {
     params.push(`%${filters.keyword}%`);
     paramIndexRef.value++;
   }
-  
+
   return {
     whereClause: conditions.join(' AND '),
     params,

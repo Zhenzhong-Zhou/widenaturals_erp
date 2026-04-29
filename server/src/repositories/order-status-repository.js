@@ -16,7 +16,10 @@
 
 'use strict';
 
-const { getUniqueScalarValue, getFieldsById } = require('../utils/db/record-utils');
+const {
+  getUniqueScalarValue,
+  getFieldsById,
+} = require('../utils/db/record-utils');
 const { query } = require('../database/db');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { logDbQueryError } = require('../utils/db-logger');
@@ -42,8 +45,8 @@ const {
 const getOrderStatusIdByCode = async (code, client = null) => {
   return await getUniqueScalarValue(
     {
-      table:  'order_status',
-      where:  { code },
+      table: 'order_status',
+      where: { code },
       select: 'id',
     },
     client,
@@ -68,18 +71,24 @@ const getOrderStatusIdByCode = async (code, client = null) => {
  */
 const getOrderStatusByCode = async (statusCode, client = null) => {
   const context = 'order-status-repository/getOrderStatusByCode';
-  
+
   try {
-    const { rows } = await query(ORDER_STATUS_GET_BY_CODE, [statusCode], client);
+    const { rows } = await query(
+      ORDER_STATUS_GET_BY_CODE,
+      [statusCode],
+      client
+    );
     return rows[0] ?? null;
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch order status by code.',
-      meta:    { statusCode },
-      logFn:   (err) => logDbQueryError(
-        ORDER_STATUS_GET_BY_CODE, [statusCode], err, { context, statusCode }
-      ),
+      meta: { statusCode },
+      logFn: (err) =>
+        logDbQueryError(ORDER_STATUS_GET_BY_CODE, [statusCode], err, {
+          context,
+          statusCode,
+        }),
     });
   }
 };
@@ -120,20 +129,26 @@ const getOrderStatusMetadataById = async (id, client) => {
  */
 const getOrderStatusesByCodes = async (statusCodes, client) => {
   if (!Array.isArray(statusCodes) || statusCodes.length === 0) return [];
-  
+
   const context = 'order-status-repository/getOrderStatusesByCodes';
-  
+
   try {
-    const result = await query(ORDER_STATUS_GET_BY_CODES, [statusCodes], client);
+    const result = await query(
+      ORDER_STATUS_GET_BY_CODES,
+      [statusCodes],
+      client
+    );
     return result.rows;
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch order statuses by codes.',
-      meta:    { statusCodes },
-      logFn:   (err) => logDbQueryError(
-        ORDER_STATUS_GET_BY_CODES, [statusCodes], err, { context, statusCodes }
-      ),
+      meta: { statusCodes },
+      logFn: (err) =>
+        logDbQueryError(ORDER_STATUS_GET_BY_CODES, [statusCodes], err, {
+          context,
+          statusCodes,
+        }),
     });
   }
 };

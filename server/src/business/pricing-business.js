@@ -7,7 +7,10 @@
 
 'use strict';
 
-const { logSystemWarn, logSystemException } = require('../utils/logging/system-logger');
+const {
+  logSystemWarn,
+  logSystemException,
+} = require('../utils/logging/system-logger');
 const {
   resolveUserPermissionContext,
 } = require('../services/permission-service');
@@ -34,13 +37,13 @@ const PUBLIC_PRICE_TYPES = ['MSRP', 'RETAIL'];
  */
 const resolveFinalPrice = (submittedPrice, dbPrice) => {
   const context = `${CONTEXT}/resolveFinalPrice`;
-  
+
   const cleanSubmittedPrice = parseFloat(submittedPrice);
-  const cleanDbPrice        = parseFloat(dbPrice);
-  
+  const cleanDbPrice = parseFloat(dbPrice);
+
   if (isNaN(cleanSubmittedPrice)) return cleanDbPrice;
   if (cleanSubmittedPrice === cleanDbPrice) return cleanDbPrice;
-  
+
   if (cleanSubmittedPrice > 0 && cleanSubmittedPrice !== cleanDbPrice) {
     logSystemWarn('Manual price override applied', {
       context,
@@ -49,7 +52,7 @@ const resolveFinalPrice = (submittedPrice, dbPrice) => {
     });
     return cleanSubmittedPrice;
   }
-  
+
   return cleanDbPrice;
 };
 
@@ -62,10 +65,10 @@ const resolveFinalPrice = (submittedPrice, dbPrice) => {
  */
 const evaluatePricingViewAccessControl = async (user) => {
   const context = `${CONTEXT}/evaluatePricingViewAccessControl`;
-  
+
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     return {
       canViewAllPricingTypes:
         isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_TYPES),
@@ -77,12 +80,11 @@ const evaluatePricingViewAccessControl = async (user) => {
         isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_VALID_PRICING),
     };
   } catch (err) {
-    logSystemException(
-      err,
-      'Failed to evaluate pricing view access control',
-      { context, userId: user?.id }
-    );
-    
+    logSystemException(err, 'Failed to evaluate pricing view access control', {
+      context,
+      userId: user?.id,
+    });
+
     throw AppError.businessError(
       'Unable to determine pricing visibility permissions.'
     );
@@ -106,14 +108,14 @@ const evaluatePricingViewAccessControl = async (user) => {
  */
 const slicePricingForUser = (pricingRows, access) => {
   if (!Array.isArray(pricingRows)) return [];
-  
+
   const ACTIVE_STATUS_ID = getStatusId('general_active');
   const now = new Date();
   const result = [];
-  
+
   for (const row of pricingRows) {
     const priceTypeName = row.price_type_name?.toUpperCase();
-    
+
     // Non-public price types require elevated access.
     if (
       !access.canViewAllPricingTypes &&
@@ -121,19 +123,19 @@ const slicePricingForUser = (pricingRows, access) => {
     ) {
       continue;
     }
-    
+
     if (!access.canViewInactivePricing && row.status_id !== ACTIVE_STATUS_ID) {
       continue;
     }
-    
+
     const validFrom = row.valid_from ? new Date(row.valid_from) : null;
     const validTo = row.valid_to ? new Date(row.valid_to) : null;
     const isExpired = validTo && validTo < now;
     const isNotYetValid = validFrom && validFrom > now;
-    
+
     if (!access.canViewPricingHistory && isExpired) continue;
     if (!access.canViewAllValidPricing && isNotYetValid) continue;
-    
+
     const safe = {
       id: row.pricing_id ?? row.id,
       skuId: row.sku_id,
@@ -147,21 +149,21 @@ const slicePricingForUser = (pricingRows, access) => {
       validFrom: row.valid_from,
       validTo: row.valid_to,
     };
-    
+
     if (access.canViewAllPricingTypes) {
       safe.status = {
         id: row.status_id,
         date: row.status_date,
       };
     }
-    
+
     if (access.canViewPricingHistory) {
       safe.audit = compactAudit(makeAudit(row));
     }
-    
+
     result.push(safe);
   }
-  
+
   return result;
 };
 
@@ -174,30 +176,25 @@ const slicePricingForUser = (pricingRows, access) => {
  */
 const evaluatePricingVisibility = async (user) => {
   const context = `${CONTEXT}/evaluatePricingVisibility`;
-  
+
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     const canViewAllPricingStates =
-      isRoot ||
-      permissions.includes(PERMISSIONS.VIEW_ALL_PRICING_STATES);
-    
+      isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_PRICING_STATES);
+
     const canViewAllValidPricing =
-      isRoot ||
-      permissions.includes(PERMISSIONS.VIEW_ALL_VALID_PRICING);
-    
+      isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_VALID_PRICING);
+
     const canViewInactive =
-      isRoot ||
-      permissions.includes(PERMISSIONS.VIEW_INACTIVE);
-    
+      isRoot || permissions.includes(PERMISSIONS.VIEW_INACTIVE);
+
     const canViewHistory =
-      isRoot ||
-      permissions.includes(PERMISSIONS.VIEW_HISTORY);
-    
+      isRoot || permissions.includes(PERMISSIONS.VIEW_HISTORY);
+
     const canExportPricing =
-      isRoot ||
-      permissions.includes(PERMISSIONS.EXPORT_PRICING);
-    
+      isRoot || permissions.includes(PERMISSIONS.EXPORT_PRICING);
+
     return {
       canViewAllPricingStates,
       canViewAllValidPricing,
@@ -226,17 +223,17 @@ const evaluatePricingVisibility = async (user) => {
  */
 const applyPricingVisibilityRules = (filters, acl) => {
   const adjusted = { ...filters };
-  
+
   // Restrict to currently valid pricing unless user can view all valid states.
   if (!acl.canViewAllValidPricing) {
     adjusted.currentlyValid = true;
   }
-  
+
   // Restrict to active status unless user can view inactive.
   if (!acl.canViewInactive && !acl.canViewAllPricingStates) {
     adjusted._restrictKeywordToValidOnly = true;
   }
-  
+
   return adjusted;
 };
 

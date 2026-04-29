@@ -25,19 +25,24 @@
  * @param {string}            [filters.category] - ILIKE filter on p.category.
  * @param {string}            [filters.series]   - ILIKE filter on p.series.
  */
-const applyProductFieldConditions = (conditions, params, paramIndexRef, filters) => {
+const applyProductFieldConditions = (
+  conditions,
+  params,
+  paramIndexRef,
+  filters
+) => {
   if (filters.brand) {
     conditions.push(`p.brand ILIKE $${paramIndexRef.value}`);
     params.push(`%${filters.brand}%`);
     paramIndexRef.value++;
   }
-  
+
   if (filters.category) {
     conditions.push(`p.category ILIKE $${paramIndexRef.value}`);
     params.push(`%${filters.category}%`);
     paramIndexRef.value++;
   }
-  
+
   if (filters.series) {
     conditions.push(`p.series ILIKE $${paramIndexRef.value}`);
     params.push(`%${filters.series}%`);

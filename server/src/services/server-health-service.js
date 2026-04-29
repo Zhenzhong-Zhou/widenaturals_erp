@@ -12,9 +12,12 @@
 
 'use strict';
 
-const { checkDatabaseHealth }              = require('../system/health/db-health');
-const { monitorPool }                      = require('../database/db');
-const { logSystemInfo, logSystemException } = require('../utils/logging/system-logger');
+const { checkDatabaseHealth } = require('../system/health/db-health');
+const { monitorPool } = require('../database/db');
+const {
+  logSystemInfo,
+  logSystemException,
+} = require('../utils/logging/system-logger');
 
 const CONTEXT = 'server-health-service';
 
@@ -47,15 +50,15 @@ const CONTEXT = 'server-health-service';
  */
 const checkServerHealthService = async () => {
   const isDev = process.env.NODE_ENV === 'development';
-  
+
   const status = {
-    server:   'healthy',
+    server: 'healthy',
     services: {
       database: { status: 'unknown' },
-      pool:     { status: 'unknown' },
+      pool: { status: 'unknown' },
     },
     metrics: {
-      uptime:    process.uptime(),
+      uptime: process.uptime(),
       timestamp: new Date().toISOString(),
       // Internal-only metrics — never expose via public API response.
       _internal: {
@@ -63,52 +66,52 @@ const checkServerHealthService = async () => {
       },
     },
   };
-  
+
   // Database health
   try {
     const dbStatus = await checkDatabaseHealth();
-    
+
     status.services.database = {
-      status:    dbStatus.status,
+      status: dbStatus.status,
       _internal: dbStatus,
     };
-    
+
     logSystemInfo('Database health check passed', {
       context: `${CONTEXT}/database`,
       // Include full metrics in dev for diagnostics; keep log lean in production.
       ...(isDev && { metrics: dbStatus }),
     });
   } catch (error) {
-    status.server                = 'unhealthy';
-    status.services.database     = { status: 'unhealthy' };
-    
+    status.server = 'unhealthy';
+    status.services.database = { status: 'unhealthy' };
+
     logSystemException(error, 'Database health check failed', {
       context: `${CONTEXT}/database`,
     });
   }
-  
+
   // Pool health
   try {
     const poolMetrics = await monitorPool();
-    
+
     status.services.pool = {
-      status:    'healthy',
+      status: 'healthy',
       _internal: poolMetrics,
     };
-    
+
     logSystemInfo('Pool health check passed', {
       context: `${CONTEXT}/pool`,
       ...(isDev && { metrics: poolMetrics }),
     });
   } catch (error) {
-    status.server            = 'unhealthy';
-    status.services.pool     = { status: 'unhealthy' };
-    
+    status.server = 'unhealthy';
+    status.services.pool = { status: 'unhealthy' };
+
     logSystemException(error, 'Pool health check failed', {
       context: `${CONTEXT}/pool`,
     });
   }
-  
+
   return status;
 };
 

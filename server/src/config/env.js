@@ -42,7 +42,7 @@ const ALLOWED_ENVS = ['development', 'test', 'staging', 'production'];
  */
 const loadSecret = (secretName, envVarName) => {
   const secretPath = `/run/secrets/${secretName}`;
-  
+
   try {
     return fs.readFileSync(secretPath, 'utf-8').trim();
   } catch {
@@ -65,19 +65,19 @@ const loadSecret = (secretName, envVarName) => {
  */
 const loadEnv = () => {
   const env = process.env.NODE_ENV?.trim().toLowerCase() || 'development';
-  
+
   if (!ALLOWED_ENVS.includes(env)) {
     throw AppError.initializationError(
       `Invalid NODE_ENV: ${env}. Allowed values: ${ALLOWED_ENVS.join(', ')}`
     );
   }
-  
+
   const envPaths = [
     path.resolve(__dirname, '../../../env/.env.defaults'),
     path.resolve(__dirname, `../../../env/${env}/.env.server`),
     path.resolve(__dirname, `../../../env/${env}/.env.database`),
   ];
-  
+
   envPaths.forEach((filePath) => {
     if (fs.existsSync(filePath)) {
       dotenv.config({ path: filePath });
@@ -94,7 +94,7 @@ const loadEnv = () => {
       });
     }
   });
-  
+
   return { env };
 };
 
@@ -144,42 +144,42 @@ const applyEnvDefaults = (groups) => {
 const validateEnv = (groups) => {
   const missingVars = [];
   const invalidVars = [];
-  
+
   // Apply defaults first so validation reflects final effective config.
   applyEnvDefaults(groups);
-  
+
   for (const vars of Object.values(groups)) {
     vars.forEach(({ envVar, secret, required, validate }) => {
       const value = secret ? secret() : process.env[envVar];
-      
+
       if (required && (value == null || value === '')) {
         missingVars.push(envVar);
         return;
       }
-      
+
       if (value != null && typeof validate === 'function' && !validate(value)) {
         invalidVars.push(envVar);
       }
     });
   }
-  
+
   if (missingVars.length > 0) {
     logSystemFatal('Missing required environment variables or secrets', {
       context: ENV_CONTEXT,
       missingVars,
     });
-    
+
     throw AppError.initializationError(
       `Missing required environment variables or secrets: ${missingVars.join(', ')}`
     );
   }
-  
+
   if (invalidVars.length > 0) {
     logSystemFatal('Invalid environment variable values detected', {
       context: ENV_CONTEXT,
       invalidVars,
     });
-    
+
     throw AppError.initializationError(
       `Invalid environment variable values: ${invalidVars.join(', ')}`
     );

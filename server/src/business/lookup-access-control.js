@@ -7,9 +7,11 @@
 
 'use strict';
 
-const { resolveUserPermissionContext } = require('../services/permission-service');
-const { logSystemException }           = require('../utils/logging/system-logger');
-const AppError                         = require('../utils/AppError');
+const {
+  resolveUserPermissionContext,
+} = require('../services/permission-service');
+const { logSystemException } = require('../utils/logging/system-logger');
+const AppError = require('../utils/AppError');
 
 const CONTEXT = 'lookup-access-control';
 
@@ -31,27 +33,30 @@ const CONTEXT = 'lookup-access-control';
 const createLookupAccessControl = ({ context, permissionsMap }) => {
   return async (user) => {
     const logContext = `${CONTEXT}/${context}`;
-    
+
     try {
       const { permissions, isRoot } = await resolveUserPermissionContext(user);
-      
+
       const access = {};
-      
-      for (const [flag, requiredPermissions] of Object.entries(permissionsMap)) {
+
+      for (const [flag, requiredPermissions] of Object.entries(
+        permissionsMap
+      )) {
         const required = Array.isArray(requiredPermissions)
           ? requiredPermissions
           : [requiredPermissions];
-        
-        access[flag] = isRoot || required.some((perm) => permissions.includes(perm));
+
+        access[flag] =
+          isRoot || required.some((perm) => permissions.includes(perm));
       }
-      
+
       return access;
     } catch (err) {
       logSystemException(err, 'Failed to evaluate lookup access control', {
         context: logContext,
         userId: user?.id,
       });
-      
+
       throw AppError.businessError('Unable to evaluate lookup access control.');
     }
   };

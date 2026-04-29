@@ -26,7 +26,7 @@ const TAX_RATE_CONSTANTS = require('../../../utils/constants/domain/tax-rate-con
 const ORDER_CONSTANTS = require('../../../utils/constants/domain/order-constants');
 const ORDER_STATUS_CONSTANTS = require('../../../utils/constants/domain/order-status-constants');
 const LOOKUPS = require('../../../utils/constants/domain/lookup-constants');
-const PERMISSIONS = require('../../../utils/constants/domain/permissions');
+const PERMISSION_KEYS = require('../../../utils/constants/domain/permission-keys');
 const {
   ORDER_CATEGORIES,
   GENERIC_ORDER_PERMISSIONS,
@@ -132,7 +132,7 @@ exports.seed = async function (knex) {
     ...collectPermissions(ORDER_CONSTANTS),
     ...collectPermissions(ORDER_STATUS_CONSTANTS),
     ...collectPermissions(LOOKUPS),
-    ...collectPermissions(PERMISSIONS),
+    ...collectPermissions(PERMISSION_KEYS),
   ];
 
   for (const key of dynamicPermissionKeys) {

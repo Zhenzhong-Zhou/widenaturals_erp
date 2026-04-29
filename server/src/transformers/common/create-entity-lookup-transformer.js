@@ -12,7 +12,7 @@
 'use strict';
 
 const { STANDARD_FLAG_MAP } = require('../../utils/constants/lookup-flag-maps');
-const { cleanObject }               = require('../../utils/object-utils');
+const { cleanObject } = require('../../utils/object-utils');
 const { includeFlagsBasedOnAccess } = require('../../utils/transformer-utils');
 
 /**
@@ -47,23 +47,20 @@ const { includeFlagsBasedOnAccess } = require('../../utils/transformer-utils');
  *   flagMap:  { canViewAllStatuses: 'isActive' },
  * });
  */
-const createEntityLookupTransformer = ({
-                                         labelKey,
-                                         subLabelKey,
-                                         flagMap = STANDARD_FLAG_MAP,
-                                       }) =>
+const createEntityLookupTransformer =
+  ({ labelKey, subLabelKey, flagMap = STANDARD_FLAG_MAP }) =>
   /**
    * @param {Object} row - Raw DB row for a single lookup entity.
    * @param {Object} acl - Access control context for flag visibility.
    * @returns {Object|null} Transformed dropdown item, or `null` if row is invalid.
    */
-    (row, acl) => {
+  (row, acl) => {
     if (!row || typeof row !== 'object') return null;
-    if (!row.id || !row[labelKey])       return null;
-    
+    if (!row.id || !row[labelKey]) return null;
+
     return cleanObject({
-      id:       row.id,
-      label:    row[labelKey],
+      id: row.id,
+      label: row[labelKey],
       // Only include subLabel when a key is configured and the field has a value.
       subLabel: subLabelKey ? (row[subLabelKey] ?? undefined) : undefined,
       ...includeFlagsBasedOnAccess(row, acl, flagMap),

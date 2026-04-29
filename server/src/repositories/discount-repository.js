@@ -15,7 +15,9 @@
 'use strict';
 
 const { query } = require('../database/db');
-const { paginateQueryByOffset } = require('../utils/db/pagination/pagination-helpers');
+const {
+  paginateQueryByOffset,
+} = require('../utils/db/pagination/pagination-helpers');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { logDbQueryError } = require('../utils/db-logger');
 const { buildDiscountFilter } = require('../utils/sql/build-discount-filter');
@@ -43,7 +45,7 @@ const {
  */
 const getDiscountById = async (discountId, client = null) => {
   const context = 'discount-repository/getDiscountById';
-  
+
   try {
     const result = await query(DISCOUNT_GET_BY_ID, [discountId], client);
     return result.rows[0] ?? null;
@@ -51,13 +53,12 @@ const getDiscountById = async (discountId, client = null) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch discount by ID.',
-      meta:    { discountId },
-      logFn:   (err) => logDbQueryError(
-        DISCOUNT_GET_BY_ID,
-        [discountId],
-        err,
-        { context, discountId }
-      ),
+      meta: { discountId },
+      logFn: (err) =>
+        logDbQueryError(DISCOUNT_GET_BY_ID, [discountId], err, {
+          context,
+          discountId,
+        }),
     });
   }
 };
@@ -77,37 +78,42 @@ const getDiscountById = async (discountId, client = null) => {
  * @returns {Promise<Object>} Paginated result with rows and pagination metadata.
  * @throws  {AppError}        Normalized database error if the query fails.
  */
-const getDiscountsLookup = async ({ filters = {}, limit = 50, offset = 0 } = {}) => {
+const getDiscountsLookup = async ({
+  filters = {},
+  limit = 50,
+  offset = 0,
+} = {}) => {
   const context = 'discount-repository/getDiscountsLookup';
-  
+
   const { whereClause, params } = buildDiscountFilter(filters);
   const queryText = buildDiscountLookupQuery(whereClause);
-  
+
   try {
     return await paginateQueryByOffset({
-      tableName:       DISCOUNT_LOOKUP_TABLE,
-      joins:           [],
+      tableName: DISCOUNT_LOOKUP_TABLE,
+      joins: [],
       whereClause,
       queryText,
       params,
       offset,
       limit,
-      sortBy:          'd.name',
-      sortOrder:       'ASC',
+      sortBy: 'd.name',
+      sortOrder: 'ASC',
       additionalSorts: DISCOUNT_LOOKUP_ADDITIONAL_SORTS,
-      whitelistSet:    DISCOUNT_LOOKUP_SORT_WHITELIST,
+      whitelistSet: DISCOUNT_LOOKUP_SORT_WHITELIST,
     });
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch discounts lookup.',
-      meta:    { filters, limit, offset },
-      logFn:   (err) => logDbQueryError(
-        queryText,
-        params,
-        err,
-        { context, filters, limit, offset }
-      ),
+      meta: { filters, limit, offset },
+      logFn: (err) =>
+        logDbQueryError(queryText, params, err, {
+          context,
+          filters,
+          limit,
+          offset,
+        }),
     });
   }
 };

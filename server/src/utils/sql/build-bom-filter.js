@@ -50,17 +50,21 @@ const buildBomFilter = (filters = {}) => {
   // Normalize date ranges into UTC ISO boundaries — handles both raw date
   // strings and Date objects coerced by Joi's date() type.
   const normalizedFilters = normalizeDateRangeFilters(
-    normalizeDateRangeFilters(filters, 'complianceIssuedAfter', 'complianceExpiredBefore'),
+    normalizeDateRangeFilters(
+      filters,
+      'complianceIssuedAfter',
+      'complianceExpiredBefore'
+    ),
     'createdAfter',
     'createdBefore'
   );
-  
-  const conditions    = ['1=1'];
-  const params        = [];
+
+  const conditions = ['1=1'];
+  const params = [];
   const paramIndexRef = { value: 1 };
-  
+
   // ─── SKU / Product ───────────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.skuId) {
     if (Array.isArray(normalizedFilters.skuId)) {
       conditions.push(`b.sku_id = ANY($${paramIndexRef.value}::uuid[])`);
@@ -71,7 +75,7 @@ const buildBomFilter = (filters = {}) => {
     }
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.productId) {
     if (Array.isArray(normalizedFilters.productId)) {
       conditions.push(`p.id = ANY($${paramIndexRef.value}::uuid[])`);
@@ -82,117 +86,117 @@ const buildBomFilter = (filters = {}) => {
     }
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.productName) {
     conditions.push(`p.name ILIKE $${paramIndexRef.value}`);
     params.push(`%${normalizedFilters.productName}%`);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.skuCode) {
     conditions.push(`s.sku ILIKE $${paramIndexRef.value}`);
     params.push(`%${normalizedFilters.skuCode}%`);
     paramIndexRef.value++;
   }
-  
+
   // ─── Compliance ──────────────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.complianceType) {
     conditions.push(`cr.type ILIKE $${paramIndexRef.value}`);
     params.push(`%${normalizedFilters.complianceType}%`);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.complianceStatusId) {
     conditions.push(`cr.status_id = $${paramIndexRef.value}`);
     params.push(normalizedFilters.complianceStatusId);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.onlyActiveCompliance === true) {
     // No param — hardcoded sentinel value, not user input.
     conditions.push(`LOWER(st_compliance.name) = 'active'`);
   }
-  
+
   applyDateRangeConditions({
     conditions,
     params,
-    column:        'cr.issued_date',
-    after:         normalizedFilters.complianceIssuedAfter,
-    before:        undefined,
+    column: 'cr.issued_date',
+    after: normalizedFilters.complianceIssuedAfter,
+    before: undefined,
     paramIndexRef,
   });
-  
+
   applyDateRangeConditions({
     conditions,
     params,
-    column:        'cr.expiry_date',
-    after:         undefined,
-    before:        normalizedFilters.complianceExpiredBefore,
+    column: 'cr.expiry_date',
+    after: undefined,
+    before: normalizedFilters.complianceExpiredBefore,
     paramIndexRef,
   });
-  
+
   // ─── BOM Status ──────────────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.statusId) {
     conditions.push(`b.status_id = $${paramIndexRef.value}`);
     params.push(normalizedFilters.statusId);
     paramIndexRef.value++;
   }
-  
+
   if (typeof normalizedFilters.isActive === 'boolean') {
     conditions.push(`b.is_active = $${paramIndexRef.value}`);
     params.push(normalizedFilters.isActive);
     paramIndexRef.value++;
   }
-  
+
   if (typeof normalizedFilters.isDefault === 'boolean') {
     conditions.push(`b.is_default = $${paramIndexRef.value}`);
     params.push(normalizedFilters.isDefault);
     paramIndexRef.value++;
   }
-  
+
   // ─── Revision Range ──────────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.revisionMin) {
     conditions.push(`b.revision >= $${paramIndexRef.value}`);
     params.push(normalizedFilters.revisionMin);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.revisionMax) {
     conditions.push(`b.revision <= $${paramIndexRef.value}`);
     params.push(normalizedFilters.revisionMax);
     paramIndexRef.value++;
   }
-  
+
   // ─── Audit ──────────────────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.createdBy) {
     conditions.push(`b.created_by = $${paramIndexRef.value}`);
     params.push(normalizedFilters.createdBy);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.updatedBy) {
     conditions.push(`b.updated_by = $${paramIndexRef.value}`);
     params.push(normalizedFilters.updatedBy);
     paramIndexRef.value++;
   }
-  
+
   // ─── Date Range ─────────────────────────────────────────────────────────────
-  
+
   applyDateRangeConditions({
     conditions,
     params,
-    column:        'b.created_at',
-    after:         normalizedFilters.createdAfter,
-    before:        normalizedFilters.createdBefore,
+    column: 'b.created_at',
+    after: normalizedFilters.createdAfter,
+    before: normalizedFilters.createdBefore,
     paramIndexRef,
   });
-  
+
   // ─── Keyword (must remain last) ──────────────────────────────────────────────
-  
+
   if (normalizedFilters.keyword) {
     // Collapse internal whitespace before wrapping — prevents double-space
     // literals from breaking ILIKE matches on normalized DB values.
@@ -206,7 +210,7 @@ const buildBomFilter = (filters = {}) => {
     params.push(kw);
     paramIndexRef.value++;
   }
-  
+
   return {
     whereClause: conditions.join(' AND '),
     params,

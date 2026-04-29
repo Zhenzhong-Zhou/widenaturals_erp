@@ -57,7 +57,7 @@ export interface FieldConfig {
     | 'phone'
     | 'email'
     | 'custom';
-  options?: { value: string | number; label: string }[];
+  options?: { value: string | number | null; label: string }[];
   required?: boolean;
   validation?: (value: any) => string | undefined;
   defaultValue?: any;
@@ -387,8 +387,11 @@ const CustomFormInner = <TFieldValues extends FieldValues = FieldValues>(
                         label={field.label}
                       >
                         {field.options?.map((opt) => (
-                          <MenuItem key={opt.value} value={opt.value}>
-                            {opt.label}
+                          <MenuItem
+                            key={opt.value ?? ''}
+                            value={opt.value ?? ''}
+                          >
+                            {String(opt.label)}
                           </MenuItem>
                         ))}
                       </Select>

@@ -49,23 +49,22 @@ const runHealthChecks = async () => {
     // Skip overlapping run
     return;
   }
-  
+
   isRunning = true;
-  
+
   const startTime = Date.now();
-  
+
   try {
     const results = await Promise.all(
       healthChecks.map(async ({ name, check }) => {
         try {
           const result = await check();
-          
+
           return {
             name,
             status: 'healthy',
             details: result,
           };
-          
         } catch (error) {
           //--------------------------------------------------
           // Expected failure (AppError)
@@ -78,7 +77,7 @@ const runHealthChecks = async () => {
               type: error.type,
               subtype: error.subtype,
             });
-            
+
             return {
               name,
               status: 'unhealthy',
@@ -87,7 +86,7 @@ const runHealthChecks = async () => {
               subtype: error.subtype,
             };
           }
-          
+
           //--------------------------------------------------
           // Unexpected failure
           //--------------------------------------------------
@@ -95,7 +94,7 @@ const runHealthChecks = async () => {
             context: CONTEXT,
             check: name,
           });
-          
+
           return {
             name,
             status: 'unhealthy',
@@ -104,27 +103,24 @@ const runHealthChecks = async () => {
         }
       })
     );
-    
+
     const duration = Date.now() - startTime;
-    
+
     //--------------------------------------------------
     // Log only summary (avoid heavy logs)
     //--------------------------------------------------
-    const unhealthy = results.filter(r => r.status !== 'healthy');
-    
+    const unhealthy = results.filter((r) => r.status !== 'healthy');
+
     logSystemInfo('Health check completed', {
       context: CONTEXT,
       durationMs: duration,
       totalChecks: results.length,
       unhealthyCount: unhealthy.length,
     });
-    
   } catch (error) {
-    logSystemException(
-      error,
-      'Unexpected failure during health check',
-      { context: CONTEXT }
-    );
+    logSystemException(error, 'Unexpected failure during health check', {
+      context: CONTEXT,
+    });
   } finally {
     isRunning = false;
   }
@@ -139,9 +135,9 @@ const startHealthCheck = (interval = ONE_MINUTE) => {
   if (healthCheckInterval) {
     return; // idempotent start
   }
-  
+
   healthCheckInterval = setInterval(runHealthChecks, interval);
-  
+
   logSystemInfo('Health check started', {
     context: CONTEXT,
     intervalMs: interval,
@@ -155,10 +151,10 @@ const startHealthCheck = (interval = ONE_MINUTE) => {
  */
 const stopHealthCheck = () => {
   if (!healthCheckInterval) return;
-  
+
   clearInterval(healthCheckInterval);
   healthCheckInterval = null;
-  
+
   logSystemInfo('Health check stopped', {
     context: CONTEXT,
   });

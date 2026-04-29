@@ -31,7 +31,12 @@ const {
  * @returns {Promise<{ stdout: string, stderr: string }>}
  * @throws {Error} If pg_restore exits with a non-zero code or fails to spawn.
  */
-const runPgRestore = ({ decryptedFilePath, databaseName, dbUser, dbPassword }) => {
+const runPgRestore = ({
+  decryptedFilePath,
+  databaseName,
+  dbUser,
+  dbPassword,
+}) => {
   return new Promise((resolve, reject) => {
     const args = [
       '--clean',
@@ -42,26 +47,28 @@ const runPgRestore = ({ decryptedFilePath, databaseName, dbUser, dbPassword }) =
       `--username=${dbUser}`,
       decryptedFilePath,
     ];
-    
+
     // Pass the password via env rather than a CLI flag to avoid shell exposure
     const env = { ...process.env };
     if (dbPassword) env.PGPASSWORD = dbPassword;
-    
+
     const restore = spawn('pg_restore', args, { env });
-    
+
     let stdout = '';
     let stderr = '';
-    
+
     restore.stdout.on('data', (data) => (stdout += data.toString()));
     restore.stderr.on('data', (data) => (stderr += data.toString()));
-    
+
     // 'error' fires when the process cannot be spawned at all (e.g. binary not found)
     // Without this handler the rejection bypasses the 'close' handler entirely
     restore.on('error', (err) => reject(err));
-    
+
     restore.on('close', (code) => {
       if (code !== 0) {
-        return reject(new Error(`pg_restore failed with code ${code}\n${stderr}`));
+        return reject(
+          new Error(`pg_restore failed with code ${code}\n${stderr}`)
+        );
       }
       resolve({ stdout, stderr });
     });
@@ -86,38 +93,53 @@ const runPgRestore = ({ decryptedFilePath, databaseName, dbUser, dbPassword }) =
  * @throws {AppError} If the decrypted file is not found.
  * @throws {Error} If pg_restore exits with a non-zero code or fails to spawn.
  */
-const restoreDatabase = async ({ decryptedFilePath, databaseName, dbUser, dbPassword = '' }) => {
+const restoreDatabase = async ({
+  decryptedFilePath,
+  databaseName,
+  dbUser,
+  dbPassword = '',
+}) => {
   // Confirm the file exists before invoking pg_restore — a missing file
   // produces a confusing pg_restore error rather than a clear AppError
   try {
     await fs.access(decryptedFilePath);
   } catch {
-    throw AppError.notFoundError(`Decrypted backup file not found: ${decryptedFilePath}`);
+    throw AppError.notFoundError(
+      `Decrypted backup file not found: ${decryptedFilePath}`
+    );
   }
-  
+
   logSystemInfo('Executing pg_restore', {
     context: 'restore-db',
     database: databaseName,
     decryptedFilePath,
   });
-  
+
   const { stdout, stderr } = await runPgRestore({
     decryptedFilePath,
     databaseName,
     dbUser,
     dbPassword,
   });
-  
+
   if (stdout) {
-    logSystemInfo('pg_restore output', { context: 'restore-db', database: databaseName, stdout });
+    logSystemInfo('pg_restore output', {
+      context: 'restore-db',
+      database: databaseName,
+      stdout,
+    });
   }
-  
+
   // pg_restore writes informational notices to stderr even on success
   // (e.g. "relation already exists") — these are warnings, not failures
   if (stderr) {
-    logSystemWarn('pg_restore warnings', { context: 'restore-db', database: databaseName, stderr });
+    logSystemWarn('pg_restore warnings', {
+      context: 'restore-db',
+      database: databaseName,
+      stderr,
+    });
   }
-  
+
   logSystemInfo('Database restore completed successfully', {
     context: 'restore-db',
     database: databaseName,

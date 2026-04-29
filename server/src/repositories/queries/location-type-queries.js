@@ -114,7 +114,7 @@ const buildLocationTypeLookupQuery = (whereClause, canSearchStatus = false) => {
   const joins = canSearchStatus
     ? ['LEFT JOIN status s ON s.id = lt.status_id']
     : [];
-  
+
   const queryText = `
     SELECT
       lt.id,
@@ -124,7 +124,7 @@ const buildLocationTypeLookupQuery = (whereClause, canSearchStatus = false) => {
     ${joins.join('\n  ')}
     WHERE ${whereClause}
   `;
-  
+
   return { queryText, joins };
 };
 

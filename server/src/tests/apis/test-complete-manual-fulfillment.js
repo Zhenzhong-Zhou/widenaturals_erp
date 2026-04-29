@@ -49,7 +49,7 @@ const {
     console.log(`${logPrefix} 👤 Using test user:`, JSON.stringify(testUser));
 
     // --- Step 3: Choose test shipment
-    const shipmentId = '6bcf29d8-f60e-4521-9b2e-661dd76a93c6'; // TODO: replace with a valid test ID
+    const shipmentId = '6bcf29d8-f60e-4521-9b2e-661dd76a93c6';
     console.log(`${logPrefix} 📦 Using test shipmentId: ${shipmentId}`);
 
     // --- Step 4: Build request payload

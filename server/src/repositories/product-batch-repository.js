@@ -19,11 +19,15 @@
 
 const { query } = require('../database/db');
 const { bulkInsert, updateById } = require('../utils/db/write-utils');
-const { validateBulkInsertRows } = require('../utils/validation/bulk-insert-row-validator');
+const {
+  validateBulkInsertRows,
+} = require('../utils/validation/bulk-insert-row-validator');
 const { paginateQuery } = require('../utils/db/pagination/pagination-helpers');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { logDbQueryError, logBulkInsertError } = require('../utils/db-logger');
-const { buildProductBatchFilter } = require('../utils/sql/build-product-batch-filter');
+const {
+  buildProductBatchFilter,
+} = require('../utils/sql/build-product-batch-filter');
 const { SORTABLE_FIELDS } = require('../utils/sort-field-mapping');
 const { resolveSort } = require('../utils/query/sort-resolver');
 const {
@@ -54,46 +58,50 @@ const {
  * @throws  {AppError}        Normalized database error if the query fails.
  */
 const getPaginatedProductBatches = async ({
-                                            filters   = {},
-                                            page      = 1,
-                                            limit     = 20,
-                                            sortBy    = 'expiryDate',
-                                            sortOrder = 'ASC',
-                                          }) => {
+  filters = {},
+  page = 1,
+  limit = 20,
+  sortBy = 'expiryDate',
+  sortOrder = 'ASC',
+}) => {
   const context = 'product-batch-repository/getPaginatedProductBatches';
-  
+
   const { whereClause, params } = buildProductBatchFilter(filters);
-  
+
   const sortConfig = resolveSort({
     sortBy,
     sortOrder,
-    moduleKey:   'productBatchSortMap',
+    moduleKey: 'productBatchSortMap',
     defaultSort: SORTABLE_FIELDS.productBatchSortMap.defaultNaturalSort,
   });
-  
+
   const queryText = buildPbPaginatedQuery(whereClause);
-  
+
   try {
     return await paginateQuery({
-      tableName:    PB_TABLE,
-      joins:        PB_JOINS,
+      tableName: PB_TABLE,
+      joins: PB_JOINS,
       whereClause,
       queryText,
       params,
       page,
       limit,
-      sortBy:       sortConfig.sortBy,
-      sortOrder:    sortConfig.sortOrder,
+      sortBy: sortConfig.sortBy,
+      sortOrder: sortConfig.sortOrder,
       whitelistSet: PB_SORT_WHITELIST,
     });
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch paginated product batches.',
-      meta:    { filters, page, limit, sortBy, sortOrder },
-      logFn:   (err) => logDbQueryError(
-        queryText, params, err, { context, filters, page, limit }
-      ),
+      meta: { filters, page, limit, sortBy, sortOrder },
+      logFn: (err) =>
+        logDbQueryError(queryText, params, err, {
+          context,
+          filters,
+          page,
+          limit,
+        }),
     });
   }
 };
@@ -114,30 +122,30 @@ const getPaginatedProductBatches = async ({
  */
 const insertProductBatchesBulk = async (productBatches, client) => {
   if (!Array.isArray(productBatches) || productBatches.length === 0) return [];
-  
+
   const context = 'product-batch-repository/insertProductBatchesBulk';
-  
+
   const rows = productBatches.map((batch) => [
     batch.lot_number,
     batch.sku_id,
     batch.manufacturer_id,
     batch.manufacture_date,
     batch.expiry_date,
-    null,                                 // received_at — set on receipt, not creation
-    null,                                 // received_by — set on receipt, not creation
+    null, // received_at — set on receipt, not creation
+    null, // received_by — set on receipt, not creation
     batch.initial_quantity,
-    batch.notes                 ?? null,
+    batch.notes ?? null,
     batch.status_id,
-    null,                                 // released_at — set on release, not creation
-    null,                                 // released_by — set on release, not creation
-    null,                                 // released_by_manufacturer_id
-    batch.created_by            ?? null,
-    null,                                 // updated_at — null at insert time
-    null,                                 // updated_by — null at insert time
+    null, // released_at — set on release, not creation
+    null, // released_by — set on release, not creation
+    null, // released_by_manufacturer_id
+    batch.created_by ?? null,
+    null, // updated_at — null at insert time
+    null, // updated_by — null at insert time
   ]);
-  
+
   validateBulkInsertRows(rows, PB_INSERT_COLUMNS.length);
-  
+
   try {
     return await bulkInsert(
       'product_batches',
@@ -153,14 +161,12 @@ const insertProductBatchesBulk = async (productBatches, client) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to insert product batch records.',
-      meta:    { batchCount: productBatches.length },
-      logFn:   (err) => logBulkInsertError(
-        err,
-        'product_batches',
-        rows,
-        rows.length,
-        { context, conflictColumns: PB_CONFLICT_COLUMNS }
-      ),
+      meta: { batchCount: productBatches.length },
+      logFn: (err) =>
+        logBulkInsertError(err, 'product_batches', rows, rows.length, {
+          context,
+          conflictColumns: PB_CONFLICT_COLUMNS,
+        }),
     });
   }
 };
@@ -180,7 +186,7 @@ const insertProductBatchesBulk = async (productBatches, client) => {
  */
 const getProductBatchById = async (batchId, client) => {
   const context = 'product-batch-repository/getProductBatchById';
-  
+
   try {
     const { rows } = await query(PB_GET_BY_ID_QUERY, [batchId], client);
     return rows[0] ?? null;
@@ -188,10 +194,12 @@ const getProductBatchById = async (batchId, client) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch product batch.',
-      meta:    { batchId },
-      logFn:   (err) => logDbQueryError(
-        PB_GET_BY_ID_QUERY, [batchId], err, { context, batchId }
-      ),
+      meta: { batchId },
+      logFn: (err) =>
+        logDbQueryError(PB_GET_BY_ID_QUERY, [batchId], err, {
+          context,
+          batchId,
+        }),
     });
   }
 };
@@ -228,7 +236,7 @@ const updateProductBatch = async (params, client) => {
     released_by_manufacturer_id,
     updatedBy,
   } = params;
-  
+
   const updates = {
     lot_number,
     manufacturer_id,
@@ -242,7 +250,7 @@ const updateProductBatch = async (params, client) => {
     released_by,
     released_by_manufacturer_id,
   };
-  
+
   return await updateById(
     'product_batches',
     batchId,
@@ -267,7 +275,7 @@ const updateProductBatch = async (params, client) => {
  */
 const getProductBatchDetailsById = async (batchId) => {
   const context = 'product-batch-repository/getProductBatchDetailsById';
-  
+
   try {
     const { rows } = await query(PB_GET_DETAILS_BY_ID_QUERY, [batchId]);
     return rows[0] ?? null;
@@ -275,10 +283,12 @@ const getProductBatchDetailsById = async (batchId) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch product batch detail.',
-      meta:    { batchId },
-      logFn:   (err) => logDbQueryError(
-        PB_GET_DETAILS_BY_ID_QUERY, [batchId], err, { context, batchId }
-      ),
+      meta: { batchId },
+      logFn: (err) =>
+        logDbQueryError(PB_GET_DETAILS_BY_ID_QUERY, [batchId], err, {
+          context,
+          batchId,
+        }),
     });
   }
 };

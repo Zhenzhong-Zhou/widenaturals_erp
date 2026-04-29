@@ -2,35 +2,66 @@ import { createSelector } from '@reduxjs/toolkit';
 import type { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 
-/**
- * Base selector for the `createWarehouseInventory` slice.
- *
- * @param state - The Redux root state.
- * @returns The state slice for create warehouse inventory.
- */
-const selectCreateWarehouseInventorySlice = (state: RootState) =>
-  selectRuntime(state).createWarehouseInventory;
+const EMPTY_ARRAY: never[] = [];
 
 /**
- * Selector for extracting relevant state from the createWarehouseInventory slice.
+ * Base selector for the warehouse inventory creation state slice.
  *
- * This selector returns:
- * - Normalized warehouse and location inventory data (defaulting to empty arrays)
- * - Message and success flag from the API response (defaulting to empty string / false)
- * - Loading and error state of the mutation
+ * Responsibilities:
+ * - Extract the warehouse inventory creation state from the Redux runtime tree
  *
- * Use this in components that need to render inventory creation results or status feedback.
- *
- * @returns An object with `warehouse`, `location`, `message`, `success`, `loading`, and `error`.
+ * Design notes:
+ * - Plain function only (no `createSelector`)
+ * - No memoization or transformation
  */
-export const selectCreatedWarehouseRecords = createSelector(
-  [selectCreateWarehouseInventorySlice],
-  (slice) => ({
-    warehouse: slice.data?.data.warehouse ?? [],
-    location: slice.data?.data.location ?? [],
-    message: slice.data?.message ?? '',
-    success: slice.data?.success ?? false,
-    loading: slice.loading,
-    error: slice.error?.message ?? null,
+const selectWarehouseInventoryCreateState = (state: RootState) =>
+  selectRuntime(state).warehouseInventoryCreate;
+
+/**
+ * Selects whether the warehouse inventory creation request is currently loading.
+ */
+export const selectWarehouseInventoryCreateLoading = createSelector(
+  [selectWarehouseInventoryCreateState],
+  (createState) => createState.loading
+);
+
+/**
+ * Selects any error message from the warehouse inventory creation request.
+ */
+export const selectWarehouseInventoryCreateError = createSelector(
+  [selectWarehouseInventoryCreateState],
+  (createState): string | null => createState.error?.message ?? null
+);
+
+/**
+ * Selects the normalized warehouse inventory creation response.
+ *
+ * Returns an object containing:
+ * - success: boolean
+ * - message: string
+ * - data: WarehouseInventoryRecord[]
+ */
+export const selectWarehouseInventoryCreateResponse = createSelector(
+  [selectWarehouseInventoryCreateState],
+  (createState) => ({
+    success: createState.success ?? false,
+    message: createState.message ?? '',
+    data: createState.data ?? [],
   })
+);
+
+/**
+ * Selects the number of inventory records created in the last create operation.
+ */
+export const selectCreatedInventoryCount = createSelector(
+  [selectWarehouseInventoryCreateState],
+  (createState) => createState.data?.count ?? 0
+);
+
+/**
+ * Selects the UUIDs of inventory records created in the last create operation.
+ */
+export const selectCreatedInventoryIds = createSelector(
+  [selectWarehouseInventoryCreateState],
+  (createState) => createState.data?.ids ?? EMPTY_ARRAY
 );

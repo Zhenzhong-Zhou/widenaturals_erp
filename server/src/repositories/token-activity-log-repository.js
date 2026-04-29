@@ -14,7 +14,9 @@
 
 const { query } = require('../database/db');
 const { logSystemException } = require('../utils/logging/system-logger');
-const { INSERT_TOKEN_ACTIVITY_LOG_QUERY } = require('./queries/token-activity-log-queries');
+const {
+  INSERT_TOKEN_ACTIVITY_LOG_QUERY,
+} = require('./queries/token-activity-log-queries');
 
 // ─── Insert ───────────────────────────────────────────────────────────────────
 
@@ -40,19 +42,19 @@ const { INSERT_TOKEN_ACTIVITY_LOG_QUERY } = require('./queries/token-activity-lo
  */
 const insertTokenActivityLog = async (event, client) => {
   const context = 'token-activity-log-repository/insertTokenActivityLog';
-  
+
   const {
     userId,
-    tokenId   = null,
+    tokenId = null,
     eventType,
     status,
     tokenType,
     ipAddress = null,
     userAgent = null,
-    comments  = null,
-    metadata  = null,
+    comments = null,
+    metadata = null,
   } = event;
-  
+
   const params = [
     userId,
     tokenId,
@@ -64,7 +66,7 @@ const insertTokenActivityLog = async (event, client) => {
     comments,
     metadata,
   ];
-  
+
   try {
     await query(INSERT_TOKEN_ACTIVITY_LOG_QUERY, params, client);
   } catch (error) {

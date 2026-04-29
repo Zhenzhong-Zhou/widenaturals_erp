@@ -8,7 +8,7 @@ import { AppError } from '@utils/error';
  * Ensures audit fields never render as undefined in the UI by
  * applying safe fallbacks for missing values.
  *
- * @param user - Raw audit user object (may be undefined)
+ * @param user - Raw audit user object (maybe undefined)
  * @returns Normalized audit user with stable id and display name
  */
 const normalizeAuditUser = (user?: AuditUser): AuditUser => ({
@@ -109,9 +109,11 @@ export const normalizeSalesOrderHeader = (
     },
 
     /** Customer info */
+    customerType: raw.customer?.type || '',
     customerName: raw.customer?.fullName || '',
     customerEmail: raw.customer?.email || '',
     customerPhone: raw.customer?.phone || '',
+    companyName: raw.customer?.companyName || '',
 
     /** Audit info */
     auditInfo: {

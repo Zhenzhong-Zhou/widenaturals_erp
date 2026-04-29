@@ -2,11 +2,11 @@
  * @file pricing-controller.js
  * @description HTTP request handlers for pricing records.
  *
- * Handles SKU-level pricing queries, full dataset export, and SKU pricing lookup.
+ * Handles paginated pricing join queries, full dataset export, and SKU pricing lookup.
  * Controllers never log — traceId injection and error logging are owned by middleware.
  *
  * Exports:
- *  - getPaginatedPricingSkusController — paginated SKU list for a pricing group
+ *  - getPaginatedPricingJoinController — paginated pricing join list (scoped by group, type, SKU, or cross-group)
  *  - exportPricingRecordsController    — full export as CSV or XLSX
  *  - getPricingBySkuIdController       — all pricing groups a SKU belongs to
  */
@@ -15,29 +15,26 @@
 
 const { wrapAsyncHandler } = require('../middlewares/async-handler');
 const {
-  fetchPaginatedPricingSkusService,
+  fetchPaginatedPricingJoinService,
   exportPricingRecordsService,
   fetchPricingBySkuIdService,
 } = require('../services/pricing-service');
 const { exportData } = require('../utils/export-utils');
 
-// ─── Pricing SKUs ─────────────────────────────────────────────────────────────
+// ─── Paginated Pricing Join ───────────────────────────────────────────────────
 
 /**
- * GET /pricing-groups/:pricingGroupId/skus
- * Fetches a paginated list of SKUs assigned to a pricing group.
+ * GET /pricing
+ * Fetches a paginated pricing join list with optional scope and user filters.
  *
- * @param {string} req.params.pricingGroupId        - UUID of the pricing group.
  * @param {Object} req.normalizedQuery              - { page, limit, sortBy, sortOrder, filters }
- * @param {Object} req.user                         - Authenticated user object.
+ * @param {Object} req.auth.user                    - Authenticated user object.
  */
-const getPaginatedPricingSkusController = wrapAsyncHandler(async (req, res) => {
-  const { pricingGroupId }                          = req.params;
+const getPaginatedPricingJoinController = wrapAsyncHandler(async (req, res) => {
   const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
   const user = req.auth.user;
-  
-  const { data, pagination } = await fetchPaginatedPricingSkusService({
-    pricingGroupId,
+
+  const { data, pagination } = await fetchPaginatedPricingJoinService({
     filters,
     page,
     limit,
@@ -45,13 +42,13 @@ const getPaginatedPricingSkusController = wrapAsyncHandler(async (req, res) => {
     sortOrder,
     user,
   });
-  
+
   res.status(200).json({
-    success:    true,
-    message:    'Pricing SKUs retrieved successfully.',
+    success: true,
+    message: 'Pricing records retrieved successfully.',
     data,
     pagination,
-    traceId:    req.traceId,
+    traceId: req.traceId,
   });
 });
 
@@ -66,22 +63,22 @@ const getPaginatedPricingSkusController = wrapAsyncHandler(async (req, res) => {
  * @param {Object} req.user                         - Authenticated user object.
  */
 const exportPricingRecordsController = wrapAsyncHandler(async (req, res) => {
-  const { filters }      = req.normalizedQuery;
+  const { filters } = req.normalizedQuery;
   const { exportFormat } = req.query;
   const user = req.auth.user;
-  
+
   const exportRows = await exportPricingRecordsService({
     filters,
     user,
   });
-  
+
   const { fileBuffer, contentType, filename } = await exportData({
-    data:         exportRows,
+    data: exportRows,
     exportFormat,
-    filename:     'pricing_export',
-    title:        'Pricing Export',
+    filename: 'pricing_export',
+    title: 'Pricing Export',
   });
-  
+
   res.setHeader('Content-Type', contentType);
   res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
   res.status(200).send(fileBuffer);
@@ -97,9 +94,9 @@ const exportPricingRecordsController = wrapAsyncHandler(async (req, res) => {
  */
 const getPricingBySkuIdController = wrapAsyncHandler(async (req, res) => {
   const { skuId } = req.params;
-  
+
   const data = await fetchPricingBySkuIdService(skuId);
-  
+
   res.status(200).json({
     success: true,
     message: 'Pricing retrieved successfully.',
@@ -109,7 +106,7 @@ const getPricingBySkuIdController = wrapAsyncHandler(async (req, res) => {
 });
 
 module.exports = {
-  getPaginatedPricingSkusController,
+  getPaginatedPricingJoinController,
   exportPricingRecordsController,
   getPricingBySkuIdController,
 };

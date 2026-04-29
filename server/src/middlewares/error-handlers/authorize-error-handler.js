@@ -12,7 +12,7 @@
 
 'use strict';
 
-const AppError     = require('../../utils/AppError');
+const AppError = require('../../utils/AppError');
 const { logError } = require('../../utils/logging/logger-helper');
 const { ERROR_TYPES } = require('../../utils/constants/error-constants');
 
@@ -36,11 +36,11 @@ const authorizationErrorHandler = (err, req, res, next) => {
   if (!(err instanceof AppError) || err.type !== ERROR_TYPES.AUTHORIZATION) {
     return next(err);
   }
-  
+
   // Error is already a normalized AppError — log and respond directly.
   // No re-normalization needed; AppError was shaped correctly at the source.
   logError(err, req, { context: CONTEXT });
-  
+
   res.status(err.status).json(err.toJSON());
 };
 

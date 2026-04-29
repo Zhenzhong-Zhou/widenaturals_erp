@@ -40,21 +40,24 @@ const {
  */
 const getFulfillmentStatusByCode = async (statusCode, client = null) => {
   const context = 'fulfillment-status-repository/getFulfillmentStatusByCode';
-  
+
   try {
-    const { rows } = await query(FULFILLMENT_STATUS_GET_BY_CODE, [statusCode], client);
+    const { rows } = await query(
+      FULFILLMENT_STATUS_GET_BY_CODE,
+      [statusCode],
+      client
+    );
     return rows[0] ?? null;
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch fulfillment status by code.',
-      meta:    { statusCode },
-      logFn:   (err) => logDbQueryError(
-        FULFILLMENT_STATUS_GET_BY_CODE,
-        [statusCode],
-        err,
-        { context, statusCode }
-      ),
+      meta: { statusCode },
+      logFn: (err) =>
+        logDbQueryError(FULFILLMENT_STATUS_GET_BY_CODE, [statusCode], err, {
+          context,
+          statusCode,
+        }),
     });
   }
 };
@@ -74,23 +77,26 @@ const getFulfillmentStatusByCode = async (statusCode, client = null) => {
  */
 const getFulfillmentStatusesByIds = async (statusIds, client = null) => {
   if (!Array.isArray(statusIds) || statusIds.length === 0) return [];
-  
+
   const context = 'fulfillment-status-repository/getFulfillmentStatusesByIds';
-  
+
   try {
-    const result = await query(FULFILLMENT_STATUS_GET_BY_IDS, [statusIds], client);
+    const result = await query(
+      FULFILLMENT_STATUS_GET_BY_IDS,
+      [statusIds],
+      client
+    );
     return result.rows;
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch fulfillment statuses by IDs.',
-      meta:    { statusIds },
-      logFn:   (err) => logDbQueryError(
-        FULFILLMENT_STATUS_GET_BY_IDS,
-        [statusIds],
-        err,
-        { context, statusIds }
-      ),
+      meta: { statusIds },
+      logFn: (err) =>
+        logDbQueryError(FULFILLMENT_STATUS_GET_BY_IDS, [statusIds], err, {
+          context,
+          statusIds,
+        }),
     });
   }
 };

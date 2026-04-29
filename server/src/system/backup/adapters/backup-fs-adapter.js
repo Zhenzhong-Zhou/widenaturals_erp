@@ -12,7 +12,7 @@ const { logSystemDebug } = require('../../../utils/logging/system-logger');
  */
 const cleanupLocalFiles = async (filePaths) => {
   const results = await Promise.allSettled(filePaths.map((f) => fs.unlink(f)));
-  
+
   results.forEach((result, index) => {
     if (result.status === 'rejected') {
       logSystemDebug('Failed to remove local backup file after S3 upload', {
@@ -38,7 +38,7 @@ const cleanupLocalFiles = async (filePaths) => {
  */
 const cleanupLocalBackups = async ({ dir, maxBackups }) => {
   const files = await fs.readdir(dir);
-  
+
   // Each .enc file represents one backup copy
   const backupFiles = await Promise.all(
     files
@@ -46,7 +46,7 @@ const cleanupLocalBackups = async ({ dir, maxBackups }) => {
       .map(async (file) => {
         const filePath = path.join(dir, file);
         const stats = await fs.stat(filePath);
-        
+
         return {
           name: file,
           path: filePath,
@@ -54,18 +54,18 @@ const cleanupLocalBackups = async ({ dir, maxBackups }) => {
         };
       })
   );
-  
+
   if (backupFiles.length <= maxBackups) return 0;
-  
+
   // Newest first — keep the first maxBackups entries, delete the rest
   backupFiles.sort((a, b) => b.time - a.time);
-  
+
   const filesToDelete = backupFiles.slice(maxBackups);
-  
+
   await Promise.all(
     filesToDelete.map(async (file) => {
       await fs.unlink(file.path);
-      
+
       // Delete sidecars — best-effort, non-blocking
       await Promise.allSettled([
         fs.unlink(`${file.path}.sha256`),
@@ -73,7 +73,7 @@ const cleanupLocalBackups = async ({ dir, maxBackups }) => {
       ]);
     })
   );
-  
+
   return filesToDelete.length;
 };
 

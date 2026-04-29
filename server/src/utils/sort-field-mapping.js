@@ -401,246 +401,134 @@ const SORTABLE_FIELDS = {
     defaultNaturalSort: `pmb.received_at`,
   },
   warehouseSortMap: {
-    // Warehouse-level fields (FROM warehouses w)
-    warehouseName: 'w.name',
-    warehouseCode: 'w.code',
-    storageCapacity: 'w.storage_capacity',
-    defaultFee: 'w.default_fee',
-    isArchived: 'w.is_archived',
+    // Warehouse-level fields
+    warehouseName:        'w.name',
+    warehouseCode:        'w.code',
+    storageCapacity:      'w.storage_capacity',
+    defaultFee:           'w.default_fee',
+    isArchived:           'w.is_archived',
     
-    // Warehouse type (FROM warehouse_types wt)
-    warehouseTypeName: 'wt.name',
+    // Warehouse type
+    warehouseTypeName:    'wt.name',
     
-    // Location fields (FROM locations l)
-    locationName: 'l.name',
-    city: 'l.city',
-    provinceOrState: 'l.province_or_state',
-    country: 'l.country',
+    // Location fields
+    locationName:         'l.name',
+    city:                 'l.city',
+    provinceOrState:      'l.province_or_state',
+    country:              'l.country',
     
-    // Location type (FROM location_types lt)
-    locationTypeName: 'lt.name',
+    // Status fields
+    statusName:           'st.name',
+    statusId:             'w.status_id',
+    statusDate:           'w.status_date',
     
-    // Status fields (FROM status s)
-    statusName: 's.name',
-    statusId: 'w.status_id',
-    statusDate: 'w.status_date',
+    // Inventory summary (LATERAL subquery alias)
+    totalQuantity:        'inv.total_quantity',
     
-    // Audit timestamps (FROM warehouses w)
-    createdAt: 'w.created_at',
-    updatedAt: 'w.updated_at',
+    // Audit timestamps
+    createdAt:            'w.created_at',
+    updatedAt:            'w.updated_at',
     
-    // Audit user fields (FROM users cu/uu)
-    createdByFirstName: 'cu.firstname',
-    createdByLastName: 'cu.lastname',
-    updatedByFirstName: 'uu.firstname',
-    updatedByLastName: 'uu.lastname',
+    // Audit user fields
+    createdByFirstName:   'cu.firstname',
+    createdByLastName:    'cu.lastname',
+    updatedByFirstName:   'uu.firstname',
+    updatedByLastName:    'uu.lastname',
     
-    // Default fallback
-    defaultNaturalSort: 'w.created_at',
+    // Default fallback — must be an array
+    defaultNaturalSort:   'w.created_at',
   },
   pricingTypeSortMap: {
     // Pricing type fields (FROM pricing_types pt)
     pricingTypeName: 'pt.name',
     pricingTypeCode: 'pt.code',
     pricingTypeSlug: 'pt.slug',
-    statusDate:      'pt.status_date',
-    createdAt:       'pt.created_at',
-    updatedAt:       'pt.updated_at',
-    
+    statusDate: 'pt.status_date',
+    createdAt: 'pt.created_at',
+    updatedAt: 'pt.updated_at',
+
     // Status (FROM status s)
     statusName: 's.name',
-    
+
     // Default fallback
     defaultNaturalSort: 'pt.created_at',
   },
-  pricingSkuListSortMap: {
+  pricingJoinSortMap: {
     // Product-level fields (FROM products pr)
     productName: 'pr.name',
-    brand:       'pr.brand',
-    category:    'pr.category',
-    
+    brand: 'pr.brand',
+    category: 'pr.category',
+
     // SKU-level fields (FROM skus s)
-    sku:            's.sku',
-    barcode:        's.barcode',
-    sizeLabel:      's.size_label',
+    sku: 's.sku',
+    barcode: 's.barcode',
+    sizeLabel: 's.size_label',
     skuCountryCode: 's.country_code',
-    
+
     // Pricing group-level fields (FROM pricing_groups pg)
-    price:       'pg.price',
+    price: 'pg.price',
     countryCode: 'pg.country_code',
-    validFrom:   'pg.valid_from',
-    validTo:     'pg.valid_to',
-    
+    validFrom: 'pg.valid_from',
+    validTo: 'pg.valid_to',
+
     // Status (FROM status st)
     statusName: 'st.name',
-    
+
     // Default fallback
     defaultNaturalSort: 'pg.valid_from',
   },
-  pricingGroupListSortMap: {
+  pricingGroupSortMap: {
     // Pricing type fields (FROM pricing_types pt)
     pricingTypeName: 'pt.name',
     pricingTypeCode: 'pt.code',
-    
+
     // Pricing group fields (FROM pricing_groups pg)
     countryCode: 'pg.country_code',
-    price:       'pg.price',
-    validFrom:   'pg.valid_from',
-    
+    price: 'pg.price',
+    validFrom: 'pg.valid_from',
+
     // Status (FROM status st)
     statusName: 'st.name',
-    
+
     // Counts
-    skuCount:     'sku_count',
+    skuCount: 'sku_count',
     productCount: 'product_count',
-    
+
     // Audit
+    createdAt: 'pg.created_at',
     updatedAt: 'pg.updated_at',
-    
+
     // Default fallback
     defaultNaturalSort: 'pg.valid_from',
   },
-  locationInventorySummarySortMap: {
-    lotNumber: `
-      CASE
-        WHEN br.batch_type = 'product' THEN pb.lot_number
-        WHEN br.batch_type = 'packaging_material' THEN pmb.lot_number
-        ELSE NULL
-      END
-    `,
-    sku: 's.sku',
-    productName: 'p.name',
-    materialName: 'pm.name',
-    inboundDate: 'li.inbound_date',
-    expiryDate: `
-      CASE
-        WHEN br.batch_type = 'product' THEN pb.expiry_date
-        WHEN br.batch_type = 'packaging_material' THEN pmb.expiry_date
-        ELSE NULL
-      END
-    `,
-    status: 's_status.name',
-    locationQuantity: 'li.location_quantity',
-    reservedQuantity: 'li.reserved_quantity',
-    availableQuantity: '(li.location_quantity - li.reserved_quantity)',
-    createdAt: 'created_at',
-  },
-  locationInventorySortMap: {
-    locationName: 'loc.name',
-    productName: 'p.name',
-    materialName: 'pmb.material_snapshot_name',
-    inboundDate: 'li.inbound_date',
-    outboundDate: 'li.outbound_date',
-    expiryDate: `
-      CASE
-        WHEN br.batch_type = 'product' THEN pb.expiry_date
-        WHEN br.batch_type = 'packaging_material' THEN pmb.expiry_date
-        ELSE NULL
-      END
-    `,
-    createdAt: 'li.created_at',
-    lastUpdate: 'li.last_update',
-    availableQuantity: '(li.location_quantity - li.reserved_quantity)',
-    status: 'st.name',
-    name: `
-      CASE
-        WHEN br.batch_type = 'product' THEN p.name
-        ELSE COALESCE(pmb.material_snapshot_name, pt.name, p.name)
-      END
-    `,
-    defaultNaturalSort: `
-      loc.name,
-      p.brand,
-      br.batch_type,
-      CASE
-        WHEN br.batch_type = 'product' AND p.name ILIKE 'NMN%' THEN
-          LPAD(REGEXP_REPLACE(p.name, '[^0-9]', '', 'g'), 10, '0')
-        WHEN br.batch_type = 'product' THEN
-          p.name
-        ELSE
-          LPAD(REGEXP_REPLACE(COALESCE(pmb.material_snapshot_name, pt.name), '[^0-9]', '', 'g'), 20, '0')
-      END NULLS LAST,
-      li.last_update DESC
-    `,
-  },
   warehouseInventorySortMap: {
-    warehouseName: 'wh.name',
-    productName: 'p.name',
-    materialName: 'pmb.material_snapshot_name',
-    expiryDate: `
-      CASE
-        WHEN br.batch_type = 'product' THEN pb.expiry_date
-        WHEN br.batch_type = 'packaging_material' THEN pmb.expiry_date
-        ELSE NULL
-      END
-    `,
-    createdAt: 'wi.created_at',
-    lastUpdate: 'wi.last_update',
+    inboundDate: 'wi.inbound_date',
+    warehouseQuantity: 'wi.warehouse_quantity',
+    reservedQuantity: 'wi.reserved_quantity',
     availableQuantity: '(wi.warehouse_quantity - wi.reserved_quantity)',
-    status: 'st.name',
-    name: `
-      CASE
-        WHEN br.batch_type = 'product' THEN p.name
-        ELSE COALESCE(pmb.material_snapshot_name, pt.name, p.name)
-      END
-    `,
-    defaultNaturalSort: `
-      wh.name DESC,
-      p.brand,
-      br.batch_type,
-      CASE
-        WHEN br.batch_type = 'product' AND p.name ILIKE 'NMN%' THEN
-          LPAD(REGEXP_REPLACE(p.name, '[^0-9]', '', 'g'), 10, '0')
-        WHEN br.batch_type = 'product' THEN
-          p.name
-        ELSE
-          LPAD(REGEXP_REPLACE(COALESCE(pmb.material_snapshot_name, pt.name), '[^0-9]', '', 'g'), 20, '0')
-      END NULLS LAST,
-      wi.last_update DESC
-    `,
+    productName: 'p.name',
+    packagingDisplayName: 'pmb.received_label_name',
+    expiryDate: 'COALESCE(pb.expiry_date, pmb.expiry_date)',
+    sku: 's.sku',
+    statusName: 'ist.name',
+    lastMovementAt: 'wi.last_movement_at',
+    statusDate: 'wi.status_date',
+    batchType: 'br.batch_type',
+    defaultNaturalSort: 'wi.last_movement_at',
   },
   inventoryActivityLogSortMap: {
-    actionTimestamp: 'ial.action_timestamp',
+    performedAt: 'ial.performed_at',
     quantityChange: 'ial.quantity_change',
-    previousQuantity: 'ial.previous_quantity',
-    newQuantity: 'ial.new_quantity',
-    sourceType: 'ial.source_type',
-    batchType: 'br.batch_type',
-
-    // Action + Adjustment
     actionType: 'iat.name',
-    adjustmentType: 'lat.name',
-
-    // Performed by
-    performedBy: `(u.firstname || ' ' || u.lastname)`,
-
-    // Product & Material Info
-    productName: 'p.name',
-    productBrand: 'p.brand',
-    sku: 's.sku',
-    sizeLabel: 's.size_label',
-    countryCode: 's.country_code',
-    productLotNumber: 'pb.lot_number',
-    productExpiryDate: 'pb.expiry_date',
-    materialLotNumber: 'pmb.lot_number',
-    materialExpiryDate: 'pmb.expiry_date',
-    materialName: 'pmb.material_snapshot_name',
-
-    // Order Info
-    orderNumber: 'o.order_number',
-    orderType: 'ot.name',
-    orderStatus: 'os.name',
-
-    // Warehouse & Location
-    warehouseName: 'wh.name',
-    locationName: 'loc.name',
-
-    // Fallback default
-    defaultNaturalSort: 'ial.action_timestamp DESC',
+    referenceType: 'ial.reference_type',
+    defaultNaturalSort: ['ial.performed_at DESC'],
   },
   customerSortMap: {
     customerName: `
-      COALESCE(TRIM(c.firstname || ' ' || c.lastname), '')
+      CASE
+        WHEN c.customer_type = 'company' THEN COALESCE(c.company_name, '')
+        ELSE COALESCE(TRIM(c.firstname || ' ' || c.lastname), '')
+      END
     `,
     email: 'c.email',
     phoneNumber: 'c.phone_number',
@@ -660,24 +548,32 @@ const SORTABLE_FIELDS = {
     `,
     defaultNaturalSort: [
       's.name',
-      `COALESCE(TRIM(c.firstname || ' ' || c.lastname), '')`,
+      `CASE
+        WHEN c.customer_type = 'company' THEN COALESCE(c.company_name, '')
+        ELSE COALESCE(TRIM(c.firstname || ' ' || c.lastname), '')
+      END`,
       'c.created_at DESC',
     ],
   },
   addressSortMap: {
-    createdAt:      'a.created_at',
-    updatedAt:      'a.updated_at',
-    city:           'a.city',
-    state:          'a.state',
-    postalCode:     'a.postal_code',
-    country:        'a.country',
-    region:         'a.region',
-    label:          'a.label',
-    recipientName:  'a.full_name',
-    email:          'a.email',
-    phone:          'a.phone',
-    customerName:   'c.firstname',
-    customerEmail:  'c.email',
+    createdAt: 'a.created_at',
+    updatedAt: 'a.updated_at',
+    city: 'a.city',
+    state: 'a.state',
+    postalCode: 'a.postal_code',
+    country: 'a.country',
+    region: 'a.region',
+    label: 'a.label',
+    recipientName: 'a.full_name',
+    email: 'a.email',
+    phone: 'a.phone',
+    customerName: `
+      CASE
+        WHEN c.customer_type = 'company' THEN COALESCE(c.company_name, '')
+        ELSE COALESCE(TRIM(c.firstname || ' ' || c.lastname), '')
+      END
+    `,
+    customerEmail: 'c.email',
     defaultNaturalSort: 'a.created_at',
   },
   orderTypeSortMap: {
@@ -699,62 +595,46 @@ const SORTABLE_FIELDS = {
     defaultNaturalSort: 'ot.created_at',
   },
   orderSortMap: {
-    orderNumber:    'o.order_number',
-    orderDate:      'o.order_date',
-    orderType:      'ot.name',
-    statusName:     'os.name',
-    statusDate:     'o.status_date',
+    orderNumber: 'o.order_number',
+    orderDate: 'o.order_date',
+    orderType: 'ot.name',
+    statusName: 'os.name',
+    statusDate: 'o.status_date',
     deliveryMethod: 'dm.method_name',
-    customerFirst:  'c.firstname',
-    customerLast:   'c.lastname',
-    paymentMethod:  'pm.name',
-    paymentStatus:  'ps.name',
-    createdAt:      'o.created_at',
-    updatedAt:      'o.updated_at',
-    createdBy:      'u_created.firstname',
-    updatedBy:      'u_updated.firstname',
-    
+    customerFirst: 'c.firstname',
+    customerLast: 'c.lastname',
+    paymentMethod: 'pm.name',
+    paymentStatus: 'ps.name',
+    createdAt: 'o.created_at',
+    updatedAt: 'o.updated_at',
+    createdBy: 'u_created.firstname',
+    updatedBy: 'u_updated.firstname',
+
     defaultNaturalSort: 'o.created_at',
   },
   inventoryAllocationSortMap: {
-    // Allocation-level summary fields (FROM alloc_agg aa)
-    allocationStatus: 'aa.allocation_summary_status', // derived field
-    allocationStatusCodes: 'aa.allocation_status_codes', // raw code array
-    allocationStatuses: 'aa.allocation_statuses', // raw label string
+    allocationStatus: 'aa.allocation_summary_status',
+    allocationStatuses: 'aa.allocation_statuses',
     allocatedAt: 'aa.allocated_at',
     allocatedCreatedAt: 'aa.allocated_created_at',
-
-    // Warehouse display info (FROM alloc_agg aa)
     warehouseNames: 'aa.warehouse_names',
-
-    // Order-level fields (FROM orders o)
+    allocatedItems: 'aa.allocated_items',
     orderNumber: 'o.order_number',
     orderDate: 'o.created_at',
     orderType: 'ot.name',
     orderStatus: 'os.name',
-    orderStatusDate: 'o.status_date',
-
-    // Customer
-    customerName: `c.firstname`, // or use a concat if you have a full name
+    customerName: `CASE WHEN c.customer_type = 'company' THEN c.company_name ELSE c.firstname || ' ' || c.lastname END`,
     customerFirstName: 'c.firstname',
     customerLastName: 'c.lastname',
-
-    // Payment-related
+    customerCompanyName: 'c.company_name',
     paymentMethod: 'pm.name',
     paymentStatus: 'ps.name',
     deliveryMethod: 'dm.method_name',
-
-    // Audit fields
-    orderCreatedAt: 'o.created_at',
-    orderUpdatedAt: 'o.updated_at', // not selected, optional
-    orderCreatedByFirstName: 'u.firstname',
-    orderCreatedByLastName: 'u.lastname',
-
-    // Item counts
+    createdByFirstName: 'u1.firstname',
+    createdByLastName: 'u1.lastname',
+    updatedByFirstName: 'u2.firstname',
+    updatedByLastName: 'u2.lastname',
     totalItems: 'ic.total_items',
-    allocatedItems: 'aa.allocated_items',
-
-    // Fallback default
     defaultNaturalSort: 'o.created_at',
   },
   outboundShipmentSortMap: {
@@ -795,7 +675,7 @@ const SORTABLE_FIELDS = {
     createdAt: 's.created_at',
     updatedAt: 's.updated_at',
     defaultNaturalSort: 'LOWER(s.name)',
-  }
+  },
 };
 
 module.exports = {

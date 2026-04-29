@@ -31,22 +31,25 @@ const CONTEXT = 'sku-image-business';
  * @returns {object} Insert-ready image record.
  */
 const normalizeSkuImageForInsert = (img, skuId, userId, index = 0) => ({
-  group_id:      img.group_id,
-  sku_id:        skuId,
-  image_url:     String(img.image_url || '').trim(),
-  image_type:    String(img.image_type || 'unknown').toLowerCase(),
-  display_order: typeof img.display_order === 'number'
-    ? img.display_order
-    : Number.isFinite(index) ? index : 0,
-  file_size_kb:  Number.isFinite(img.file_size_kb)
+  group_id: img.group_id,
+  sku_id: skuId,
+  image_url: String(img.image_url || '').trim(),
+  image_type: String(img.image_type || 'unknown').toLowerCase(),
+  display_order:
+    typeof img.display_order === 'number'
+      ? img.display_order
+      : Number.isFinite(index)
+        ? index
+        : 0,
+  file_size_kb: Number.isFinite(img.file_size_kb)
     ? Math.round(img.file_size_kb)
     : null,
-  file_format:   String(img.file_format || 'webp').toLowerCase(),
-  alt_text:      img.alt_text?.trim?.() || '',
-  is_primary:    Boolean(img.is_primary),
-  uploaded_by:   userId,
-  created_at:    new Date(),
-  source:        img.source || 'uploaded',
+  file_format: String(img.file_format || 'webp').toLowerCase(),
+  alt_text: img.alt_text?.trim?.() || '',
+  is_primary: Boolean(img.is_primary),
+  uploaded_by: userId,
+  created_at: new Date(),
+  source: img.source || 'uploaded',
 });
 
 /**
@@ -58,10 +61,10 @@ const normalizeSkuImageForInsert = (img, skuId, userId, index = 0) => ({
  */
 const evaluateSkuImageViewAccessControl = async (user) => {
   const context = `${CONTEXT}/evaluateSkuImageViewAccessControl`;
-  
+
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     return {
       canViewImages:
         isRoot ||
@@ -82,7 +85,7 @@ const evaluateSkuImageViewAccessControl = async (user) => {
       context,
       userId: user?.id,
     });
-    
+
     throw AppError.businessError(
       'Unable to evaluate SKU image access control.'
     );
@@ -101,38 +104,38 @@ const evaluateSkuImageViewAccessControl = async (user) => {
  */
 const sliceSkuImagesForUser = (imageRows, access) => {
   if (!Array.isArray(imageRows) || !access.canViewImages) return [];
-  
+
   return imageRows.map((row) => {
     const safe = {
-      id:        row.id,
-      groupId:   row.group_id,
-      imageUrl:  row.image_url,
-      type:      row.image_type,
+      id: row.id,
+      groupId: row.group_id,
+      imageUrl: row.image_url,
+      type: row.image_type,
       isPrimary: row.is_primary,
-      altText:   row.alt_text,
+      altText: row.alt_text,
     };
-    
+
     if (access.canViewImageMetadata) {
       safe.metadata = {
-        sizeKb:       row.file_size_kb,
-        format:       row.file_format,
+        sizeKb: row.file_size_kb,
+        format: row.file_format,
         displayOrder: row.display_order,
       };
     }
-    
+
     if (access.canViewImageHistory) {
       safe.audit = {
         uploadedAt: row.uploaded_at,
         uploadedBy: row.uploaded_by
           ? {
-            id:        row.uploaded_by,
-            firstname: row.uploaded_by_firstname,
-            lastname:  row.uploaded_by_lastname,
-          }
+              id: row.uploaded_by,
+              firstname: row.uploaded_by_firstname,
+              lastname: row.uploaded_by_lastname,
+            }
           : null,
       };
     }
-    
+
     return safe;
   });
 };

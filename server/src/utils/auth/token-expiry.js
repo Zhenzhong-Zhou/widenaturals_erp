@@ -30,7 +30,7 @@ const getTokenExpiry = (isRefreshToken = false) => {
   const ttlSeconds = getTtlSeconds(
     isRefreshToken ? 'REFRESH_TOKEN_TTL_SECONDS' : 'ACCESS_TOKEN_TTL_SECONDS'
   );
-  
+
   return new Date(Date.now() + ttlSeconds * 1000);
 };
 

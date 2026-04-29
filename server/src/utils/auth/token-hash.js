@@ -29,7 +29,7 @@ const crypto = require('crypto');
 // tokens are already random enough that a fast hash is safe and avoids
 // adding latency to every authenticated request
 const TOKEN_HASH_ALGORITHM = 'sha256';
-const TOKEN_HASH_ENCODING  = 'hex';
+const TOKEN_HASH_ENCODING = 'hex';
 
 /**
  * Hashes a raw authentication token for secure database storage and lookup.
@@ -51,12 +51,12 @@ const hashToken = (token) => {
   if (!token || typeof token !== 'string') {
     throw new Error('Token must be a non-empty string');
   }
-  
+
   const pepper = process.env.TOKEN_PEPPER;
   if (!pepper) {
     throw new Error('TOKEN_PEPPER is not configured');
   }
-  
+
   return crypto
     .createHash(TOKEN_HASH_ALGORITHM)
     .update(`${token}.${pepper}`)

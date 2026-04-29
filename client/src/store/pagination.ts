@@ -1,5 +1,21 @@
 import type { PaginatedLookupState } from '@shared-types/api';
-import type { ReduxPaginatedState } from '@shared-types/pagination';
+import type {
+  Pagination,
+  ReduxPaginatedState
+} from '@shared-types/pagination';
+
+/**
+ * Creates an initial pagination state with sensible defaults.
+ *
+ * @param limit - Number of records per page (defaults to 10).
+ * @returns A fresh Pagination object starting at page 1 with zero records.
+ */
+export const createInitialPagination = (limit: number = 10): Pagination => ({
+  page: 1,
+  limit,
+  totalPages: 0,
+  totalRecords: 0,
+});
 
 /**
  * Creates a standardized initial Redux state for paginated slices.
@@ -19,14 +35,9 @@ import type { ReduxPaginatedState } from '@shared-types/pagination';
  * @template T - Flattened, UI-ready row type stored in the list
  * @returns {ReduxPaginatedState<T>} Initialized paginated slice state
  */
-export const createInitialPaginatedState = <T>(): ReduxPaginatedState<T> => ({
+export const createInitialPaginatedState = <T>(limit?: number): ReduxPaginatedState<T> => ({
   data: [],
-  pagination: {
-    page: 1,
-    limit: 10,
-    totalPages: 0,
-    totalRecords: 0,
-  },
+  pagination: createInitialPagination(limit),
   loading: false,
   error: null,
   traceId: null,

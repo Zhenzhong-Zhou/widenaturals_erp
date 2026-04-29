@@ -23,6 +23,7 @@
  *  - BATCH_REGISTRY_CONFLICT_COLUMNS_PACKAGING — conflict target for packaging batches
  *  - BATCH_REGISTRY_UPDATE_NOTE_QUERY          — update note by ID
  *  - BATCH_REGISTRY_DETAILS_QUERY              — full detail fetch with joins
+ *  - VALIDATE_BATCH_REGISTRY_IDS_QUERY         — existence check for a set of batch IDs
  */
 
 'use strict';
@@ -51,7 +52,8 @@ const BATCH_REGISTRY_LOOKUP_JOINS = [
   'LEFT JOIN packaging_material_batches pmb ON br.packaging_material_batch_id = pmb.id',
 ];
 
-const _BATCH_REGISTRY_LOOKUP_JOINS_SQL = BATCH_REGISTRY_LOOKUP_JOINS.join('\n  ');
+const _BATCH_REGISTRY_LOOKUP_JOINS_SQL =
+  BATCH_REGISTRY_LOOKUP_JOINS.join('\n  ');
 
 // Only registered_at is sortable in the lookup — this is a narrow projection.
 const BATCH_REGISTRY_LOOKUP_WHITELIST = new Set(['br.registered_at']);
@@ -101,7 +103,8 @@ const BATCH_REGISTRY_PAGINATED_JOINS = [
   'LEFT JOIN suppliers sup                  ON pms.supplier_id = sup.id',
 ];
 
-const _BATCH_REGISTRY_PAGINATED_JOINS_SQL = BATCH_REGISTRY_PAGINATED_JOINS.join('\n  ');
+const _BATCH_REGISTRY_PAGINATED_JOINS_SQL =
+  BATCH_REGISTRY_PAGINATED_JOINS.join('\n  ');
 
 const BATCH_REGISTRY_SORT_WHITELIST = new Set(
   Object.values(SORTABLE_FIELDS.batchRegistrySortMap)
@@ -167,8 +170,10 @@ const BATCH_REGISTRY_UPDATE_STRATEGIES = {
 };
 
 // Conflict targets are separated by batch_type — each has its own unique constraint.
-const BATCH_REGISTRY_CONFLICT_COLUMNS_PRODUCT    = ['product_batch_id'];
-const BATCH_REGISTRY_CONFLICT_COLUMNS_PACKAGING  = ['packaging_material_batch_id'];
+const BATCH_REGISTRY_CONFLICT_COLUMNS_PRODUCT = ['product_batch_id'];
+const BATCH_REGISTRY_CONFLICT_COLUMNS_PACKAGING = [
+  'packaging_material_batch_id',
+];
 
 // ─── Update ───────────────────────────────────────────────────────────────────
 
@@ -208,6 +213,12 @@ const BATCH_REGISTRY_DETAILS_QUERY = `
   WHERE br.id = $1
 `;
 
+const VALIDATE_BATCH_REGISTRY_IDS_QUERY = `
+  SELECT id
+  FROM batch_registry
+  WHERE id = ANY($1::uuid[])
+`;
+
 module.exports = {
   BATCH_REGISTRY_GET_BY_ID,
   BATCH_REGISTRY_LOOKUP_TABLE,
@@ -224,4 +235,5 @@ module.exports = {
   BATCH_REGISTRY_CONFLICT_COLUMNS_PACKAGING,
   BATCH_REGISTRY_UPDATE_NOTE_QUERY,
   BATCH_REGISTRY_DETAILS_QUERY,
+  VALIDATE_BATCH_REGISTRY_IDS_QUERY,
 };

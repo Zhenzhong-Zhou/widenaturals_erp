@@ -6,8 +6,12 @@
 
 'use strict';
 
-const { resolveUserPermissionContext } = require('../services/permission-service');
-const { BATCH_CONSTANTS } = require('../utils/constants/domain/batch-constants');
+const {
+  resolveUserPermissionContext,
+} = require('../services/permission-service');
+const {
+  BATCH_CONSTANTS,
+} = require('../utils/constants/domain/batch-constants');
 const { logSystemException } = require('../utils/logging/system-logger');
 const AppError = require('../utils/AppError');
 
@@ -25,10 +29,10 @@ const CONTEXT = 'batch-status-business';
  */
 const evaluateBatchStatusVisibilityAccessControl = async (user) => {
   const context = `${CONTEXT}/evaluateBatchStatusVisibilityAccessControl`;
-  
+
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     const canViewInactiveBatchStatuses =
       isRoot ||
       permissions.includes(
@@ -37,7 +41,7 @@ const evaluateBatchStatusVisibilityAccessControl = async (user) => {
       permissions.includes(
         BATCH_CONSTANTS.PERMISSIONS.VIEW_INACTIVE_BATCH_STATUSES
       );
-    
+
     return {
       canViewInactiveBatchStatuses,
       enforceActiveOnly: !canViewInactiveBatchStatuses,
@@ -51,7 +55,7 @@ const evaluateBatchStatusVisibilityAccessControl = async (user) => {
         userId: user?.id,
       }
     );
-    
+
     throw AppError.businessError(
       'Unable to evaluate batch status visibility access control.'
     );
@@ -70,16 +74,16 @@ const evaluateBatchStatusVisibilityAccessControl = async (user) => {
  */
 const applyBatchStatusLookupVisibilityRules = (filters, acl) => {
   const adjusted = { ...filters };
-  
+
   if (acl.canViewInactiveBatchStatuses) {
     delete adjusted.enforceActiveOnly;
     return adjusted;
   }
-  
+
   // Active-only enforced — prevent clients from overriding via isActive filter.
   adjusted.enforceActiveOnly = true;
   delete adjusted.isActive;
-  
+
   return adjusted;
 };
 

@@ -23,9 +23,9 @@
  * @type {FlagMap}
  */
 const STANDARD_FLAG_MAP = {
-  canViewAllStatuses:     'isActive',
+  canViewAllStatuses: 'isActive',
   canViewAllValidLookups: 'isValidToday',
-  canViewArchived:        'isArchived',
+  canViewArchived: 'isArchived',
 };
 
 /**
@@ -50,7 +50,7 @@ const STATUS_ONLY_FLAG_MAP = {
  */
 const PRICING_GROUP_FLAG_MAP = {
   canViewAllPricingStates: 'isActive',
-  canViewAllValidPricing:  'isValidToday',
+  canViewAllValidPricing: 'isValidToday',
 };
 
 module.exports = {

@@ -132,7 +132,7 @@ export interface ProductListItem {
   /** Product name */
   name: string;
 
-  /** Product series label (may be null if unset) */
+  /** Product series label (maybe null if unset) */
   series: NullableString;
 
   /** Product brand (maybe null if unset) */

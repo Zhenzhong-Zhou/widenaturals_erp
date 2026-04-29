@@ -5,7 +5,11 @@
 
 const readline = require('readline');
 const { loadEnv } = require('../../config/env');
-const { logInfo, logWarn, logError } = require('../../utils/logging/logger-helper');
+const {
+  logInfo,
+  logWarn,
+  logError,
+} = require('../../utils/logging/logger-helper');
 const { env } = loadEnv();
 const knex = require('knex')(require('../../../knexfile')[env]);
 

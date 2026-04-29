@@ -1,6 +1,6 @@
 import allocateInventoryReducer from './allocateInventorySlice';
 import inventoryAllocationReviewReducer from './inventoryAllocationReviewSlice';
-import paginatedInventoryAllocationsReducer from './paginatedInventoryAllocationsSlice';
+import paginatedInventoryAllocationReducer from './paginatedInventoryAllocationSlice';
 import inventoryAllocationConfirmationReducer from './inventoryAllocationConfirmationSlice';
 
 /**
@@ -25,7 +25,7 @@ export const inventoryAllocationReducers = {
   inventoryAllocationReview: inventoryAllocationReviewReducer,
 
   /** Paginated inventory allocation list and filters */
-  paginatedInventoryAllocations: paginatedInventoryAllocationsReducer,
+  paginatedInventoryAllocation: paginatedInventoryAllocationReducer,
 
   /** Confirmation and finalization of inventory allocations */
   inventoryAllocationConfirmation: inventoryAllocationConfirmationReducer,

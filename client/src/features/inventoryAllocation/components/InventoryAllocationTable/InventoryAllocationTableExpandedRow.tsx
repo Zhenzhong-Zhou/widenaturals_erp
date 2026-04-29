@@ -22,17 +22,16 @@ const InventoryAllocationTableExpandedRow: FC<Props> = ({ row }) => {
     allocationStatusNames,
     allocatedAt,
     allocatedCreatedAt,
-    orderCreatedAt,
-    orderUpdatedAt,
+    orderCreatedBy,
     orderUpdatedBy,
   } = row;
-
+  
   return (
     <Box sx={{ px: 3, py: 2 }}>
       <CustomTypography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
         Order Allocation Metadata
       </CustomTypography>
-
+      
       <Grid container spacing={2}>
         <Grid size={{ xs: 12 }}>
           <DetailsSection
@@ -58,18 +57,13 @@ const InventoryAllocationTableExpandedRow: FC<Props> = ({ row }) => {
                 format: formatDate,
               },
               {
-                label: 'Order Created At',
-                value: orderCreatedAt,
-                format: formatDate,
-              },
-              {
-                label: 'Order Updated At',
-                value: orderUpdatedAt,
-                format: formatDate,
+                label: 'Order Created By',
+                value: orderCreatedBy ?? '—',
+                format: formatLabel,
               },
               {
                 label: 'Order Updated By',
-                value: orderUpdatedBy,
+                value: orderUpdatedBy ?? '—',
                 format: formatLabel,
               },
             ]}

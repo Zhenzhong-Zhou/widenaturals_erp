@@ -183,7 +183,6 @@ const validatePositiveIntegerRequired = () =>
       'any.required': 'Value is required.',
     });
 
-
 /**
  * Creates a Joi schema for validating a strictly positive decimal number.
  *
@@ -660,16 +659,10 @@ const optionalIsoDate = (label = 'Date') =>
  * - invalid formats
  */
 const requiredIsoDate = () =>
-  Joi.alternatives()
-    .try(
-      Joi.date().iso(),
-      Joi.date()
-    )
-    .required()
-    .messages({
-      'any.required': 'Date is required',
-      'date.base': 'Date must be a valid ISO-8601 value',
-    });
+  Joi.alternatives().try(Joi.date().iso(), Joi.date()).required().messages({
+    'any.required': 'Date is required',
+    'date.base': 'Date must be a valid ISO-8601 value',
+  });
 
 /**
  * Build a Joi validator for optional text fields such as notes,

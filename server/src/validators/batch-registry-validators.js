@@ -5,7 +5,8 @@ const {
   validateUUIDOrUUIDArrayOptional,
   validateOptionalString,
   optionalIsoDate,
-  validateUUID, validateOptionalText,
+  validateUUID,
+  validateOptionalText,
 } = require('./general-validators');
 
 /**
@@ -103,8 +104,9 @@ const batchRegistryQuerySchema = paginationSchema
  * if (error) throw AppError.validationError(error.message);
  */
 const batchRegistryIdParamSchema = Joi.object({
-  batchRegistryId: validateUUID('Batch Registry ID')
-    .description('UUID of the batch registry record'),
+  batchRegistryId: validateUUID('Batch Registry ID').description(
+    'UUID of the batch registry record'
+  ),
 });
 
 /**
@@ -132,5 +134,5 @@ const updateBatchRegistryNoteSchema = Joi.object({
 module.exports = {
   batchRegistryQuerySchema,
   batchRegistryIdParamSchema,
-  updateBatchRegistryNoteSchema
+  updateBatchRegistryNoteSchema,
 };

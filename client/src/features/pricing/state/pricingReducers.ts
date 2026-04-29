@@ -1,5 +1,4 @@
-import pricingListReducer from './pricingListSlice';
-import pricingListByTypeReducer from './pricingListByTypeSlice';
+import paginatedPricingReducer from './paginatedPricingSlice';
 
 /**
  * Reducer map for the Pricing feature.
@@ -17,8 +16,5 @@ import pricingListByTypeReducer from './pricingListByTypeSlice';
  */
 export const pricingReducers = {
   /** Paginated pricing list and base pricing data */
-  pricingList: pricingListReducer,
-
-  /** Pricing list grouped and filtered by pricing type */
-  pricingListByType: pricingListByTypeReducer,
+  paginatedPricing: paginatedPricingReducer,
 };

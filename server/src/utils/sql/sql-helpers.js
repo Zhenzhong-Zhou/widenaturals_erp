@@ -41,7 +41,7 @@ const minUuid = (tableAlias, column, alias) => {
   validateIdentifier(tableAlias);
   validateIdentifier(column);
   validateIdentifier(alias);
-  
+
   return `MIN(${tableAlias}.${column}::text)::uuid AS ${alias}`;
 };
 
@@ -63,10 +63,10 @@ const minUuid = (tableAlias, column, alias) => {
  */
 const addIlikeFilter = (conditions, params, idx, value, field) => {
   if (!value) return idx;
-  
+
   conditions.push(`${field} ILIKE $${idx}`);
   params.push(`%${value}%`);
-  
+
   return idx + 1;
 };
 
@@ -92,20 +92,20 @@ const addIlikeFilter = (conditions, params, idx, value, field) => {
  */
 const addKeywordIlikeGroup = (conditions, params, idx, keyword, fields) => {
   if (!keyword) return idx;
-  
+
   if (!Array.isArray(fields) || fields.length === 0) {
     throw AppError.validationError(
       'addKeywordIlikeGroup: fields must be a non-empty array when keyword is provided.',
       { keyword, fields }
     );
   }
-  
+
   // Same $N referenced across all OR branches — single param covers all fields.
   const orConditions = fields.map((field) => `${field} ILIKE $${idx}`);
-  
+
   conditions.push(`(${orConditions.join(' OR ')})`);
   params.push(`%${keyword}%`);
-  
+
   return idx + 1;
 };
 

@@ -5,22 +5,13 @@ const { fetchDynamicValue } = require('../03_utils');
  * @returns { Promise<void> }
  */
 exports.seed = async function (knex) {
-  const warehouseMaterialInventory = await knex('warehouse_inventory as wi')
+  const existingInventory = await knex('warehouse_inventory as wi')
     .join('batch_registry as br', 'wi.batch_id', 'br.id')
     .whereNotNull('br.packaging_material_batch_id')
     .select('wi.id')
     .limit(1);
 
-  const locationMaterialInventory = await knex('location_inventory as li')
-    .join('batch_registry as br', 'li.batch_id', 'br.id')
-    .whereNotNull('br.packaging_material_batch_id')
-    .select('li.id')
-    .limit(1);
-
-  if (
-    warehouseMaterialInventory.length > 0 ||
-    locationMaterialInventory.length > 0
-  ) {
+  if (existingInventory.length > 0) {
     console.log('Skipping packaging material inventory seed: already exists.');
     return;
   }
@@ -39,7 +30,7 @@ exports.seed = async function (knex) {
   const warehouse = await knex('warehouses')
     .whereILike('code', 'WH-RS-CA02')
     .first();
-  if (!warehouse) throw new Error('Richmond warehouse (WH-WNI-CA01) not found');
+  if (!warehouse) throw new Error('Richmond warehouse (WH-RS-CA02) not found');
 
   const inStockStatusId = await fetchDynamicValue(
     knex,
@@ -48,9 +39,6 @@ exports.seed = async function (knex) {
     'in_stock',
     'id'
   );
-
-  const locationId = warehouse.location_id;
-  const warehouseId = warehouse.id;
 
   const packagingBatches = await knex('packaging_material_batches as pmb')
     .join('batch_registry as br', 'br.packaging_material_batch_id', 'pmb.id')
@@ -63,33 +51,16 @@ exports.seed = async function (knex) {
 
   const now = knex.fn.now();
 
-  const locationInventory = packagingBatches.map((b) => ({
-    id: knex.raw('uuid_generate_v4()'),
-    location_id: locationId,
-    batch_id: b.batch_id,
-    location_quantity: Math.floor(Number(b.quantity) || 0),
-    reserved_quantity: 0,
-    inbound_date: now,
-    outbound_date: null,
-    last_update: now,
-    status_id: inStockStatusId,
-    status_date: now,
-    created_at: now,
-    updated_at: null,
-    created_by: systemUserId,
-    updated_by: null,
-  }));
-
   const warehouseInventory = packagingBatches.map((b) => ({
     id: knex.raw('uuid_generate_v4()'),
-    warehouse_id: warehouseId,
+    warehouse_id: warehouse.id,
     batch_id: b.batch_id,
     warehouse_quantity: Math.floor(Number(b.quantity) || 0),
     reserved_quantity: 0,
     warehouse_fee: 0,
     inbound_date: now,
     outbound_date: null,
-    last_update: now,
+    last_movement_at: null,
     status_id: inStockStatusId,
     status_date: now,
     created_at: now,
@@ -97,11 +68,6 @@ exports.seed = async function (knex) {
     created_by: systemUserId,
     updated_by: null,
   }));
-
-  await knex('location_inventory')
-    .insert(locationInventory)
-    .onConflict(['location_id', 'batch_id'])
-    .ignore();
 
   await knex('warehouse_inventory')
     .insert(warehouseInventory)
@@ -109,6 +75,6 @@ exports.seed = async function (knex) {
     .ignore();
 
   console.log(
-    `Inserted ${locationInventory.length} location_inventory records and ${warehouseInventory.length} warehouse_inventory records for packaging materials.`
+    `Inserted ${warehouseInventory.length} warehouse_inventory records for packaging materials.`
   );
 };

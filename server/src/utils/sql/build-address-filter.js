@@ -34,10 +34,12 @@ const {
  *
  * @param {Object}  [filters={}]                   - Validated filter fields from the request.
  * @param {string}  [filters.customerId]            - Filter by owning customer UUID.
+ * @param {string}  [filters.customerType] - Filter by customer type ('individual' or 'company').
  * @param {string}  [filters.createdBy]             - Filter by creator user UUID.
  * @param {string}  [filters.updatedBy]             - Filter by updater user UUID.
  * @param {string}  [filters.region]                - Filter by region string.
  * @param {string}  [filters.country]               - Filter by country string.
+ * @param {string}  [filters.city]                  - Filter by city string.
  * @param {string}  [filters.keyword]               - ILIKE search across label, full_name, email, phone, city.
  * @param {string}  [filters.createdAfter]          - Lower bound for created_at (inclusive, normalized to UTC).
  * @param {string}  [filters.createdBefore]         - Upper bound for created_at (exclusive, normalized to UTC).
@@ -55,11 +57,11 @@ const buildAddressFilter = (filters = {}, includeUnassigned = false) => {
     'updatedAfter',
     'updatedBefore'
   );
-  
-  const conditions  = ['1=1'];
-  const params      = [];
+
+  const conditions = ['1=1'];
+  const params = [];
   const paramIndexRef = { value: 1 };
-  
+
   if (normalizedFilters.customerId) {
     if (includeUnassigned) {
       // Surface both the customer's own addresses and any orphan addresses.
@@ -72,64 +74,79 @@ const buildAddressFilter = (filters = {}, includeUnassigned = false) => {
     params.push(normalizedFilters.customerId);
     paramIndexRef.value++;
   }
-  
+
+  if (normalizedFilters.customerType) {
+    conditions.push(`c.customer_type = $${paramIndexRef.value}`);
+    params.push(normalizedFilters.customerType);
+    paramIndexRef.value++;
+  }
+
   if (normalizedFilters.createdBy) {
     conditions.push(`a.created_by = $${paramIndexRef.value}`);
     params.push(normalizedFilters.createdBy);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.updatedBy) {
     conditions.push(`a.updated_by = $${paramIndexRef.value}`);
     params.push(normalizedFilters.updatedBy);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.region) {
     conditions.push(`a.region = $${paramIndexRef.value}`);
     params.push(normalizedFilters.region);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.country) {
     conditions.push(`a.country = $${paramIndexRef.value}`);
     params.push(normalizedFilters.country);
     paramIndexRef.value++;
   }
-  
+
+  if (normalizedFilters.city) {
+    conditions.push(`a.city = $${paramIndexRef.value}`);
+    params.push(normalizedFilters.city);
+    paramIndexRef.value++;
+  }
+
   if (normalizedFilters.keyword) {
     // Same $N index is intentionally repeated across all five columns —
     // PostgreSQL allows a single bound parameter to be referenced multiple
     // times in the same query. Only one entry is pushed to params.
     conditions.push(`(
-      a.label     ILIKE $${paramIndexRef.value} OR
-      a.full_name ILIKE $${paramIndexRef.value} OR
-      a.email     ILIKE $${paramIndexRef.value} OR
-      a.phone     ILIKE $${paramIndexRef.value} OR
-      a.city      ILIKE $${paramIndexRef.value}
+      a.label        ILIKE $${paramIndexRef.value} OR
+      a.full_name    ILIKE $${paramIndexRef.value} OR
+      a.email        ILIKE $${paramIndexRef.value} OR
+      a.phone        ILIKE $${paramIndexRef.value} OR
+      a.city         ILIKE $${paramIndexRef.value} OR
+      c.firstname    ILIKE $${paramIndexRef.value} OR
+      c.lastname     ILIKE $${paramIndexRef.value} OR
+      c.company_name ILIKE $${paramIndexRef.value}
     )`);
     params.push(`%${normalizedFilters.keyword}%`);
     paramIndexRef.value++;
   }
-  
+
   applyDateRangeConditions({
     conditions,
     params,
-    column:        'a.created_at',
-    after:         normalizedFilters.createdAfter,
-    before:        normalizedFilters.createdBefore,
+    column: 'a.created_at',
+    after: normalizedFilters.createdAfter,
+    before: normalizedFilters.createdBefore,
     paramIndexRef,
   });
-  
+
   applyDateRangeConditions({
     conditions,
     params,
-    column:        'a.updated_at',
-    after:         normalizedFilters.updatedAfter,
-    before:        normalizedFilters.updatedBefore,
+    column: 'a.updated_at',
+    after: normalizedFilters.updatedAfter,
+    before: normalizedFilters.updatedBefore,
     paramIndexRef,
   });
-  
+
   return {
     whereClause: conditions.join(' AND '),
     params,

@@ -12,7 +12,8 @@
 const { randomUUID } = require('crypto');
 
 // Compiled once at module load — reused across all isUUID calls
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * Generates a unique trace ID with an optional prefix and embedded timestamp.

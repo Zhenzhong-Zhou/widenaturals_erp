@@ -44,27 +44,30 @@ const {
  * Reads from req.normalizedQuery — populated by createQueryNormalizationMiddleware.
  * Requires: auth middleware, query normalizer, VIEW_PACKAGING_MATERIAL_BATCHES permission.
  */
-const getPaginatedPackagingMaterialBatchesController = wrapAsyncHandler(async (req, res) => {
-  const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
-  const user = req.auth.user;
-  
-  const { data, pagination } = await fetchPaginatedPackagingMaterialBatchesService({
-    filters,
-    page,
-    limit,
-    sortBy,
-    sortOrder,
-    user,
-  });
-  
-  res.status(200).json({
-    success:  true,
-    message:  'Packaging material batches retrieved successfully.',
-    data,
-    pagination,
-    traceId:  req.traceId,
-  });
-});
+const getPaginatedPackagingMaterialBatchesController = wrapAsyncHandler(
+  async (req, res) => {
+    const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
+    const user = req.auth.user;
+
+    const { data, pagination } =
+      await fetchPaginatedPackagingMaterialBatchesService({
+        filters,
+        page,
+        limit,
+        sortBy,
+        sortOrder,
+        user,
+      });
+
+    res.status(200).json({
+      success: true,
+      message: 'Packaging material batches retrieved successfully.',
+      data,
+      pagination,
+      traceId: req.traceId,
+    });
+  }
+);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/v1/packaging-material-batches
@@ -76,22 +79,24 @@ const getPaginatedPackagingMaterialBatchesController = wrapAsyncHandler(async (r
  * Accepts a JSON array in req.body.packagingMaterialBatches.
  * Requires: auth middleware, Joi body validation, CREATE_PACKAGING_MATERIAL_BATCHES permission.
  */
-const createPackagingMaterialBatchesController = wrapAsyncHandler(async (req, res) => {
-  const { packagingMaterialBatches } = req.body;
-  const user = req.auth.user;
-  
-  const result = await createPackagingMaterialBatchesService(
-    packagingMaterialBatches,
-    user,
-  );
-  
-  res.status(201).json({
-    success: true,
-    message: 'Packaging material batches created successfully.',
-    data:    result,
-    traceId: req.traceId,
-  });
-});
+const createPackagingMaterialBatchesController = wrapAsyncHandler(
+  async (req, res) => {
+    const { packagingMaterialBatches } = req.body;
+    const user = req.auth.user;
+
+    const result = await createPackagingMaterialBatchesService(
+      packagingMaterialBatches,
+      user
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'Packaging material batches created successfully.',
+      data: result,
+      traceId: req.traceId,
+    });
+  }
+);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PATCH /api/v1/packaging-material-batches/:batchId/metadata
@@ -102,23 +107,25 @@ const createPackagingMaterialBatchesController = wrapAsyncHandler(async (req, re
  *
  * Requires: auth middleware, Joi body validation, EDIT_PACKAGING_MATERIAL_BATCH permission.
  */
-const editPackagingMaterialBatchMetadataController = wrapAsyncHandler(async (req, res) => {
-  const { batchId } = req.params;
-  const user        = req.auth.user;
-  
-  const result = await editPackagingMaterialBatchMetadataService(
-    batchId,
-    req.body,
-    user,
-  );
-  
-  res.status(200).json({
-    success: true,
-    message: 'Packaging material batch updated successfully.',
-    data:    result,
-    traceId: req.traceId,
-  });
-});
+const editPackagingMaterialBatchMetadataController = wrapAsyncHandler(
+  async (req, res) => {
+    const { batchId } = req.params;
+    const user = req.auth.user;
+
+    const result = await editPackagingMaterialBatchMetadataService(
+      batchId,
+      req.body,
+      user
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Packaging material batch updated successfully.',
+      data: result,
+      traceId: req.traceId,
+    });
+  }
+);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PATCH /api/v1/packaging-material-batches/:batchId/status
@@ -129,25 +136,27 @@ const editPackagingMaterialBatchMetadataController = wrapAsyncHandler(async (req
  *
  * Requires: auth middleware, Joi body validation, UPDATE_PACKAGING_MATERIAL_BATCH_STATUS permission.
  */
-const updatePackagingMaterialBatchStatusController = wrapAsyncHandler(async (req, res) => {
-  const { batchId }          = req.params;
-  const { status_id, notes } = req.body;
-  const user                 = req.auth.user;
-  
-  const result = await updatePackagingMaterialBatchStatusService(
-    batchId,
-    status_id,
-    notes,
-    user,
-  );
-  
-  res.status(200).json({
-    success: true,
-    message: 'Packaging material batch status updated successfully.',
-    data:    result,
-    traceId: req.traceId,
-  });
-});
+const updatePackagingMaterialBatchStatusController = wrapAsyncHandler(
+  async (req, res) => {
+    const { batchId } = req.params;
+    const { status_id, notes } = req.body;
+    const user = req.auth.user;
+
+    const result = await updatePackagingMaterialBatchStatusService(
+      batchId,
+      status_id,
+      notes,
+      user
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Packaging material batch status updated successfully.',
+      data: result,
+      traceId: req.traceId,
+    });
+  }
+);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PATCH /api/v1/packaging-material-batches/:batchId/receive
@@ -158,25 +167,27 @@ const updatePackagingMaterialBatchStatusController = wrapAsyncHandler(async (req
  *
  * Requires: auth middleware, Joi body validation, RECEIVE_PACKAGING_MATERIAL_BATCH permission.
  */
-const receivePackagingMaterialBatchController = wrapAsyncHandler(async (req, res) => {
-  const { batchId }              = req.params;
-  const { received_at, notes }   = req.body;
-  const user                     = req.auth.user;
-  
-  const result = await receivePackagingMaterialBatchService(
-    batchId,
-    received_at,
-    notes,
-    user,
-  );
-  
-  res.status(200).json({
-    success: true,
-    message: 'Packaging material batch marked as received.',
-    data:    result,
-    traceId: req.traceId,
-  });
-});
+const receivePackagingMaterialBatchController = wrapAsyncHandler(
+  async (req, res) => {
+    const { batchId } = req.params;
+    const { received_at, notes } = req.body;
+    const user = req.auth.user;
+
+    const result = await receivePackagingMaterialBatchService(
+      batchId,
+      received_at,
+      notes,
+      user
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Packaging material batch marked as received.',
+      data: result,
+      traceId: req.traceId,
+    });
+  }
+);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PATCH /api/v1/packaging-material-batches/:batchId/release
@@ -187,25 +198,27 @@ const receivePackagingMaterialBatchController = wrapAsyncHandler(async (req, res
  *
  * Requires: auth middleware, Joi body validation, RELEASE_PACKAGING_MATERIAL_BATCH permission.
  */
-const releasePackagingMaterialBatchController = wrapAsyncHandler(async (req, res) => {
-  const { batchId }              = req.params;
-  const { supplier_id, notes }   = req.body;
-  const user                     = req.auth.user;
-  
-  const result = await releasePackagingMaterialBatchService(
-    batchId,
-    supplier_id,
-    notes,
-    user,
-  );
-  
-  res.status(200).json({
-    success: true,
-    message: 'Packaging material batch released successfully.',
-    data:    result,
-    traceId: req.traceId,
-  });
-});
+const releasePackagingMaterialBatchController = wrapAsyncHandler(
+  async (req, res) => {
+    const { batchId } = req.params;
+    const { supplier_id, notes } = req.body;
+    const user = req.auth.user;
+
+    const result = await releasePackagingMaterialBatchService(
+      batchId,
+      supplier_id,
+      notes,
+      user
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Packaging material batch released successfully.',
+      data: result,
+      traceId: req.traceId,
+    });
+  }
+);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Exports

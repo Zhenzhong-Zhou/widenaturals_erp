@@ -10,7 +10,7 @@ exports.up = async function (knex) {
       .notNullable()
       .references('id')
       .inTable('batch_registry');
-    
+
     table
       .enu('batch_type', ['product', 'packaging_material'], {
         useNative: true,
@@ -18,20 +18,20 @@ exports.up = async function (knex) {
         enumName: 'batch_type_enum',
       })
       .notNullable();
-    
+
     table
       .uuid('batch_activity_type_id')
       .notNullable()
       .references('id')
       .inTable('batch_activity_types');
-    
+
     table.jsonb('previous_value');
     table.jsonb('new_value');
     table.text('change_summary');
 
     table.uuid('changed_by').references('id').inTable('users');
     table.timestamp('changed_at', { useTz: true }).defaultTo(knex.fn.now());
-    
+
     table.index(['batch_registry_id'], 'idx_batch_activity_log_batch');
     table.index(
       ['batch_activity_type_id'],

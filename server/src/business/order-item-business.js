@@ -9,9 +9,9 @@
 const {
   getPricesByGroupAndSkuBatch,
 } = require('../repositories/pricing-repository');
-const AppError              = require('../utils/AppError');
+const AppError = require('../utils/AppError');
 const { resolveFinalPrice } = require('./pricing-business');
-const { deduplicatePairs }  = require('../utils/array-utils');
+const { deduplicatePairs } = require('../utils/array-utils');
 
 // ---------------------------------------------------------------------------
 // Private helpers
@@ -32,16 +32,16 @@ const { deduplicatePairs }  = require('../utils/array-utils');
  */
 const buildDedupeKey = (item, opts = {}) => {
   const { extraFields = [] } = opts;
-  
+
   const isSku = !!item.sku_id;
   const isPkg = !!item.packaging_material_id;
-  const kind  = isSku ? 'sku' : isPkg ? 'pkg' : 'unknown';
-  
+  const kind = isSku ? 'sku' : isPkg ? 'pkg' : 'unknown';
+
   const parts = [kind];
-  
+
   if (isSku) parts.push(item.sku_id);
   if (isPkg) parts.push(item.packaging_material_id);
-  
+
   if (item.price_id != null) {
     parts.push(`price:${item.price_id}`);
   } else if (item.override_price != null) {
@@ -50,11 +50,11 @@ const buildDedupeKey = (item, opts = {}) => {
     // Placeholder keeps key shape stable when no price identity is present.
     parts.push('price:');
   }
-  
+
   for (const f of extraFields) {
     parts.push(`${f}:${item[f] ?? ''}`);
   }
-  
+
   return parts.join('|');
 };
 
@@ -73,20 +73,20 @@ const buildDedupeKey = (item, opts = {}) => {
  */
 const dedupeOrderItems = (items, opts = {}) => {
   const map = new Map();
-  
+
   for (const it of items ?? []) {
-    const key  = buildDedupeKey(it, opts);
+    const key = buildDedupeKey(it, opts);
     const prev = map.get(key);
-    
+
     if (prev) {
       const prevQty = Number(prev.quantity_ordered) || 0;
-      const addQty  = Number(it.quantity_ordered)   || 0;
+      const addQty = Number(it.quantity_ordered) || 0;
       map.set(key, { ...prev, quantity_ordered: prevQty + addQty });
     } else {
       map.set(key, { ...it });
     }
   }
-  
+
   return Array.from(map.values());
 };
 
@@ -143,78 +143,80 @@ const enrichOrderItemsWithResolvedPrice = async (orderItems, client) => {
     ...item,
     pricing_group_id: item.pricing_group_id || null,
   }));
-  
+
   // Collect unique (pricing_group_id, sku_id) pairs for SKU lines — single batch query.
   const pairs = deduplicatePairs(
     normalizedOrderItems
-      .filter((it) => it.sku_id && it.pricing_group_id && !it.packaging_material_id)
+      .filter(
+        (it) => it.sku_id && it.pricing_group_id && !it.packaging_material_id
+      )
       .map((it) => ({
         pricing_group_id: it.pricing_group_id,
-        sku_id:           it.sku_id,
+        sku_id: it.sku_id,
       })),
     (item) => `${item.pricing_group_id}|${item.sku_id}`
   );
-  
+
   const priceRows = await getPricesByGroupAndSkuBatch(pairs, client);
-  const priceMap  = new Map(
+  const priceMap = new Map(
     priceRows.map((r) => [
       `${r.pricing_group_id}|${r.sku_id}`,
       parseFloat(r.price),
     ])
   );
-  
-  let subtotal        = 0;
+
+  let subtotal = 0;
   const enrichedItems = [];
-  
+
   for (let i = 0; i < orderItems.length; i++) {
     const item = normalizedOrderItems[i];
-    
+
     if (item.packaging_material_id) {
       subtotal += 0;
       enrichedItems.push({
         ...item,
         pricing_group_id: null,
-        price:            0,
-        subtotal:         0,
+        price: 0,
+        subtotal: 0,
       });
       continue;
     }
-    
-    const key     = `${item.pricing_group_id}|${item.sku_id}`;
+
+    const key = `${item.pricing_group_id}|${item.sku_id}`;
     const dbPrice = priceMap.get(key);
-    
+
     if (dbPrice == null) {
       throw AppError.validationError(
         `Item #${i + 1}: invalid pricing_group_id ${item.pricing_group_id} for sku_id ${item.sku_id}`
       );
     }
-    
+
     const submittedPrice =
       item.price != null ? parseFloat(item.price) : undefined;
-    
-    const finalPrice    = resolveFinalPrice(submittedPrice, dbPrice);
-    const lineSubtotal  = (Number(item.quantity_ordered) || 0) * finalPrice;
-    
+
+    const finalPrice = resolveFinalPrice(submittedPrice, dbPrice);
+    const lineSubtotal = (Number(item.quantity_ordered) || 0) * finalPrice;
+
     subtotal += lineSubtotal;
-    
+
     const metadata =
       submittedPrice != null && finalPrice !== dbPrice
         ? {
-          submitted_price: submittedPrice,
-          db_price:        dbPrice,
-          reason:          'manual override',
-        }
+            submitted_price: submittedPrice,
+            db_price: dbPrice,
+            reason: 'manual override',
+          }
         : null;
-    
+
     enrichedItems.push({
       ...item,
       pricing_group_id: item.pricing_group_id,
-      price:            finalPrice,
-      subtotal:         lineSubtotal,
+      price: finalPrice,
+      subtotal: lineSubtotal,
       ...(metadata ? { metadata } : {}),
     });
   }
-  
+
   return { enrichedItems, subtotal };
 };
 

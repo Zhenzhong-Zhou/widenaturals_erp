@@ -17,10 +17,14 @@
 
 const { bulkInsert } = require('../utils/db/write-utils');
 const { query } = require('../database/db');
-const { validateBulkInsertRows } = require('../utils/validation/bulk-insert-row-validator');
+const {
+  validateBulkInsertRows,
+} = require('../utils/validation/bulk-insert-row-validator');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { logDbQueryError, logBulkInsertError } = require('../utils/db-logger');
-const { buildFulfillmentFilter } = require('../utils/sql/build-order-fulfillment-filter');
+const {
+  buildFulfillmentFilter,
+} = require('../utils/sql/build-order-fulfillment-filter');
 const {
   ORDER_FULFILLMENT_INSERT_COLUMNS,
   ORDER_FULFILLMENT_CONFLICT_COLUMNS,
@@ -48,24 +52,24 @@ const {
  */
 const insertOrderFulfillmentsBulk = async (fulfillments, client) => {
   if (!Array.isArray(fulfillments) || fulfillments.length === 0) return [];
-  
+
   const context = 'order-fulfillment-repository/insertOrderFulfillmentsBulk';
-  
+
   const rows = fulfillments.map((f) => [
     f.order_item_id,
-    f.allocation_id         ?? null,
+    f.allocation_id ?? null,
     f.quantity_fulfilled,
-    f.status_id             ?? null,
-    f.shipment_id           ?? null,
-    f.fulfillment_notes     ?? null,
-    null,                           // updated_at — null at insert time
-    f.fulfilled_by          ?? null,
-    f.created_by            ?? null,
-    f.updated_by            ?? null,
+    f.status_id ?? null,
+    f.shipment_id ?? null,
+    f.fulfillment_notes ?? null,
+    null, // updated_at — null at insert time
+    f.fulfilled_by ?? null,
+    f.created_by ?? null,
+    f.updated_by ?? null,
   ]);
-  
+
   validateBulkInsertRows(rows, ORDER_FULFILLMENT_INSERT_COLUMNS.length);
-  
+
   try {
     return await bulkInsert(
       'order_fulfillments',
@@ -81,14 +85,12 @@ const insertOrderFulfillmentsBulk = async (fulfillments, client) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to bulk insert order fulfillments.',
-      meta:    { fulfillmentCount: fulfillments.length },
-      logFn:   (err) => logBulkInsertError(
-        err,
-        'order_fulfillments',
-        rows,
-        rows.length,
-        { context, conflictColumns: ORDER_FULFILLMENT_CONFLICT_COLUMNS }
-      ),
+      meta: { fulfillmentCount: fulfillments.length },
+      logFn: (err) =>
+        logBulkInsertError(err, 'order_fulfillments', rows, rows.length, {
+          context,
+          conflictColumns: ORDER_FULFILLMENT_CONFLICT_COLUMNS,
+        }),
     });
   }
 };
@@ -109,10 +111,10 @@ const insertOrderFulfillmentsBulk = async (fulfillments, client) => {
  */
 const getOrderFulfillments = async (filters, client = null) => {
   const context = 'order-fulfillment-repository/getOrderFulfillments';
-  
+
   const { whereClause, params } = buildFulfillmentFilter(filters);
   const queryText = buildOrderFulfillmentQuery(whereClause);
-  
+
   try {
     const { rows } = await query(queryText, params, client);
     return rows;
@@ -120,13 +122,9 @@ const getOrderFulfillments = async (filters, client = null) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch order fulfillments.',
-      meta:    { filters },
-      logFn:   (err) => logDbQueryError(
-        queryText,
-        params,
-        err,
-        { context, filters }
-      ),
+      meta: { filters },
+      logFn: (err) =>
+        logDbQueryError(queryText, params, err, { context, filters }),
     });
   }
 };
@@ -152,22 +150,26 @@ const updateOrderFulfillmentStatus = async (
   client
 ) => {
   const context = 'order-fulfillment-repository/updateOrderFulfillmentStatus';
-  const params  = [statusId, userId, fulfillmentIds];
-  
+  const params = [statusId, userId, fulfillmentIds];
+
   try {
-    const result = await query(ORDER_FULFILLMENT_UPDATE_STATUS_QUERY, params, client);
+    const result = await query(
+      ORDER_FULFILLMENT_UPDATE_STATUS_QUERY,
+      params,
+      client
+    );
     return result.rows.map((r) => r.id);
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to update order fulfillment status.',
-      meta:    { statusId, fulfillmentIds },
-      logFn:   (err) => logDbQueryError(
-        ORDER_FULFILLMENT_UPDATE_STATUS_QUERY,
-        params,
-        err,
-        { context, statusId, fulfillmentIds }
-      ),
+      meta: { statusId, fulfillmentIds },
+      logFn: (err) =>
+        logDbQueryError(ORDER_FULFILLMENT_UPDATE_STATUS_QUERY, params, err, {
+          context,
+          statusId,
+          fulfillmentIds,
+        }),
     });
   }
 };

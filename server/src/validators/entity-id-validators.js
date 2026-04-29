@@ -1,5 +1,8 @@
 const AppError = require('../utils/AppError');
-const { checkRecordExists, findMissingIds } = require('../utils/db/record-utils');
+const {
+  checkRecordExists,
+  findMissingIds,
+} = require('../utils/db/record-utils');
 
 /**
  * Validates if an ID exists in the given table.

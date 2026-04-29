@@ -30,11 +30,18 @@ export const API_ENDPOINTS = {
   COMPLIANCE_RECORDS: {
     ALL_RECORDS: '/compliance-records',
   },
-  PRICING_TYPES: '/pricing-types',
-  PRICING_TYPE_METADATA: '/pricing-types/metadata/:id',
-  PRICING_LIST: '/pricings',
-  PRICING_LIST_EXPORT: '/pricings/export',
-  PRICING_DETAILS_BY_TYPE: '/pricings/by-type/:id/details',
+  PRICING_TYPES: {
+    ALL_RECORDS: '/pricing-types',
+    PRICING_TYPE_DETAILS: (pricingTypeId: string) =>
+      `/pricing-types/${pricingTypeId}/details`,
+  },
+  PRICING_GROUPS: {
+    ALL_RECORDS: '/pricing-groups',
+  },
+  PRICING: {
+    ALL_RECORDS: '/pricings',
+    EXPORT_DATA: '/pricings/export',
+  },
   LOCATION_TYPES: {
     ALL_RECORDS: '/location-types',
     LOCATION_TYPE_DETAILS: (locationTypeId: string) =>
@@ -81,25 +88,32 @@ export const API_ENDPOINTS = {
   PACKAGING_MATERIAL_BATCHES: {
     ALL_RECORDS: '/packaging-material-batches',
   },
-  LOCATION_INVENTORY: {
-    ALL_RECORDS: '/location-inventory',
-    KPI_SUMMARY: '/location-inventory/kpi-summary',
-    SUMMARY: '/location-inventory/summary',
-    SUMMARY_DETAIL: (itemId: string) =>
-      `/location-inventory/summary/${itemId}/details`,
-  },
   WAREHOUSES: {
-    ALL_RECORDS: '/warehouses',
-    WAREHOUSE_DETAILS: (warehouseId: string) =>
+    ALL_RECORDS:   '/warehouses',
+    DETAIL: (warehouseId: string) =>
       `/warehouses/${warehouseId}/details`,
   },
   WAREHOUSE_INVENTORY: {
-    ALL_RECORDS: '/warehouse-inventory',
-    SUMMARY: '/warehouse-inventory/summary',
-    SUMMARY_DETAIL: (itemId: string) =>
-      `/warehouse-inventory/summary/${itemId}/details`,
-    ADD_RECORDS: '/warehouse-inventory',
-    ADJUST_QUANTITIES: '/warehouse-inventory/adjust-quantities',
+    ALL_RECORDS: (warehouseId: string) =>
+      `/warehouse-inventory/${warehouseId}/inventory`,
+    CREATE: (warehouseId: string) =>
+      `/warehouse-inventory/${warehouseId}/inventory`,
+    DETAIL: (warehouseId: string, inventoryId: string) =>
+      `/warehouse-inventory/${warehouseId}/inventory/${inventoryId}`,
+    QUANTITIES: (warehouseId: string) =>
+      `/warehouse-inventory/${warehouseId}/inventory/quantities`,
+    STATUSES: (warehouseId: string) =>
+      `/warehouse-inventory/${warehouseId}/inventory/statuses`,
+    METADATA: (warehouseId: string, inventoryId: string) =>
+      `/warehouse-inventory/${warehouseId}/inventory/${inventoryId}/metadata`,
+    OUTBOUND: (warehouseId: string) =>
+      `/warehouse-inventory/${warehouseId}/inventory/outbound`,
+    ACTIVITY_LOG: (warehouseId: string) =>
+      `/warehouse-inventory/${warehouseId}/inventory/activity-log`,
+    SUMMARY: (warehouseId: string) =>
+      `/warehouse-inventory/${warehouseId}/summary`,
+    SUMMARY_ITEMS: (warehouseId: string) =>
+      `/warehouse-inventory/${warehouseId}/summary/items`,
   },
   LOOKUPS: {
     BATCH_REGISTRY: '/lookups/batch-registry',

@@ -8,11 +8,11 @@
 
 'use strict';
 
-const express                            = require('express');
-const { authorize }                      = require('../middlewares/authorize');
-const validate                           = require('../middlewares/validate');
+const express = require('express');
+const { authorize } = require('../middlewares/authorize');
+const validate = require('../middlewares/validate');
 const createQueryNormalizationMiddleware = require('../middlewares/normalize-query');
-const PERMISSIONS                        = require('../utils/constants/domain/permissions');
+const PERMISSION_KEYS = require('../utils/constants/domain/permission-keys');
 const {
   customerArraySchema,
   customerFilterSchema,
@@ -29,11 +29,11 @@ const router = express.Router();
  * @description Create one or more customer records. Accepts a JSON array for
  * single or bulk insertion.
  * @access protected
- * @permission CUSTOMERS.CREATE
+ * @permission PERMISSION_KEYS.CUSTOMERS.CREATE
  */
 router.post(
   '/add-new-customers',
-  authorize([PERMISSIONS.CUSTOMERS.CREATE]),
+  authorize([PERMISSION_KEYS.CUSTOMERS.CREATE]),
   validate(customerArraySchema, 'body'),
   createCustomerController
 );
@@ -45,11 +45,11 @@ router.post(
  *          createdAfter, createdBefore, updatedAfter, updatedBefore, onlyWithAddress.
  * Sorting: sortBy, sortOrder (uses customerSortMap).
  * @access protected
- * @permission CUSTOMERS.VIEW
+ * @permission PERMISSION_KEYS.CUSTOMERS.VIEW
  */
 router.get(
   '/',
-  authorize([PERMISSIONS.CUSTOMERS.VIEW]),
+  authorize([PERMISSION_KEYS.CUSTOMERS.VIEW]),
   validate(
     customerFilterSchema,
     'query',
@@ -57,10 +57,10 @@ router.get(
     'Invalid query parameters.'
   ),
   createQueryNormalizationMiddleware(
-    'customerSortMap',           // moduleKey — drives allowed sortBy fields
-    ['createdBy', 'updatedBy'],  // arrayKeys — normalized as UUID arrays
-    ['onlyWithAddress'],         // booleanKeys — normalized to true/false
-    customerFilterSchema         // filterKeysOrSchema — extracts filter keys from schema
+    'customerSortMap', // moduleKey — drives allowed sortBy fields
+    ['createdBy', 'updatedBy'], // arrayKeys — normalized as UUID arrays
+    ['onlyWithAddress'], // booleanKeys — normalized to true/false
+    customerFilterSchema // filterKeysOrSchema — extracts filter keys from schema
   ),
   getPaginatedCustomersController
 );

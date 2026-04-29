@@ -75,25 +75,25 @@ const maskId = (val) => {
  */
 const maskTableName = (input) => {
   if (input == null) return input;
-  
+
   if (Array.isArray(input)) {
     return input.map(maskTableName);
   }
-  
+
   if (typeof input === 'string') {
     const dotIndex = input.indexOf('.');
-    
+
     if (dotIndex === -1) {
       // Unqualified table name — mask all but first 2 chars
       return input.length <= 2 ? '***' : `${input.slice(0, 2)}***`;
     }
-    
+
     // Schema-qualified: preserve schema, mask table name
     const schema = input.slice(0, dotIndex);
-    const table  = input.slice(dotIndex + 1);
+    const table = input.slice(dotIndex + 1);
     return `${schema}.${table.length <= 2 ? '***' : `${table.slice(0, 2)}***`}`;
   }
-  
+
   // Non-string, non-array — passthrough intentionally (safe for map callbacks)
   return input;
 };

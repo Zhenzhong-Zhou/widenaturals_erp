@@ -18,7 +18,7 @@ import { usePaginatedComplianceRecords } from '@hooks/index';
 import { useComplianceRecordLookups } from '@features/complianceRecord/hooks';
 import { applyFiltersAndSorting } from '@utils/query';
 import { usePaginationHandlers } from '@utils/hooks';
-import { createLazyOpenHandler } from '@features/lookup/utils/lookupUtils';
+import { createOnOpenHandler } from '@features/lookup/utils/lookupUtils';
 import {
   ComplianceFiltersPanel,
   ComplianceSortControls,
@@ -112,12 +112,9 @@ const ComplianceRecordListPage = () => {
       resetAll: () => {
         lookups.status.reset();
       },
-
+      
       onOpen: {
-        status: createLazyOpenHandler(
-          lookups.status.options,
-          lookups.status.fetch
-        ),
+        status: createOnOpenHandler(lookups.status),
       },
     }),
     [lookups]

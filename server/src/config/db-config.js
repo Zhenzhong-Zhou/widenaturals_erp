@@ -43,13 +43,13 @@ const isProduction = process.env.NODE_ENV === 'production';
  */
 const getEnvNumber = (key, defaultValue) => {
   const value = process.env[key];
-  
+
   if (value === undefined || value === '') {
     return defaultValue;
   }
-  
+
   const parsed = Number(value);
-  
+
   if (Number.isNaN(parsed)) {
     throw AppError.initializationError(
       `Invalid number for environment variable: ${key}`,
@@ -59,7 +59,7 @@ const getEnvNumber = (key, defaultValue) => {
       }
     );
   }
-  
+
   return parsed;
 };
 
@@ -75,7 +75,7 @@ const getEnvNumber = (key, defaultValue) => {
  */
 const getEnvString = (key, fallback, options = {}) => {
   const value = process.env[key] ?? fallback;
-  
+
   if (options.required && !value) {
     throw AppError.initializationError(
       `Missing required environment variable: ${key}`,
@@ -85,7 +85,7 @@ const getEnvString = (key, fallback, options = {}) => {
       }
     );
   }
-  
+
   return value;
 };
 
@@ -122,19 +122,15 @@ const getPoolConfig = () => ({
 const getConnectionConfig = () => {
   // Always prefer secret manager, fallback to env
   const dbPassword =
-    loadSecret('db_password', 'DB_PASSWORD') ||
-    process.env.DB_PASSWORD ||
-    '';
-  
+    loadSecret('db_password', 'DB_PASSWORD') || process.env.DB_PASSWORD || '';
+
   return {
     host: getEnvString('DB_HOST', 'localhost', { required: true }),
     database: getEnvString('DB_NAME', 'postgres', { required: true }),
     user: getEnvString('DB_USER', 'postgres', { required: true }),
     password: dbPassword,
     port: getEnvNumber('DB_PORT', 5432),
-    ssl: isProduction
-      ? { rejectUnauthorized: false }
-      : false,
+    ssl: isProduction ? { rejectUnauthorized: false } : false,
   };
 };
 
@@ -142,5 +138,5 @@ module.exports = {
   getPoolConfig,
   getEnvNumber,
   getEnvString,
-  getConnectionConfig
+  getConnectionConfig,
 };

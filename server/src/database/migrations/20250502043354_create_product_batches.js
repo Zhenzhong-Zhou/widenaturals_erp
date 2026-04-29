@@ -8,14 +8,16 @@ exports.up = async function (knex) {
 
     table.string('lot_number', 100).notNullable(); // e.g. "LOT20240501-01"
     table.uuid('sku_id').notNullable().references('id').inTable('skus');
-    table.uuid('manufacturer_id').notNullable().references('id').inTable('manufacturers');
+    table
+      .uuid('manufacturer_id')
+      .notNullable()
+      .references('id')
+      .inTable('manufacturers');
 
     table.date('manufacture_date').notNullable();
     table.date('expiry_date').notNullable();
     table.timestamp('received_at', { useTz: true }).defaultTo(knex.fn.now()); // e.g., first warehouse receipt date
-    table.uuid('received_by')
-      .references('id')
-      .inTable('users')
+    table.uuid('received_by').references('id').inTable('users');
     table.integer('initial_quantity').notNullable(); // Original manufactured amount
 
     table.text('notes'); // QA remarks, custom info
@@ -41,7 +43,10 @@ exports.up = async function (knex) {
     table.uuid('updated_by').references('id').inTable('users');
 
     table.index(['lot_number', 'sku_id'], 'idx_product_batches_lot_sku');
-    table.index(['status_id', 'expiry_date'], 'idx_product_batches_status_expiry');
+    table.index(
+      ['status_id', 'expiry_date'],
+      'idx_product_batches_status_expiry'
+    );
     table.unique(['lot_number', 'sku_id'], {
       indexName: 'uq_batch_per_sku',
     });

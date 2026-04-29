@@ -14,7 +14,7 @@ const {
 const {
   lifecycleStatusUpdateSchema,
   lifecycleReceiveSchema,
-  lifecycleNotes
+  lifecycleNotes,
 } = require('./batches/lifecycle-common');
 
 /**
@@ -110,51 +110,40 @@ const packagingMaterialBatchQuerySchema = paginationSchema
 const packagingMaterialBatchBaseSchema = {
   // Supplier providing the packaging material batch
   packaging_material_supplier_id: validateUUID('Packaging Material Supplier'),
-  
+
   // Supplier or manufacturing lot identifier
   lot_number: validateString('Lot Number', 10, 100),
-  
+
   // Snapshot name of the material at time of receipt
-  material_snapshot_name: validateString(
-    'Material Snapshot Name',
-    10,
-    150
-  ),
-  
+  material_snapshot_name: validateString('Material Snapshot Name', 10, 150),
+
   // Label name recorded during warehouse intake
-  received_label_name: validateString(
-    'Received Label Name',
-    10,
-    150
-  ),
-  
+  received_label_name: validateString('Received Label Name', 10, 150),
+
   // Quantity received for this batch
   quantity: validatePositiveIntegerRequired(),
-  
+
   // Unit of measurement (e.g., pcs, kg, box)
   unit: validateString('Unit', 1, 5),
-  
+
   // Manufacturing date from supplier
   manufacture_date: requiredIsoDate(),
-  
+
   // Expiry date if applicable
   expiry_date: requiredIsoDate(),
-  
+
   // Optional cost per unit
   unit_cost: validatePositiveDecimal().allow(null),
-  
+
   // Currency code (ISO 4217)
-  currency: Joi.string()
-    .length(3)
-    .uppercase()
-    .allow(null),
-  
+  currency: Joi.string().length(3).uppercase().allow(null),
+
   // Exchange rate if foreign currency used
   exchange_rate: validatePositiveDecimal().allow(null),
-  
+
   // Calculated total cost for batch
   total_cost: validatePositiveDecimal().allow(null),
-  
+
   // Internal operational notes
   notes: validateOptionalString('Notes', 500),
 };
@@ -180,8 +169,8 @@ const packagingMaterialBatchBaseSchema = {
  * - Joi validation runs in linear time relative to number of fields.
  */
 const createPackagingMaterialBatchSchema = Joi.object({
-    ...packagingMaterialBatchBaseSchema,
-  })
+  ...packagingMaterialBatchBaseSchema,
+})
   .fork(
     [
       'packaging_material_supplier_id',
@@ -241,8 +230,9 @@ const createPackagingMaterialBatchBulkSchema = Joi.object({
  * if (error) throw AppError.validationError(error.message);
  */
 const packagingMaterialBatchIdParamSchema = Joi.object({
-  batchId: validateUUID('Packaging Material Batch ID')
-    .description('UUID of the packaging material batch record'),
+  batchId: validateUUID('Packaging Material Batch ID').description(
+    'UUID of the packaging material batch record'
+  ),
 });
 
 /**
@@ -256,11 +246,10 @@ const packagingMaterialBatchIdParamSchema = Joi.object({
  * Required fields from creation become optional using `.fork()`.
  */
 const editPackagingMaterialBatchMetadataSchema = Joi.object(
-    packagingMaterialBatchBaseSchema
-  )
-  .fork(
-    Object.keys(packagingMaterialBatchBaseSchema),
-    (schema) => schema.optional()
+  packagingMaterialBatchBaseSchema
+)
+  .fork(Object.keys(packagingMaterialBatchBaseSchema), (schema) =>
+    schema.optional()
   )
   .min(1)
   .unknown(false);
@@ -296,8 +285,7 @@ const editPackagingMaterialBatchMetadataSchema = Joi.object(
  * and reused for every request, so this pattern has
  * no measurable runtime overhead.
  */
-const updatePackagingMaterialBatchStatusSchema =
-  lifecycleStatusUpdateSchema;
+const updatePackagingMaterialBatchStatusSchema = lifecycleStatusUpdateSchema;
 
 /**
  * Joi schema for receiving a packaging material batch.
@@ -322,8 +310,7 @@ const updatePackagingMaterialBatchStatusSchema =
  * Uses the shared lifecycle receive validator to maintain
  * consistent validation behavior across batch domains.
  */
-const receivePackagingMaterialBatchSchema =
-  lifecycleReceiveSchema;
+const receivePackagingMaterialBatchSchema = lifecycleReceiveSchema;
 
 /**
  * Joi schema for releasing a packaging material batch.

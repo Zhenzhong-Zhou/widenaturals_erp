@@ -53,7 +53,6 @@ const createCustomerController = wrapAsyncHandler(async (req, res) => {
     });
   }
 
-
   if (!Array.isArray(customers)) {
     return res.status(400).json({
       success: false,
@@ -62,17 +61,17 @@ const createCustomerController = wrapAsyncHandler(async (req, res) => {
     });
   }
 
-  const user      = req.auth.user;
-  const isBulk    = customers.length > 1;
+  const user = req.auth.user;
+  const isBulk = customers.length > 1;
 
   const result = await createCustomersService(customers, user);
-  
+
   res.status(201).json({
     success: true,
     message: isBulk
       ? 'Bulk customers created successfully.'
       : 'Customer created successfully.',
-    data:    isBulk ? result : result[0],
+    data: isBulk ? result : result[0],
     traceId: req.traceId,
   });
 });
@@ -89,7 +88,7 @@ const createCustomerController = wrapAsyncHandler(async (req, res) => {
  */
 const getPaginatedCustomersController = wrapAsyncHandler(async (req, res) => {
   const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
-  
+
   const { data, pagination } = await fetchPaginatedCustomersService({
     user: req.auth.user,
     filters,
@@ -98,7 +97,7 @@ const getPaginatedCustomersController = wrapAsyncHandler(async (req, res) => {
     sortBy,
     sortOrder,
   });
-  
+
   res.status(200).json({
     success: true,
     message: 'Customers retrieved successfully.',

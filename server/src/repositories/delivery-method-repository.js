@@ -13,10 +13,14 @@
 
 'use strict';
 
-const { paginateQueryByOffset } = require('../utils/db/pagination/pagination-helpers');
+const {
+  paginateQueryByOffset,
+} = require('../utils/db/pagination/pagination-helpers');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { logDbQueryError } = require('../utils/db-logger');
-const { buildDeliveryMethodFilter } = require('../utils/sql/build-delivery-method-filter');
+const {
+  buildDeliveryMethodFilter,
+} = require('../utils/sql/build-delivery-method-filter');
 const {
   DELIVERY_METHOD_TABLE,
   DELIVERY_METHOD_SORT_WHITELIST,
@@ -38,36 +42,41 @@ const {
  * @returns {Promise<Object>} Paginated result with rows and pagination metadata.
  * @throws  {AppError}        Normalized database error if the query fails.
  */
-const getDeliveryMethodsLookup = async ({ filters = {}, limit = 50, offset = 0 }) => {
+const getDeliveryMethodsLookup = async ({
+  filters = {},
+  limit = 50,
+  offset = 0,
+}) => {
   const context = 'delivery-method-repository/getDeliveryMethodsLookup';
-  
+
   const { whereClause, params } = buildDeliveryMethodFilter(filters);
   const queryText = buildDeliveryMethodLookupQuery(whereClause);
-  
+
   try {
     return await paginateQueryByOffset({
-      tableName:    DELIVERY_METHOD_TABLE,
-      joins:        [],
+      tableName: DELIVERY_METHOD_TABLE,
+      joins: [],
       whereClause,
       queryText,
       params,
       offset,
       limit,
-      sortBy:       'dm.method_name',
-      sortOrder:    'ASC',
+      sortBy: 'dm.method_name',
+      sortOrder: 'ASC',
       whitelistSet: DELIVERY_METHOD_SORT_WHITELIST,
     });
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch delivery methods lookup.',
-      meta:    { filters, limit, offset },
-      logFn:   (err) => logDbQueryError(
-        queryText,
-        params,
-        err,
-        { context, filters, limit, offset }
-      ),
+      meta: { filters, limit, offset },
+      logFn: (err) =>
+        logDbQueryError(queryText, params, err, {
+          context,
+          filters,
+          limit,
+          offset,
+        }),
     });
   }
 };

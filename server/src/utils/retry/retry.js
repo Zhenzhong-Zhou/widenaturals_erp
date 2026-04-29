@@ -23,9 +23,9 @@
 
 'use strict';
 
-const AppError               = require('../AppError');
+const AppError = require('../AppError');
 const { isRetryableDbError } = require('../db/db-error-utils');
-const { logRetryWarning }    = require('../db-logger');
+const { logRetryWarning } = require('../db-logger');
 
 const CONTEXT = 'utils/retry';
 
@@ -55,7 +55,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
  */
 const computeBackoff = (attempt, baseDelay, maxDelay) => {
   const exponential = baseDelay * Math.pow(2, attempt);
-  const jitter      = Math.random() * 0.3 * exponential;
+  const jitter = Math.random() * 0.3 * exponential;
   return Math.min(exponential + jitter, maxDelay);
 };
 
@@ -109,21 +109,21 @@ const computeBackoff = (attempt, baseDelay, maxDelay) => {
 const retry = async (
   fn,
   {
-    retries     = 3,
-    baseDelay   = 500,
-    maxDelay    = 5000,
+    retries = 3,
+    baseDelay = 500,
+    maxDelay = 5000,
     shouldRetry = isRetryableDbError,
   } = {}
 ) => {
   let attempt = 0;
-  
+
   while (attempt <= retries) {
     try {
       return await fn();
     } catch (error) {
-      const isLastAttempt    = attempt === retries;
-      const isRetryable      = shouldRetry(error);
-      
+      const isLastAttempt = attempt === retries;
+      const isRetryable = shouldRetry(error);
+
       // -----------------------------------------------------------------
       // Final failure — either non-retryable or retries exhausted.
       // AppError passes through unchanged (already normalized at source).
@@ -132,30 +132,27 @@ const retry = async (
       // -----------------------------------------------------------------
       if (!isRetryable || isLastAttempt) {
         if (error instanceof AppError) throw error;
-        
-        throw AppError.serviceError(
-          'Operation failed after retries.',
-          {
-            context: CONTEXT,
-            meta: {
-              attempts: attempt + 1,
-              retries,
-              originalMessage: error.message,
-              originalName:    error.name,
-            },
-          }
-        );
+
+        throw AppError.serviceError('Operation failed after retries.', {
+          context: CONTEXT,
+          meta: {
+            attempts: attempt + 1,
+            retries,
+            originalMessage: error.message,
+            originalName: error.name,
+          },
+        });
       }
-      
+
       // -----------------------------------------------------------------
       // Transient failure — wait and retry.
       // -----------------------------------------------------------------
       attempt++;
-      
+
       const delayMs = computeBackoff(attempt, baseDelay, maxDelay);
-      
+
       logRetryWarning(attempt, retries, error, delayMs);
-      
+
       await delay(delayMs);
     }
   }

@@ -22,38 +22,32 @@ const AppError = require('../../utils/AppError');
  * @returns {Array<Object>}
  * Registry rows ready for bulk insertion.
  */
-const buildBatchRegistryRows = ({
-                                  batchType,
-                                  insertedBatches,
-                                  actorId
-                                }) => {
+const buildBatchRegistryRows = ({ batchType, insertedBatches, actorId }) => {
   // Defensive guard to prevent silent logic errors
   if (!Array.isArray(insertedBatches) || insertedBatches.length === 0) {
     return [];
   }
-  
+
   return insertedBatches.map((batch) => {
     const row = {
       batch_type: batchType,
       product_batch_id: null,
       packaging_material_batch_id: null,
       registered_by: actorId,
-      
+
       // Allow custom note override
-      note:
-        batch.registryNote ??
-        'Batch registered during creation',
+      note: batch.registryNote ?? 'Batch registered during creation',
     };
-    
+
     // Assign correct batch foreign key
     if (batchType === 'product') {
       row.product_batch_id = batch.id;
     }
-    
+
     if (batchType === 'packaging_material') {
       row.packaging_material_batch_id = batch.id;
     }
-    
+
     return row;
   });
 };
@@ -88,18 +82,18 @@ const buildBatchActivityRows = (
       'Batch registry and batch insert results are misaligned'
     );
   }
-  
+
   return registry.map((r, index) => {
     const batch = insertedBatches[index];
-    
+
     return {
       batch_registry_id: r.id,
       batch_type: batchType,
       batch_activity_type_id: activityTypeId,
-      
+
       // Creation events have no previous value
       previous_value: null,
-      
+
       // Store key attributes of the new batch
       new_value: {
         batch_id: batch.id,
@@ -107,7 +101,7 @@ const buildBatchActivityRows = (
         expiry_date: batch.expiry_date,
         initial_quantity: batch.initial_quantity ?? batch.quantity,
       },
-      
+
       change_summary: 'Batch created',
       changed_by: actorId,
     };
@@ -152,14 +146,14 @@ const buildBatchActivityRows = (
  * Activity log row ready for insertion.
  */
 const buildBatchMetadataUpdateActivityRow = ({
-                                               batchRegistryId,
-                                               batchType,
-                                               activityTypeId,
-                                               previousValues = null,
-                                               updates,
-                                               actorId,
-                                               summary,
-                                             }) => {
+  batchRegistryId,
+  batchType,
+  activityTypeId,
+  previousValues = null,
+  updates,
+  actorId,
+  summary,
+}) => {
   //------------------------------------------------------------
   // Validate required parameters
   //------------------------------------------------------------
@@ -168,7 +162,7 @@ const buildBatchMetadataUpdateActivityRow = ({
       'Invalid parameters for batch metadata update activity log'
     );
   }
-  
+
   //------------------------------------------------------------
   // Construct activity row for audit logging
   //------------------------------------------------------------
@@ -201,34 +195,33 @@ const buildBatchMetadataUpdateActivityRow = ({
  * @returns {Object} activity log row
  */
 const buildBatchStatusChangeActivityRow = ({
-                                             batchRegistryId,
-                                             batchType,
-                                             activityTypeId,
-                                             previousStatus,
-                                             nextStatus,
-                                             actorId,
-                                             summary,
-                                           }) => {
+  batchRegistryId,
+  batchType,
+  activityTypeId,
+  previousStatus,
+  nextStatus,
+  actorId,
+  summary,
+}) => {
   // Ensure required fields exist
   if (!batchRegistryId || !batchType || !activityTypeId) {
     throw AppError.validationError(
       'Invalid parameters for batch status change activity log'
     );
   }
-  
+
   return {
     batch_registry_id: batchRegistryId,
     batch_type: batchType,
     batch_activity_type_id: activityTypeId,
-    
+
     // Record lifecycle transition
     previous_value: { status: previousStatus },
     new_value: { status: nextStatus },
-    
+
     change_summary:
-      summary ??
-      `Batch status changed: ${previousStatus} → ${nextStatus}`,
-    
+      summary ?? `Batch status changed: ${previousStatus} → ${nextStatus}`,
+
     changed_by: actorId,
   };
 };

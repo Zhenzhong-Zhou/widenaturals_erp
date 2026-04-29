@@ -19,27 +19,24 @@ const { makeStatus } = require('../utils/status-utils');
 const { cleanObject } = require('../utils/object-utils');
 const { transformPageResult } = require('../utils/transformer-utils');
 
-/** @typedef {import('./types/pricing-type-types').PricingTypeRow} PricingTypeRow */
-/** @typedef {import('./types/pricing-type-types').PricingTypeFlatRecord} PricingTypeFlatRecord */
-/** @typedef {import('./types/pagination-types').PaginatedResult} PaginatedResult */
-
 /**
  * @param {PricingTypeRow} row
- * @returns {PricingTypeFlatRecord}
+ * @returns {PricingTypeRecord}
  */
-const transformPricingTypeRow = (row) => cleanObject({
-  id:                  row.id,
-  name:                row.name,
-  code:                row.code,
-  slug:                row.slug          ?? null,
-  description:         row.description   ?? null,
-  status:              makeStatus(row),
-  audit:               compactAudit(makeAudit(row)),
-});
+const transformPricingTypeRow = (row) =>
+  cleanObject({
+    id: row.id,
+    name: row.name,
+    code: row.code,
+    slug: row.slug ?? null,
+    description: row.description ?? null,
+    status: makeStatus(row),
+    audit: compactAudit(makeAudit(row)),
+  });
 
 /**
  * @param {PaginatedResult<PricingTypeRow>} paginatedResult
- * @returns {PaginatedResult<PricingTypeFlatRecord>}
+ * @returns {PaginatedResult<PricingTypeRecord>}
  */
 const transformPricingTypeList = (paginatedResult) =>
   transformPageResult(paginatedResult, transformPricingTypeRow);

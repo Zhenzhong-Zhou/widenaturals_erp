@@ -15,11 +15,11 @@
 
 'use strict';
 
-const { cleanObject }             = require('../utils/object-utils');
-const { getFullName }             = require('../utils/person-utils');
-const { makeStatus }              = require('../utils/status-utils');
+const { cleanObject } = require('../utils/object-utils');
+const { getFullName } = require('../utils/person-utils');
+const { makeStatus } = require('../utils/status-utils');
 const { compactAudit, makeAudit } = require('../utils/audit-utils');
-const { transformPageResult }     = require('../utils/transformer-utils');
+const { transformPageResult } = require('../utils/transformer-utils');
 
 /**
  * Transforms a user insert DB row into the minimal post-creation response shape.
@@ -29,12 +29,12 @@ const { transformPageResult }     = require('../utils/transformer-utils');
  */
 const transformUserInsertResult = (row) => {
   if (!row) return null;
-  
+
   return cleanObject({
-    id:        row.id,
-    email:     row.email,
-    roleId:    row.role_id,
-    statusId:  row.status_id,
+    id: row.id,
+    email: row.email,
+    roleId: row.role_id,
+    statusId: row.status_id,
     createdAt: row.created_at,
   });
 };
@@ -53,31 +53,31 @@ const transformUserInsertResult = (row) => {
  */
 const transformUserForView = (userRow, viewMode) => {
   if (!userRow) return null;
-  
+
   if (viewMode === 'card') {
     return cleanObject({
-      id:         userRow.id,
-      fullName:   getFullName(userRow.firstname, userRow.lastname),
-      email:      userRow.email,
-      jobTitle:   userRow.job_title,
-      roleId:     userRow.role_id,
-      roleName:   userRow.role_name,
+      id: userRow.id,
+      fullName: getFullName(userRow.firstname, userRow.lastname),
+      email: userRow.email,
+      jobTitle: userRow.job_title,
+      roleId: userRow.role_id,
+      roleName: userRow.role_name,
       statusName: userRow.status_name,
-      avatarUrl:  userRow.avatar_url,
+      avatarUrl: userRow.avatar_url,
     });
   }
-  
+
   return cleanObject({
-    id:          userRow.id,
-    fullName:    getFullName(userRow.firstname, userRow.lastname),
-    email:       userRow.email,
+    id: userRow.id,
+    fullName: getFullName(userRow.firstname, userRow.lastname),
+    email: userRow.email,
     phoneNumber: userRow.phone_number,
-    jobTitle:    userRow.job_title,
-    roleId:      userRow.role_id,
-    roleName:    userRow.role_name,
-    status:      makeStatus(userRow),
-    audit:       compactAudit(makeAudit(userRow)),
-    avatarUrl:   userRow.avatar_url,
+    jobTitle: userRow.job_title,
+    roleId: userRow.role_id,
+    roleName: userRow.role_name,
+    status: makeStatus(userRow),
+    audit: compactAudit(makeAudit(userRow)),
+    avatarUrl: userRow.avatar_url,
   });
 };
 
@@ -95,9 +95,11 @@ const transformUserForView = (userRow, viewMode) => {
  */
 const transformPaginatedUserForViewResults = (paginatedResult, viewMode) =>
   /** @type {Promise<PaginatedResult<UserRow>>} */
-  (transformPageResult(paginatedResult, (row) =>
-    transformUserForView(row, viewMode)
-  ));
+  (
+    transformPageResult(paginatedResult, (row) =>
+      transformUserForView(row, viewMode)
+    )
+  );
 
 /**
  * Transforms a user profile DB row into the full profile response shape.
@@ -110,35 +112,35 @@ const transformPaginatedUserForViewResults = (paginatedResult, viewMode) =>
  */
 const transformUserProfileRow = (row) => {
   if (!row) return null;
-  
+
   return cleanObject({
-    id:          row.id,
-    email:       row.email,
-    fullName:    getFullName(row.firstname, row.lastname),
-    phoneNumber: row.phone_number  ?? null,
-    jobTitle:    row.job_title     ?? null,
-    isSystem:    row.is_system,
-    status:      makeStatus(row),
-    
+    id: row.id,
+    email: row.email,
+    fullName: getFullName(row.firstname, row.lastname),
+    phoneNumber: row.phone_number ?? null,
+    jobTitle: row.job_title ?? null,
+    isSystem: row.is_system,
+    status: makeStatus(row),
+
     role: row.role_id
       ? {
-        id:             row.role_id,
-        name:           row.role_name        ?? null,
-        roleGroup:      row.role_group        ?? null,
-        hierarchyLevel: row.hierarchy_level   ?? null,
-        permissions:    Array.isArray(row.permissions) ? row.permissions : [],
-      }
+          id: row.role_id,
+          name: row.role_name ?? null,
+          roleGroup: row.role_group ?? null,
+          hierarchyLevel: row.hierarchy_level ?? null,
+          permissions: Array.isArray(row.permissions) ? row.permissions : [],
+        }
       : null,
-    
+
     // Avatar visibility is intentionally public for all users.
     avatar: row.avatar_url
       ? {
-        url:        row.avatar_url,
-        format:     row.avatar_format      ?? null,
-        uploadedAt: row.avatar_uploaded_at ?? null,
-      }
+          url: row.avatar_url,
+          format: row.avatar_format ?? null,
+          uploadedAt: row.avatar_uploaded_at ?? null,
+        }
       : null,
-    
+
     audit: compactAudit(makeAudit(row)),
   });
 };

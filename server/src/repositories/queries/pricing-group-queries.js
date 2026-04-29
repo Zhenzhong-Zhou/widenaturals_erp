@@ -3,10 +3,10 @@
  * @description SQL query constants and factory functions for pricing-group-repository.js.
  *
  * Exports:
- *  - PRICING_GROUP_LIST_TABLE           — aliased table name for group list query
- *  - PRICING_GROUP_LIST_JOINS           — join array for group list query
+ *  - PRICING_GROUP_TABLE           — aliased table name for group list query
+ *  - PRICING_GROUP_JOINS           — join array for group list query
  *  - PRICING_GROUP_LIST_SORT_WHITELIST  — valid sort keys for group list query
- *  - buildPricingGroupListQuery         — factory for pricing group list (with SKU/product counts)
+ *  - buildPricingGroupPaginatedQuery         — factory for pricing group list (with SKU/product counts)
  *  - PRICING_GROUP_BY_ID_QUERY          — full detail fetch by id
  *  - PRICING_GROUP_LOOKUP_TABLE         — aliased table name for lookup query
  *  - PRICING_GROUP_LOOKUP_JOINS         — join array for lookup query
@@ -21,26 +21,28 @@ const { SORTABLE_FIELDS } = require('../../utils/sort-field-mapping');
 
 // ─── Group List ───────────────────────────────────────────────────────────────
 
-const PRICING_GROUP_LIST_TABLE = 'pricing_groups pg';
+const PRICING_GROUP_TABLE = 'pricing_groups pg';
 
-const PRICING_GROUP_LIST_JOINS = [
+const PRICING_GROUP_JOINS = [
   'JOIN      pricing_types pt ON pt.id              = pg.pricing_type_id',
   'JOIN      status        st ON st.id              = pg.status_id',
   'LEFT JOIN pricing       p  ON p.pricing_group_id = pg.id',
   'LEFT JOIN skus          s  ON s.id               = p.sku_id',
+  'LEFT JOIN users         cu ON cu.id              = pg.created_by',
+  'LEFT JOIN users         uu ON uu.id              = pg.updated_by',
 ];
 
-const _PRICING_GROUP_LIST_JOINS_SQL = PRICING_GROUP_LIST_JOINS.join('\n  ');
+const _PRICING_GROUP_JOINS_SQL = PRICING_GROUP_JOINS.join('\n  ');
 
-const PRICING_GROUP_LIST_SORT_WHITELIST = new Set(
-  Object.values(SORTABLE_FIELDS.pricingGroupListSortMap)
+const PRICING_GROUP_SORT_WHITELIST = new Set(
+  Object.values(SORTABLE_FIELDS.pricingGroupSortMap)
 );
 
 /**
  * @param {string} whereClause
  * @returns {string}
  */
-const buildPricingGroupListQuery = (whereClause) => `
+const buildPricingGroupPaginatedQuery = (whereClause) => `
   SELECT
     pg.id,
     pg.pricing_type_id,
@@ -55,14 +57,22 @@ const buildPricingGroupListQuery = (whereClause) => `
     pg.status_date,
     COUNT(DISTINCT p.sku_id)      AS sku_count,
     COUNT(DISTINCT s.product_id)  AS product_count,
-    pg.updated_at
-  FROM ${PRICING_GROUP_LIST_TABLE}
-  ${_PRICING_GROUP_LIST_JOINS_SQL}
+    pg.created_at,
+    pg.updated_at,
+    pg.created_by,
+    pg.updated_by,
+    cu.firstname                  AS created_by_firstname,
+    cu.lastname                   AS created_by_lastname,
+    uu.firstname                  AS updated_by_firstname,
+    uu.lastname                   AS updated_by_lastname
+  FROM ${PRICING_GROUP_TABLE}
+  ${_PRICING_GROUP_JOINS_SQL}
   WHERE ${whereClause}
   GROUP BY
     pg.id, pg.pricing_type_id, pt.name, pt.code, pg.country_code,
     pg.price, pg.valid_from, pg.valid_to, pg.status_id, st.name,
-    pg.status_date, pg.updated_at
+    pg.status_date, pg.created_at, pg.updated_at, pg.created_by, pg.updated_by,
+    cu.firstname, cu.lastname, uu.firstname, uu.lastname
 `;
 
 // ─── By ID ────────────────────────────────────────────────────────────────────
@@ -144,10 +154,10 @@ const buildPricingGroupLookupQuery = (whereClause) => `
 `;
 
 module.exports = {
-  PRICING_GROUP_LIST_TABLE,
-  PRICING_GROUP_LIST_JOINS,
-  PRICING_GROUP_LIST_SORT_WHITELIST,
-  buildPricingGroupListQuery,
+  PRICING_GROUP_TABLE,
+  PRICING_GROUP_JOINS,
+  PRICING_GROUP_SORT_WHITELIST,
+  buildPricingGroupPaginatedQuery,
   PRICING_GROUP_BY_ID_QUERY,
   PRICING_GROUP_LOOKUP_TABLE,
   PRICING_GROUP_LOOKUP_JOINS,

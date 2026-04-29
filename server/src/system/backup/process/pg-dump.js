@@ -58,7 +58,10 @@ const {
   logSystemWarn,
 } = require('../../../utils/logging/system-logger');
 const AppError = require('../../../utils/AppError');
-const { ERROR_TYPES, ERROR_CODES } = require('../../../utils/constants/error-constants');
+const {
+  ERROR_TYPES,
+  ERROR_CODES,
+} = require('../../../utils/constants/error-constants');
 
 const CONTEXT = 'system:pg-dump';
 
@@ -88,40 +91,36 @@ const CONTEXT = 'system:pg-dump';
  */
 const runPgDump = async (args = [], options = {}) => {
   const { isProduction, dbUser, dbPassword } = options;
-  
+
   //--------------------------------------------------
   // Input validation (fail fast)
   //--------------------------------------------------
   if (!Array.isArray(args)) {
-    throw new AppError(
-      'Invalid pg_dump arguments',
-      500,
-      {
-        type: ERROR_TYPES.SYSTEM,
-        code: ERROR_CODES.PROCESS_EXECUTION_FAILED,
-        context: CONTEXT,
-        meta: { receivedType: typeof args },
-      }
-    );
+    throw new AppError('Invalid pg_dump arguments', 500, {
+      type: ERROR_TYPES.SYSTEM,
+      code: ERROR_CODES.PROCESS_EXECUTION_FAILED,
+      context: CONTEXT,
+      meta: { receivedType: typeof args },
+    });
   }
-  
+
   return new Promise((resolve, reject) => {
     logSystemInfo('Starting pg_dump execution', {
       context: CONTEXT,
       argCount: args.length, // avoid logging full args
       isProduction,
     });
-    
+
     //--------------------------------------------------
     // Build environment safely
     //--------------------------------------------------
     const env = { ...process.env };
-    
+
     if (!isProduction) {
       env.PGUSER = dbUser;
       env.PGPASSWORD = dbPassword;
     }
-    
+
     //--------------------------------------------------
     // Spawn process (non-blocking)
     //--------------------------------------------------
@@ -129,7 +128,7 @@ const runPgDump = async (args = [], options = {}) => {
       env,
       stdio: ['ignore', 'ignore', 'pipe'],
     });
-    
+
     //--------------------------------------------------
     // Stream stderr (diagnostic only, not failure signal)
     //--------------------------------------------------
@@ -139,29 +138,25 @@ const runPgDump = async (args = [], options = {}) => {
         chunk: data.toString(),
       });
     });
-    
+
     //--------------------------------------------------
     // Spawn failure (binary missing / permission error)
     //--------------------------------------------------
     dump.on('error', () => {
-      const error = new AppError(
-        'pg_dump process failed to start',
-        500,
-        {
-          type: ERROR_TYPES.SYSTEM,
-          code: ERROR_CODES.PROCESS_SPAWN_FAILED,
-          context: CONTEXT,
-          meta: { command: 'pg_dump' },
-        }
-      );
-      
+      const error = new AppError('pg_dump process failed to start', 500, {
+        type: ERROR_TYPES.SYSTEM,
+        code: ERROR_CODES.PROCESS_SPAWN_FAILED,
+        context: CONTEXT,
+        meta: { command: 'pg_dump' },
+      });
+
       logSystemException(error, 'pg_dump spawn failed', {
         context: CONTEXT,
       });
-      
+
       reject(error);
     });
-    
+
     //--------------------------------------------------
     // Process completion
     //--------------------------------------------------
@@ -172,26 +167,22 @@ const runPgDump = async (args = [], options = {}) => {
         });
         return resolve();
       }
-      
-      const error = new AppError(
-        'pg_dump failed',
-        500,
-        {
-          type: ERROR_TYPES.SYSTEM,
-          code: ERROR_CODES.PROCESS_EXECUTION_FAILED,
-          context: CONTEXT,
-          meta: {
-            command: 'pg_dump',
-            exitCode: code,
-          },
-        }
-      );
-      
+
+      const error = new AppError('pg_dump failed', 500, {
+        type: ERROR_TYPES.SYSTEM,
+        code: ERROR_CODES.PROCESS_EXECUTION_FAILED,
+        context: CONTEXT,
+        meta: {
+          command: 'pg_dump',
+          exitCode: code,
+        },
+      });
+
       logSystemException(error, 'pg_dump execution failed', {
         context: CONTEXT,
         exitCode: code,
       });
-      
+
       reject(error);
     });
   });

@@ -11,6 +11,7 @@ const {
   createArraySchema,
   createdDateRangeSchema,
   statusDateRangeSchema,
+  validateOptionalString,
 } = require('./general-validators');
 
 /**
@@ -24,6 +25,18 @@ const customerSchema = Joi.object({
   email: validateEmail,
   phone_number: validatePhoneNumber,
   note: Joi.string().max(500).allow('').optional(),
+  customer_type: Joi.string()
+    .valid('individual', 'company')
+    .default('individual'),
+  company_name: Joi.string()
+    .max(255)
+    .optional()
+    .allow(null, '')
+    .when('customer_type', {
+      is: 'company',
+      then: validateString('Customer Name', 2, 255),
+      otherwise: validateOptionalString('Customer Name'),
+    }),
 });
 
 /**
@@ -43,10 +56,10 @@ const customerArraySchema = createArraySchema(
  * These fields are commonly used across customer-related list or search endpoints.
  * Includes support for basic filters like a region, country, and metadata such as creator or keyword.
  *
- * - `region`: Optional string representing a region filter (e.g., 'North America')
- * - `country`: Optional string representing a country code or name
  * - `createdBy`: Optional UUID of the user who created the customer
  * - `keyword`: Optional string used for searching by name, email, etc.
+ * - `customerType`:    Optional string filter by customer type — must be 'individual' or 'company'
+ * - `customerName`:    Optional string for searching across firstname, lastname, and company_name
  * - `onlyWithAddress`: Optional boolean (truthy/falsy) indicating if only customers with addresses should be included
  *
  * Typically combined with pagination, sorting, and date filters using `.concat(...)`.
@@ -54,10 +67,10 @@ const customerArraySchema = createArraySchema(
  * @type {Joi.ObjectSchema}
  */
 const baseCustomerFields = Joi.object({
-  region: Joi.string().optional().allow(null),
-  country: Joi.string().optional().allow(null),
   createdBy: validateOptionalUUID('Created By'),
   keyword: validateKeyword('Customer keyword'),
+  customerType: Joi.string().valid('individual', 'company').optional(),
+  customerName: validateOptionalString('Customer Name'),
   onlyWithAddress: createBooleanFlag('onlyWithAddress'),
 });
 

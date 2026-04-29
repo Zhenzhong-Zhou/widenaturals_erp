@@ -32,10 +32,10 @@ const { buildInClause, buildWhereClause } = require('./where-builder');
  * @readonly
  */
 const LOCK_MODES = Object.freeze({
-  UPDATE:        'FOR UPDATE',
+  UPDATE: 'FOR UPDATE',
   NO_KEY_UPDATE: 'FOR NO KEY UPDATE',
-  SHARE:         'FOR SHARE',
-  KEY_SHARE:     'FOR KEY SHARE',
+  SHARE: 'FOR SHARE',
+  KEY_SHARE: 'FOR KEY SHARE',
 });
 
 const CONTEXT = 'lock-modes';
@@ -50,7 +50,6 @@ const CONTEXT = 'lock-modes';
  * @type {Set<string>}
  */
 const LOCK_MODE_SET = new Set(Object.values(LOCK_MODES));
-
 
 // ============================================================
 // Row locking
@@ -86,31 +85,33 @@ const lockRow = async (
   const context = `${CONTEXT}/lockRow`;
   const maskedId = maskUUID(id);
   const maskedTable = maskTableName(table);
-  
+
   if (!id || typeof id !== 'string') {
     throw AppError.validationError('Invalid id', { context });
   }
-  
+
   if (!LOCK_MODE_SET.has(lockMode)) {
-    throw AppError.validationError(`Invalid lock mode: ${lockMode}`, { context });
+    throw AppError.validationError(`Invalid lock mode: ${lockMode}`, {
+      context,
+    });
   }
-  
+
   const sql = `
     SELECT *
     FROM ${qualify('public', table)}
     WHERE ${q('id')} = $1
     ${lockMode}
   `;
-  
+
   try {
     const { rows } = await query(sql, [id], client);
-    
+
     if (!rows.length) {
       throw AppError.notFoundError(
         `Row "${maskedId}" not found in "${maskedTable}"`
       );
     }
-    
+
     return rows[0];
   } catch (error) {
     throw handleDbError(error, {
@@ -151,41 +152,45 @@ const lockRows = async (
 ) => {
   const context = `${CONTEXT}/lockRows`;
   const maskedTable = maskTableName(table);
-  
+
   if (!Array.isArray(conditions) || conditions.length === 0) {
     throw AppError.validationError('Invalid conditions', { context });
   }
-  
+
   if (!LOCK_MODE_SET.has(lockMode)) {
-    throw AppError.validationError(`Invalid lock mode: ${lockMode}`, { context });
+    throw AppError.validationError(`Invalid lock mode: ${lockMode}`, {
+      context,
+    });
   }
-  
+
   // Determine condition shape: primitives → IN clause; objects → composite WHERE.
   const isPrimitiveList =
     typeof conditions[0] !== 'object' || conditions[0] === null;
-  
+
   const sanitizedConditions = conditions.filter(
     (v) => v !== null && v !== undefined
   );
-  
+
   if (sanitizedConditions.length === 0) {
-    throw AppError.validationError('Empty conditions after sanitization', { context });
+    throw AppError.validationError('Empty conditions after sanitization', {
+      context,
+    });
   }
-  
+
   const { clause, values } = isPrimitiveList
     ? buildInClause('id', sanitizedConditions)
     : buildWhereClause(sanitizedConditions);
-  
+
   const sql = `
     SELECT *
     FROM ${qualify('public', table)}
     WHERE ${clause}
     ${lockMode}
   `;
-  
+
   try {
     const { rows } = await query(sql, values, client);
-    
+
     // Warn when fewer rows were locked than requested — indicates missing records.
     if (isPrimitiveList && rows.length !== sanitizedConditions.length) {
       logSystemWarn('Partial row lock result', {
@@ -195,7 +200,7 @@ const lockRows = async (
         table: maskedTable,
       });
     }
-    
+
     // Composite OR conditions degrade with size — alert early.
     if (!isPrimitiveList && conditions.length > 50) {
       logSystemWarn('Potential slow composite lock query', {
@@ -204,15 +209,14 @@ const lockRows = async (
         table: maskedTable,
       });
     }
-    
+
     return rows;
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: `Failed to lock rows in "${maskedTable}"`,
       meta: { table: maskedTable, count: conditions.length, ...meta },
-      logFn: (err) =>
-        logLockRowsError(err, sql, values, maskedTable, meta),
+      logFn: (err) => logLockRowsError(err, sql, values, maskedTable, meta),
     });
   }
 };

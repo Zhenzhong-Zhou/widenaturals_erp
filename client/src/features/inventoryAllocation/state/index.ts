@@ -13,7 +13,7 @@ export { resetInventoryAllocationConfirmation } from './inventoryAllocationConfi
 // --------------------------------------------------
 export * from './allocateInventorySelectors';
 export * from './inventoryAllocationReviewSelectors';
-export * from './paginatedInventoryAllocationsSelectors';
+export * from './paginatedInventoryAllocationSelectors';
 export * from './inventoryAllocationConfirmationSelectors';
 
 // --------------------------------------------------

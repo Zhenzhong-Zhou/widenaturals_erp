@@ -25,7 +25,7 @@
 'use strict';
 
 const { wrapAsyncHandler } = require('../middlewares/async-handler');
-const { version }          = require('../../package.json');
+const { version } = require('../../package.json');
 const {
   checkServerHealthService,
 } = require('../services/server-health-service');
@@ -42,15 +42,15 @@ const {
  */
 const getWelcomeMessageController = wrapAsyncHandler(async (req, res) => {
   const API_PREFIX = process.env.API_PREFIX ?? '';
-  
+
   res.status(200).json({
-    system:          'WIDE Naturals Inc. ERP',
-    message:         'Welcome to the WIDE Naturals Inc. ERP API',
+    system: 'WIDE Naturals Inc. ERP',
+    message: 'Welcome to the WIDE Naturals Inc. ERP API',
     version,
     frontendVersion: process.env.FRONTEND_VERSION ?? null,
-    documentation:   `${API_PREFIX}/docs`,
-    healthEndpoint:  `${API_PREFIX}/public/health`,
-    timestamp:       new Date().toISOString(),
+    documentation: `${API_PREFIX}/docs`,
+    healthEndpoint: `${API_PREFIX}/public/health`,
+    timestamp: new Date().toISOString(),
   });
 });
 
@@ -69,19 +69,21 @@ const getWelcomeMessageController = wrapAsyncHandler(async (req, res) => {
  */
 const getHealthStatusController = wrapAsyncHandler(async (req, res) => {
   const healthStatus = await checkServerHealthService();
-  
+
   // Sanitize — never expose internal service details on a public endpoint
   const publicHealthStatus = {
-    server:   healthStatus?.server ?? 'unhealthy',
+    server: healthStatus?.server ?? 'unhealthy',
     services: {
-      database: { status: healthStatus?.services?.database?.status ?? 'unknown' },
-      pool:     { status: healthStatus?.services?.pool?.status    ?? 'unknown' },
+      database: {
+        status: healthStatus?.services?.database?.status ?? 'unknown',
+      },
+      pool: { status: healthStatus?.services?.pool?.status ?? 'unknown' },
     },
     timestamp: healthStatus?.metrics?.timestamp ?? new Date().toISOString(),
   };
-  
+
   const statusCode = healthStatus.server === 'healthy' ? 200 : 503;
-  
+
   res.status(statusCode).json(publicHealthStatus);
 });
 

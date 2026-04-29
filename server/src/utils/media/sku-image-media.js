@@ -76,42 +76,57 @@ const resizeImage = async (
  */
 const processImageFile = async (localPath, skuCode, isProd, bucketName) => {
   const context = 'sku-image-media/processImageFile';
-  
+
   const resizedMain = `${localPath}_main.webp`;
   const resizedThumb = `${localPath}_thumb.webp`;
-  
+
   try {
     const brandFolder = skuCode.slice(0, 2).toUpperCase();
     const hash = await getFileHashStream(localPath);
     const ext = path.extname(localPath).replace('.', '').toLowerCase();
     const baseName = path.basename(localPath, path.extname(localPath));
-    
+
     // Resize main and thumbnail variants in parallel
     await Promise.all([
       resizeImage(localPath, resizedMain, 1000, 80, 5),
       resizeImage(localPath, resizedThumb, 450, 75, 4),
     ]);
-    
+
     // Stat all three variants in parallel (bytes → KB)
     const [mainStats, thumbStats, zoomStats] = await Promise.all([
       fsp.stat(resizedMain),
       fsp.stat(resizedThumb),
       fsp.stat(localPath),
     ]);
-    
+
     const mainSizeKb = Math.round(mainStats.size / 1024);
     const thumbSizeKb = Math.round(thumbStats.size / 1024);
     const zoomSizeKb = Math.round(zoomStats.size / 1024);
-    
+
     const keyPrefix = `sku-images/${brandFolder}/${hash}`;
-    
+
     let mainUrl, thumbUrl, zoomUrl;
-    
+
     if (isProd) {
       [mainUrl, thumbUrl, zoomUrl] = await Promise.all([
-        uploadSkuImageToS3(bucketName, resizedMain, keyPrefix, `${baseName}_main.webp`),
-        uploadSkuImageToS3(bucketName, resizedThumb, keyPrefix, `${baseName}_thumb.webp`),
-        uploadSkuImageToS3(bucketName, localPath, keyPrefix, path.basename(localPath)),
+        uploadSkuImageToS3(
+          bucketName,
+          resizedMain,
+          keyPrefix,
+          `${baseName}_main.webp`
+        ),
+        uploadSkuImageToS3(
+          bucketName,
+          resizedThumb,
+          keyPrefix,
+          `${baseName}_thumb.webp`
+        ),
+        uploadSkuImageToS3(
+          bucketName,
+          localPath,
+          keyPrefix,
+          path.basename(localPath)
+        ),
       ]);
     } else {
       const devDir = path.resolve(
@@ -119,32 +134,40 @@ const processImageFile = async (localPath, skuCode, isProd, bucketName) => {
         '../../../public/uploads/sku-images',
         brandFolder
       );
-      
+
       await fsp.mkdir(devDir, { recursive: true });
-      
+
       const zoomFileName = path.basename(localPath);
-      
+
       await Promise.all([
         fsp.copyFile(resizedMain, path.join(devDir, `${baseName}_main.webp`)),
         fsp.copyFile(resizedThumb, path.join(devDir, `${baseName}_thumb.webp`)),
         fsp.copyFile(localPath, path.join(devDir, zoomFileName)),
       ]);
-      
+
       const base = `/uploads/sku-images/${brandFolder}/${baseName}`;
-      
+
       mainUrl = `${base}_main.webp`;
       thumbUrl = `${base}_thumb.webp`;
       zoomUrl = `/uploads/sku-images/${brandFolder}/${zoomFileName}`;
     }
-    
-    return { mainUrl, thumbUrl, zoomUrl, mainSizeKb, thumbSizeKb, zoomSizeKb, ext };
+
+    return {
+      mainUrl,
+      thumbUrl,
+      zoomUrl,
+      mainSizeKb,
+      thumbSizeKb,
+      zoomSizeKb,
+      ext,
+    };
   } catch (error) {
     logSystemException(error, 'Image processing failed', {
       context,
       skuCode,
       localPath,
     });
-    
+
     throw AppError.fileSystemError('Failed to process image file', {
       cause: error,
     });

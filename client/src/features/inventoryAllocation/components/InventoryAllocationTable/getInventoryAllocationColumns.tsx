@@ -105,10 +105,10 @@ export const getInventoryAllocationColumns = (
         ),
     },
     {
-      id: 'orderCreatedAt',
+      id: 'allocatedCreatedAt',
       label: 'Order Date',
       sortable: true,
-      format: (value) => (typeof value === 'string' ? formatDate(value) : '—'),
+      renderCell: (row) => row.allocatedCreatedAt ? formatDate(row.allocatedCreatedAt) : '—',
     },
     {
       id: 'orderCreatedBy',

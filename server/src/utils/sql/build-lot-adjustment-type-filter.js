@@ -35,13 +35,13 @@
 const buildLotAdjustmentWhereClause = (filters = {}) => {
   // Active-only is always enforced — no param needed, hardcoded sentinel.
   const conditions = [`lat.is_active = true`];
-  const params     = [];
-  
+  const params = [];
+
   if (filters.restrictToQtyAdjustment) {
     // Restricts to inventory action types in the adjustment category only.
     conditions.push(`iat.category = 'adjustment'`);
   }
-  
+
   if (filters.excludeInternal) {
     // Excludes types reserved for internal stock management operations
     // that should not appear in user-facing adjustment interfaces.
@@ -49,7 +49,7 @@ const buildLotAdjustmentWhereClause = (filters = {}) => {
       `lat.name NOT IN ('manual_stock_insert', 'manual_stock_update')`
     );
   }
-  
+
   return {
     whereClause: conditions.join(' AND '),
     params,

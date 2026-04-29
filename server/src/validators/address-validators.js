@@ -77,6 +77,7 @@ const addressFiltersSchema = Joi.object({
   customerId: validateOptionalUUID('Customer ID').allow('', null),
   createdBy: validateOptionalUUID('Created By').allow('', null),
   updatedBy: validateOptionalUUID('Updated By').allow('', null),
+  customerType: Joi.string().valid('individual', 'company').optional(),
   keyword: validateKeyword('Keyword'),
 });
 

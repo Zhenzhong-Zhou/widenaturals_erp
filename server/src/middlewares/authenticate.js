@@ -10,7 +10,9 @@ const AppError = require('../utils/AppError');
 const { getAccessTokenFromHeader } = require('../utils/auth-header-utils');
 const { validateAccessToken } = require('../utils/auth/validate-token');
 const { userExistsByField } = require('../repositories/user-repository');
-const { updateSessionLastActivityAt } = require('../repositories/session-repository');
+const {
+  updateSessionLastActivityAt,
+} = require('../repositories/session-repository');
 const { logWarn } = require('../utils/logging/logger-helper');
 
 const CONTEXT = 'middleware/authenticate';
@@ -46,29 +48,29 @@ const authenticate = () => {
   return async (req, res, next) => {
     try {
       const accessToken = getAccessTokenFromHeader(req);
-      
+
       if (!accessToken) {
         throw AppError.accessTokenError('Access token is missing.');
       }
-      
+
       // ------------------------------------------------------------------
       // 1. Validate access token (JWT signature, expiry, session state)
       // ------------------------------------------------------------------
       const payload = await validateAccessToken(accessToken);
-      
+
       // ------------------------------------------------------------------
       // 2. Structural user existence check
       // Ensures the user account still exists — it may have been deleted
       // after the token was issued.
       // ------------------------------------------------------------------
       const userExists = await userExistsByField('id', payload.id);
-      
+
       if (!userExists) {
         throw AppError.authenticationError(
           'User associated with this token no longer exists.'
         );
       }
-      
+
       // ------------------------------------------------------------------
       // 3. Update session activity (best-effort, non-blocking)
       // A failure here means the activity timestamp is stale, which is
@@ -84,21 +86,20 @@ const authenticate = () => {
           message: activityError.message,
         });
       }
-      
+
       // ------------------------------------------------------------------
       // 4. Attach auth context for downstream middleware and route handlers
       // ------------------------------------------------------------------
-      
+
       req.auth = {
         user: {
-          id:   payload.id,
+          id: payload.id,
           role: payload.role,
         },
         sessionId: payload.sessionId,
       };
-      
+
       next();
-      
     } catch (error) {
       // Pass known AppErrors through unchanged — they already carry the
       // correct type, code, and status. Wrap anything else as a generic
@@ -107,7 +108,7 @@ const authenticate = () => {
         error instanceof AppError
           ? error
           : AppError.authenticationError('Authentication failed.');
-      
+
       next(authError);
     }
   };

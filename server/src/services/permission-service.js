@@ -15,14 +15,18 @@
 
 'use strict';
 
-const { tryCacheRead, tryCacheWrite }    = require('../utils/cache-utils');
-const { getStatusId }                    = require('../config/status-cache');
-const { getRolePermissionsByRoleId }     = require('../repositories/role-permission-repository');
+const { tryCacheRead, tryCacheWrite } = require('../utils/cache-utils');
+const { getStatusId } = require('../config/status-cache');
+const {
+  getRolePermissionsByRoleId,
+} = require('../repositories/role-permission-repository');
 const {
   getAccessibleOrderCategoriesFromPermissions,
-}                                        = require('../utils/order-access-utils');
-const AppError                           = require('../utils/AppError');
-const { ORDER_CATEGORIES }               = require('../utils/constants/domain/order-type-constants');
+} = require('../utils/order-access-utils');
+const AppError = require('../utils/AppError');
+const {
+  ORDER_CATEGORIES,
+} = require('../utils/constants/domain/order-type-constants');
 
 /**
  * Fetches role permissions using a cache-first strategy.
@@ -38,33 +42,35 @@ const { ORDER_CATEGORIES }               = require('../utils/constants/domain/or
 const fetchPermissions = async (roleId) => {
   // Cache key versioned for safe schema evolution.
   const cacheKey = `role_permissions:v1:${roleId}`;
-  
+
   // Cache-first lookup — best-effort, not guaranteed.
   const cached = await tryCacheRead(cacheKey);
   if (cached?.permissions) return cached;
-  
+
   // DB fallback — source of truth.
   const activeStatusId = getStatusId('general_active');
-  const result         = await getRolePermissionsByRoleId(roleId, activeStatusId);
-  
+  const result = await getRolePermissionsByRoleId(roleId, activeStatusId);
+
   if (!result) {
     throw AppError.authorizationError('Role permissions not found.');
   }
-  
-  const permissions = Array.isArray(result.permissions) ? result.permissions : [];
-  
+
+  const permissions = Array.isArray(result.permissions)
+    ? result.permissions
+    : [];
+
   if (!permissions.length) {
     throw AppError.authorizationError('User has no assigned permissions.');
   }
-  
+
   const normalized = {
-    roleName:    result.role_name,
+    roleName: result.role_name,
     permissions,
   };
-  
+
   // Best-effort cache write — failure is acceptable here.
   await tryCacheWrite(cacheKey, normalized, 3600);
-  
+
   return normalized;
 };
 
@@ -88,11 +94,13 @@ const hasRootAccessSync = (permissions = []) =>
  */
 const resolveUserPermissionContext = async (user) => {
   if (!user?.role) {
-    throw AppError.authorizationError('User role is required for permission check.');
+    throw AppError.authorizationError(
+      'User role is required for permission check.'
+    );
   }
-  
+
   const { permissions, roleName } = await fetchPermissions(user.role);
-  
+
   return {
     roleName,
     permissions,
@@ -119,11 +127,11 @@ const checkPermissions = async (
   { requireAll = false, allowRootAccess = true } = {}
 ) => {
   if (!user?.id || !user.role) return false;
-  
+
   const { permissions, isRoot } = await resolveUserPermissionContext(user);
-  
+
   if (allowRootAccess && isRoot) return true;
-  
+
   return requireAll
     ? requiredPermissions.every((p) => permissions.includes(p))
     : requiredPermissions.some((p) => permissions.includes(p));
@@ -143,7 +151,7 @@ const checkPermissions = async (
  */
 const resolveOrderAccessContext = async (user, { action = 'VIEW' } = {}) => {
   const { permissions, isRoot } = await resolveUserPermissionContext(user);
-  
+
   if (isRoot) {
     return {
       isRoot,
@@ -151,15 +159,18 @@ const resolveOrderAccessContext = async (user, { action = 'VIEW' } = {}) => {
       action,
     };
   }
-  
-  const accessibleCategories = getAccessibleOrderCategoriesFromPermissions(permissions, { action });
-  
+
+  const accessibleCategories = getAccessibleOrderCategoriesFromPermissions(
+    permissions,
+    { action }
+  );
+
   if (!accessibleCategories.length) {
     throw AppError.authorizationError(
       `You do not have permission to ${action.toLowerCase()} any order types.`
     );
   }
-  
+
   return { isRoot, accessibleCategories, action };
 };
 

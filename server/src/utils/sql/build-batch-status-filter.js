@@ -51,61 +51,61 @@ const buildBatchStatusFilter = (filters = {}) => {
     'updatedAfter',
     'updatedBefore'
   );
-  
-  const conditions    = ['1=1'];
-  const params        = [];
+
+  const conditions = ['1=1'];
+  const params = [];
   const paramIndexRef = { value: 1 };
-  
+
   // ─── Status ─────────────────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.ids?.length) {
     conditions.push(`bs.id = ANY($${paramIndexRef.value}::uuid[])`);
     params.push(normalizedFilters.ids);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.isActive !== undefined) {
     conditions.push(`bs.is_active = $${paramIndexRef.value}`);
     params.push(normalizedFilters.isActive);
     paramIndexRef.value++;
   }
-  
+
   // ─── Audit ──────────────────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.createdBy) {
     conditions.push(`bs.created_by = $${paramIndexRef.value}`);
     params.push(normalizedFilters.createdBy);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.updatedBy) {
     conditions.push(`bs.updated_by = $${paramIndexRef.value}`);
     params.push(normalizedFilters.updatedBy);
     paramIndexRef.value++;
   }
-  
+
   // ─── Date Range ─────────────────────────────────────────────────────────────
-  
+
   applyDateRangeConditions({
     conditions,
     params,
-    column:        'bs.created_at',
-    after:         normalizedFilters.createdAfter,
-    before:        normalizedFilters.createdBefore,
+    column: 'bs.created_at',
+    after: normalizedFilters.createdAfter,
+    before: normalizedFilters.createdBefore,
     paramIndexRef,
   });
-  
+
   applyDateRangeConditions({
     conditions,
     params,
-    column:        'bs.updated_at',
-    after:         normalizedFilters.updatedAfter,
-    before:        normalizedFilters.updatedBefore,
+    column: 'bs.updated_at',
+    after: normalizedFilters.updatedAfter,
+    before: normalizedFilters.updatedBefore,
     paramIndexRef,
   });
-  
+
   // ─── Text ────────────────────────────────────────────────────────────────────
-  
+
   // addIlikeFilter returns the next available param index — must be explicitly
   // reassigned after each call unlike addKeywordIlikeGroup which owns its index.
   paramIndexRef.value = addIlikeFilter(
@@ -115,7 +115,7 @@ const buildBatchStatusFilter = (filters = {}) => {
     normalizedFilters.name,
     'bs.name'
   );
-  
+
   paramIndexRef.value = addIlikeFilter(
     conditions,
     params,
@@ -123,9 +123,9 @@ const buildBatchStatusFilter = (filters = {}) => {
     normalizedFilters.description,
     'bs.description'
   );
-  
+
   // ─── Keyword (must remain last) ──────────────────────────────────────────────
-  
+
   // Same $N referenced twice — single param covers both columns.
   if (normalizedFilters.keyword) {
     conditions.push(`(
@@ -135,7 +135,7 @@ const buildBatchStatusFilter = (filters = {}) => {
     params.push(`%${normalizedFilters.keyword}%`);
     paramIndexRef.value++;
   }
-  
+
   return {
     whereClause: conditions.join(' AND '),
     params,

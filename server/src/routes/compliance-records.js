@@ -8,11 +8,11 @@
 
 'use strict';
 
-const express                            = require('express');
-const { authorize }                      = require('../middlewares/authorize');
-const validate                           = require('../middlewares/validate');
+const express = require('express');
+const { authorize } = require('../middlewares/authorize');
+const validate = require('../middlewares/validate');
 const createQueryNormalizationMiddleware = require('../middlewares/normalize-query');
-const PERMISSIONS                        = require('../utils/constants/domain/permissions');
+const PERMISSION_KEYS = require('../utils/constants/domain/permission-keys');
 const {
   getPaginatedComplianceRecordsSchema,
 } = require('../validators/compliance-record-validators');
@@ -29,17 +29,17 @@ const router = express.Router();
  *          issuedAfter, issuedBefore, expiryAfter, expiryBefore.
  * Sorting: sortBy, sortOrder (uses complianceRecordSortMap).
  * @access protected
- * @permission COMPLIANCE_RECORDS.VIEW_LIST
+ * @permission PERMISSION_KEYS.COMPLIANCE_RECORDS.VIEW_LIST
  */
 router.get(
   '/',
-  authorize([PERMISSIONS.COMPLIANCE_RECORDS.VIEW_LIST]),
+  authorize([PERMISSION_KEYS.COMPLIANCE_RECORDS.VIEW_LIST]),
   validate(getPaginatedComplianceRecordsSchema, 'query'),
   createQueryNormalizationMiddleware(
-    'complianceRecordSortMap',              // moduleKey — drives allowed sortBy fields
-    ['statusIds', 'productIds', 'skuIds'],  // arrayKeys — normalized as UUID arrays
-    [],                                     // booleanKeys — none client-controlled
-    getPaginatedComplianceRecordsSchema     // filterKeysOrSchema — extracts filter keys from schema
+    'complianceRecordSortMap', // moduleKey — drives allowed sortBy fields
+    ['statusIds', 'productIds', 'skuIds'], // arrayKeys — normalized as UUID arrays
+    [], // booleanKeys — none client-controlled
+    getPaginatedComplianceRecordsSchema // filterKeysOrSchema — extracts filter keys from schema
   ),
   getPaginatedComplianceRecordsController
 );

@@ -40,10 +40,10 @@ const BOM_SORT_WHITELIST = new Set(Object.values(SORTABLE_FIELDS.bomSortMap));
 
 // Deterministic tie-breaking applied after the primary sort.
 const BOM_ADDITIONAL_SORTS = [
-  { column: 's.sku',        direction: 'ASC'  },
+  { column: 's.sku', direction: 'ASC' },
   { column: 'b.is_default', direction: 'DESC' },
-  { column: 'b.is_active',  direction: 'DESC' },
-  { column: 'b.revision',   direction: 'DESC' },
+  { column: 'b.is_active', direction: 'DESC' },
+  { column: 'b.revision', direction: 'DESC' },
   { column: 'b.created_at', direction: 'DESC' },
 ];
 

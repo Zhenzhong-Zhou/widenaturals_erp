@@ -17,17 +17,22 @@ const CustomerInfoSection: FC<CustomerInfoSectionProps> = ({ flattened }) => {
           <MemoizedDetailsSection
             fields={[
               {
+                label: 'Customer Type',
+                value: flattened.customerType,
+                format: formatLabel,
+              },
+              {
                 label: 'Customer Name',
                 value: flattened.customerName,
                 format: formatLabel,
               },
-              { label: 'Customer Email', value: flattened.customerEmail },
             ]}
           />
         </DetailsGridItem>
         <DetailsGridItem>
           <MemoizedDetailsSection
             fields={[
+              { label: 'Customer Email', value: flattened.customerEmail },
               {
                 label: 'Customer Phone',
                 value: flattened.customerPhone,

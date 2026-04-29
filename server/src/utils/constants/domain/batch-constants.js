@@ -26,11 +26,10 @@
 
 const BATCH_CONSTANTS = {
   PERMISSIONS: {
-    
     // -------------------------------------------------
     // Batch creation & lifecycle operations
     // -------------------------------------------------
-    
+
     /**
      * Allows registering new product batches.
      *
@@ -38,7 +37,7 @@ const BATCH_CONSTANTS = {
      * Manufacturing batches received from production.
      */
     CREATE_PRODUCT_BATCHES: 'create_product_batches',
-    
+
     /**
      * Allows registering packaging material batches.
      *
@@ -46,7 +45,7 @@ const BATCH_CONSTANTS = {
      * Packaging materials received from suppliers.
      */
     CREATE_PACKAGING_BATCHES: 'create_packaging_batches',
-    
+
     /**
      * Global permission for updating batch lifecycle state.
      *
@@ -56,7 +55,7 @@ const BATCH_CONSTANTS = {
      * Some systems may combine this with model-specific permissions.
      */
     UPDATE_BATCH_STATUS: 'update_batch_status',
-    
+
     /**
      * Allows archiving batches.
      *
@@ -64,97 +63,92 @@ const BATCH_CONSTANTS = {
      * while preserving them for historical audit.
      */
     ARCHIVE_BATCHES: 'archive_batches',
-    
+
     // -------------------------------
     // Product batch metadata editing
     // -------------------------------
-    
+
     /**
      * Allows editing non-sensitive product batch metadata.
      */
-    EDIT_PRODUCT_BATCH_METADATA_BASIC:
-      'edit_product_batch_metadata_basic',
-    
+    EDIT_PRODUCT_BATCH_METADATA_BASIC: 'edit_product_batch_metadata_basic',
+
     /**
      * Allows editing sensitive product batch fields
      * such as quantities or operational timestamps.
      */
     EDIT_PRODUCT_BATCH_METADATA_SENSITIVE:
       'edit_product_batch_metadata_sensitive',
-    
+
     /**
      * Allows editing release metadata
      * used during QA approval.
      */
-    EDIT_PRODUCT_BATCH_RELEASE_METADATA:
-      'edit_product_batch_release_metadata',
-    
+    EDIT_PRODUCT_BATCH_RELEASE_METADATA: 'edit_product_batch_release_metadata',
+
     /**
      * Allows changing product batch lifecycle status.
      */
-    CHANGE_PRODUCT_BATCH_STATUS:
-      'change_product_batch_status',
-    
+    CHANGE_PRODUCT_BATCH_STATUS: 'change_product_batch_status',
+
     // -------------------------------
     // Packaging batch metadata editing
     // -------------------------------
-    
+
     /**
      * Allows editing basic packaging batch metadata.
      */
-    EDIT_PACKAGING_BATCH_METADATA_BASIC:
-      'edit_packaging_batch_metadata_basic',
-    
+    EDIT_PACKAGING_BATCH_METADATA_BASIC: 'edit_packaging_batch_metadata_basic',
+
     /**
      * Allows editing sensitive packaging metadata
      * such as supplier references or financial fields.
      */
     EDIT_PACKAGING_BATCH_METADATA_SENSITIVE:
       'edit_packaging_batch_metadata_sensitive',
-    
+
     /**
      * Allows changing packaging batch lifecycle state.
      */
-    CHANGE_PACKAGING_BATCH_STATUS:
-      'change_packaging_batch_status',
-    
+    CHANGE_PACKAGING_BATCH_STATUS: 'change_packaging_batch_status',
+
     // -------------------------------------------------
     // Batch visibility (read-only access)
     // -------------------------------------------------
-    
+
     /**
      * Allows viewing product batch records.
      */
     VIEW_PRODUCT_BATCHES: 'view_product_batches',
-    
+
     /**
      * Allows viewing packaging material batches.
      */
     VIEW_PACKAGING_BATCHES: 'view_packaging_batches',
-    
+
     /**
      * Allows viewing manufacturer information
      * linked to product batches.
      */
     VIEW_BATCH_MANUFACTURER: 'view_batch_manufacturer',
-    
+
     /**
      * Allows viewing supplier metadata linked to
      * packaging material batches.
      */
     VIEW_BATCH_SUPPLIER: 'view_batch_supplier',
-    
+
     /**
      * Grants full read-only visibility across all batch data.
      *
      * Useful for administrative users or support roles.
      */
     VIEW_BATCH_ALL_VISIBILITY: 'view_all_batches_visibility',
-    
+
     // -------------------------------------------------
     // Batch status visibility & administration
     // -------------------------------------------------
-    
+
     /**
      * Allows viewing batch lifecycle status definitions.
      *
@@ -162,7 +156,7 @@ const BATCH_CONSTANTS = {
      * and batch workflow configuration screens.
      */
     VIEW_BATCH_STATUSES: 'view_batch_statuses',
-    
+
     /**
      * Allows viewing inactive or archived batch statuses.
      *
@@ -170,7 +164,7 @@ const BATCH_CONSTANTS = {
      * statuses where `is_active = TRUE`.
      */
     VIEW_INACTIVE_BATCH_STATUSES: 'view_inactive_batch_statuses',
-    
+
     /**
      * Allows full visibility of all batch status records.
      *
@@ -178,7 +172,7 @@ const BATCH_CONSTANTS = {
      * that may not normally appear in operational workflows.
      */
     VIEW_ALL_BATCH_STATUSES: 'view_all_batch_statuses',
-    
+
     /**
      * Allows creating new batch status definitions.
      *
@@ -186,7 +180,7 @@ const BATCH_CONSTANTS = {
      * workflow extensions.
      */
     CREATE_BATCH_STATUS: 'create_batch_status',
-    
+
     /**
      * Allows editing batch status definitions.
      *
@@ -194,7 +188,7 @@ const BATCH_CONSTANTS = {
      * or operational metadata.
      */
     EDIT_BATCH_STATUS: 'edit_batch_status',
-    
+
     /**
      * Allows activating or deactivating batch statuses.
      *
@@ -202,50 +196,50 @@ const BATCH_CONSTANTS = {
      * without deleting historical references.
      */
     MANAGE_BATCH_STATUS_LIFECYCLE: 'manage_batch_status_lifecycle',
-    
+
     // -------------------------------------------------
     // Product batch search capabilities
     // -------------------------------------------------
-    
+
     /**
      * Allows searching product batches by SKU code.
      */
     SEARCH_PRODUCT_BATCH_BY_SKU: 'search_product_batch_by_sku',
-    
+
     /**
      * Allows searching product batches by manufacturer.
      */
     SEARCH_PRODUCT_BATCH_BY_MANUFACTURER:
       'search_product_batch_by_manufacturer',
-    
+
     // -------------------------------------------------
     // Cross-batch registry search capabilities
     // -------------------------------------------------
-    
+
     /**
      * Allows searching batches by lot number.
      */
     SEARCH_BATCH_BY_LOT: 'search_batch_by_lot',
-    
+
     /**
      * Allows searching batches by product name or SKU.
      */
     SEARCH_BATCH_BY_PRODUCT: 'search_batch_by_product',
-    
+
     /**
      * Allows searching packaging batches by material name or code.
      */
     SEARCH_BATCH_BY_MATERIAL: 'search_batch_by_material',
-    
+
     /**
      * Allows searching batches by supplier.
      */
     SEARCH_BATCH_BY_SUPPLIER: 'search_batch_by_supplier',
-    
+
     // -------------------------------------------------
     // Administrative override capabilities
     // -------------------------------------------------
-    
+
     /**
      * Allows bypassing visibility restrictions.
      *

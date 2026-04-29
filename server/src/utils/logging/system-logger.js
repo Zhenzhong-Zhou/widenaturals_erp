@@ -44,11 +44,15 @@ const withSystemContext = (meta = {}) => ({
  * @param {Error} err
  */
 const logMissingEnvVar = (varName, err) => {
-  logError(err, null, withSystemContext({
-    overrideMessage: `Missing environment variable: ${varName}`,
-    context: 'startup',
-    variable: varName,
-  }));
+  logError(
+    err,
+    null,
+    withSystemContext({
+      overrideMessage: `Missing environment variable: ${varName}`,
+      context: 'startup',
+      variable: varName,
+    })
+  );
 };
 
 /**
@@ -104,10 +108,14 @@ const logSystemFatal = (message, meta = {}) => {
  * @param {Object} meta
  */
 const logSystemException = (error, message, meta = {}) => {
-  logError(error, null, withSystemContext({
-    overrideMessage: message,
-    ...meta,
-  }));
+  logError(
+    error,
+    null,
+    withSystemContext({
+      overrideMessage: message,
+      ...meta,
+    })
+  );
 };
 
 /**
@@ -153,11 +161,15 @@ const logRetryWarning = (attempt, retries, error, nextDelayMs) => {
  * @param {Object} meta
  */
 const logSystemCrash = (error, message, meta = {}) => {
-  logError(error, null, withSystemContext({
-    overrideMessage: message,
-    crash: true,
-    ...meta,
-  }));
+  logError(
+    error,
+    null,
+    withSystemContext({
+      overrideMessage: message,
+      crash: true,
+      ...meta,
+    })
+  );
 };
 
 module.exports = {

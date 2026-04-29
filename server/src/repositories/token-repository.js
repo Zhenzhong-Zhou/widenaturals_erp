@@ -19,7 +19,10 @@
 'use strict';
 
 const { query } = require('../database/db');
-const { logSystemInfo, logSystemException } = require('../utils/logging/system-logger');
+const {
+  logSystemInfo,
+  logSystemException,
+} = require('../utils/logging/system-logger');
 const {
   INSERT_TOKEN_QUERY,
   GET_TOKEN_BY_HASH_QUERY,
@@ -47,29 +50,36 @@ const {
  */
 const insertToken = async (token, client) => {
   const context = 'token-repository/insertToken';
-  
+
   const {
     userId,
-    sessionId    = null,
+    sessionId = null,
     tokenType,
     tokenHash,
     expiresAt,
     context: tokenContext = null,
   } = token;
-  
-  const params = [userId, sessionId, tokenType, tokenHash, expiresAt, tokenContext];
-  
+
+  const params = [
+    userId,
+    sessionId,
+    tokenType,
+    tokenHash,
+    expiresAt,
+    tokenContext,
+  ];
+
   try {
     const { rows } = await query(INSERT_TOKEN_QUERY, params, client);
-    
+
     logSystemInfo('Token inserted successfully', {
       context,
-      tokenId:   rows[0]?.id,
+      tokenId: rows[0]?.id,
       userId,
       tokenType,
       sessionId,
     });
-    
+
     return rows[0];
   } catch (error) {
     logSystemException(error, 'Failed to insert token', {
@@ -97,18 +107,18 @@ const insertToken = async (token, client) => {
  */
 const getTokenByHash = async (tokenHash, client = null) => {
   const context = 'token-repository/getTokenByHash';
-  
+
   try {
     const { rows } = await query(GET_TOKEN_BY_HASH_QUERY, [tokenHash], client);
-    
+
     if (!rows[0]) return null;
-    
+
     logSystemInfo('Token fetched by hash', {
       context,
-      tokenId:   rows[0].id,
+      tokenId: rows[0].id,
       tokenType: rows[0].token_type,
     });
-    
+
     return rows[0];
   } catch (error) {
     logSystemException(error, 'Failed to fetch token by hash', {
@@ -134,21 +144,25 @@ const getTokenByHash = async (tokenHash, client = null) => {
  * @returns {Promise<Array<Object>>} Revoked token rows.
  * @throws  Propagates raw DB error — auth service owns error handling.
  */
-const revokeTokensByUserId = async (userId, { tokenType = null } = {}, client = null) => {
+const revokeTokensByUserId = async (
+  userId,
+  { tokenType = null } = {},
+  client = null
+) => {
   const context = 'token-repository/revokeTokensByUserId';
-  
+
   const { sql, params } = buildRevokeTokensByUserQuery(userId, tokenType);
-  
+
   try {
     const { rows } = await query(sql, params, client);
-    
+
     logSystemInfo('Tokens revoked for user', {
       context,
       userId,
       tokenType,
       revokedCount: rows.length,
     });
-    
+
     return rows;
   } catch (error) {
     logSystemException(error, 'Failed to revoke tokens for user', {
@@ -176,9 +190,13 @@ const revokeTokensByUserId = async (userId, { tokenType = null } = {}, client = 
  */
 const revokeTokenById = async (tokenId, client = null) => {
   const context = 'token-repository/revokeTokenById';
-  
+
   try {
-    const { rowCount } = await query(REVOKE_TOKEN_BY_ID_QUERY, [tokenId], client);
+    const { rowCount } = await query(
+      REVOKE_TOKEN_BY_ID_QUERY,
+      [tokenId],
+      client
+    );
     return rowCount > 0;
   } catch (error) {
     logSystemException(error, 'Failed to revoke token', {
@@ -204,16 +222,20 @@ const revokeTokenById = async (tokenId, client = null) => {
  */
 const revokeAllTokensBySessionId = async (sessionId, client = null) => {
   const context = 'token-repository/revokeAllTokensBySessionId';
-  
+
   try {
-    const { rows } = await query(REVOKE_ALL_TOKENS_BY_SESSION_QUERY, [sessionId], client);
-    
+    const { rows } = await query(
+      REVOKE_ALL_TOKENS_BY_SESSION_QUERY,
+      [sessionId],
+      client
+    );
+
     logSystemInfo('Tokens revoked for session', {
       context,
       sessionId,
       revokedCount: rows.length,
     });
-    
+
     return rows;
   } catch (error) {
     logSystemException(error, 'Failed to revoke all tokens for session', {

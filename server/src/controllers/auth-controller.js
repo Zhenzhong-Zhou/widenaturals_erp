@@ -32,7 +32,7 @@
 
 'use strict';
 
-const { wrapAsyncHandler }      = require('../middlewares/async-handler');
+const { wrapAsyncHandler } = require('../middlewares/async-handler');
 const {
   logoutService,
   changePasswordService,
@@ -56,27 +56,27 @@ const IS_PRODUCTION = process.env.NODE_ENV === 'production';
  */
 const logoutController = wrapAsyncHandler(async (req, res) => {
   const { ipAddress, userAgent } = extractRequestContext(req);
-  
+
   await logoutService(
     {
-      userId:    req.auth?.user?.id    ?? null,
-      sessionId: req.auth?.sessionId   ?? null,
+      userId: req.auth?.user?.id ?? null,
+      sessionId: req.auth?.sessionId ?? null,
     },
-    { ipAddress, userAgent },
+    { ipAddress, userAgent }
   );
-  
+
   // Clear refresh token — client must re-authenticate after logout
   res.clearCookie('refreshToken', {
     httpOnly: true,
-    secure:   IS_PRODUCTION,
+    secure: IS_PRODUCTION,
     sameSite: IS_PRODUCTION ? 'strict' : 'lax',
-    path:     '/',
+    path: '/',
   });
-  
+
   res.status(200).json({
     success: true,
     message: 'Logout successful.',
-    data:    null,
+    data: null,
     traceId: req.traceId,
   });
 });
@@ -95,23 +95,23 @@ const logoutController = wrapAsyncHandler(async (req, res) => {
  * Requires: auth middleware, Joi body validation.
  */
 const changePasswordController = wrapAsyncHandler(async (req, res) => {
-  const { id: userId }                    = req.auth.user;
-  const { currentPassword, newPassword }  = req.body;
-  
+  const { id: userId } = req.auth.user;
+  const { currentPassword, newPassword } = req.body;
+
   await changePasswordService(userId, currentPassword, newPassword);
-  
+
   // Clear refresh token — forces re-authentication with new credentials
   res.clearCookie('refreshToken', {
     httpOnly: true,
-    secure:   IS_PRODUCTION,
+    secure: IS_PRODUCTION,
     sameSite: 'strict',
-    path:     '/',
+    path: '/',
   });
-  
+
   res.status(200).json({
     success: true,
     message: 'Password changed successfully. Please log in again.',
-    data:    { changedAt: new Date().toISOString() },
+    data: { changedAt: new Date().toISOString() },
     traceId: req.traceId,
   });
 });

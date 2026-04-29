@@ -27,7 +27,7 @@ const {
     );
     const { id: userId, role_id } = rows[0];
     const enrichedUser = { id: userId, role: role_id };
-    
+
     // Step 2: Lookup required foreign keys
     const [
       order_type_id,
@@ -41,26 +41,82 @@ const {
       delivery_method_id,
       warehouse_id,
     ] = await Promise.all([
-      getUniqueScalarValue({ table: 'order_types',     where: { code: 'SALES_STD' },                        select: 'id' }),
-      getUniqueScalarValue({ table: 'order_status',    where: { code: 'ORDER_PENDING' },                    select: 'id' }),
-      getUniqueScalarValue({ table: 'addresses',       where: { full_name: 'Acme Corp', label: 'Shipping' }, select: 'id' }),
-      getUniqueScalarValue({ table: 'addresses',       where: { full_name: 'Acme Corp', label: 'Billing' },  select: 'id' }),
-      getUniqueScalarValue({ table: 'customers',       where: { email: 'john.doe@example.com' },            select: 'id' }),
-      getUniqueScalarValue({ table: 'payment_methods', where: { code: 'CREDIT_CARD' },                      select: 'id' }),
-      getUniqueScalarValue({ table: 'discounts',       where: { name: 'New Customer Offer' },               select: 'id' }),
-      getUniqueScalarValue({ table: 'tax_rates',       where: { name: 'PST', province: 'BC' },              select: 'id' }),
-      getUniqueScalarValue({ table: 'delivery_methods',where: { method_name: 'In-Store Pickup' },           select: 'id' }),
-      getUniqueScalarValue({ table: 'warehouses',      where: { name: 'WIDE Naturals Inc.' },               select: 'id' }),
+      getUniqueScalarValue({
+        table: 'order_types',
+        where: { code: 'SALES_STD' },
+        select: 'id',
+      }),
+      getUniqueScalarValue({
+        table: 'order_status',
+        where: { code: 'ORDER_PENDING' },
+        select: 'id',
+      }),
+      getUniqueScalarValue({
+        table: 'addresses',
+        where: { full_name: 'Acme Corp', label: 'Shipping' },
+        select: 'id',
+      }),
+      getUniqueScalarValue({
+        table: 'addresses',
+        where: { full_name: 'Acme Corp', label: 'Billing' },
+        select: 'id',
+      }),
+      getUniqueScalarValue({
+        table: 'customers',
+        where: { email: 'john.doe@example.com' },
+        select: 'id',
+      }),
+      getUniqueScalarValue({
+        table: 'payment_methods',
+        where: { code: 'CREDIT_CARD' },
+        select: 'id',
+      }),
+      getUniqueScalarValue({
+        table: 'discounts',
+        where: { name: 'New Customer Offer' },
+        select: 'id',
+      }),
+      getUniqueScalarValue({
+        table: 'tax_rates',
+        where: { name: 'PST', province: 'BC' },
+        select: 'id',
+      }),
+      getUniqueScalarValue({
+        table: 'delivery_methods',
+        where: { method_name: 'In-Store Pickup' },
+        select: 'id',
+      }),
+      getUniqueScalarValue({
+        table: 'warehouses',
+        where: { name: 'WIDE Naturals Inc.' },
+        select: 'id',
+      }),
     ]);
 
     // Step 3: Lookup SKUs and packaging
     const [sku1, sku2, sku3, packaging_material_id_1] = await Promise.all([
-      getUniqueScalarValue({ table: 'skus',                where: { sku: 'PG-NM203-R-CA' },                       select: 'id' }),
-      getUniqueScalarValue({ table: 'skus',                where: { sku: 'PG-NM208-R-CN' },                       select: 'id' }),
-      getUniqueScalarValue({ table: 'skus',                where: { sku: 'CH-HN105-R-CA' },                       select: 'id' }),
-      getUniqueScalarValue({ table: 'packaging_materials', where: { name: 'Brand E Paper Bag - Medium (Brown)' }, select: 'id' }),
+      getUniqueScalarValue({
+        table: 'skus',
+        where: { sku: 'PG-NM203-R-CA' },
+        select: 'id',
+      }),
+      getUniqueScalarValue({
+        table: 'skus',
+        where: { sku: 'PG-NM208-R-CN' },
+        select: 'id',
+      }),
+      getUniqueScalarValue({
+        table: 'skus',
+        where: { sku: 'CH-HN105-R-CA' },
+        select: 'id',
+      }),
+      getUniqueScalarValue({
+        table: 'packaging_materials',
+        where: { name: 'Brand E Paper Bag - Medium (Brown)' },
+        select: 'id',
+      }),
     ]);
-    
+
     const getPricingGroupId = async (skuId) => {
       const { rows } = await pool.query(
         `SELECT pricing_group_id FROM pricing WHERE sku_id = $1 ORDER BY created_at ASC LIMIT 1`,
@@ -68,7 +124,7 @@ const {
       );
       return rows[0]?.pricing_group_id ?? null;
     };
-    
+
     // Step 4: Create sales order
     const orderData = {
       order_type_id,

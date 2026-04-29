@@ -31,8 +31,10 @@
  * @property {string|null} updated_by_firstname
  * @property {string|null} updated_by_lastname
  * @property {string|null} note
+ * @property {string}      customer_type
  * @property {string|null} customer_firstname
  * @property {string|null} customer_lastname
+ * @property {string|null} customer_company_name
  * @property {string|null} payment_method
  * @property {string|null} payment_status_name
  * @property {string|null} payment_status_code
@@ -55,8 +57,10 @@
  * @property {string|null} order_status_name
  * @property {string|null} order_status_code
  * @property {string|null} customer_id
+ * @property {string}      customer_type
  * @property {string|null} customer_firstname
  * @property {string|null} customer_lastname
+ * @property {string|null} customer_company_name
  * @property {string|null} customer_email
  * @property {string|null} customer_phone
  * @property {string|null} payment_status_id
@@ -170,6 +174,7 @@
  * @property {string|null} updatedAt
  * @property {string|null} updatedBy
  * @property {string|null} note
+ * @property {string}      customerType
  * @property {string|null} customerName
  * @property {string|null} paymentMethod
  * @property {{ name: string|null, code: string|null }} paymentStatus

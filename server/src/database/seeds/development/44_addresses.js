@@ -1,5 +1,5 @@
 const { fetchDynamicValue } = require('../03_utils');
-const { generateAddressHash } = require('../../../utils/crypto-utils');
+const { generateAddressHash } = require('../../../utils/hash-utils');
 
 /**
  * @param {import("knex").Knex} knex

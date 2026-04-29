@@ -19,11 +19,15 @@
 
 const { bulkInsert } = require('../utils/db/write-utils');
 const { query } = require('../database/db');
-const { validateBulkInsertRows } = require('../utils/validation/bulk-insert-row-validator');
+const {
+  validateBulkInsertRows,
+} = require('../utils/validation/bulk-insert-row-validator');
 const { paginateQuery } = require('../utils/db/pagination/pagination-helpers');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { logDbQueryError, logBulkInsertError } = require('../utils/db-logger');
-const { buildOutboundShipmentFilter } = require('../utils/sql/build-outbound-shipment-filter');
+const {
+  buildOutboundShipmentFilter,
+} = require('../utils/sql/build-outbound-shipment-filter');
 const { resolveSort } = require('../utils/query/sort-resolver');
 const { SORTABLE_FIELDS } = require('../utils/sort-field-mapping');
 const {
@@ -55,26 +59,26 @@ const {
  */
 const insertOutboundShipmentsBulk = async (shipments, client) => {
   if (!Array.isArray(shipments) || shipments.length === 0) return [];
-  
+
   const context = 'outbound-shipment-repository/insertOutboundShipmentsBulk';
-  
+
   const rows = shipments.map((s) => [
     s.order_id,
     s.warehouse_id,
-    s.delivery_method_id        ?? null,
-    s.tracking_number_id        ?? null,
+    s.delivery_method_id ?? null,
+    s.tracking_number_id ?? null,
     s.status_id,
-    s.shipped_at                ?? null,
-    s.expected_delivery_date    ?? null,
-    s.notes                     ?? null,
-    s.shipment_details          ?? null,
-    s.created_by                ?? null,
-    s.updated_by                ?? null,
-    null,                               // updated_at — null at insert time
+    s.shipped_at ?? null,
+    s.expected_delivery_date ?? null,
+    s.notes ?? null,
+    s.shipment_details ?? null,
+    s.created_by ?? null,
+    s.updated_by ?? null,
+    null, // updated_at — null at insert time
   ]);
-  
+
   validateBulkInsertRows(rows, OUTBOUND_SHIPMENT_INSERT_COLUMNS.length);
-  
+
   try {
     return await bulkInsert(
       'outbound_shipments',
@@ -90,14 +94,12 @@ const insertOutboundShipmentsBulk = async (shipments, client) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to insert outbound shipments.',
-      meta:    { shipmentCount: shipments.length },
-      logFn:   (err) => logBulkInsertError(
-        err,
-        'outbound_shipments',
-        rows,
-        rows.length,
-        { context, conflictColumns: OUTBOUND_SHIPMENT_CONFLICT_COLUMNS }
-      ),
+      meta: { shipmentCount: shipments.length },
+      logFn: (err) =>
+        logBulkInsertError(err, 'outbound_shipments', rows, rows.length, {
+          context,
+          conflictColumns: OUTBOUND_SHIPMENT_CONFLICT_COLUMNS,
+        }),
     });
   }
 };
@@ -117,18 +119,24 @@ const insertOutboundShipmentsBulk = async (shipments, client) => {
  */
 const getShipmentByShipmentId = async (shipmentId, client) => {
   const context = 'outbound-shipment-repository/getShipmentByShipmentId';
-  
+
   try {
-    const { rows } = await query(OUTBOUND_SHIPMENT_GET_BY_ID_QUERY, [shipmentId], client);
+    const { rows } = await query(
+      OUTBOUND_SHIPMENT_GET_BY_ID_QUERY,
+      [shipmentId],
+      client
+    );
     return rows[0] ?? null;
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch outbound shipment by ID.',
-      meta:    { shipmentId },
-      logFn:   (err) => logDbQueryError(
-        OUTBOUND_SHIPMENT_GET_BY_ID_QUERY, [shipmentId], err, { context, shipmentId }
-      ),
+      meta: { shipmentId },
+      logFn: (err) =>
+        logDbQueryError(OUTBOUND_SHIPMENT_GET_BY_ID_QUERY, [shipmentId], err, {
+          context,
+          shipmentId,
+        }),
     });
   }
 };
@@ -154,19 +162,26 @@ const updateOutboundShipmentStatus = async (
   client
 ) => {
   const context = 'outbound-shipment-repository/updateOutboundShipmentStatus';
-  const params  = [statusId, userId, shipmentIds];
-  
+  const params = [statusId, userId, shipmentIds];
+
   try {
-    const result = await query(OUTBOUND_SHIPMENT_UPDATE_STATUS_QUERY, params, client);
+    const result = await query(
+      OUTBOUND_SHIPMENT_UPDATE_STATUS_QUERY,
+      params,
+      client
+    );
     return result.rows.map((r) => r.id);
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to update outbound shipment status.',
-      meta:    { statusId, shipmentIds },
-      logFn:   (err) => logDbQueryError(
-        OUTBOUND_SHIPMENT_UPDATE_STATUS_QUERY, params, err, { context, statusId, shipmentIds }
-      ),
+      meta: { statusId, shipmentIds },
+      logFn: (err) =>
+        logDbQueryError(OUTBOUND_SHIPMENT_UPDATE_STATUS_QUERY, params, err, {
+          context,
+          statusId,
+          shipmentIds,
+        }),
     });
   }
 };
@@ -187,46 +202,51 @@ const updateOutboundShipmentStatus = async (
  * @throws  {AppError}        Normalized database error if the query fails.
  */
 const getPaginatedOutboundShipmentRecords = async ({
-                                                     filters   = {},
-                                                     page      = 1,
-                                                     limit     = 10,
-                                                     sortBy    = 'os.created_at',
-                                                     sortOrder = 'DESC',
-                                                   }) => {
-  const context = 'outbound-shipment-repository/getPaginatedOutboundShipmentRecords';
-  
+  filters = {},
+  page = 1,
+  limit = 10,
+  sortBy = 'os.created_at',
+  sortOrder = 'DESC',
+}) => {
+  const context =
+    'outbound-shipment-repository/getPaginatedOutboundShipmentRecords';
+
   const { whereClause, params } = buildOutboundShipmentFilter(filters);
-  
+
   const sortConfig = resolveSort({
     sortBy,
     sortOrder,
-    moduleKey:   'outboundShipmentSortMap',
+    moduleKey: 'outboundShipmentSortMap',
     defaultSort: SORTABLE_FIELDS.outboundShipmentSortMap.defaultNaturalSort,
   });
-  
+
   const queryText = buildOutboundShipmentPaginatedQuery(whereClause);
-  
+
   try {
     return await paginateQuery({
-      tableName:    OUTBOUND_SHIPMENT_TABLE,
-      joins:        OUTBOUND_SHIPMENT_JOINS,
+      tableName: OUTBOUND_SHIPMENT_TABLE,
+      joins: OUTBOUND_SHIPMENT_JOINS,
       whereClause,
       queryText,
       params,
       page,
       limit,
-      sortBy:       sortConfig.sortBy,
-      sortOrder:    sortConfig.sortOrder,
+      sortBy: sortConfig.sortBy,
+      sortOrder: sortConfig.sortOrder,
       whitelistSet: OUTBOUND_SHIPMENT_SORT_WHITELIST,
     });
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch paginated outbound shipment records.',
-      meta:    { filters, page, limit, sortBy, sortOrder },
-      logFn:   (err) => logDbQueryError(
-        queryText, params, err, { context, filters, page, limit }
-      ),
+      meta: { filters, page, limit, sortBy, sortOrder },
+      logFn: (err) =>
+        logDbQueryError(queryText, params, err, {
+          context,
+          filters,
+          page,
+          limit,
+        }),
     });
   }
 };
@@ -246,7 +266,7 @@ const getPaginatedOutboundShipmentRecords = async ({
  */
 const getShipmentDetailsById = async (shipmentId) => {
   const context = 'outbound-shipment-repository/getShipmentDetailsById';
-  
+
   try {
     const { rows } = await query(OUTBOUND_SHIPMENT_DETAILS_QUERY, [shipmentId]);
     return rows;
@@ -254,10 +274,12 @@ const getShipmentDetailsById = async (shipmentId) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch shipment details.',
-      meta:    { shipmentId },
-      logFn:   (err) => logDbQueryError(
-        OUTBOUND_SHIPMENT_DETAILS_QUERY, [shipmentId], err, { context, shipmentId }
-      ),
+      meta: { shipmentId },
+      logFn: (err) =>
+        logDbQueryError(OUTBOUND_SHIPMENT_DETAILS_QUERY, [shipmentId], err, {
+          context,
+          shipmentId,
+        }),
     });
   }
 };

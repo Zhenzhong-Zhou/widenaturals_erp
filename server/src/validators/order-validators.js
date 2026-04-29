@@ -139,6 +139,8 @@ const getOrderDetailsParamsSchema = orderIdentifierSchema;
  * - `orderCategory` (string): Optional. Used to scope filters or resolve permission. Should be validated separately via `orderCategorySchema`.
  * - `orderTypeId` (UUID): Optional. Filter by specific order type.
  * - `orderStatusId` (UUID): Optional. Filter by specific order status.
+ * - `customerType` (string): Optional. Filter by customer type ('individual' or 'company').
+ * - `customerName` (string): Optional. Filter across firstname, lastname, and company_name.
  * - `createdBy` (UUID): Optional. Filter by creator user ID.
  * - `updatedBy` (UUID): Optional. Filter by last updater user ID.
  * - `createdAfter` (ISO date): Optional. Include orders created on or after this timestamp.
@@ -164,6 +166,8 @@ const orderQuerySchema = paginationSchema
     orderCategory: validateOptionalString('Order Category'),
     orderTypeId: validateOptionalUUID('Order Type ID'),
     orderStatusId: validateOptionalUUID('Order Status ID'),
+    customerType: validateOptionalString('Customer Type'),
+    customerName: validateOptionalString('Customer Name'),
     createdBy: validateOptionalUUID('Created By'),
     updatedBy: validateOptionalUUID('Updated By'),
   });

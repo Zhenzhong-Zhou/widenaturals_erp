@@ -1,8 +1,13 @@
-import warehouseInventoryItemSummaryReducer from './warehouseInventoryItemSummarySlice';
-import warehouseInventorySummaryDetailReducer from './warehouseInventorySummaryDetailSlice';
-import warehouseInventoryReducer from './warehouseInventorySlice';
+import paginatedWarehouseInventoryReducer from './paginatedWarehouseInventorySlice';
 import warehouseInventoryCreateReducer from './warehouseInventoryCreateSlice';
-import warehouseInventoryAdjustReducer from './warehouseInventoryAdjustSlice';
+import warehouseInventoryAdjustQuantityReducer from './warehouseInventoryAdjustQuantitySlice';
+import warehouseInventoryUpdateStatusReducer from './warehouseInventoryUpdateStatusSlice';
+import warehouseInventoryUpdateMetadataReducer from './warehouseInventoryUpdateMetadataSlice';
+import warehouseInventoryOutboundReducer from './warehouseInventoryOutboundSlice';
+import warehouseInventoryDetailReducer from './warehouseInventoryDetailSlice';
+import inventoryActivityLogReducer from './inventoryActivityLogSlice';
+import warehouseSummaryReducer from './warehouseSummarySlice';
+import warehouseItemSummaryReducer from './warehouseItemSummarySlice';
 
 /**
  * Reducer map for the Warehouse Inventory feature.
@@ -18,18 +23,33 @@ import warehouseInventoryAdjustReducer from './warehouseInventoryAdjustSlice';
  *   index (barrel) files.
  */
 export const warehouseInventoryReducers = {
-  /** Aggregated item-level inventory summary */
-  warehouseInventoryItemSummary: warehouseInventoryItemSummaryReducer,
-
-  /** Detailed inventory summary for a specific SKU / batch */
-  warehouseInventorySummaryDetail: warehouseInventorySummaryDetailReducer,
-
-  /** Core warehouse inventory records */
-  warehouseInventory: warehouseInventoryReducer,
-
-  /** Warehouse inventory creation workflow */
-  createWarehouseInventory: warehouseInventoryCreateReducer,
-
-  /** Inventory adjustment workflow */
-  warehouseInventoryAdjust: warehouseInventoryAdjustReducer,
+  /** Paginated warehouse inventory list with filters and sorting. */
+  paginatedWarehouseInventory: paginatedWarehouseInventoryReducer,
+  
+  /** Warehouse inventory bulk creation mutation state. */
+  warehouseInventoryCreate: warehouseInventoryCreateReducer,
+  
+  /** Warehouse inventory bulk quantity adjustment mutation state. */
+  warehouseInventoryAdjustQuantity: warehouseInventoryAdjustQuantityReducer,
+  
+  /** Warehouse inventory bulk status update mutation state. */
+  warehouseInventoryUpdateStatus: warehouseInventoryUpdateStatusReducer,
+  
+  /** Warehouse inventory single record metadata update mutation state. */
+  warehouseInventoryUpdateMetadata: warehouseInventoryUpdateMetadataReducer,
+  
+  /** Warehouse inventory bulk outbound recording mutation state. */
+  warehouseInventoryOutbound: warehouseInventoryOutboundReducer,
+  
+  /** Warehouse inventory single record detail view. */
+  warehouseInventoryDetail: warehouseInventoryDetailReducer,
+  
+  /** Paginated inventory activity log with filters and sorting. */
+  inventoryActivityLog: inventoryActivityLogReducer,
+  
+  /** Warehouse aggregate summary (totals, batch types, statuses). */
+  warehouseSummary: warehouseSummaryReducer,
+  
+  /** Warehouse item-level summary (products and packaging materials). */
+  warehouseItemSummary: warehouseItemSummaryReducer,
 };

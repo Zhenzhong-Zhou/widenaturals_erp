@@ -22,7 +22,7 @@ exports.up = async function (knex) {
 
     table.timestamp('inbound_date', { useTz: true }).notNullable().index();
     table.timestamp('outbound_date', { useTz: true }).nullable().index();
-    table.timestamp('last_update', { useTz: true }).defaultTo(knex.fn.now());
+    table.timestamp('last_movement_at', { useTz: true }).nullable();
 
     table
       .uuid('status_id')
@@ -34,38 +34,30 @@ exports.up = async function (knex) {
 
     table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
     table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
-
     table.uuid('created_by').references('id').inTable('users');
     table.uuid('updated_by').references('id').inTable('users');
 
-    // Prevent duplicate records per warehouse/batch
     table.unique(['warehouse_id', 'batch_id']);
   });
 
-  // Constraints for consistency
+  await knex.raw(`
+    ALTER TABLE warehouse_inventory
+    ALTER COLUMN inbound_date SET DEFAULT NOW()
+  `);
+
   await knex.raw(`
     ALTER TABLE warehouse_inventory
     ADD CONSTRAINT warehouse_inventory_warehouse_quantity_check
-    CHECK (warehouse_quantity >= 0);
-  `);
-
-  await knex.raw(`
-    ALTER TABLE warehouse_inventory
+      CHECK (warehouse_quantity >= 0),
     ADD CONSTRAINT warehouse_inventory_reserved_check
-    CHECK (reserved_quantity >= 0);
-  `);
-
-  await knex.raw(`
-    ALTER TABLE warehouse_inventory
+      CHECK (reserved_quantity >= 0),
     ADD CONSTRAINT warehouse_inventory_reserved_not_exceed_total_check
-    CHECK (reserved_quantity <= warehouse_quantity);
+      CHECK (reserved_quantity <= warehouse_quantity);
   `);
 
-  // Optimized indexes
   await knex.raw(`
-    CREATE INDEX idx_warehouse_inventory_warehouse_batch ON warehouse_inventory (warehouse_id, batch_id);
-    CREATE INDEX idx_warehouse_inventory_reserved_quantity ON warehouse_inventory (reserved_quantity);
-    CREATE INDEX idx_warehouse_inventory_status_id ON warehouse_inventory (status_id);
+    CREATE INDEX idx_warehouse_inventory_reserved_quantity
+      ON warehouse_inventory (reserved_quantity);
   `);
 };
 

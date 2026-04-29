@@ -24,17 +24,17 @@
 'use strict';
 
 const { logSystemInfo } = require('../../utils/logging/system-logger');
-const csrfErrorHandler          = require('./csrf-error-handler');
-const corsErrorHandler          = require('./cors-error-handler');
-const rateLimitErrorHandler     = require('./rate-limit-error-handler');
-const authErrorHandler          = require('./authenticate-error-handler');
+const csrfErrorHandler = require('./csrf-error-handler');
+const corsErrorHandler = require('./cors-error-handler');
+const rateLimitErrorHandler = require('./rate-limit-error-handler');
+const authErrorHandler = require('./authenticate-error-handler');
 const authorizationErrorHandler = require('./authorize-error-handler');
-const validationErrorHandler    = require('./validation-error-handler');
-const sanitizationErrorHandler  = require('./sanitization-error-handler');
-const fileUploadErrorHandler    = require('./file-upload-error-handler');
-const serviceErrorHandler       = require('./service-error-handler');
-const notFoundHandler           = require('./not-found-handler');
-const globalErrorHandler        = require('./global-error-handler');
+const validationErrorHandler = require('./validation-error-handler');
+const sanitizationErrorHandler = require('./sanitization-error-handler');
+const fileUploadErrorHandler = require('./file-upload-error-handler');
+const serviceErrorHandler = require('./service-error-handler');
+const notFoundHandler = require('./not-found-handler');
+const globalErrorHandler = require('./global-error-handler');
 
 /**
  * Registers all error-handling middleware on the Express application instance.
@@ -50,49 +50,49 @@ const applyErrorHandlers = (app) => {
   logSystemInfo('Applying structured error handlers...', {
     context: 'error-handler-init',
   });
-  
+
   // -------------------------------------------------------------------------
   // 1. Security errors
   // -------------------------------------------------------------------------
   app.use(csrfErrorHandler);
   app.use(corsErrorHandler);
   app.use(rateLimitErrorHandler);
-  
+
   // -------------------------------------------------------------------------
   // 2. Authentication and authorization errors
   // -------------------------------------------------------------------------
   app.use(authErrorHandler);
   app.use(authorizationErrorHandler);
-  
+
   // -------------------------------------------------------------------------
   // 3. Input errors
   // -------------------------------------------------------------------------
   app.use(validationErrorHandler);
   app.use(sanitizationErrorHandler);
-  
+
   // -------------------------------------------------------------------------
   // 4. File upload errors
   // -------------------------------------------------------------------------
   app.use(fileUploadErrorHandler);
-  
+
   // -------------------------------------------------------------------------
   // 5. Service errors
   // -------------------------------------------------------------------------
   app.use(serviceErrorHandler);
-  
+
   // -------------------------------------------------------------------------
   // 6. 404 — must come after all routes so only genuinely unmatched requests
   //    reach it. Generates a structured not-found error forwarded to global.
   // -------------------------------------------------------------------------
   app.use(notFoundHandler);
-  
+
   // -------------------------------------------------------------------------
   // 7. Global catch-all — must be last. Handles any error not resolved by a
   //    specific handler above. All specific handlers must call next(err) for
   //    errors they do not own, or errors will be silently swallowed.
   // -------------------------------------------------------------------------
   app.use(globalErrorHandler);
-  
+
   logSystemInfo('All error handlers successfully registered.', {
     context: 'error-handler-init',
     order: [

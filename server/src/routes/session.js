@@ -9,11 +9,13 @@
 
 'use strict';
 
-const express                    = require('express');
-const { createLoginRateLimiter,
-  createRefreshRateLimiter } = require('../middlewares/rate-limiter');
-const validate                   = require('../middlewares/validate');
-const { loginSchema }            = require('../validators/auth/login');
+const express = require('express');
+const {
+  createLoginRateLimiter,
+  createRefreshRateLimiter,
+} = require('../middlewares/rate-limiter');
+const validate = require('../middlewares/validate');
+const { loginSchema } = require('../validators/auth/login');
 const {
   loginController,
   refreshTokenController,
@@ -40,11 +42,7 @@ router.post(
  * Rate-limited to prevent token refresh abuse.
  * @access public
  */
-router.post(
-  '/refresh',
-  createRefreshRateLimiter(),
-  refreshTokenController
-);
+router.post('/refresh', createRefreshRateLimiter(), refreshTokenController);
 
 /**
  * @route POST /sessions/track
@@ -53,7 +51,9 @@ router.post(
  * @todo Not yet implemented.
  */
 router.post('/track', (req, res) => {
-  res.status(501).json({ message: 'Session tracking route not implemented yet.' });
+  res
+    .status(501)
+    .json({ message: 'Session tracking route not implemented yet.' });
 });
 
 /**
@@ -63,7 +63,9 @@ router.post('/track', (req, res) => {
  * @todo Not yet implemented.
  */
 router.post('/terminate', (req, res) => {
-  res.status(501).json({ message: 'Session termination route not implemented yet.' });
+  res
+    .status(501)
+    .json({ message: 'Session termination route not implemented yet.' });
 });
 
 /**
@@ -73,7 +75,9 @@ router.post('/terminate', (req, res) => {
  * @todo Not yet implemented.
  */
 router.post('/terminate-all', (req, res) => {
-  res.status(501).json({ message: 'Terminate all sessions route not implemented yet.' });
+  res
+    .status(501)
+    .json({ message: 'Terminate all sessions route not implemented yet.' });
 });
 
 module.exports = router;

@@ -42,20 +42,23 @@ const { applyAuditConditions } = require('./build-audit-filter');
  */
 const buildProductFilter = (filters = {}) => {
   const normalizedFilters = normalizeDateRangeFilters(
-    filters, 'createdAfter', 'createdBefore'
+    filters,
+    'createdAfter',
+    'createdBefore'
   );
-  
-  const conditions    = ['1=1'];
-  const params        = [];
+
+  const conditions = ['1=1'];
+  const params = [];
   const paramIndexRef = { value: 1 };
-  
+
   // ─── Status ──────────────────────────────────────────────────────────────────
-  
-  const statusFilterValue =
-    normalizedFilters.statusIds?.length ? normalizedFilters.statusIds  :
-      normalizedFilters.status_id         ? normalizedFilters.status_id  :
-        normalizedFilters._activeStatusId;
-  
+
+  const statusFilterValue = normalizedFilters.statusIds?.length
+    ? normalizedFilters.statusIds
+    : normalizedFilters.status_id
+      ? normalizedFilters.status_id
+      : normalizedFilters._activeStatusId;
+
   if (statusFilterValue != null) {
     conditions.push(
       Array.isArray(statusFilterValue)
@@ -65,27 +68,39 @@ const buildProductFilter = (filters = {}) => {
     params.push(statusFilterValue);
     paramIndexRef.value++;
   }
-  
+
   // ─── Brand / Category / Series ───────────────────────────────────────────────
-  
-  applyProductFieldConditions(conditions, params, paramIndexRef, normalizedFilters);
-  
+
+  applyProductFieldConditions(
+    conditions,
+    params,
+    paramIndexRef,
+    normalizedFilters
+  );
+
   // ─── Audit ──────────────────────────────────────────────────────────────────
-  
-  applyAuditConditions(conditions, params, paramIndexRef, normalizedFilters, 'p');
-  
+
+  applyAuditConditions(
+    conditions,
+    params,
+    paramIndexRef,
+    normalizedFilters,
+    'p'
+  );
+
   // ─── Date Range ─────────────────────────────────────────────────────────────
-  
+
   applyDateRangeConditions({
-    conditions, params,
-    column:        'p.created_at',
-    after:         normalizedFilters.createdAfter,
-    before:        normalizedFilters.createdBefore,
+    conditions,
+    params,
+    column: 'p.created_at',
+    after: normalizedFilters.createdAfter,
+    before: normalizedFilters.createdBefore,
     paramIndexRef,
   });
-  
+
   // ─── Keyword (must remain last) ──────────────────────────────────────────────
-  
+
   // Same $N referenced three times — single param covers all columns.
   if (normalizedFilters.keyword) {
     conditions.push(`(
@@ -96,7 +111,7 @@ const buildProductFilter = (filters = {}) => {
     params.push(`%${normalizedFilters.keyword}%`);
     paramIndexRef.value++;
   }
-  
+
   return {
     whereClause: conditions.join(' AND '),
     params,

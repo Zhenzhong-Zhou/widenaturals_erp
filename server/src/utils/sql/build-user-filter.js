@@ -60,20 +60,20 @@ const buildUserFilter = (filters = {}, options = {}) => {
     'updatedAfter',
     'updatedBefore'
   );
-  
-  const conditions    = ['1=1'];
-  const params        = [];
+
+  const conditions = ['1=1'];
+  const params = [];
   const paramIndexRef = { value: 1 };
-  
+
   const { canSearchRole = false, canSearchStatus = false } = options;
-  
+
   // ─── Visibility rules (service-controlled flags) ──────────────────────────────
-  
+
   // Hide system users unless the service layer explicitly opts in.
   if (!normalizedFilters.includeSystemUsers) {
     conditions.push('u.is_system = FALSE');
   }
-  
+
   // Hide root users unless the service layer explicitly opts in.
   // Uses NOT EXISTS to avoid a join that would affect row count.
   if (!normalizedFilters.includeRootUsers) {
@@ -87,79 +87,114 @@ const buildUserFilter = (filters = {}, options = {}) => {
       )
     `);
   }
-  
+
   // ─── Status visibility ────────────────────────────────────────────────────────
-  
+
   // Enforce active-only visibility when no explicit statusIds filter is present.
   // statusIds takes precedence — if the caller supplies one, they are already
   // scoping to specific statuses and active-only enforcement would conflict.
-  const hasStatusFilter = Array.isArray(normalizedFilters.statusIds) &&
+  const hasStatusFilter =
+    Array.isArray(normalizedFilters.statusIds) &&
     normalizedFilters.statusIds.length > 0;
-  
-  if (normalizedFilters.enforceActiveOnly && !hasStatusFilter && normalizedFilters.activeStatusId) {
+
+  if (
+    normalizedFilters.enforceActiveOnly &&
+    !hasStatusFilter &&
+    normalizedFilters.activeStatusId
+  ) {
     conditions.push(`u.status_id = $${paramIndexRef.value}`);
     params.push(normalizedFilters.activeStatusId);
     paramIndexRef.value++;
   }
-  
+
   // ─── Exact-match filters ──────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.statusIds?.length) {
     conditions.push(`u.status_id = ANY($${paramIndexRef.value}::uuid[])`);
     params.push(normalizedFilters.statusIds);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.roleIds?.length) {
     conditions.push(`u.role_id = ANY($${paramIndexRef.value}::uuid[])`);
     params.push(normalizedFilters.roleIds);
     paramIndexRef.value++;
   }
-  
+
   // ─── Audit filters ────────────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.createdBy) {
     conditions.push(`u.created_by = $${paramIndexRef.value}`);
     params.push(normalizedFilters.createdBy);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.updatedBy) {
     conditions.push(`u.updated_by = $${paramIndexRef.value}`);
     params.push(normalizedFilters.updatedBy);
     paramIndexRef.value++;
   }
-  
+
   // ─── Date range filters ───────────────────────────────────────────────────────
-  
+
   applyDateRangeConditions({
     conditions,
     params,
-    column:        'u.created_at',
-    after:         normalizedFilters.createdAfter,
-    before:        normalizedFilters.createdBefore,
+    column: 'u.created_at',
+    after: normalizedFilters.createdAfter,
+    before: normalizedFilters.createdBefore,
     paramIndexRef,
   });
-  
+
   applyDateRangeConditions({
     conditions,
     params,
-    column:        'u.updated_at',
-    after:         normalizedFilters.updatedAfter,
-    before:        normalizedFilters.updatedBefore,
+    column: 'u.updated_at',
+    after: normalizedFilters.updatedAfter,
+    before: normalizedFilters.updatedBefore,
     paramIndexRef,
   });
-  
+
   // ─── ILIKE filters ────────────────────────────────────────────────────────────
-  
-  paramIndexRef.value = addIlikeFilter(conditions, params, paramIndexRef.value, normalizedFilters.firstname,    'u.firstname');
-  paramIndexRef.value = addIlikeFilter(conditions, params, paramIndexRef.value, normalizedFilters.lastname,     'u.lastname');
-  paramIndexRef.value = addIlikeFilter(conditions, params, paramIndexRef.value, normalizedFilters.email,        'u.email');
-  paramIndexRef.value = addIlikeFilter(conditions, params, paramIndexRef.value, normalizedFilters.phoneNumber,  'u.phone_number');
-  paramIndexRef.value = addIlikeFilter(conditions, params, paramIndexRef.value, normalizedFilters.jobTitle,     'u.job_title');
-  
+
+  paramIndexRef.value = addIlikeFilter(
+    conditions,
+    params,
+    paramIndexRef.value,
+    normalizedFilters.firstname,
+    'u.firstname'
+  );
+  paramIndexRef.value = addIlikeFilter(
+    conditions,
+    params,
+    paramIndexRef.value,
+    normalizedFilters.lastname,
+    'u.lastname'
+  );
+  paramIndexRef.value = addIlikeFilter(
+    conditions,
+    params,
+    paramIndexRef.value,
+    normalizedFilters.email,
+    'u.email'
+  );
+  paramIndexRef.value = addIlikeFilter(
+    conditions,
+    params,
+    paramIndexRef.value,
+    normalizedFilters.phoneNumber,
+    'u.phone_number'
+  );
+  paramIndexRef.value = addIlikeFilter(
+    conditions,
+    params,
+    paramIndexRef.value,
+    normalizedFilters.jobTitle,
+    'u.job_title'
+  );
+
   // ─── Keyword (must remain last) ───────────────────────────────────────────────
-  
+
   if (normalizedFilters.keyword) {
     const keywordConditions = [
       `u.firstname ILIKE $${paramIndexRef.value}`,
@@ -167,17 +202,19 @@ const buildUserFilter = (filters = {}, options = {}) => {
       `u.email     ILIKE $${paramIndexRef.value}`,
       `u.job_title ILIKE $${paramIndexRef.value}`,
     ];
-    
+
     // Role and status name search are privileged — only included when the
     // service/ACL layer confirms the caller has permission to search these fields.
-    if (canSearchRole)   keywordConditions.push(`r.name ILIKE $${paramIndexRef.value}`);
-    if (canSearchStatus) keywordConditions.push(`s.name ILIKE $${paramIndexRef.value}`);
-    
+    if (canSearchRole)
+      keywordConditions.push(`r.name ILIKE $${paramIndexRef.value}`);
+    if (canSearchStatus)
+      keywordConditions.push(`s.name ILIKE $${paramIndexRef.value}`);
+
     conditions.push(`(${keywordConditions.join(' OR ')})`);
     params.push(`%${normalizedFilters.keyword}%`);
     paramIndexRef.value++;
   }
-  
+
   return {
     whereClause: conditions.join(' AND '),
     params,

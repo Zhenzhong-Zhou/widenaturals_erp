@@ -72,27 +72,37 @@ export const normalizeLookupParams = <T extends LookupQuery>(
     limit: params.limit ?? 20,
   }) as T;
 
+type LookupLike<T> = {
+  options: T[];
+  loading: boolean;
+  fetch: () => void;
+};
+
 /**
- * Creates a lazy `onOpen` handler for lookup-based dropdowns.
+ * Creates an `onOpen` handler for lookup-style inputs (e.g. Autocomplete, Select)
+ * that lazily loads options the first time the menu is opened.
  *
- * The handler triggers a fetch only when the current option list is empty,
- * preventing redundant network requests on repeated opens.
+ * The returned handler triggers `fetch()` only when the options list is empty
+ * and no fetch is already in progress, preventing duplicate network calls on
+ * repeated open/close cycles.
  *
- * Typical usage:
- *   onOpen={createLazyOpenHandler(options, fetch)}
+ * @template T - Shape of an individual lookup option.
+ * @param lookup - Lookup state container exposing options, loading flag, and fetch trigger.
+ * @returns Handler to bind to the input's `onOpen` event.
  *
- * @typeParam T - Lookup option type
- * @param options - Current lookup options array
- * @param fetch - Fetch function to load lookup options
- * @returns A memo-safe `onOpen` callback
+ * @example
+ * const customerLookup = useCustomerLookup();
+ * <Autocomplete
+ *   options={customerLookup.options}
+ *   loading={customerLookup.loading}
+ *   onOpen={createOnOpenHandler(customerLookup)}
+ * />
  */
-export const createLazyOpenHandler =
-  <T>(options: T[], fetch: () => void) =>
-  () => {
-    if (options.length === 0) {
-      fetch();
-    }
-  };
+export const createOnOpenHandler = <T>(lookup: LookupLike<T>) => () => {
+  if (lookup.options.length === 0 && !lookup.loading) {
+    lookup.fetch();
+  }
+};
 
 /**
  * Returns a memoized copy of lookup options with formatted labels.

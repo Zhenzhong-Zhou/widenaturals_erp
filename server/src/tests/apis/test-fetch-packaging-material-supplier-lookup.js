@@ -7,13 +7,13 @@ const {
 
 (async () => {
   const client = await pool.connect();
-  
+
   try {
     //---------------------------------------------------------
     // Init shared caches
     //---------------------------------------------------------
     await initStatusCache();
-    
+
     //---------------------------------------------------------
     // Load test user (change email to test ACL behavior)
     //---------------------------------------------------------
@@ -28,35 +28,34 @@ const {
       // ['admin@widenaturals.com']
       ['jp@widenaturals.com']
     );
-    
+
     if (!rows.length) {
       throw new Error('Test user not found');
     }
-    
+
     const user = {
       id: rows[0].id,
       role: rows[0].role_id,
     };
-    
+
     console.log('Test user context:', user);
-    
+
     //---------------------------------------------------------
     // Execute Packaging Material Supplier Lookup
     //---------------------------------------------------------
-    const result =
-      await fetchPackagingMaterialSupplierLookupService(user, {
-        filters: {
-          // keyword: 'pack',
-          // isPreferred: true,
-          // packagingMaterialId: 'uuid',
-        },
-        limit: 20,
-        offset: 0,
-      });
-    
+    const result = await fetchPackagingMaterialSupplierLookupService(user, {
+      filters: {
+        // keyword: 'pack',
+        // isPreferred: true,
+        // packagingMaterialId: 'uuid',
+      },
+      limit: 20,
+      offset: 0,
+    });
+
     console.log('Packaging material supplier lookup result:');
     console.dir(result, { depth: null });
-    
+
     /**
      * Expected behaviors to verify:
      *
@@ -95,10 +94,7 @@ const {
      * }
      */
   } catch (error) {
-    console.error(
-      'Failed to fetch packaging material supplier lookup:',
-      error
-    );
+    console.error('Failed to fetch packaging material supplier lookup:', error);
   } finally {
     client.release();
   }

@@ -43,43 +43,45 @@ const buildDeliveryMethodFilter = (filters = {}) => {
   // Normalize date ranges into UTC ISO boundaries — handles both raw date
   // strings and Date objects coerced by Joi's date() type.
   const normalizedFilters = normalizeDateRangeFilters(
-    filters, 'createdAfter', 'createdBefore'
+    filters,
+    'createdAfter',
+    'createdBefore'
   );
-  
-  const conditions    = ['1=1'];
-  const params        = [];
+
+  const conditions = ['1=1'];
+  const params = [];
   const paramIndexRef = { value: 1 };
-  
+
   // ─── Core ────────────────────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.methodName) {
     conditions.push(`dm.method_name = $${paramIndexRef.value}`);
     params.push(normalizedFilters.methodName);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.isPickupLocation !== undefined) {
     conditions.push(`dm.is_pickup_location = $${paramIndexRef.value}`);
     params.push(normalizedFilters.isPickupLocation);
     paramIndexRef.value++;
   }
-  
+
   // ─── Audit ──────────────────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.createdBy) {
     conditions.push(`dm.created_by = $${paramIndexRef.value}`);
     params.push(normalizedFilters.createdBy);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.updatedBy) {
     conditions.push(`dm.updated_by = $${paramIndexRef.value}`);
     params.push(normalizedFilters.updatedBy);
     paramIndexRef.value++;
   }
-  
+
   // ─── Keyword (must remain last before status) ────────────────────────────────
-  
+
   // Same $N referenced twice — single param covers both columns.
   if (normalizedFilters.keyword) {
     conditions.push(`(
@@ -89,9 +91,9 @@ const buildDeliveryMethodFilter = (filters = {}) => {
     params.push(`%${normalizedFilters.keyword}%`);
     paramIndexRef.value++;
   }
-  
+
   // ─── Status ──────────────────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.statusId) {
     conditions.push(`dm.status_id = $${paramIndexRef.value}`);
     params.push(normalizedFilters.statusId);
@@ -103,18 +105,18 @@ const buildDeliveryMethodFilter = (filters = {}) => {
     params.push(normalizedFilters._activeStatusId);
     paramIndexRef.value++;
   }
-  
+
   // ─── Date Range ─────────────────────────────────────────────────────────────
-  
+
   applyDateRangeConditions({
     conditions,
     params,
-    column:        'dm.created_at',
-    after:         normalizedFilters.createdAfter,
-    before:        normalizedFilters.createdBefore,
+    column: 'dm.created_at',
+    after: normalizedFilters.createdAfter,
+    before: normalizedFilters.createdBefore,
     paramIndexRef,
   });
-  
+
   return {
     whereClause: conditions.join(' AND '),
     params,

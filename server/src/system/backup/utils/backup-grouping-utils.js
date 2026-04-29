@@ -47,25 +47,23 @@ const groupFilesWithTolerance = (
   options = {}
 ) => {
   if (!Array.isArray(files)) return [];
-  
-  const {
-    pattern = /(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z)/,
-  } = options;
-  
+
+  const { pattern = /(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z)/ } = options;
+
   //--------------------------------------------------
   // Extract timestamp from filename or fallback
   //--------------------------------------------------
   const extractTimestamp = (file) => {
     const match = file.Key?.match(pattern);
-    
+
     if (match) {
       const parsed = new Date(match[0]).getTime();
       if (!Number.isNaN(parsed)) return parsed;
     }
-    
+
     return file.LastModified?.getTime() ?? null;
   };
-  
+
   //--------------------------------------------------
   // Normalize + filter valid files
   //--------------------------------------------------
@@ -75,26 +73,26 @@ const groupFilesWithTolerance = (
       return timestamp !== null ? { file, timestamp } : null;
     })
     .filter(Boolean);
-  
+
   //--------------------------------------------------
   // Sort for deterministic grouping
   //--------------------------------------------------
   normalized.sort((a, b) => a.timestamp - b.timestamp);
-  
+
   //--------------------------------------------------
   // Group sequentially
   //--------------------------------------------------
   const groups = [];
   let currentGroup = [];
-  
+
   for (const item of normalized) {
     if (currentGroup.length === 0) {
       currentGroup.push(item);
       continue;
     }
-    
+
     const lastTimestamp = currentGroup[currentGroup.length - 1].timestamp;
-    
+
     if (item.timestamp - lastTimestamp <= toleranceMs) {
       currentGroup.push(item);
     } else {
@@ -102,11 +100,11 @@ const groupFilesWithTolerance = (
       currentGroup = [item];
     }
   }
-  
+
   if (currentGroup.length) {
     groups.push(currentGroup);
   }
-  
+
   //--------------------------------------------------
   // Return structured groups
   //--------------------------------------------------
@@ -135,20 +133,20 @@ const groupFilesWithTolerance = (
  */
 const getGroupTimestamp = (group) => {
   if (!group || !Array.isArray(group.files)) return 0;
-  
+
   const encFile = group.files.find((f) => f.Key.endsWith('.enc'));
-  
+
   if (encFile) {
     return new Date(encFile.LastModified).getTime();
   }
-  
+
   // Safe max without spread (avoids large array issues)
   let max = 0;
   for (const f of group.files) {
     const t = new Date(f.LastModified).getTime();
     if (t > max) max = t;
   }
-  
+
   return max;
 };
 

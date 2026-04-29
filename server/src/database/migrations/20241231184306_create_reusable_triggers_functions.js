@@ -43,5 +43,6 @@ exports.down = function (knex) {
   return knex.raw(`
     DROP FUNCTION IF EXISTS set_default_status_id;
     DROP FUNCTION IF EXISTS update_updated_at_column;
+    DROP FUNCTION IF EXISTS update_status_date_if_changed;
   `);
 };

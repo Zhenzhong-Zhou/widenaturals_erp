@@ -162,18 +162,26 @@ export type BatchRegistryLookupState =
   PaginatedLookupState<BatchRegistryLookupItem>;
 
 /**
- * Lookup option for selecting a warehouse, with additional metadata.
+ * Lookup option representing a selectable warehouse.
+ *
+ * Extends {@link LookupOption} with warehouse-specific metadata
+ * for display and contextual filtering in warehouse selection dropdowns.
  */
 export interface WarehouseLookupItem extends LookupOption {
   /**
-   * Additional metadata associated with the selected warehouse.
+   * Warehouse-specific metadata surfaced alongside the lookup option.
    */
   metadata: {
-    /** ID of the location the warehouse belongs to */
+    /** Human-readable warehouse name. */
+    name: string;
+    /** Short unique identifier code for the warehouse. */
+    code: string;
+    /** Type classification of the warehouse (e.g. storage, distribution). */
+    warehouseType: string;
+    /** Display name of the location this warehouse belongs to. */
+    locationName: string;
+    /** ID of the location this warehouse belongs to. */
     locationId: string;
-
-    /** Type ID of the location (e.g., warehouse, retail, fulfillment) */
-    locationTypeId: string;
   };
 }
 
@@ -181,12 +189,6 @@ export type GetWarehouseLookupResponse =
   LookupSuccessResponse<WarehouseLookupItem>;
 
 export type WarehouseLookupState = AsyncState<WarehouseLookupItem[]>;
-
-/**
- * Specialized alias for warehouse lookup options.
- * Reuses the generic LookupOption structure.
- */
-export type WarehouseOption = LookupOption;
 
 /**
  * Represents a single option in the lot adjustment lookup.
@@ -209,11 +211,6 @@ export type LotAdjustmentTypeLookupResponse = LookupSuccessResponse<
 export type LotAdjustmentTypeLookupState = AsyncState<
   LotAdjustmentTypeLookupItem[]
 >;
-
-/**
- * Specialized alias for lot adjustment type lookup options.
- */
-export type AdjustmentTypeOption = LookupOption;
 
 /**
  * Represents a batch option in a lookup menu, including its type (e.g., product, packaging).

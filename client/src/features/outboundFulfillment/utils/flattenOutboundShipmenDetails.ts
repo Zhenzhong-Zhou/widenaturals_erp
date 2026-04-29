@@ -106,12 +106,13 @@ export const flattenFulfillments = (
 
   return fulfillments.map((f) => {
     const isPackagingMaterial = !!f.orderItem?.packagingMaterial;
-
+    
     return {
       fulfillmentId: f.fulfillmentId,
       fulfillmentStatusCode: f.status?.code ?? null,
       fulfillmentStatusName: f.status?.name ?? null,
       quantityFulfilled: f.quantityFulfilled ?? null,
+      fulfilledBy: f.fulfilledBy?.name ?? null,
       fulfilledAt: f.fulfilledAt ?? null,
       fulfillmentNote: f.notes ?? null,
 
@@ -119,10 +120,9 @@ export const flattenFulfillments = (
 
       // audit
       createdAt: f.audit?.createdAt ?? null,
-      createdByName: f.audit?.createdBy?.name ?? null,
+      createdBy: f.audit?.createdBy?.name ?? null,
       updatedAt: f.audit?.updatedAt ?? null,
-      updatedByName: f.audit?.updatedBy?.name ?? null,
-      fulfilledByName: f.audit?.fulfilledBy?.name ?? null,
+      updatedBy: f.audit?.updatedBy?.name ?? null,
 
       // order item snapshot
       orderItemId: f.orderItem?.id ?? null,
@@ -146,7 +146,7 @@ export const flattenFulfillments = (
         quantityShipped: b.quantityShipped ?? null,
         notes: b.notes ?? null,
         createdAt: b.audit?.createdAt ?? null,
-        createdByName: b.audit?.createdBy?.name ?? null,
+        createdBy: b.audit?.createdBy?.name ?? null,
       })),
     };
   });

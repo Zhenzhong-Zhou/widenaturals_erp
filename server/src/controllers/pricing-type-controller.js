@@ -13,7 +13,10 @@
 'use strict';
 
 const { wrapAsyncHandler } = require('../middlewares/async-handler');
-const { fetchPaginatedPricingTypesService, fetchPricingTypeByIdService } = require('../services/pricing-type-service');
+const {
+  fetchPaginatedPricingTypesService,
+  fetchPricingTypeByIdService,
+} = require('../services/pricing-type-service');
 
 /**
  * GET /pricing-types
@@ -21,26 +24,28 @@ const { fetchPaginatedPricingTypesService, fetchPricingTypeByIdService } = requi
  *
  * @param {Object} req.normalizedQuery - { page, limit, sortBy, sortOrder, filters }
  */
-const getPaginatedPricingTypesController = wrapAsyncHandler(async (req, res) => {
-  const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
-  
-  const { data, pagination } = await fetchPaginatedPricingTypesService({
-    filters,
-    page,
-    limit,
-    sortBy,
-    sortOrder,
-    user: req.auth.user,
-  });
-  
-  res.status(200).json({
-    success:    true,
-    message:    'Pricing types retrieved successfully.',
-    data,
-    pagination,
-    traceId:    req.traceId,
-  });
-});
+const getPaginatedPricingTypesController = wrapAsyncHandler(
+  async (req, res) => {
+    const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
+
+    const { data, pagination } = await fetchPaginatedPricingTypesService({
+      filters,
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+      user: req.auth.user,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Pricing types retrieved successfully.',
+      data,
+      pagination,
+      traceId: req.traceId,
+    });
+  }
+);
 
 /**
  * GET /pricing-types/:pricingTypeId
@@ -50,9 +55,9 @@ const getPaginatedPricingTypesController = wrapAsyncHandler(async (req, res) => 
  */
 const getPricingTypeByIdController = wrapAsyncHandler(async (req, res) => {
   const { pricingTypeId } = req.params;
-  
+
   const data = await fetchPricingTypeByIdService(pricingTypeId);
-  
+
   res.status(200).json({
     success: true,
     message: 'Pricing type retrieved successfully.',

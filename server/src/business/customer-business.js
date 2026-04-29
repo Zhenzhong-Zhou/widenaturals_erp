@@ -61,7 +61,7 @@ const filterCustomerForViewer = async (
     checkPermissions(user, ['view_customer_audit']),
     checkPermissions(user, ['view_customer_detail']),
   ]);
-  
+
   const base = {
     id: customer.id,
     firstname: customer.firstname,
@@ -70,17 +70,17 @@ const filterCustomerForViewer = async (
     phoneNumber: customer.phoneNumber,
     status: { name: customer.status?.name },
   };
-  
+
   // insert_response returns base fields only — minimal creation confirmation.
   if (purpose === 'insert_response') {
     return base;
   }
-  
+
   // detail_view routes are already access-gated, so note is always safe there.
   if (canViewDetails || purpose === 'detail_view') {
     base.note = customer.note;
   }
-  
+
   // admin_view routes are already access-gated, so audit fields are always
   // safe there.
   if (canViewAudit || purpose === 'admin_view') {
@@ -90,7 +90,7 @@ const filterCustomerForViewer = async (
     base.updatedAt = customer.updatedAt;
     base.status = customer.status;
   }
-  
+
   return base;
 };
 
@@ -104,10 +104,10 @@ const filterCustomerForViewer = async (
  */
 const evaluateCustomerLookupAccessControl = async (user) => {
   const context = `${CONTEXT}/evaluateCustomerLookupAccessControl`;
-  
+
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     return {
       canViewAllStatuses:
         isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_CUSTOMERS),
@@ -119,7 +119,7 @@ const evaluateCustomerLookupAccessControl = async (user) => {
       context,
       userId: user?.id,
     });
-    
+
     throw AppError.businessError(
       'Unable to evaluate access control for customer lookup.'
     );
@@ -143,7 +143,7 @@ const enforceCustomerLookupVisibilityRules = (
   activeStatusId
 ) => {
   const adjusted = { ...filters };
-  
+
   if (!userAccess.canViewAllStatuses) {
     // Pin to active-only — _activeStatusId is used by the keyword clause as fallback.
     adjusted.statusId ??= activeStatusId;
@@ -152,7 +152,7 @@ const enforceCustomerLookupVisibilityRules = (
     delete adjusted.statusId;
     delete adjusted._activeStatusId;
   }
-  
+
   return adjusted;
 };
 

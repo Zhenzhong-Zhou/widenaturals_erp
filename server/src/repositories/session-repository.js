@@ -49,18 +49,18 @@ const {
  */
 const insertSession = async (session, client) => {
   const context = 'session-repository/insertSession';
-  
+
   const {
     userId,
     expiresAt,
     ipAddress = null,
     userAgent = null,
-    deviceId  = null,
-    note      = null,
+    deviceId = null,
+    note = null,
   } = session;
-  
+
   const params = [userId, expiresAt, ipAddress, userAgent, deviceId, note];
-  
+
   try {
     const { rows } = await query(SESSION_INSERT_QUERY, params, client);
     return rows[0];
@@ -68,10 +68,9 @@ const insertSession = async (session, client) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to insert session.',
-      meta:    { userId },
-      logFn:   (err) => logDbQueryError(
-        SESSION_INSERT_QUERY, params, err, { context, userId }
-      ),
+      meta: { userId },
+      logFn: (err) =>
+        logDbQueryError(SESSION_INSERT_QUERY, params, err, { context, userId }),
     });
   }
 };
@@ -91,7 +90,7 @@ const insertSession = async (session, client) => {
  */
 const getSessionById = async (sessionId, client = null) => {
   const context = 'session-repository/getSessionById';
-  
+
   try {
     const { rows } = await query(SESSION_GET_BY_ID_QUERY, [sessionId], client);
     return rows[0] ?? null;
@@ -99,10 +98,12 @@ const getSessionById = async (sessionId, client = null) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch session by ID.',
-      meta:    { sessionId },
-      logFn:   (err) => logDbQueryError(
-        SESSION_GET_BY_ID_QUERY, [sessionId], err, { context, sessionId }
-      ),
+      meta: { sessionId },
+      logFn: (err) =>
+        logDbQueryError(SESSION_GET_BY_ID_QUERY, [sessionId], err, {
+          context,
+          sessionId,
+        }),
     });
   }
 };
@@ -122,18 +123,24 @@ const getSessionById = async (sessionId, client = null) => {
  */
 const revokeSessionsByUserId = async (userId, client = null) => {
   const context = 'session-repository/revokeSessionsByUserId';
-  
+
   try {
-    const { rows } = await query(SESSION_REVOKE_BY_USER_QUERY, [userId], client);
+    const { rows } = await query(
+      SESSION_REVOKE_BY_USER_QUERY,
+      [userId],
+      client
+    );
     return rows;
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to revoke sessions for user.',
-      meta:    { userId },
-      logFn:   (err) => logDbQueryError(
-        SESSION_REVOKE_BY_USER_QUERY, [userId], err, { context, userId }
-      ),
+      meta: { userId },
+      logFn: (err) =>
+        logDbQueryError(SESSION_REVOKE_BY_USER_QUERY, [userId], err, {
+          context,
+          userId,
+        }),
     });
   }
 };
@@ -154,18 +161,24 @@ const revokeSessionsByUserId = async (userId, client = null) => {
  */
 const updateSessionLastActivityAt = async (sessionId, client = null) => {
   const context = 'session-repository/updateSessionLastActivityAt';
-  
+
   try {
-    const { rowCount } = await query(SESSION_UPDATE_ACTIVITY_QUERY, [sessionId], client);
+    const { rowCount } = await query(
+      SESSION_UPDATE_ACTIVITY_QUERY,
+      [sessionId],
+      client
+    );
     return rowCount > 0;
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to update session activity.',
-      meta:    { sessionId },
-      logFn:   (err) => logDbQueryError(
-        SESSION_UPDATE_ACTIVITY_QUERY, [sessionId], err, { context, sessionId }
-      ),
+      meta: { sessionId },
+      logFn: (err) =>
+        logDbQueryError(SESSION_UPDATE_ACTIVITY_QUERY, [sessionId], err, {
+          context,
+          sessionId,
+        }),
     });
   }
 };
@@ -183,18 +196,24 @@ const updateSessionLastActivityAt = async (sessionId, client = null) => {
  */
 const revokeSessionRowById = async (sessionId, client = null) => {
   const context = 'session-repository/revokeSessionRowById';
-  
+
   try {
-    const { rowCount } = await query(SESSION_REVOKE_BY_ID_QUERY, [sessionId], client);
+    const { rowCount } = await query(
+      SESSION_REVOKE_BY_ID_QUERY,
+      [sessionId],
+      client
+    );
     return rowCount > 0;
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to revoke session.',
-      meta:    { sessionId },
-      logFn:   (err) => logDbQueryError(
-        SESSION_REVOKE_BY_ID_QUERY, [sessionId], err, { context, sessionId }
-      ),
+      meta: { sessionId },
+      logFn: (err) =>
+        logDbQueryError(SESSION_REVOKE_BY_ID_QUERY, [sessionId], err, {
+          context,
+          sessionId,
+        }),
     });
   }
 };
@@ -215,18 +234,24 @@ const revokeSessionRowById = async (sessionId, client = null) => {
  */
 const logoutSessionRowById = async (sessionId, client) => {
   const context = 'session-repository/logoutSessionRowById';
-  
+
   try {
-    const { rows } = await query(SESSION_LOGOUT_BY_ID_QUERY, [sessionId], client);
+    const { rows } = await query(
+      SESSION_LOGOUT_BY_ID_QUERY,
+      [sessionId],
+      client
+    );
     return rows[0] ?? null;
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to logout session.',
-      meta:    { sessionId },
-      logFn:   (err) => logDbQueryError(
-        SESSION_LOGOUT_BY_ID_QUERY, [sessionId], err, { context, sessionId }
-      ),
+      meta: { sessionId },
+      logFn: (err) =>
+        logDbQueryError(SESSION_LOGOUT_BY_ID_QUERY, [sessionId], err, {
+          context,
+          sessionId,
+        }),
     });
   }
 };

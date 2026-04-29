@@ -9,10 +9,10 @@
 
 'use strict';
 
-const express                            = require('express');
-const { authorize }                      = require('../middlewares/authorize');
-const PERMISSIONS                        = require('../utils/constants/domain/permissions');
-const validate                           = require('../middlewares/validate');
+const express = require('express');
+const { authorize } = require('../middlewares/authorize');
+const PERMISSION_KEYS = require('../utils/constants/domain/permission-keys');
+const validate = require('../middlewares/validate');
 const createQueryNormalizationMiddleware = require('../middlewares/normalize-query');
 const {
   bomQuerySchema,
@@ -34,21 +34,22 @@ const router = express.Router();
  *          createdBefore, keyword.
  * Sorting: sortBy, sortOrder (uses bomSortMap).
  * @access protected
- * @permission BOMS.VIEW_LIST
+ * @permission PERMISSION_KEYS.BOMS.VIEW_LIST
  */
 router.get(
   '/',
-  authorize([PERMISSIONS.BOMS.VIEW_LIST]),
+  authorize([PERMISSION_KEYS.BOMS.VIEW_LIST]),
   validate(bomQuerySchema, 'query'),
   createQueryNormalizationMiddleware(
-    'bomSortMap',              // moduleKey — drives allowed sortBy fields
-    ['productId'],             // arrayKeys — normalized as UUID arrays
-    [                          // booleanKeys — normalized to true/false
+    'bomSortMap', // moduleKey — drives allowed sortBy fields
+    ['productId'], // arrayKeys — normalized as UUID arrays
+    [
+      // booleanKeys — normalized to true/false
       'onlyActiveCompliance',
       'isActive',
       'isDefault',
     ],
-    bomQuerySchema             // filterKeysOrSchema — extracts filter keys from schema
+    bomQuerySchema // filterKeysOrSchema — extracts filter keys from schema
   ),
   getPaginatedBomsController
 );
@@ -59,11 +60,11 @@ router.get(
  * line items with quantities and estimated unit costs, and an aggregated cost summary.
  * Estimated costs are static (estimated_unit_cost) — not real-time procurement costs.
  * @access protected
- * @permission BOMS.VIEW_BOM_DETAILS
+ * @permission PERMISSION_KEYS.BOMS.VIEW_BOM_DETAILS
  */
 router.get(
   '/:bomId/details',
-  authorize([PERMISSIONS.BOMS.VIEW_BOM_DETAILS]),
+  authorize([PERMISSION_KEYS.BOMS.VIEW_BOM_DETAILS]),
   validate(bomIdParamSchema, 'params'),
   getBomDetailsController
 );
@@ -74,11 +75,11 @@ router.get(
  * per part, available material stock across warehouses, maximum manufacturable units
  * (bottleneck-based), shortages, and stock health indicators.
  * @access protected
- * @permission BOMS.VIEW_BOM_PRODUCTION_SUMMARY
+ * @permission PERMISSION_KEYS.BOMS.VIEW_BOM_PRODUCTION_SUMMARY
  */
 router.get(
   '/:bomId/production-summary',
-  authorize([PERMISSIONS.BOMS.VIEW_BOM_PRODUCTION_SUMMARY]),
+  authorize([PERMISSION_KEYS.BOMS.VIEW_BOM_PRODUCTION_SUMMARY]),
   validate(bomIdParamSchema, 'params'),
   getBomProductionSummaryController
 );

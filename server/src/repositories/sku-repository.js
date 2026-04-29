@@ -25,7 +25,9 @@
 
 'use strict';
 
-const { validateBulkInsertRows } = require('../utils/validation/bulk-insert-row-validator');
+const {
+  validateBulkInsertRows,
+} = require('../utils/validation/bulk-insert-row-validator');
 const { query } = require('../database/db');
 const {
   paginateQueryByOffset,
@@ -80,8 +82,8 @@ const {
 const getLastSku = async (brandCode, categoryCode) => {
   const context = 'sku-repository/getLastSku';
   const pattern = `${brandCode}-${categoryCode}%`;
-  const params  = [pattern];
-  
+  const params = [pattern];
+
   try {
     const result = await query(GET_LAST_SKU_QUERY, params);
     return result.rows[0]?.sku ?? null;
@@ -89,13 +91,13 @@ const getLastSku = async (brandCode, categoryCode) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch last SKU.',
-      meta:    { brandCode, categoryCode },
-      logFn:   (err) => logDbQueryError(
-        GET_LAST_SKU_QUERY,
-        params,
-        err,
-        { context, brandCode, categoryCode }
-      ),
+      meta: { brandCode, categoryCode },
+      logFn: (err) =>
+        logDbQueryError(GET_LAST_SKU_QUERY, params, err, {
+          context,
+          brandCode,
+          categoryCode,
+        }),
     });
   }
 };
@@ -119,52 +121,53 @@ const getLastSku = async (brandCode, categoryCode) => {
  * @throws  {AppError}        Normalized database error if the query fails.
  */
 const getPaginatedSkuProductCards = async ({
-                                             page      = 1,
-                                             limit     = 10,
-                                             sortBy    = 'createdAt',
-                                             sortOrder = 'DESC',
-                                             filters   = {},
-                                           }) => {
+  page = 1,
+  limit = 10,
+  sortBy = 'createdAt',
+  sortOrder = 'DESC',
+  filters = {},
+}) => {
   const context = 'sku-repository/getPaginatedSkuProductCards';
-  
+
   const { whereClause, params } = buildSkuProductCardFilters(filters);
-  
+
   const sortConfig = resolveSort({
     sortBy,
     sortOrder,
-    moduleKey:   'skuProductCards',
+    moduleKey: 'skuProductCards',
     defaultSort: SORTABLE_FIELDS.skuProductCards.defaultNaturalSort,
   });
-  
+
   // ORDER BY omitted — paginateQuery appends it from sortConfig.
   const queryText = buildSkuProductCardQuery(whereClause);
-  
+
   try {
     return await paginateQuery({
-      tableName:    'skus s',
-      joins:        SKU_PRODUCT_CARD_JOINS,
+      tableName: 'skus s',
+      joins: SKU_PRODUCT_CARD_JOINS,
       whereClause,
       queryText,
       params,
       page,
       limit,
-      sortBy:       sortConfig.sortBy,
-      sortOrder:    sortConfig.sortOrder,
+      sortBy: sortConfig.sortBy,
+      sortOrder: sortConfig.sortOrder,
       additionalSorts: ['s.created_at'],
       whitelistSet: SKU_PRODUCT_CARD_SORT_WHITELIST,
-      meta:         { context },
+      meta: { context },
     });
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch SKU product cards.',
-      meta:    { filters, page, limit, sortBy, sortOrder },
-      logFn:   (err) => logDbQueryError(
-        queryText,
-        params,
-        err,
-        { context, filters, page, limit }
-      ),
+      meta: { filters, page, limit, sortBy, sortOrder },
+      logFn: (err) =>
+        logDbQueryError(queryText, params, err, {
+          context,
+          filters,
+          page,
+          limit,
+        }),
     });
   }
 };
@@ -189,25 +192,27 @@ const getPaginatedSkuProductCards = async ({
  * @throws  {AppError}        Normalized database or validation error.
  */
 const getSkuLookup = async ({
-                              productStatusId,
-                              filters = {},
-                              options = {},
-                              limit   = 50,
-                              offset  = 0,
-                            }) => {
+  productStatusId,
+  filters = {},
+  options = {},
+  limit = 50,
+  offset = 0,
+}) => {
   const context = 'sku-repository/getSkuLookup';
-  
+
   const { whereClause, params } = buildWhereClauseAndParams(
     productStatusId,
     filters,
     skuDropdownKeywordHandler,
     options
   );
-  
+
   // Static parts resolved from module-level constants — no allocation per call.
-  const joins        = options.allowAllSkus ? PRIVILEGED_JOINS         : BASE_JOINS;
-  const selectFields = options.allowAllSkus ? PRIVILEGED_SELECT_FIELDS : BASE_SELECT_FIELDS;
-  
+  const joins = options.allowAllSkus ? PRIVILEGED_JOINS : BASE_JOINS;
+  const selectFields = options.allowAllSkus
+    ? PRIVILEGED_SELECT_FIELDS
+    : BASE_SELECT_FIELDS;
+
   // queryText must be built per request because whereClause is dynamic.
   const queryText = `
     SELECT
@@ -217,10 +222,10 @@ const getSkuLookup = async ({
     WHERE ${whereClause}
     GROUP BY s.id
   `;
-  
+
   try {
     return await paginateQueryByOffset({
-      tableName:      TABLE_NAME,
+      tableName: TABLE_NAME,
       joins,
       whereClause,
       queryText,
@@ -234,23 +239,24 @@ const getSkuLookup = async ({
         MIN(p.name) ASC,
         s.id
       `,
-      whitelistSet:   null,
+      whitelistSet: null,
       // useDistinct scopes COUNT(*) to unique s.id values so totalRecords stays
       // accurate even before GROUP BY collapses rows.
-      useDistinct:    !!options.allowAllSkus,
+      useDistinct: !!options.allowAllSkus,
       distinctColumn: options.allowAllSkus ? 's.id' : undefined,
     });
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch SKU options for dropdown.',
-      meta:    { offset, limit, filters, options },
-      logFn:   (err) => logDbQueryError(
-        queryText,
-        params,
-        err,
-        { context, filters, offset, limit }
-      ),
+      meta: { offset, limit, filters, options },
+      logFn: (err) =>
+        logDbQueryError(queryText, params, err, {
+          context,
+          filters,
+          offset,
+          limit,
+        }),
     });
   }
 };
@@ -274,52 +280,53 @@ const getSkuLookup = async ({
  * @throws  {AppError}        Normalized database error if the query fails.
  */
 const getPaginatedSkus = async ({
-                                  filters   = {},
-                                  page      = 1,
-                                  limit     = 10,
-                                  sortBy    = 'createdAt',
-                                  sortOrder = 'DESC',
-                                }) => {
+  filters = {},
+  page = 1,
+  limit = 10,
+  sortBy = 'createdAt',
+  sortOrder = 'DESC',
+}) => {
   const context = 'sku-repository/getPaginatedSkus';
-  
+
   const { whereClause, params } = buildSkuFilter(filters);
-  
+
   const sortConfig = resolveSort({
     sortBy,
     sortOrder,
-    moduleKey:   'skuSortMap',
+    moduleKey: 'skuSortMap',
     defaultSort: SORTABLE_FIELDS.skuSortMap.defaultNaturalSort,
   });
-  
+
   // ORDER BY omitted — paginateQuery appends it from sortConfig.
   const queryText = buildPaginatedSkusQuery(whereClause);
-  
+
   try {
     return await paginateQuery({
-      tableName:       'skus s',
-      joins:           SKU_LIST_JOINS,
+      tableName: 'skus s',
+      joins: SKU_LIST_JOINS,
       whereClause,
       queryText,
       params,
       page,
       limit,
-      sortBy:          sortConfig.sortBy,
-      sortOrder:       sortConfig.sortOrder,
+      sortBy: sortConfig.sortBy,
+      sortOrder: sortConfig.sortOrder,
       additionalSorts: SKU_LIST_ADDITIONAL_SORTS,
-      whitelistSet:    SKU_LIST_SORT_WHITELIST,
-      meta:            { context },
+      whitelistSet: SKU_LIST_SORT_WHITELIST,
+      meta: { context },
     });
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch paginated SKU records.',
-      meta:    { filters, page, limit, sortBy, sortOrder },
-      logFn:   (err) => logDbQueryError(
-        queryText,
-        params,
-        err,
-        { context, filters, page, limit }
-      ),
+      meta: { filters, page, limit, sortBy, sortOrder },
+      logFn: (err) =>
+        logDbQueryError(queryText, params, err, {
+          context,
+          filters,
+          page,
+          limit,
+        }),
     });
   }
 };
@@ -339,10 +346,10 @@ const getPaginatedSkus = async ({
  */
 const checkBarcodeExists = async (barcode, client) => {
   if (!barcode) return false;
-  
+
   const context = 'sku-repository/checkBarcodeExists';
-  const params  = [barcode];
-  
+  const params = [barcode];
+
   try {
     const { rows } = await query(CHECK_BARCODE_EXISTS_QUERY, params, client);
     return rows.length > 0;
@@ -350,13 +357,12 @@ const checkBarcodeExists = async (barcode, client) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to check barcode existence.',
-      meta:    { barcode },
-      logFn:   (err) => logDbQueryError(
-        CHECK_BARCODE_EXISTS_QUERY,
-        params,
-        err,
-        { context, barcode }
-      ),
+      meta: { barcode },
+      logFn: (err) =>
+        logDbQueryError(CHECK_BARCODE_EXISTS_QUERY, params, err, {
+          context,
+          barcode,
+        }),
     });
   }
 };
@@ -375,8 +381,8 @@ const checkBarcodeExists = async (barcode, client) => {
  */
 const checkSkuExists = async (sku, productId, client) => {
   const context = 'sku-repository/checkSkuExists';
-  const params  = [sku, productId];
-  
+  const params = [sku, productId];
+
   try {
     const { rows } = await query(CHECK_SKU_EXISTS_QUERY, params, client);
     return rows.length > 0;
@@ -384,13 +390,13 @@ const checkSkuExists = async (sku, productId, client) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to check SKU existence.',
-      meta:    { sku, productId },
-      logFn:   (err) => logDbQueryError(
-        CHECK_SKU_EXISTS_QUERY,
-        params,
-        err,
-        { context, sku, productId }
-      ),
+      meta: { sku, productId },
+      logFn: (err) =>
+        logDbQueryError(CHECK_SKU_EXISTS_QUERY, params, err, {
+          context,
+          sku,
+          productId,
+        }),
     });
   }
 };
@@ -411,9 +417,9 @@ const checkSkuExists = async (sku, productId, client) => {
  */
 const insertSkusBulk = async (skus, client) => {
   if (!Array.isArray(skus) || skus.length === 0) return [];
-  
+
   const context = 'sku-repository/insertSkusBulk';
-  
+
   const columns = [
     'product_id',
     'sku',
@@ -432,7 +438,7 @@ const insertSkusBulk = async (skus, client) => {
     'updated_at',
     'updated_by',
   ];
-  
+
   const rows = skus.map((s) => [
     s.product_id,
     s.sku,
@@ -442,24 +448,24 @@ const insertSkusBulk = async (skus, client) => {
     s.market_region,
     s.size_label,
     s.description,
-    s.length_cm  ?? null,
-    s.width_cm   ?? null,
-    s.height_cm  ?? null,
-    s.weight_g   ?? null,
+    s.length_cm ?? null,
+    s.width_cm ?? null,
+    s.height_cm ?? null,
+    s.weight_g ?? null,
     s.status_id,
     s.created_by ?? null,
     null,
     null,
   ]);
-  
+
   validateBulkInsertRows(rows, columns.length);
-  
-  const conflictColumns   = ['product_id', 'sku'];
-  const updateStrategies  = {
+
+  const conflictColumns = ['product_id', 'sku'];
+  const updateStrategies = {
     description: 'overwrite',
-    updated_at:  'overwrite',
+    updated_at: 'overwrite',
   };
-  
+
   try {
     return await bulkInsert(
       'skus',
@@ -475,8 +481,9 @@ const insertSkusBulk = async (skus, client) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to insert SKU records.',
-      meta:    { skuCount: skus.length },
-      logFn: (err) => logBulkInsertError(err, 'skus', null, rows.length, { context }),
+      meta: { skuCount: skus.length },
+      logFn: (err) =>
+        logBulkInsertError(err, 'skus', null, rows.length, { context }),
     });
   }
 };
@@ -495,8 +502,8 @@ const insertSkusBulk = async (skus, client) => {
  */
 const getSkuDetailsById = async (skuId) => {
   const context = 'sku-repository/getSkuDetailsById';
-  const params  = [skuId];
-  
+  const params = [skuId];
+
   try {
     const { rows } = await query(SKU_DETAILS_QUERY, params);
     return rows[0] ?? null;
@@ -504,13 +511,9 @@ const getSkuDetailsById = async (skuId) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch SKU detail.',
-      meta:    { skuId },
-      logFn:   (err) => logDbQueryError(
-        SKU_DETAILS_QUERY,
-        params,
-        err,
-        { context, skuId }
-      ),
+      meta: { skuId },
+      logFn: (err) =>
+        logDbQueryError(SKU_DETAILS_QUERY, params, err, { context, skuId }),
     });
   }
 };
@@ -529,7 +532,7 @@ const getSkuDetailsById = async (skuId) => {
  */
 const skuHasAnyHistory = async (skuId, client = null) => {
   const context = 'sku-repository/skuHasAnyHistory';
-  
+
   return existsQuery(
     SKU_HAS_ANY_HISTORY_QUERY,
     [skuId],
@@ -557,25 +560,32 @@ const skuHasAnyHistory = async (skuId, client = null) => {
  */
 const updateSkuMetadata = async (skuId, payload, userId, client) => {
   const context = 'sku-repository/updateSkuMetadata';
-  
-  const allowedFields = ['description', 'size_label', 'language', 'market_region'];
+
+  const allowedFields = [
+    'description',
+    'size_label',
+    'language',
+    'market_region',
+  ];
   const updates = {};
-  
+
   for (const key of allowedFields) {
     if (payload[key] !== undefined) updates[key] = payload[key];
   }
-  
+
   if (Object.keys(updates).length === 0) {
-    throw AppError.validationError('No valid metadata fields provided.', { context });
+    throw AppError.validationError('No valid metadata fields provided.', {
+      context,
+    });
   }
-  
+
   try {
     return await updateById('skus', skuId, updates, userId, client);
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to update SKU metadata.',
-      meta:    { skuId, updatedBy: userId, fieldsUpdated: Object.keys(updates) },
+      meta: { skuId, updatedBy: userId, fieldsUpdated: Object.keys(updates) },
     });
   }
 };
@@ -593,19 +603,19 @@ const updateSkuMetadata = async (skuId, payload, userId, client) => {
  */
 const updateSkuStatus = async (skuId, statusId, userId, client) => {
   const context = 'sku-repository/updateSkuStatus';
-  
+
   const updates = {
-    status_id:   statusId,
+    status_id: statusId,
     status_date: new Date(),
   };
-  
+
   try {
     return await updateById('skus', skuId, updates, userId, client);
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to update SKU status.',
-      meta:    { skuId, statusId, updatedBy: userId },
+      meta: { skuId, statusId, updatedBy: userId },
     });
   }
 };
@@ -626,25 +636,27 @@ const updateSkuStatus = async (skuId, statusId, userId, client) => {
  */
 const updateSkuDimensions = async (skuId, payload, userId, client) => {
   const context = 'sku-repository/updateSkuDimensions';
-  
+
   const allowedFields = ['length_cm', 'width_cm', 'height_cm', 'weight_g'];
   const updates = {};
-  
+
   for (const key of allowedFields) {
     if (payload[key] !== undefined) updates[key] = payload[key];
   }
-  
+
   if (Object.keys(updates).length === 0) {
-    throw AppError.validationError('No dimension fields provided.', { context });
+    throw AppError.validationError('No dimension fields provided.', {
+      context,
+    });
   }
-  
+
   try {
     return await updateById('skus', skuId, updates, userId, client);
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to update SKU dimensions.',
-      meta:    { skuId, updatedBy: userId, fieldsUpdated: Object.keys(updates) },
+      meta: { skuId, updatedBy: userId, fieldsUpdated: Object.keys(updates) },
     });
   }
 };
@@ -665,25 +677,25 @@ const updateSkuDimensions = async (skuId, payload, userId, client) => {
  */
 const updateSkuIdentity = async (skuId, payload, userId, client) => {
   const context = 'sku-repository/updateSkuIdentity';
-  
+
   const allowedFields = ['sku', 'barcode'];
   const updates = {};
-  
+
   for (const key of allowedFields) {
     if (payload[key] !== undefined) updates[key] = payload[key];
   }
-  
+
   if (Object.keys(updates).length === 0) {
     throw AppError.validationError('No identity fields provided.', { context });
   }
-  
+
   try {
     return await updateById('skus', skuId, updates, userId, client);
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to update SKU identity.',
-      meta:    { skuId, updatedBy: userId, fieldsUpdated: Object.keys(updates) },
+      meta: { skuId, updatedBy: userId, fieldsUpdated: Object.keys(updates) },
     });
   }
 };

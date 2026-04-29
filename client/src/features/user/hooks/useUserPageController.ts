@@ -9,7 +9,7 @@ import { usePaginatedUsers } from '@hooks/index';
 import { usePaginationHandlers } from '@utils/hooks';
 import { getInitialUserLimit } from '@features/user/utils';
 import { applyFiltersAndSorting } from '@utils/query';
-import { createLazyOpenHandler } from '@features/lookup/utils/lookupUtils';
+import { createOnOpenHandler } from '@features/lookup/utils/lookupUtils';
 import type { UserTablePageSize } from '@features/user/config/userTableConfig';
 
 interface UseUserPageControllerOptions {
@@ -84,11 +84,8 @@ const useUserPageController = ({ viewMode }: UseUserPageControllerOptions) => {
         lookups.role.reset();
       },
       onOpen: {
-        status: createLazyOpenHandler(
-          lookups.status.options,
-          lookups.status.fetch
-        ),
-        role: createLazyOpenHandler(lookups.role.options, lookups.role.fetch),
+        status: createOnOpenHandler(lookups.status),
+        role: createOnOpenHandler(lookups.role),
       },
     }),
     [lookups]

@@ -533,7 +533,7 @@ const batchStatusLookupQuerySchema = Joi.object({
 const packagingMaterialSupplierLookupQuerySchema = Joi.object({
   // Reuse common lookup validation rules
   ...baseLookupQuerySchema,
-  
+
   //---------------------------------------------------------
   // Supplier-specific filters
   //---------------------------------------------------------

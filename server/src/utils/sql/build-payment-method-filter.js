@@ -40,46 +40,48 @@ const {
  */
 const buildPaymentMethodFilter = (filters = {}) => {
   const normalizedFilters = normalizeDateRangeFilters(
-    filters, 'createdAfter', 'createdBefore'
+    filters,
+    'createdAfter',
+    'createdBefore'
   );
-  
-  const conditions    = ['1=1'];
-  const params        = [];
+
+  const conditions = ['1=1'];
+  const params = [];
   const paramIndexRef = { value: 1 };
-  
+
   // ─── Exact Match ─────────────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.name) {
     conditions.push(`pm.name = $${paramIndexRef.value}`);
     params.push(normalizedFilters.name);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.code) {
     conditions.push(`pm.code = $${paramIndexRef.value}`);
     params.push(normalizedFilters.code);
     paramIndexRef.value++;
   }
-  
+
   // ─── Audit ──────────────────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.createdBy) {
     conditions.push(`pm.created_by = $${paramIndexRef.value}`);
     params.push(normalizedFilters.createdBy);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.updatedBy) {
     conditions.push(`pm.updated_by = $${paramIndexRef.value}`);
     params.push(normalizedFilters.updatedBy);
     paramIndexRef.value++;
   }
-  
+
   // ─── Keyword (must remain last before server flags) ──────────────────────────
-  
+
   if (normalizedFilters.keyword) {
     const kw = `%${normalizedFilters.keyword.trim().replace(/\s+/g, ' ')}%`;
-    
+
     if (normalizedFilters._restrictKeywordToNameOnly) {
       // No OR — single field, no repeated $N needed.
       conditions.push(`pm.name ILIKE $${paramIndexRef.value}`);
@@ -94,9 +96,9 @@ const buildPaymentMethodFilter = (filters = {}) => {
     params.push(kw);
     paramIndexRef.value++;
   }
-  
+
   // ─── Active / Visibility ─────────────────────────────────────────────────────
-  
+
   if (normalizedFilters._restrictToActiveOnly === true) {
     // No param — server-injected sentinel, not user input.
     conditions.push(`pm.is_active = true`);
@@ -105,17 +107,18 @@ const buildPaymentMethodFilter = (filters = {}) => {
     params.push(normalizedFilters.isActive);
     paramIndexRef.value++;
   }
-  
+
   // ─── Date Range ─────────────────────────────────────────────────────────────
-  
+
   applyDateRangeConditions({
-    conditions, params,
-    column:        'pm.created_at',
-    after:         normalizedFilters.createdAfter,
-    before:        normalizedFilters.createdBefore,
+    conditions,
+    params,
+    column: 'pm.created_at',
+    after: normalizedFilters.createdAfter,
+    before: normalizedFilters.createdBefore,
     paramIndexRef,
   });
-  
+
   return {
     whereClause: conditions.join(' AND '),
     params,

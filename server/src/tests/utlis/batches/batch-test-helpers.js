@@ -1,11 +1,13 @@
-const { getBatchActivityTypeId } = require('../../../cache/batch-activity-type-cache');
+const {
+  getBatchActivityTypeId,
+} = require('../../../cache/batch-activity-type-cache');
 
 /**
  * Allowed batch tables for verification helpers.
  */
 const ALLOWED_BATCH_TABLES = new Set([
   'product_batches',
-  'packaging_material_batches'
+  'packaging_material_batches',
 ]);
 
 /**
@@ -37,14 +39,13 @@ const fetchBatchRecord = async (
   tableName = 'product_batches',
   print = true
 ) => {
-  
   //------------------------------------------------------------
   // Validate table name
   //------------------------------------------------------------
   if (!ALLOWED_BATCH_TABLES.has(tableName)) {
     throw new Error(`Invalid batch table: ${tableName}`);
   }
-  
+
   const { rows } = await client.query(
     `
     SELECT
@@ -57,16 +58,15 @@ const fetchBatchRecord = async (
     `,
     [batchId]
   );
-  
+
   const record = rows[0] ?? null;
-  
+
   if (print) {
     console.table(rows);
   }
-  
+
   return record;
 };
-
 
 /**
  * Fetch latest batch activity log.
@@ -97,9 +97,8 @@ const fetchBatchActivityLog = async (
   activityTypeName,
   print = true
 ) => {
-  
   const activityTypeId = getBatchActivityTypeId(activityTypeName);
-  
+
   const { rows } = await client.query(
     `
     SELECT
@@ -115,18 +114,15 @@ const fetchBatchActivityLog = async (
     ORDER BY changed_at DESC
     LIMIT 1
     `,
-    [
-      batchRegistryId,
-      activityTypeId
-    ]
+    [batchRegistryId, activityTypeId]
   );
-  
+
   const record = rows[0] ?? null;
-  
+
   if (print) {
     console.table(rows);
   }
-  
+
   return record;
 };
 

@@ -1,11 +1,14 @@
 import type {
+  ActorIdentity,
   ApiSuccessResponse,
   AsyncState,
+  GenericAudit,
   PaginatedResponse,
   PaginationParams,
   SortConfig,
 } from '@shared-types/api';
 import type { ReduxPaginatedState } from '@shared-types/pagination';
+import type { NullableNumber, NullableString } from '@shared-types/shared';
 import type { BatchEntityType } from '@shared-types/batch';
 
 /**
@@ -161,7 +164,7 @@ export interface OutboundShipmentRecord {
   };
   warehouse: {
     id: string;
-    name: string | null;
+    name: NullableString;
   };
   deliveryMethod: {
     id: string;
@@ -177,23 +180,12 @@ export interface OutboundShipmentRecord {
     name: string;
   };
   dates: {
-    shippedAt: string | null;
-    expectedDelivery: string | null;
+    shippedAt: NullableString;
+    expectedDelivery: NullableString;
   };
-  notes: string | null;
+  notes: NullableString;
   shipmentDetails: Record<string, any> | null;
-  audit: {
-    createdAt: string;
-    createdBy: {
-      id: string;
-      fullName: string;
-    };
-    updatedAt: string | null;
-    updatedBy: {
-      id: string | null;
-      fullName: string;
-    };
-  };
+  audit: GenericAudit
 }
 
 /**
@@ -221,15 +213,15 @@ export interface FlattenedOutboundShipmentRow {
 
   /** Warehouse */
   warehouseId: string;
-  warehouseName: string | null;
+  warehouseName: NullableString;
 
   /** Delivery method */
-  deliveryMethodId: string | null;
-  deliveryMethodName: string | null;
+  deliveryMethodId: NullableString;
+  deliveryMethodName: NullableString;
 
   /** Tracking */
-  trackingId: string | null;
-  trackingNumber: string | null;
+  trackingId: NullableString;
+  trackingNumber: NullableString;
 
   /** Status */
   statusId: string;
@@ -237,20 +229,25 @@ export interface FlattenedOutboundShipmentRow {
   statusName: string;
 
   /** Dates */
-  shippedAt: string | null;
-  expectedDelivery: string | null;
+  shippedAt: NullableString;
+  expectedDelivery: NullableString;
 
   /** Notes & metadata */
-  notes: string | null;
+  notes: NullableString;
   shipmentDetails: Record<string, any> | null;
 
   /** Audit */
+  /** ISO timestamp when the SKU was created. */
   createdAt: string;
-  createdById: string;
-  createdByName: string;
-  updatedAt: string | null;
-  updatedById: string | null;
-  updatedByName: string;
+  
+  /** Display name of the user/system who created the SKU. */
+  createdBy: string;
+  
+  /** ISO timestamp when the SKU was last updated. */
+  updatedAt: string;
+  
+  /** Display name of the user/system who last updated the SKU. */
+  updatedBy: string;
 }
 
 /**
@@ -296,12 +293,12 @@ export interface ShipmentHeader {
     code: string;
     name: string;
   };
-  shippedAt: string | null;
-  expectedDeliveryDate: string | null;
-  notes: string | null;
-  details: string | null;
+  shippedAt: NullableString;
+  expectedDeliveryDate: NullableString;
+  notes: NullableString;
+  details: NullableString;
   tracking: TrackingInfo | null;
-  audit: AuditInfo;
+  audit: GenericAudit;
 }
 
 /** Delivery method */
@@ -318,10 +315,10 @@ export interface TrackingInfo {
   number: string;
   carrier: string;
   serviceName: string;
-  bolNumber: string | null;
-  freightType: string | null;
-  notes: string | null;
-  shippedDate: string | null;
+  bolNumber: NullableString;
+  freightType: NullableString;
+  notes: NullableString;
+  shippedDate: NullableString;
   status: {
     id: string;
     name: string;
@@ -332,38 +329,17 @@ export interface TrackingInfo {
 export interface Fulfillment {
   fulfillmentId: string;
   quantityFulfilled: number;
-  fulfilledAt: string | null;
-  notes: string | null;
+  fulfilledAt: NullableString;
+  fulfilledBy: ActorIdentity | null;
+  notes: NullableString;
   status: {
     id: string;
     code: string;
     name: string;
   };
-  audit: FulfillmentAuditInfo;
+  audit: GenericAudit;
   orderItem: OrderItem | null;
   batches: ShipmentBatch[];
-}
-
-/** Fulfillment-level audit */
-export interface FulfillmentAuditInfo extends AuditInfo {
-  fulfilledBy: {
-    id: string;
-    name: string;
-  } | null;
-}
-
-/** Generic audit info */
-export interface AuditInfo {
-  createdAt: string | null;
-  createdBy: {
-    id: string | null;
-    name: string;
-  } | null;
-  updatedAt: string | null;
-  updatedBy: {
-    id: string | null;
-    name: string;
-  } | null;
 }
 
 /** Order item (either product SKU or packaging material) */
@@ -400,12 +376,12 @@ export interface PackagingMaterialInfo {
 export interface ShipmentBatch {
   shipmentBatchId: string;
   quantityShipped: number;
-  notes: string | null;
-  audit: AuditInfo;
+  notes: NullableString;
+  audit: Pick<GenericAudit, 'createdAt' | 'createdBy'>;
   batchRegistryId: string;
   batchType: BatchEntityType;
-  lotNumber: string | null;
-  expiryDate: string | null;
+  lotNumber: NullableString;
+  expiryDate: NullableString;
 }
 
 /**
@@ -486,58 +462,58 @@ export type OutboundShipmentDetailsState =
 export interface FlattenedShipmentHeader {
   shipmentId: string;
   orderId: string;
-  warehouseId: string | null;
-  warehouseName: string | null;
+  warehouseId: NullableString;
+  warehouseName: NullableString;
 
   /** Delivery method information */
-  deliveryMethodId: string | null;
-  deliveryMethodName: string | null;
+  deliveryMethodId: NullableString;
+  deliveryMethodName: NullableString;
   deliveryMethodIsPickup: boolean | null;
-  deliveryMethodEstimatedTime: string | null;
+  deliveryMethodEstimatedTime: NullableString;
 
   /** Shipment status */
-  statusId: string | null;
-  statusCode: string | null;
-  statusName: string | null;
+  statusId: NullableString;
+  statusCode: NullableString;
+  statusName: NullableString;
 
   /** Scheduling and notes */
-  shippedAt: string | null;
-  expectedDeliveryDate: string | null;
-  notes: string | null;
-  details: string | null;
+  shippedAt: NullableString;
+  expectedDeliveryDate: NullableString;
+  notes: NullableString;
+  details: NullableString;
 
   /** Audit info */
-  createdAt: string | null;
-  createdByName: string | null;
-  updatedAt: string | null;
-  updatedByName: string | null;
+  createdAt: NullableString;
+  createdByName: NullableString;
+  updatedAt: NullableString;
+  updatedByName: NullableString;
 
   /** Tracking info */
-  trackingId: string | null;
-  trackingNumber: string | null;
-  trackingCarrier: string | null;
-  trackingService: string | null;
-  trackingBolNumber: string | null;
-  trackingFreightType: string | null;
-  trackingNotes: string | null;
-  trackingShippedDate: string | null;
-  trackingStatusId: string | null;
-  trackingStatusName: string | null;
+  trackingId: NullableString;
+  trackingNumber: NullableString;
+  trackingCarrier: NullableString;
+  trackingService: NullableString;
+  trackingBolNumber: NullableString;
+  trackingFreightType: NullableString;
+  trackingNotes: NullableString;
+  trackingShippedDate: NullableString;
+  trackingStatusId: NullableString;
+  trackingStatusName: NullableString;
 }
 
 /** Batch-only type for the mini table */
 export interface FlattenedBatchRow {
   shipmentBatchId: string;
-  batchRegistryId: string | null;
-  batchType: string | null;
-  lotNumber: string | null;
-  expiryDate: string | null;
-  quantityShipped: number | null;
-  notes: string | null;
-  createdAt: string | null;
-  createdByName: string | null;
-  snapshotName?: string | null;
-  receivedLabelName?: string | null;
+  batchRegistryId: NullableString;
+  batchType: NullableString;
+  lotNumber: NullableString;
+  expiryDate: NullableString;
+  quantityShipped: NullableNumber;
+  notes: NullableString;
+  createdAt: NullableString;
+  createdBy: NullableString;
+  snapshotName?: NullableString;
+  receivedLabelName?: NullableString;
 }
 
 /**
@@ -573,32 +549,32 @@ export interface FlattenedBatchRow {
  */
 export interface FlattenedFulfillmentRow {
   fulfillmentId: string;
-  fulfillmentStatusCode: string | null;
-  fulfillmentStatusName: string | null;
-  quantityFulfilled: number | null;
-  fulfilledAt: string | null;
-  fulfillmentNote: string | null;
+  fulfillmentStatusCode: NullableString;
+  fulfillmentStatusName: NullableString;
+  quantityFulfilled: NullableNumber;
+  fulfilledAt: NullableString;
+  fulfillmentNote: NullableString;
 
   itemType: BatchEntityType;
 
   // audit
-  createdAt: string | null;
-  createdByName: string | null;
-  updatedAt: string | null;
-  updatedByName: string | null;
-  fulfilledByName: string | null;
+  createdAt: NullableString;
+  createdBy: NullableString;
+  updatedAt: NullableString;
+  updatedBy: NullableString;
+  fulfilledBy: NullableString;
 
   // item details
-  orderItemId: string | null;
-  orderItemQuantity: number | null;
-  productName?: string | null;
-  skuCode?: string | null;
-  barcode?: string | null;
-  category?: string | null;
-  region?: string | null;
-  sizeLabel?: string | null;
-  packagingMaterialCode?: string | null;
-  packagingMaterialLabel?: string | null;
+  orderItemId: NullableString;
+  orderItemQuantity: NullableNumber;
+  productName?: NullableString;
+  skuCode?: NullableString;
+  barcode?: NullableString;
+  category?: NullableString;
+  region?: NullableString;
+  sizeLabel?: NullableString;
+  packagingMaterialCode?: NullableString;
+  packagingMaterialLabel?: NullableString;
 
   // Batch info is now a sub-array of batch rows
   batches: FlattenedBatchRow[];
@@ -750,7 +726,7 @@ export interface ConfirmOutboundFulfillmentState extends AsyncState<ConfirmOutbo
    * Timestamp of the last successful confirmation.
    * Useful for caching, UI refreshes, or audit display.
    */
-  lastConfirmedAt?: string | null;
+  lastConfirmedAt?: NullableString;
 }
 
 /**

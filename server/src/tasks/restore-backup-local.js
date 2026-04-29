@@ -40,7 +40,7 @@ const args = require('minimist')(process.argv.slice(2), {
 const prompt = (promptText) => {
   return new Promise((resolve) => {
     const rl = readline.createInterface({
-      input:  process.stdin,
+      input: process.stdin,
       output: process.stdout,
     });
     rl.question(`\n${promptText}: `, (answer) => {
@@ -53,15 +53,19 @@ const prompt = (promptText) => {
 if (require.main === module) {
   (async () => {
     try {
-      const databaseName  = process.env.DB_NAME;
+      const databaseName = process.env.DB_NAME;
       const encryptionKey = process.env.BACKUP_ENCRYPTION_KEY;
-      const dbUser        = process.env.DB_USER;
-      const dbPassword    = process.env.DB_PASSWORD;
-      
+      const dbUser = process.env.DB_USER;
+      const dbPassword = process.env.DB_PASSWORD;
+
       // Validate required env vars up front — log exactly which ones are absent
-      const missingVars = ['DB_NAME', 'BACKUP_ENCRYPTION_KEY', 'DB_USER', 'DB_PASSWORD']
-        .filter((key) => !process.env[key]);
-      
+      const missingVars = [
+        'DB_NAME',
+        'BACKUP_ENCRYPTION_KEY',
+        'DB_USER',
+        'DB_PASSWORD',
+      ].filter((key) => !process.env[key]);
+
       if (missingVars.length > 0) {
         logSystemError('Missing required environment variables', {
           context: 'restore-cli-local',
@@ -69,15 +73,19 @@ if (require.main === module) {
         });
         process.exit(1);
       }
-      
+
       // Resolve the local .enc file path — from CLI arg or interactive prompt
-      const encFile = args.encFile || await prompt('Enter local encrypted backup file path (.enc)');
-      
+      const encFile =
+        args.encFile ||
+        (await prompt('Enter local encrypted backup file path (.enc)'));
+
       if (!encFile) {
-        logSystemError('No encrypted file path provided', { context: 'restore-cli-local' });
+        logSystemError('No encrypted file path provided', {
+          context: 'restore-cli-local',
+        });
         process.exit(1);
       }
-      
+
       if (!encFile.endsWith('.enc')) {
         logSystemError('Provided file does not have a .enc extension', {
           context: 'restore-cli-local',
@@ -85,13 +93,13 @@ if (require.main === module) {
         });
         process.exit(1);
       }
-      
+
       logSystemInfo('Starting local restore', {
         context: 'restore-cli-local',
         encFile: path.basename(encFile),
         databaseName,
       });
-      
+
       // isProduction: false — skips S3 download, reads directly from local paths.
       // IV sidecar is derived inside restoreBackup by appending '.iv' to encFile.
       await restoreBackup({
@@ -102,11 +110,10 @@ if (require.main === module) {
         dbPassword,
         isProduction: false,
       });
-      
+
       logSystemInfo('Local database restore completed successfully', {
         context: 'restore-cli-local',
       });
-      
     } catch (error) {
       logSystemException(error, 'Local database restore failed', {
         context: 'restore-cli-local',

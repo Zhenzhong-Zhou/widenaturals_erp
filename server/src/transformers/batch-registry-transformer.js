@@ -17,9 +17,9 @@
 
 'use strict';
 
-const { cleanObject }       = require('../utils/object-utils');
-const { makeStatus }        = require('../utils/status-utils');
-const { makeActor }         = require('../utils/actor-utils');
+const { cleanObject } = require('../utils/object-utils');
+const { makeStatus } = require('../utils/status-utils');
+const { makeActor } = require('../utils/actor-utils');
 const { transformPageResult } = require('../utils/transformer-utils');
 
 /**
@@ -35,86 +35,86 @@ const transformBatchRegistryRow = (row) => {
   // Product batch shape.
   if (row.batch_type === 'product') {
     return cleanObject({
-      id:   row.batch_registry_id,
+      id: row.batch_registry_id,
       type: row.batch_type,
-      
+
       productBatchId: row.product_batch_id,
-      lotNumber:      row.product_lot_number,
-      expiryDate:     row.product_expiry_date,
-      
+      lotNumber: row.product_lot_number,
+      expiryDate: row.product_expiry_date,
+
       // Product is the reference item — not the producer.
       product: cleanObject({
-        id:   row.product_id,
+        id: row.product_id,
         name: row.product_name,
       }),
-      
+
       sku: cleanObject({
-        id:   row.sku_id,
+        id: row.sku_id,
         code: row.sku_code,
       }),
-      
+
       // Manufacturer is the producer of this batch.
       manufacturer: cleanObject({
-        id:   row.manufacturer_id,
+        id: row.manufacturer_id,
         name: row.manufacturer_name,
       }),
-      
+
       status: makeStatus(row, {
-        id:   'product_batch_status_id',
+        id: 'product_batch_status_id',
         name: 'product_batch_status_name',
         date: 'product_batch_status_date',
       }),
-      
+
       registeredAt: row.registered_at,
       registeredBy: makeActor(
         row.registered_by,
         row.registered_by_firstname,
         row.registered_by_lastname
       ),
-      
+
       note: row.note,
     });
   }
-  
+
   // Packaging material batch shape.
   if (row.batch_type === 'packaging_material') {
     return cleanObject({
-      id:   row.batch_registry_id,
+      id: row.batch_registry_id,
       type: row.batch_type,
-      
-      packagingBatchId:     row.packaging_batch_id,
-      lotNumber:            row.packaging_lot_number,
+
+      packagingBatchId: row.packaging_batch_id,
+      lotNumber: row.packaging_lot_number,
       packagingDisplayName: row.packaging_display_name,
-      expiryDate:           row.packaging_expiry_date,
-      
+      expiryDate: row.packaging_expiry_date,
+
       packagingMaterial: cleanObject({
-        id:   row.packaging_material_id,
+        id: row.packaging_material_id,
         code: row.packaging_material_code,
       }),
-      
+
       // Supplier is the producer / provider of this batch.
       supplier: cleanObject({
-        id:   row.supplier_id,
+        id: row.supplier_id,
         name: row.supplier_name,
       }),
-      
+
       status: makeStatus(row, {
-        id:   'packaging_batch_status_id',
+        id: 'packaging_batch_status_id',
         name: 'packaging_batch_status_name',
         date: 'packaging_batch_status_date',
       }),
-      
+
       registeredAt: row.registered_at,
       registeredBy: makeActor(
         row.registered_by,
         row.registered_by_firstname,
         row.registered_by_lastname
       ),
-      
+
       note: row.note,
     });
   }
-  
+
   // Unrecognised batch type — defensive fallback, should never occur in practice.
   return null;
 };

@@ -6,7 +6,7 @@ export { warehouseReducers } from './warehouseReducers';
 // --------------------------------------------------
 // Selectors
 // --------------------------------------------------
-export * from './warehouseSelectors';
+export * from './paginatedWarehouseSelectors';
 export * from './warehouseDetailSelectors';
 
 // --------------------------------------------------

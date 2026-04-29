@@ -24,9 +24,11 @@
 'use strict';
 
 const AppError = require('./AppError');
-const { getLastSku }                  = require('../repositories/sku-repository');
-const { getBaseCodeForBrandCategory } = require('../repositories/sku-code-base-repository');
-const { logSystemInfo }               = require('./logging/system-logger');
+const { getLastSku } = require('../repositories/sku-repository');
+const {
+  getBaseCodeForBrandCategory,
+} = require('../repositories/sku-code-base-repository');
+const { logSystemInfo } = require('./logging/system-logger');
 
 const CONTEXT = 'utils/generate-sku';
 
@@ -98,21 +100,21 @@ const generateSKU = async (
       { meta: { brandCode, categoryCode, variantCode, regionCode } }
     );
   }
-  
+
   // ---------------------------------------------------------------------------
   // 2. Format validation — fail fast before any DB interaction
   // ---------------------------------------------------------------------------
-  assertFormat(brandCode,    /^[A-Z]{2,5}$/, 'brand code');
+  assertFormat(brandCode, /^[A-Z]{2,5}$/, 'brand code');
   assertFormat(categoryCode, /^[A-Z]{2,5}$/, 'category code');
-  assertFormat(variantCode,  /^[A-Z]$/,      'variant code');
-  assertFormat(regionCode,   /^[A-Z]{2,5}$/, 'region code');
-  
+  assertFormat(variantCode, /^[A-Z]$/, 'variant code');
+  assertFormat(regionCode, /^[A-Z]{2,5}$/, 'region code');
+
   // ---------------------------------------------------------------------------
   // 3. Resolve numeric suffix
   // ---------------------------------------------------------------------------
   const key = `${brandCode}-${categoryCode}`;
   let currentCode;
-  
+
   if (lastUsedCodeMap.has(key)) {
     // In-memory increment — avoids a DB read during bulk inserts within the
     // same transaction session.
@@ -125,42 +127,44 @@ const generateSKU = async (
       categoryCode,
       client
     );
-    
+
     if (!baseCode) {
       throw AppError.serviceError(
         `No base code configured for brand/category combination: ${key}.`,
         { meta: { brandCode, categoryCode } }
       );
     }
-    
+
     const lastSku = await getLastSku(brandCode, categoryCode);
-    
+
     // Extract the numeric suffix from the last SKU for this brand/category.
     // Pattern: {BRAND}-{CATEGORY}{NNN}-{VARIANT}-{REGION}
-    const match    = lastSku?.match(/^[A-Z]{2,5}-[A-Z]{2,5}(\d{3})-[A-Z]-[A-Z]{2,5}$/);
+    const match = lastSku?.match(
+      /^[A-Z]{2,5}-[A-Z]{2,5}(\d{3})-[A-Z]-[A-Z]{2,5}$/
+    );
     const lastCode = match ? parseInt(match[1], 10) : null;
-    
+
     // Start from lastCode + 1 if a prior SKU exists, otherwise use baseCode
     // as the starting point for this brand/category series.
     currentCode = lastCode !== null ? lastCode + 1 : baseCode;
   }
-  
+
   // ---------------------------------------------------------------------------
   // 4. Assemble SKU string
   // ---------------------------------------------------------------------------
   lastUsedCodeMap.set(key, currentCode);
-  
+
   // Zero-pad the numeric suffix to 3 digits (e.g. 1 → '001', 99 → '099').
-  const codeStr      = String(currentCode).padStart(3, '0');
+  const codeStr = String(currentCode).padStart(3, '0');
   const generatedSku = `${brandCode}-${categoryCode}${codeStr}-${variantCode}-${regionCode}`;
-  
+
   logSystemInfo('SKU generated successfully.', {
     context: CONTEXT,
-    sku:         generatedSku,
+    sku: generatedSku,
     key,
     currentCode,
   });
-  
+
   return generatedSku;
 };
 

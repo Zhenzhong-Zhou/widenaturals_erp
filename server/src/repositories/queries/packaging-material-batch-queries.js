@@ -48,14 +48,14 @@ const PMB_CONFLICT_COLUMNS = ['packaging_material_supplier_id', 'lot_number'];
 
 const PMB_UPDATE_STRATEGIES = {
   material_snapshot_name: 'overwrite',
-  received_label_name:    'overwrite',
-  quantity:               'overwrite',
-  unit_cost:              'overwrite',
-  exchange_rate:          'overwrite',
-  total_cost:             'overwrite',
-  status_id:              'overwrite',
-  status_date:            'overwrite',
-  updated_at:             'overwrite',
+  received_label_name: 'overwrite',
+  quantity: 'overwrite',
+  unit_cost: 'overwrite',
+  exchange_rate: 'overwrite',
+  total_cost: 'overwrite',
+  status_id: 'overwrite',
+  status_date: 'overwrite',
+  updated_at: 'overwrite',
 };
 
 // ─── Paginated List ───────────────────────────────────────────────────────────

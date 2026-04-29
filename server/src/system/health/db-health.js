@@ -25,14 +25,14 @@ const CONTEXT = 'health/database';
  */
 const checkDatabaseHealth = async () => {
   const queryText = 'SELECT 1';
-  
+
   const start = Date.now();
-  
+
   try {
     await query(queryText);
-    
+
     const duration = Date.now() - start;
-    
+
     return {
       status: 'healthy',
       latencyMs: duration,
@@ -66,14 +66,14 @@ const checkPoolHealth = () => {
       subtype: 'PoolHealthError',
     });
   }
-  
+
   //--------------------------------------------------
   // Collect metrics (pg built-in)
   //--------------------------------------------------
   const total = pool.totalCount;
   const idle = pool.idleCount;
   const waiting = pool.waitingCount;
-  
+
   //--------------------------------------------------
   // Return snapshot (no logging)
   //--------------------------------------------------

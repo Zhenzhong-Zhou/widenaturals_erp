@@ -23,7 +23,7 @@ import type {
 import { applyFiltersAndSorting } from '@utils/query';
 import { usePaginationHandlers } from '@utils/hooks';
 import { useProductBatchLookups } from '@features/productBatch/hooks';
-import { createLazyOpenHandler } from '@features/lookup/utils/lookupUtils';
+import { createOnOpenHandler } from '@features/lookup/utils/lookupUtils';
 
 /**
  * Page-level container for displaying a paginated, sortable, and filterable
@@ -118,10 +118,7 @@ const ProductBatchListPage = () => {
       },
 
       onOpen: {
-        status: createLazyOpenHandler(
-          lookups.status.options,
-          lookups.status.fetch
-        ),
+        status: createOnOpenHandler(lookups.status),
       },
     }),
     [lookups]

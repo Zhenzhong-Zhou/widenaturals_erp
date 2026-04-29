@@ -24,7 +24,7 @@
 
 'use strict';
 
-const AppError     = require('../../utils/AppError');
+const AppError = require('../../utils/AppError');
 const { logError } = require('../../utils/logging/logger-helper');
 
 /**
@@ -53,30 +53,30 @@ const globalErrorHandler = (err, req, res, next) => {
   if (res.headersSent) {
     return next(err);
   }
-  
+
   // ------------------------------------------------------------------
   // Normalize to AppError — single source of truth for error shape.
   // AppError instances pass through unchanged.
   // All other errors (native Error, third-party, unknown throws) are
   // wrapped into a generalError so the response shape is always consistent.
   // ------------------------------------------------------------------
-  const appError = err instanceof AppError
-    ? err
-    : AppError.generalError(
-      err?.message || 'An unexpected error occurred.',
-      {
-        // Preserve the original error name and message for internal
-        // observability without exposing raw stack traces to the client.
-        meta: {
-          originalErrorName:    err?.name,
-          originalErrorMessage: err?.message,
-        },
-        // Only carry over status if it looks like a valid HTTP error code.
-        // Never trust arbitrary status values from unknown third-party errors.
-        ...(err?.status && err?.status >= 400 && err?.status < 600 && { status: err.status }),
-      }
-    );
-  
+  const appError =
+    err instanceof AppError
+      ? err
+      : AppError.generalError(err?.message || 'An unexpected error occurred.', {
+          // Preserve the original error name and message for internal
+          // observability without exposing raw stack traces to the client.
+          meta: {
+            originalErrorName: err?.name,
+            originalErrorMessage: err?.message,
+          },
+          // Only carry over status if it looks like a valid HTTP error code.
+          // Never trust arbitrary status values from unknown third-party errors.
+          ...(err?.status &&
+            err?.status >= 400 &&
+            err?.status < 600 && { status: err.status }),
+        });
+
   // ------------------------------------------------------------------
   // Log once here — do not log the same error again anywhere upstream.
   // Logging after normalization means the log entry always reflects the
@@ -84,9 +84,9 @@ const globalErrorHandler = (err, req, res, next) => {
   // ------------------------------------------------------------------
   logError(appError, req, {
     context: 'global-error-handler',
-    stage:   'response-finalization',
+    stage: 'response-finalization',
   });
-  
+
   // ------------------------------------------------------------------
   // Send standardized response.
   // appError.toJSON() strips internal fields (stack, meta) so only the

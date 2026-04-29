@@ -1,6 +1,9 @@
 const { pool, query } = require('../../../database/db');
 const AppError = require('../../AppError');
-const { generateCountQuery, buildPaginatedQuery } = require('./pagination-builder');
+const {
+  generateCountQuery,
+  buildPaginatedQuery,
+} = require('./pagination-builder');
 const { executePaginatedQueries } = require('./pagination-executor');
 const { handleDbError } = require('../../errors/error-handlers');
 const { logPaginatedQueryError } = require('../../db-logger');
@@ -32,14 +35,18 @@ const { validateSortingConfig } = require('../../query/sort-validator');
  * SORTING RULES:
  * - Cannot mix rawOrderBy with dynamic sorting
  * - whitelistSet is required for dynamic sorting
- * - defaultSort is recommended to ensure deterministic ordering
+ * - defaultSort is strongly recommended; otherwise callers should provide sortBy
  *
  * PAGINATION:
  * - Converts page → offset internally
  * - Uses LIMIT/OFFSET with parameter binding
  *
  * COUNT BEHAVIOR:
- * - Executes COUNT query by default
+ * - Executes COUNT query by default unless skipCount = true
+ * - Supports two COUNT modes:
+ *   1) Custom count query via countQuery
+ *   2) Generated count query via tableName + joins + whereClause
+ * - If skipCount = false and countQuery is not provided, tableName is required
  * - If skipCount = true:
  *   - totalRecords and totalPages will be null
  *   - improves performance for large datasets
@@ -50,7 +57,7 @@ const { validateSortingConfig } = require('../../query/sort-validator');
  *
  * @param {Object} options
  * @param {string} options.queryText - Base SELECT query (without ORDER BY / LIMIT / OFFSET)
- * @param {string} options.tableName - Table used for COUNT query
+ * @param {string} [options.tableName] - Table used for generated COUNT query when countQuery is not provided
  * @param {string[]} [options.joins=[]] - JOIN clauses (trusted SQL)
  * @param {string} [options.whereClause='1=1'] - WHERE clause (trusted SQL)
  * @param {any[]} [options.params=[]] - Query parameters
@@ -69,7 +76,8 @@ const { validateSortingConfig } = require('../../query/sort-validator');
  * @param {import('pg').Pool|import('pg').PoolClient} [options.clientOrPool]
  * @param {Object} [options.meta={}] - Additional metadata for logging
  *
- * @param {boolean} [options.skipCount=false] - Skip COUNT query
+ * @param {boolean} [options.skipCount=false] - Skip COUNT query entirely
+ * @param {string} [options.countQuery] - Optional custom COUNT query; overrides generated count query
  *
  * @returns {Promise<{
  *   data: any[],
@@ -85,41 +93,58 @@ const { validateSortingConfig } = require('../../query/sort-validator');
  * @throws {AppError} databaseError
  */
 const paginateQuery = async ({
-                               queryText,
-                               tableName,
-                               joins = [],
-                               whereClause = '1=1',
-                               params = [],
-                               page = 1,
-                               limit = 10,
-                               sortBy,
-                               sortOrder = 'ASC',
-                               additionalSorts = [],
-                               rawOrderBy,
-                               whitelistSet,
-                               clientOrPool = pool,
-                               meta = {},
-                               skipCount = false,
-                               defaultSort,
-                             }) => {
+  queryText,
+  tableName,
+  joins = [],
+  whereClause = '1=1',
+  params = [],
+  page = 1,
+  limit = 10,
+  sortBy,
+  sortOrder = 'ASC',
+  additionalSorts = [],
+  rawOrderBy,
+  whitelistSet,
+  clientOrPool = pool,
+  meta = {},
+  skipCount = false,
+  defaultSort,
+  countQuery,
+}) => {
   const context = 'pagination-helpers/paginateQuery';
-  
+
   //--------------------------------------------------
   // Validate inputs
   //--------------------------------------------------
   if (page < 1 || limit < 1) {
-    throw AppError.validationError('Page and limit must be positive integers.', { context });
+    throw AppError.validationError(
+      'Page and limit must be positive integers.',
+      { context }
+    );
   }
-  
+
   const MAX_LIMIT = 100;
   if (limit > MAX_LIMIT) {
-    throw AppError.validationError(`Limit cannot exceed ${MAX_LIMIT}`, { context });
+    throw AppError.validationError(`Limit cannot exceed ${MAX_LIMIT}`, {
+      context,
+    });
   }
-  
+
   if (!queryText || typeof queryText !== 'string') {
     throw AppError.validationError('Invalid queryText', { context });
   }
-  
+
+  if (countQuery != null && typeof countQuery !== 'string') {
+    throw AppError.validationError('Invalid countQuery', { context });
+  }
+
+  if (!countQuery && (!tableName || typeof tableName !== 'string')) {
+    throw AppError.validationError(
+      'tableName is required when countQuery is not provided.',
+      { context }
+    );
+  }
+
   //--------------------------------------------------
   // Validate sorting mode
   //--------------------------------------------------
@@ -130,12 +155,12 @@ const paginateQuery = async ({
     whitelistSet,
     context,
   });
-  
+
   //--------------------------------------------------
   // Pagination calculation
   //--------------------------------------------------
   const offset = (page - 1) * limit;
-  
+
   //--------------------------------------------------
   // Build data query
   //--------------------------------------------------
@@ -149,15 +174,15 @@ const paginateQuery = async ({
     whitelistSet,
     defaultSort,
   });
-  
+
   const queryParams = [...params, limit, offset];
-  
+
   //--------------------------------------------------
   // Skip count optimization
   //--------------------------------------------------
   if (skipCount) {
     const result = await query(paginatedQuery, queryParams, clientOrPool);
-    
+
     return {
       data: result.rows,
       pagination: {
@@ -168,16 +193,13 @@ const paginateQuery = async ({
       },
     };
   }
-  
+
   //--------------------------------------------------
   // Build count query
   //--------------------------------------------------
-  const countQueryText = generateCountQuery(
-    tableName,
-    joins,
-    whereClause
-  );
-  
+  const countQueryText =
+    countQuery || generateCountQuery(tableName, joins, whereClause);
+
   try {
     //--------------------------------------------------
     // Execute queries
@@ -189,9 +211,9 @@ const paginateQuery = async ({
       countParams: params,
       clientOrPool,
     });
-    
+
     const totalPages = Math.ceil(totalRecords / limit);
-    
+
     return {
       data: rows,
       pagination: {
@@ -336,64 +358,64 @@ const paginateQuery = async ({
  * });
  */
 const paginateQueryByOffset = async ({
-                                       tableName,
-                                       joins = [],
-                                       whereClause = '1=1',
-                                       queryText,
-                                       params = [],
-                                       offset = 0,
-                                       limit = 10,
-                                       sortBy,
-                                       sortOrder = 'ASC',
-                                       additionalSorts = [],
-                                       rawOrderBy,
-                                       whitelistSet,
-                                       clientOrPool = pool,
-                                       meta = {},
-                                       useDistinct = false,
-                                       distinctColumn,
-                                       skipCount = false,
-                                       defaultSort,
-                                     }) => {
+  tableName,
+  joins = [],
+  whereClause = '1=1',
+  queryText,
+  params = [],
+  offset = 0,
+  limit = 10,
+  sortBy,
+  sortOrder = 'ASC',
+  additionalSorts = [],
+  rawOrderBy,
+  whitelistSet,
+  clientOrPool = pool,
+  meta = {},
+  useDistinct = false,
+  distinctColumn,
+  skipCount = false,
+  defaultSort,
+}) => {
   const context = 'pagination-helpers/paginateQueryByOffset';
-  
+
   //--------------------------------------------------
   // Validate inputs
   //--------------------------------------------------
   if (!tableName || typeof tableName !== 'string') {
     throw AppError.validationError('Invalid tableName', { context });
   }
-  
+
   if (!Array.isArray(joins)) {
     throw AppError.validationError('joins must be an array', { context });
   }
-  
+
   if (!Array.isArray(params)) {
     throw AppError.validationError('params must be an array', { context });
   }
-  
+
   if (typeof whereClause !== 'string') {
     throw AppError.validationError('Invalid whereClause', { context });
   }
-  
+
   if (!queryText || typeof queryText !== 'string') {
     throw AppError.validationError('Invalid queryText', { context });
   }
-  
+
   if (offset < 0 || limit < 1) {
     throw AppError.validationError(
       'Offset must be >= 0 and limit must be a positive integer.',
       { context }
     );
   }
-  
+
   const MAX_LIMIT = 100;
   if (limit > MAX_LIMIT) {
     throw AppError.validationError(`Limit cannot exceed ${MAX_LIMIT}`, {
       context,
     });
   }
-  
+
   //--------------------------------------------------
   // Validate sorting mode
   //--------------------------------------------------
@@ -404,7 +426,7 @@ const paginateQueryByOffset = async ({
     whitelistSet,
     context,
   });
-  
+
   //--------------------------------------------------
   // Validate distinct
   //--------------------------------------------------
@@ -414,7 +436,7 @@ const paginateQueryByOffset = async ({
       { context }
     );
   }
-  
+
   //--------------------------------------------------
   // Build paginated query
   //--------------------------------------------------
@@ -428,15 +450,15 @@ const paginateQueryByOffset = async ({
     whitelistSet,
     defaultSort,
   });
-  
+
   const queryParams = [...params, limit, offset];
-  
+
   //--------------------------------------------------
   // Skip count optimization
   //--------------------------------------------------
   if (skipCount) {
     const result = await query(paginatedQuery, queryParams, clientOrPool);
-    
+
     return {
       data: result.rows,
       pagination: {
@@ -447,7 +469,7 @@ const paginateQueryByOffset = async ({
       },
     };
   }
-  
+
   //--------------------------------------------------
   // Build COUNT query
   //--------------------------------------------------
@@ -458,7 +480,7 @@ const paginateQueryByOffset = async ({
     useDistinct,
     distinctColumn
   );
-  
+
   //--------------------------------------------------
   // Execute queries
   //--------------------------------------------------
@@ -470,7 +492,7 @@ const paginateQueryByOffset = async ({
       countParams: params,
       clientOrPool,
     });
-    
+
     return {
       data: rows,
       pagination: {

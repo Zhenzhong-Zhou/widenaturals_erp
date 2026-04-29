@@ -29,15 +29,15 @@ const CONTEXT = 'discount-business';
  */
 const calculateDiscountAmount = (subtotal, discount) => {
   if (!discount) return 0;
-  
+
   if (discount.discount_type === 'PERCENTAGE') {
     return subtotal * (discount.discount_value / 100);
   }
-  
+
   if (discount.discount_type === 'FIXED_AMOUNT') {
     return discount.discount_value;
   }
-  
+
   throw AppError.validationError(
     `Unsupported discount type: ${discount.discount_type}`
   );
@@ -53,10 +53,10 @@ const calculateDiscountAmount = (subtotal, discount) => {
  */
 const evaluateDiscountLookupAccessControl = async (user) => {
   const context = `${CONTEXT}/evaluateDiscountLookupAccessControl`;
-  
+
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     return {
       canViewAllStatuses:
         isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_DISCOUNT_STATUSES),
@@ -64,11 +64,15 @@ const evaluateDiscountLookupAccessControl = async (user) => {
         isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_VALID_DISCOUNTS),
     };
   } catch (err) {
-    logSystemException(err, 'Failed to evaluate discount lookup access control', {
-      context,
-      userId: user?.id,
-    });
-    
+    logSystemException(
+      err,
+      'Failed to evaluate discount lookup access control',
+      {
+        context,
+        userId: user?.id,
+      }
+    );
+
     throw AppError.businessError(
       'Unable to evaluate user access control for discount lookup.'
     );
@@ -92,12 +96,12 @@ const enforceDiscountLookupVisibilityRules = (
   activeStatusId
 ) => {
   const adjusted = { ...filters };
-  
+
   // Restrict keyword searches to valid discounts only for unpermitted users.
   if (filters.keyword && !userAccess.canViewAllValidLookups) {
     adjusted._restrictKeywordToValidOnly = true;
   }
-  
+
   if (!userAccess.canViewAllStatuses) {
     // Remove caller-supplied statusId — active status is pinned via _activeStatusId.
     delete adjusted.statusId;
@@ -105,7 +109,7 @@ const enforceDiscountLookupVisibilityRules = (
       adjusted._activeStatusId = activeStatusId;
     }
   }
-  
+
   return adjusted;
 };
 
@@ -119,12 +123,12 @@ const enforceDiscountLookupVisibilityRules = (
  */
 const filterDiscountLookupQuery = (query, userAccess) => {
   const modifiedQuery = { ...query };
-  
+
   // Pin to today's date for users who cannot view discounts outside valid windows.
   if (!userAccess.canViewAllValidLookups) {
     modifiedQuery.validOn = new Date().toISOString();
   }
-  
+
   return modifiedQuery;
 };
 
@@ -137,7 +141,7 @@ const filterDiscountLookupQuery = (query, userAccess) => {
  */
 const enrichDiscountRow = (row, activeStatusId) => {
   const now = new Date();
-  
+
   return {
     ...row,
     isActive: row.status_id === activeStatusId,

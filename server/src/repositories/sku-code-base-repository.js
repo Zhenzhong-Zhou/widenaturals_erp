@@ -18,12 +18,18 @@
 
 const { query } = require('../database/db');
 const { bulkInsert } = require('../utils/db/write-utils');
-const { validateBulkInsertRows } = require('../utils/validation/bulk-insert-row-validator');
-const { paginateQueryByOffset } = require('../utils/db/pagination/pagination-helpers');
+const {
+  validateBulkInsertRows,
+} = require('../utils/validation/bulk-insert-row-validator');
+const {
+  paginateQueryByOffset,
+} = require('../utils/db/pagination/pagination-helpers');
 const AppError = require('../utils/AppError');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { logDbQueryError, logBulkInsertError } = require('../utils/db-logger');
-const { buildSkuCodeBaseFilter } = require('../utils/sql/build-sku-code-base-filter');
+const {
+  buildSkuCodeBaseFilter,
+} = require('../utils/sql/build-sku-code-base-filter');
 const {
   SKU_CODE_BASE_STEP,
   SKU_CODE_BASE_GET_QUERY,
@@ -61,27 +67,30 @@ const {
  */
 const getBaseCodeForBrandCategory = async (brandCode, categoryCode, client) => {
   const context = 'sku-code-base-repository/getBaseCodeForBrandCategory';
-  const params  = [brandCode, categoryCode];
-  
+  const params = [brandCode, categoryCode];
+
   let rows;
-  
+
   try {
     ({ rows } = await query(SKU_CODE_BASE_GET_QUERY, params, client));
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch base code for brand/category.',
-      meta:    { brandCode, categoryCode },
-      logFn:   (err) => logDbQueryError(
-        SKU_CODE_BASE_GET_QUERY, params, err, { context, brandCode, categoryCode }
-      ),
+      meta: { brandCode, categoryCode },
+      logFn: (err) =>
+        logDbQueryError(SKU_CODE_BASE_GET_QUERY, params, err, {
+          context,
+          brandCode,
+          categoryCode,
+        }),
     });
   }
-  
+
   if (!rows.length) return null;
-  
+
   const { base_code } = rows[0];
-  
+
   // Validation outside try — base_code type check is a data integrity guard,
   // not a DB error. Must not be swallowed by the IO catch block.
   if (typeof base_code !== 'number' || Number.isNaN(base_code)) {
@@ -90,7 +99,7 @@ const getBaseCodeForBrandCategory = async (brandCode, categoryCode, client) => {
       meta: { brandCode, categoryCode, receivedValue: base_code },
     });
   }
-  
+
   return base_code;
 };
 
@@ -111,36 +120,38 @@ const getBaseCodeForBrandCategory = async (brandCode, categoryCode, client) => {
  */
 const getExistingBaseCodesBulk = async (pairs, client, chunkSize = 500) => {
   if (!Array.isArray(pairs) || pairs.length === 0) return new Map();
-  
-  const context   = 'sku-code-base-repository/getExistingBaseCodesBulk';
+
+  const context = 'sku-code-base-repository/getExistingBaseCodesBulk';
   const resultMap = new Map();
-  
+
   try {
     for (let i = 0; i < pairs.length; i += chunkSize) {
-      const batch        = pairs.slice(i, i + chunkSize);
+      const batch = pairs.slice(i, i + chunkSize);
       const placeholders = batch
         .map((_, idx) => `($${idx * 2 + 1}, $${idx * 2 + 2})`)
         .join(', ');
       const params = batch.flatMap((p) => [p.brandCode, p.categoryCode]);
-      const sql    = buildSkuCodeBaseBulkLookupSql(placeholders);
-      
+      const sql = buildSkuCodeBaseBulkLookupSql(placeholders);
+
       // Uses shared query() utility — not client.query() directly.
       const { rows } = await query(sql, params, client);
-      
+
       for (const r of rows) {
         resultMap.set(`${r.brand_code}-${r.category_code}`, r.base_code);
       }
     }
-    
+
     return resultMap;
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch existing base codes.',
-      meta:    { totalPairs: pairs.length },
-      logFn:   (err) => logDbQueryError(
-        'bulk tuple lookup', [], err, { context, totalPairs: pairs.length }
-      ),
+      meta: { totalPairs: pairs.length },
+      logFn: (err) =>
+        logDbQueryError('bulk tuple lookup', [], err, {
+          context,
+          totalPairs: pairs.length,
+        }),
     });
   }
 };
@@ -166,42 +177,45 @@ const getExistingBaseCodesBulk = async (pairs, client, chunkSize = 500) => {
  */
 const insertBaseCodesBulk = async (pairs, client, chunkSize = 1000) => {
   if (!Array.isArray(pairs) || pairs.length === 0) return new Map();
-  
-  const context   = 'sku-code-base-repository/insertBaseCodesBulk';
+
+  const context = 'sku-code-base-repository/insertBaseCodesBulk';
   const resultMap = new Map();
-  
+
   let next_base;
-  
+
   try {
-    const { rows: baseRows } = await query(SKU_CODE_BASE_NEXT_BASE_QUERY, [], client);
+    const { rows: baseRows } = await query(
+      SKU_CODE_BASE_NEXT_BASE_QUERY,
+      [],
+      client
+    );
     next_base = /** @type {{ next_base: number }} */ (baseRows[0]);
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch next base code.',
-      meta:    { totalPairs: pairs.length },
-      logFn:   (err) => logDbQueryError(
-        SKU_CODE_BASE_NEXT_BASE_QUERY, [], err, { context }
-      ),
+      meta: { totalPairs: pairs.length },
+      logFn: (err) =>
+        logDbQueryError(SKU_CODE_BASE_NEXT_BASE_QUERY, [], err, { context }),
     });
   }
-  
+
   try {
     for (let i = 0; i < pairs.length; i += chunkSize) {
       const batch = pairs.slice(i, i + chunkSize);
-      
+
       const rows = batch.map((p, idx) => [
         p.brandCode,
         p.categoryCode,
         next_base + (i + idx) * SKU_CODE_BASE_STEP,
         p.statusId,
         p.userId,
-        null,   // updated_at — null at insert time
-        null,   // updated_by — null at insert time
+        null, // updated_at — null at insert time
+        null, // updated_by — null at insert time
       ]);
-      
+
       validateBulkInsertRows(rows, SKU_CODE_BASE_INSERT_COLUMNS.length);
-      
+
       const inserted = await bulkInsert(
         'sku_code_bases',
         SKU_CODE_BASE_INSERT_COLUMNS,
@@ -212,25 +226,23 @@ const insertBaseCodesBulk = async (pairs, client, chunkSize = 1000) => {
         { meta: context },
         'brand_code, category_code, base_code'
       );
-      
+
       for (const r of inserted) {
         resultMap.set(`${r.brand_code}-${r.category_code}`, r.base_code);
       }
     }
-    
+
     return resultMap;
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to insert base codes in bulk.',
-      meta:    { totalPairs: pairs.length },
-      logFn:   (err) => logBulkInsertError(
-        err,
-        'sku_code_bases',
-        [],
-        pairs.length,
-        { context, conflictColumns: SKU_CODE_BASE_CONFLICT_COLUMNS }
-      ),
+      meta: { totalPairs: pairs.length },
+      logFn: (err) =>
+        logBulkInsertError(err, 'sku_code_bases', [], pairs.length, {
+          context,
+          conflictColumns: SKU_CODE_BASE_CONFLICT_COLUMNS,
+        }),
     });
   }
 };
@@ -248,34 +260,42 @@ const insertBaseCodesBulk = async (pairs, client, chunkSize = 1000) => {
  * @returns {Promise<Object>} Paginated result with rows and pagination metadata.
  * @throws  {AppError}        Normalized database error if the query fails.
  */
-const getSkuCodeBaseLookup = async ({ filters = {}, limit = 50, offset = 0 }) => {
+const getSkuCodeBaseLookup = async ({
+  filters = {},
+  limit = 50,
+  offset = 0,
+}) => {
   const context = 'sku-code-base-repository/getSkuCodeBaseLookup';
-  
+
   const { whereClause, params } = buildSkuCodeBaseFilter(filters);
   const queryText = buildSkuCodeBaseLookupQuery(whereClause);
-  
+
   try {
     return await paginateQueryByOffset({
-      tableName:       SKU_CODE_BASE_LOOKUP_TABLE,
-      joins:           SKU_CODE_BASE_LOOKUP_JOINS,
+      tableName: SKU_CODE_BASE_LOOKUP_TABLE,
+      joins: SKU_CODE_BASE_LOOKUP_JOINS,
       whereClause,
       queryText,
       params,
       offset,
       limit,
-      sortBy:          'scb.brand_code',
-      sortOrder:       'ASC',
+      sortBy: 'scb.brand_code',
+      sortOrder: 'ASC',
       additionalSorts: SKU_CODE_BASE_LOOKUP_ADDITIONAL_SORTS,
-      whitelistSet:    SKU_CODE_BASE_LOOKUP_SORT_WHITELIST,
+      whitelistSet: SKU_CODE_BASE_LOOKUP_SORT_WHITELIST,
     });
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch SKU code base lookup.',
-      meta:    { filters, limit, offset },
-      logFn:   (err) => logDbQueryError(
-        queryText, params, err, { context, filters, limit, offset }
-      ),
+      meta: { filters, limit, offset },
+      logFn: (err) =>
+        logDbQueryError(queryText, params, err, {
+          context,
+          filters,
+          limit,
+          offset,
+        }),
     });
   }
 };

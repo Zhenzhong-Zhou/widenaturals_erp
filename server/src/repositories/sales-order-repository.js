@@ -26,30 +26,30 @@ const { SALES_ORDER_INSERT_QUERY } = require('./queries/sales-order-queries');
  */
 const insertSalesOrder = async (salesOrderData, client) => {
   const context = 'sales-order-repository/insertSalesOrder';
-  
+
   const {
     id,
     customer_id,
     order_date,
-    payment_status_id   = null,
-    payment_method_id   = null,
-    currency_code       = 'CAD',
-    exchange_rate       = null,
+    payment_status_id = null,
+    payment_method_id = null,
+    currency_code = 'CAD',
+    exchange_rate = null,
     base_currency_amount = null,
-    discount_id         = null,
-    discount_amount     = 0,
+    discount_id = null,
+    discount_amount = 0,
     subtotal,
     tax_rate_id,
-    tax_amount          = 0,
-    shipping_fee        = 0,
+    tax_amount = 0,
+    shipping_fee = 0,
     total_amount,
     delivery_method_id,
-    metadata            = null,
-    created_by          = null,
-    updated_at          = null,
-    updated_by          = null,
+    metadata = null,
+    created_by = null,
+    updated_at = null,
+    updated_by = null,
   } = salesOrderData;
-  
+
   const values = [
     id,
     customer_id,
@@ -72,7 +72,7 @@ const insertSalesOrder = async (salesOrderData, client) => {
     created_by,
     updated_by,
   ];
-  
+
   try {
     const { rows } = await query(SALES_ORDER_INSERT_QUERY, values, client);
     return rows[0]?.id;
@@ -80,10 +80,12 @@ const insertSalesOrder = async (salesOrderData, client) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to insert sales order.',
-      meta:    { order_id: id, customer_id },
-      logFn:   (err) => logDbQueryError(
-        SALES_ORDER_INSERT_QUERY, values, err, { context, order_id: id }
-      ),
+      meta: { order_id: id, customer_id },
+      logFn: (err) =>
+        logDbQueryError(SALES_ORDER_INSERT_QUERY, values, err, {
+          context,
+          order_id: id,
+        }),
     });
   }
 };

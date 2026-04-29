@@ -22,7 +22,7 @@ import type {
 } from '@features/batchRegistry/state';
 import { applyFiltersAndSorting } from '@utils/query';
 import { usePaginationHandlers } from '@utils/hooks';
-import { createLazyOpenHandler } from '@features/lookup/utils/lookupUtils';
+import { createOnOpenHandler } from '@features/lookup/utils/lookupUtils';
 
 /**
  * Page-level container for displaying a paginated, sortable, and filterable
@@ -115,12 +115,9 @@ const BatchRegistryListPage = () => {
       resetAll: () => {
         lookups.status.reset();
       },
-
+      
       onOpen: {
-        status: createLazyOpenHandler(
-          lookups.status.options,
-          lookups.status.fetch
-        ),
+        status: createOnOpenHandler(lookups.status),
       },
     }),
     [lookups]

@@ -85,7 +85,6 @@ const GoBackButton: FC<GoBackButtonProps> = ({
       variant={variant}
       icon={icon}
       sx={{
-        mt: 2,
         minWidth: '120px', // Fixed width to avoid CLS
         px: 3, // Consistent horizontal padding
         py: 1.25, // Slight vertical padding for tap targets

@@ -14,12 +14,13 @@
 
 'use strict';
 
-const { cleanObject }  = require('../utils/object-utils');
-const { getFullName }  = require('../utils/person-utils');
+const { cleanObject } = require('../utils/object-utils');
+const { getFullName } = require('../utils/person-utils');
 const {
   transformRows,
   transformPageResult,
 } = require('../utils/transformer-utils');
+const { makeStatus } = require('../utils/status-utils');
 
 /**
  * Transforms a single customer DB row into either a nested or flat shape.
@@ -35,45 +36,49 @@ const {
  */
 const transformCustomerRow = (row, { format = 'nested' } = {}) => {
   const base = {
-    id:          row.id          ?? null,
-    firstname:   row.firstname   ?? null,
-    lastname:    row.lastname    ?? null,
-    email:       row.email       ?? null,
+    id: row.id ?? null,
+    customerType: row.customer_type ?? null,
+    firstname: row.firstname ?? null,
+    lastname: row.lastname ?? null,
+    companyName: row.company_name ?? null,
+    email: row.email ?? null,
     phoneNumber: row.phone_number ?? null,
-    note:        row.note        ?? null,
-    status: {
-      id:   row.status_id   ?? null,
-      name: row.status_name ?? null,
-    },
+    note: row.note ?? null,
+    status: makeStatus(row),
     hasAddress: row.has_address ?? null,
-    createdAt:  row.created_at  ?? null,
-    updatedAt:  row.updated_at  ?? null,
+    createdAt: row.created_at ?? null,
+    updatedAt: row.updated_at ?? null,
     createdBy: {
       firstname: row.created_by_firstname ?? null,
-      lastname:  row.created_by_lastname  ?? null,
+      lastname: row.created_by_lastname ?? null,
     },
     updatedBy: {
       firstname: row.updated_by_firstname ?? null,
-      lastname:  row.updated_by_lastname  ?? null,
+      lastname: row.updated_by_lastname ?? null,
     },
   };
-  
+
   if (format === 'flat') {
     return cleanObject({
-      id:           base.id,
-      customerName: getFullName(base.firstname, base.lastname),
-      email:        base.email,
-      phoneNumber:  base.phoneNumber,
-      statusId:     base.status.id,
-      statusName:   base.status.name,
-      hasAddress:   base.hasAddress,
-      createdAt:    base.createdAt,
-      updatedAt:    base.updatedAt,
-      createdBy:    getFullName(base.createdBy.firstname, base.createdBy.lastname),
-      updatedBy:    getFullName(base.updatedBy.firstname, base.updatedBy.lastname),
+      id: base.id,
+      customerType: base.customerType,
+      customerName:
+        base.customerType === 'company'
+          ? base.companyName
+          : getFullName(base.firstname, base.lastname),
+      email: base.email,
+      phoneNumber: base.phoneNumber,
+      statusId: base.status.id,
+      statusName: base.status.name,
+      statusDate: base.status.date,
+      hasAddress: base.hasAddress,
+      createdAt: base.createdAt,
+      updatedAt: base.updatedAt,
+      createdBy: getFullName(base.createdBy.firstname, base.createdBy.lastname),
+      updatedBy: getFullName(base.updatedBy.firstname, base.updatedBy.lastname),
     });
   }
-  
+
   return cleanObject(base);
 };
 
@@ -84,7 +89,13 @@ const transformCustomerRow = (row, { format = 'nested' } = {}) => {
  * @returns {CustomerNestedRecord[]}
  */
 const transformEnrichedCustomers = (rows) =>
-  transformRows(rows, (row) => transformCustomerRow(row, { format: 'nested' }));
+  transformRows(
+    rows,
+    (row) =>
+      /** @type {CustomerNestedRecord} */ (
+        transformCustomerRow(row, { format: 'nested' })
+      )
+  );
 
 /**
  * Transforms a paginated customer result set into the flat table view shape.

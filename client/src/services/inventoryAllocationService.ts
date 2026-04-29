@@ -3,14 +3,14 @@ import type {
   AllocateInventoryParams,
   AllocateInventoryResponse,
   AllocationReviewRequest,
-  FetchPaginatedInventoryAllocationsParams,
-  InventoryAllocationApiResponse,
   InventoryAllocationConfirmationResponse,
+  InventoryAllocationQueryParams,
   InventoryAllocationReviewApiResponse,
+  PaginatedInventoryAllocationApiResponse,
 } from '@features/inventoryAllocation/state';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
-import { getRequest, postRequest } from '@utils/http';
-import { buildQueryString } from '@utils/query';
+import { getRequest, patchRequest, postRequest } from '@utils/http';
+import { buildQueryString, flattenListQueryParams } from '@utils/query';
 
 /**
  * Allocates inventory for a specific order.
@@ -66,28 +66,20 @@ const fetchInventoryAllocationReview = async (
  * Issues:
  *   GET /inventory-allocations with pagination, sorting, and filters.
  *
- * Notes:
- * - Filters are flattened into top-level query parameters.
- * - Errors are propagated as normalized AppError instances.
- *
  * @param params - Pagination, sorting, and filter options.
  * @returns Paginated allocation summaries.
  * @throws {AppError} When the request fails.
  */
 const fetchPaginatedInventoryAllocations = async (
-  params: FetchPaginatedInventoryAllocationsParams = {}
-): Promise<InventoryAllocationApiResponse> => {
-  const { filters = {}, ...rest } = params;
-
-  const flatParams = {
-    ...rest,
-    ...filters,
-  };
-
+  params: InventoryAllocationQueryParams = {}
+): Promise<PaginatedInventoryAllocationApiResponse> => {
+  const flatParams = flattenListQueryParams(params, []);
   const queryString = buildQueryString(flatParams);
   const url = `${API_ENDPOINTS.INVENTORY_ALLOCATIONS.ALL_ALLOCATIONS}${queryString}`;
-
-  return getRequest<InventoryAllocationApiResponse>(url);
+  
+  return getRequest<PaginatedInventoryAllocationApiResponse>(url, {
+    policy: 'READ',
+  });
 };
 
 /**
@@ -107,7 +99,7 @@ const fetchPaginatedInventoryAllocations = async (
 const confirmInventoryAllocation = async (
   orderId: string
 ): Promise<InventoryAllocationConfirmationResponse> => {
-  return postRequest<void, InventoryAllocationConfirmationResponse>(
+  return patchRequest<void, InventoryAllocationConfirmationResponse>(
     API_ENDPOINTS.INVENTORY_ALLOCATIONS.CONFIRM_ALLOCATION(orderId),
     undefined
   );

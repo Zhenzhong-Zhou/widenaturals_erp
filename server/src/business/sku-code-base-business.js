@@ -14,7 +14,10 @@ const {
 } = require('../utils/constants/domain/sku-code-base-constants');
 const { logSystemException } = require('../utils/logging/system-logger');
 const AppError = require('../utils/AppError');
-const { enforceActiveOnlyVisibilityRules, enrichWithActiveFlag } = require('./lookup-visibility');
+const {
+  enforceActiveOnlyVisibilityRules,
+  enrichWithActiveFlag,
+} = require('./lookup-visibility');
 
 const CONTEXT = 'sku-code-base-business';
 
@@ -28,10 +31,10 @@ const CONTEXT = 'sku-code-base-business';
  */
 const evaluateSkuCodeBaseLookupAccessControl = async (user) => {
   const context = `${CONTEXT}/evaluateSkuCodeBaseLookupAccessControl`;
-  
+
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     return {
       canViewAllStatuses:
         isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_SKU_CODE_BASES),
@@ -39,12 +42,11 @@ const evaluateSkuCodeBaseLookupAccessControl = async (user) => {
         isRoot || permissions.includes(PERMISSIONS.VIEW_ACTIVE_SKU_CODE_BASES),
     };
   } catch (err) {
-    logSystemException(
-      err,
-      'Failed to evaluate SKU code base access control',
-      { context, userId: user?.id }
-    );
-    
+    logSystemException(err, 'Failed to evaluate SKU code base access control', {
+      context,
+      userId: user?.id,
+    });
+
     throw AppError.businessError(
       'Unable to evaluate access control for SKU code base lookup.'
     );

@@ -2,16 +2,16 @@ const { fetchDynamicValue } = require('../03_utils');
 
 exports.seed = async function (knex) {
   console.log('Seeding batch_activity_types...');
-  
+
   const existing = await knex('batch_activity_types')
     .count('id as count')
     .first();
-  
+
   if (Number(existing?.count) > 0) {
     console.log('Batch activity types already seeded. Skipping.');
     return;
   }
-  
+
   const systemUserId = await fetchDynamicValue(
     knex,
     'users',
@@ -19,9 +19,9 @@ exports.seed = async function (knex) {
     'system@internal.local',
     'id'
   );
-  
+
   const now = knex.fn.now();
-  
+
   const activityTypes = [
     {
       name: 'Batch Created',
@@ -115,7 +115,7 @@ exports.seed = async function (knex) {
       is_active: true,
     },
   ];
-  
+
   const records = activityTypes.map((activity) => ({
     id: knex.raw('uuid_generate_v4()'),
     ...activity,
@@ -124,11 +124,11 @@ exports.seed = async function (knex) {
     created_by: systemUserId,
     updated_by: null,
   }));
-  
+
   await knex('batch_activity_types')
     .insert(records)
     .onConflict('code')
     .ignore();
-  
+
   console.log(`Seeded ${records.length} batch activity types.`);
 };

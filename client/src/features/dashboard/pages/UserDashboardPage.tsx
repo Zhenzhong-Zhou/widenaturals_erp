@@ -1,36 +1,39 @@
-import type { FC } from 'react';
-import type { DashboardPageProps } from '@features/dashboard';
-import DashboardLayout from '@features/dashboard/components/DashboardLayout';
-import CustomTypography from '@components/common/CustomTypography';
+import { type FC } from 'react';
+import Stack from '@mui/material/Stack';
 import { useAppSelector } from '@store/storeHooks';
 import { selectSelfUserFullName } from '@features/user';
-import { useHasPermission } from '@features/authorize/hooks';
-import InventoryOverviewHeaderSection from '@features/inventoryOverview/components/InventoryOverviewHeaderSection';
-import SkuWarehouseInventorySummarySection from '@features/warehouseInventory/components/SkuWarehouseInventorySummarySection';
 
-const UserDashboardPage: FC<DashboardPageProps> = ({}) => {
+import type { DashboardPageProps } from '@features/dashboard';
+import {
+  DashboardInventoryOverview,
+  DashboardLayout,
+  DashboardSectionGate,
+  DashboardWarehouseAlerts,
+  MyWarehouses,
+} from '@features/dashboard/components';
+import { CustomTypography } from '@components/index';
+import { useDashboardWarehouses } from '@features/dashboard/hooks';
+
+const UserDashboardPage: FC<DashboardPageProps> = () => {
   const fullName = useAppSelector(selectSelfUserFullName);
-  const hasPermission = useHasPermission();
-
-  const canShowInventoryOverview =
-    hasPermission('inventory.overview.view') === true;
-
-  const canShowWarehouseSummary =
-    hasPermission('warehouse.inventory.view') === true;
-
+  const { warehouses, loading, error, canView } = useDashboardWarehouses();
+  
   return (
     <DashboardLayout
       fullName={fullName ?? undefined}
       header={
-        <>
-          <CustomTypography variant="body1" gutterBottom>
-            User Overview
-          </CustomTypography>
-        </>
+        <CustomTypography variant="h6" fontWeight={600} gutterBottom>
+          Welcome
+        </CustomTypography>
       }
     >
-      {canShowInventoryOverview && <InventoryOverviewHeaderSection />}
-      {canShowWarehouseSummary && <SkuWarehouseInventorySummarySection />}
+      <Stack spacing={3}>
+        <DashboardSectionGate canView={canView} loading={loading} error={error}>
+          <DashboardInventoryOverview warehouses={warehouses} />
+          <DashboardWarehouseAlerts warehouses={warehouses} />
+        </DashboardSectionGate>
+        <MyWarehouses />
+      </Stack>
     </DashboardLayout>
   );
 };

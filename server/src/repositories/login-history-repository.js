@@ -38,17 +38,17 @@ const { LOGIN_HISTORY_INSERT } = require('./queries/login-history-queries');
  */
 const insertLoginHistory = async (entry, client) => {
   const context = 'login-history-repository/insertLoginHistory';
-  
+
   const {
     userId,
-    sessionId        = null,
-    tokenId          = null,
+    sessionId = null,
+    tokenId = null,
     authActionTypeId,
     status,
-    ipAddress        = null,
-    userAgent        = null,
+    ipAddress = null,
+    userAgent = null,
   } = entry;
-  
+
   const params = [
     userId,
     sessionId,
@@ -58,7 +58,7 @@ const insertLoginHistory = async (entry, client) => {
     ipAddress,
     userAgent,
   ];
-  
+
   try {
     await query(LOGIN_HISTORY_INSERT, params, client);
   } catch (error) {

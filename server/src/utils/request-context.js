@@ -64,15 +64,15 @@ const USER_AGENT_PARSE_LIMIT = 512;
  */
 const getClientIp = (req) => {
   if (!req || typeof req !== 'object') return undefined;
-  
+
   const ip = req.ip;
   if (!ip || typeof ip !== 'string') return undefined;
-  
+
   // Normalize IPv6-mapped IPv4 addresses (e.g. '::ffff:127.0.0.1' → '127.0.0.1')
   if (ip.startsWith('::ffff:')) {
     return ip.slice(7);
   }
-  
+
   return ip;
 };
 
@@ -115,35 +115,31 @@ const extractRequestContext = (req) => {
   if (!req || typeof req !== 'object') {
     return { traceId: 'system' };
   }
-  
+
   // Used to decide whether to use req.get() (Express) or req.headers directly
   const isExpressRequest = typeof req.get === 'function';
-  
+
   // ── traceId ─────────────────────────────────────────────────────────────
   // Set by attachTraceId middleware; fall back to 'system' for non-HTTP callers.
-  const traceId =
-    typeof req.traceId === 'string' ? req.traceId : 'system';
-  
+  const traceId = typeof req.traceId === 'string' ? req.traceId : 'system';
+
   // ── Method and route ────────────────────────────────────────────────────
-  const method =
-    typeof req.method === 'string' ? req.method : undefined;
-  
+  const method = typeof req.method === 'string' ? req.method : undefined;
+
   // Combine baseUrl + path to get the full matched route (e.g. /api/v1/users/123)
   const route =
     typeof req.baseUrl === 'string' && typeof req.path === 'string'
       ? req.baseUrl + req.path
       : undefined;
-  
+
   // ── Header helper ───────────────────────────────────────────────────────
   // req.get() is preferred on Express (handles header name case-insensitivity).
   const getHeader = (name) =>
-    isExpressRequest
-      ? req.get(name)
-      : req.headers?.[name.toLowerCase()];
-  
+    isExpressRequest ? req.get(name) : req.headers?.[name.toLowerCase()];
+
   // ── User-Agent ──────────────────────────────────────────────────────────
   const userAgent = getHeader('user-agent') || undefined;
-  
+
   // Lazy UA parsing — skip if missing or suspiciously long (adversarial input)
   let parsedUserAgent;
   if (userAgent && userAgent.length < USER_AGENT_PARSE_LIMIT) {
@@ -153,10 +149,10 @@ const extractRequestContext = (req) => {
       parsedUserAgent = `${uaInfo.os || 'Device'} (${uaInfo.browser || 'browser'})`;
     }
   }
-  
+
   // ── Device ID ───────────────────────────────────────────────────────────
   const rawDeviceId = getHeader('x-device-id');
-  
+
   // Enforce length bounds to reject malformed or padded values
   const deviceId =
     typeof rawDeviceId === 'string' &&
@@ -164,47 +160,57 @@ const extractRequestContext = (req) => {
     rawDeviceId.length <= DEVICE_ID_MAX_LENGTH
       ? rawDeviceId
       : undefined;
-  
+
   // ── IP address ──────────────────────────────────────────────────────────
   const ipAddress = getClientIp(req);
-  
+
   // ── userId ──────────────────────────────────────────────────────────────
   // Sourced from auth middleware. Optional — unauthenticated routes won't have it.
   // Adding here avoids repeating `userId: user.id` in every controller log call.
   const userId = req.auth?.user?.id ?? undefined;
-  
+
   // ── Pagination and sorting ──────────────────────────────────────────────
   // Sourced from query-normalizer middleware. Only present on paginated routes.
   let pagination;
   let sorting;
   let filters;
-  
+
   if (req.normalizedQuery && typeof req.normalizedQuery === 'object') {
-    const { page, limit, sortBy, sortOrder, filters: rawFilters } = req.normalizedQuery;
-    
+    const {
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+      filters: rawFilters,
+    } = req.normalizedQuery;
+
     if (page != null && limit != null) {
       pagination = {
-        page:  String(page),
+        page: String(page),
         limit: String(limit),
       };
     }
-    
+
     if (sortBy != null && sortOrder != null) {
       sorting = {
-        sortBy:    String(sortBy),
+        sortBy: String(sortBy),
         // sortOrder is always 'asc' | 'desc' — safe to log as-is
         sortOrder: String(sortOrder),
       };
     }
-    
+
     // Log filter keys and values. Values are assumed enum-safe (validated upstream).
     // If filters ever contain free-text user input, log keys only to avoid PII leakage:
     //   filters = rawFilters ? Object.fromEntries(Object.keys(rawFilters).map(k => [k, '[redacted]'])) : undefined;
-    if (rawFilters && typeof rawFilters === 'object' && Object.keys(rawFilters).length > 0) {
+    if (
+      rawFilters &&
+      typeof rawFilters === 'object' &&
+      Object.keys(rawFilters).length > 0
+    ) {
       filters = rawFilters;
     }
   }
-  
+
   // ── Assemble and return ─────────────────────────────────────────────────
   // All optional fields are explicitly set to `undefined` rather than omitted
   // via conditional spreading, so the shape is always predictable for log parsers.

@@ -39,12 +39,12 @@
 
 'use strict';
 
-const path   = require('path');
-const fs     = require('fs');
+const path = require('path');
+const fs = require('fs');
 const crypto = require('crypto');
 const multer = require('multer');
 
-const AppError             = require('../utils/AppError');
+const AppError = require('../utils/AppError');
 const { logSystemException } = require('../utils/logging/system-logger');
 
 const CONTEXT = 'middleware/upload';
@@ -70,8 +70,9 @@ try {
 // -----------------------------------------------------------------------------
 // Limits — read from env so they can be tuned without a code change
 // -----------------------------------------------------------------------------
-const MAX_FILE_SIZE_MB = parseInt(process.env.UPLOAD_MAX_FILE_SIZE_MB, 10) || 50;
-const MAX_FILES        = parseInt(process.env.UPLOAD_MAX_FILES, 10)        || 100;
+const MAX_FILE_SIZE_MB =
+  parseInt(process.env.UPLOAD_MAX_FILE_SIZE_MB, 10) || 50;
+const MAX_FILES = parseInt(process.env.UPLOAD_MAX_FILES, 10) || 100;
 
 // -----------------------------------------------------------------------------
 // Allowed MIME types
@@ -91,13 +92,13 @@ const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {
     cb(null, uploadDir);
   },
-  
+
   filename: (_req, file, cb) => {
     // crypto.randomBytes produces a collision-resistant name without relying
     // on Math.random(), which is not cryptographically safe.
     const uniquePrefix = crypto.randomBytes(16).toString('hex');
-    const ext          = path.extname(file.originalname).toLowerCase();
-    
+    const ext = path.extname(file.originalname).toLowerCase();
+
     cb(null, `${uniquePrefix}${ext}`);
   },
 });
@@ -123,12 +124,12 @@ const storage = multer.diskStorage({
  */
 const upload = multer({
   storage,
-  
+
   limits: {
     fileSize: MAX_FILE_SIZE_MB * 1024 * 1024,
-    files:    MAX_FILES,
+    files: MAX_FILES,
   },
-  
+
   fileFilter: (_req, file, cb) => {
     // Reject unsupported MIME types immediately — normalized to AppError here
     // so the error reaches the handler pipeline already shaped correctly.
@@ -136,7 +137,7 @@ const upload = multer({
       cb(AppError.fileUploadError(`Unsupported file type: ${file.mimetype}.`));
       return;
     }
-    
+
     cb(null, true);
   },
 });
@@ -174,10 +175,8 @@ const upload = multer({
  */
 const createUploadMiddleware = (method, arg) => {
   // Build the multer handler once at factory time, not per request.
-  const handler = arg !== undefined
-    ? upload[method](arg)
-    : upload[method]();
-  
+  const handler = arg !== undefined ? upload[method](arg) : upload[method]();
+
   return (req, res, next) => {
     handler(req, res, (err) => {
       // No error — continue to next middleware normally.
@@ -185,7 +184,7 @@ const createUploadMiddleware = (method, arg) => {
         next();
         return;
       }
-      
+
       // Normalize raw MulterError (size limit, file count, unexpected field)
       // to AppError at the source. The file-upload-error-handler downstream
       // only needs to match type, log, and respond.
@@ -195,13 +194,13 @@ const createUploadMiddleware = (method, arg) => {
             // Capture multer-specific context for observability.
             // toJSON() strips meta so it never reaches the client response.
             meta: {
-              field:     err.field ?? null,
-              errorCode: err.code  ?? null,
+              field: err.field ?? null,
+              errorCode: err.code ?? null,
             },
           })
         );
       }
-      
+
       // AppError from fileFilter (MIME type rejection) — already normalized,
       // forward as-is. Unknown errors also forward as-is for globalErrorHandler.
       next(err);

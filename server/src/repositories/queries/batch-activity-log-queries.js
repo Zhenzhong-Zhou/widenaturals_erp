@@ -31,7 +31,7 @@ const BATCH_ACTIVITY_LOG_COLUMNS = [
 ];
 
 // No conflict target — batch activity logs are append-only, never upserted.
-const BATCH_ACTIVITY_LOG_CONFLICT_COLUMNS  = [];
+const BATCH_ACTIVITY_LOG_CONFLICT_COLUMNS = [];
 const BATCH_ACTIVITY_LOG_UPDATE_STRATEGIES = {};
 
 module.exports = {

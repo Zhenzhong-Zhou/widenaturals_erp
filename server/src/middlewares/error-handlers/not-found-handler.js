@@ -31,9 +31,7 @@ const CONTEXT = 'middleware/not-found-handler';
  */
 const notFoundHandler = (req, _res, next) => {
   next(
-    AppError.notFoundError(
-      `Route not found: ${req.method} ${req.originalUrl}`
-    )
+    AppError.notFoundError(`Route not found: ${req.method} ${req.originalUrl}`)
   );
 };
 

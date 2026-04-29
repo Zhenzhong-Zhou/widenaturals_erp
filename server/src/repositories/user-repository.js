@@ -32,7 +32,10 @@ const {
 } = require('../utils/db/pagination/pagination-helpers');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { logDbQueryError } = require('../utils/db-logger');
-const { logSystemInfo, logSystemException } = require('../utils/logging/system-logger');
+const {
+  logSystemInfo,
+  logSystemException,
+} = require('../utils/logging/system-logger');
 const { maskEmail } = require('../utils/masking/mask-primitives');
 const AppError = require('../utils/AppError');
 const { buildUserFilter } = require('../utils/sql/build-user-filter');
@@ -79,7 +82,7 @@ const {
  */
 const insertUser = async (user, client) => {
   const context = 'user-repository/insertUser';
-  
+
   const {
     email,
     roleId,
@@ -93,12 +96,21 @@ const insertUser = async (user, client) => {
     updatedBy = null,
     updatedAt = null,
   } = user;
-  
+
   const params = [
-    email, roleId, statusId, firstname, lastname,
-    phoneNumber, jobTitle, note, createdBy, updatedBy, updatedAt,
+    email,
+    roleId,
+    statusId,
+    firstname,
+    lastname,
+    phoneNumber,
+    jobTitle,
+    note,
+    createdBy,
+    updatedBy,
+    updatedAt,
   ];
-  
+
   try {
     const { rows } = await query(INSERT_USER_QUERY, params, client);
     return rows[0];
@@ -106,8 +118,9 @@ const insertUser = async (user, client) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to insert user.',
-      meta:    { email: maskEmail(email) },
-      logFn:   (err) => logDbQueryError(INSERT_USER_QUERY, params, err, { context }),
+      meta: { email: maskEmail(email) },
+      logFn: (err) =>
+        logDbQueryError(INSERT_USER_QUERY, params, err, { context }),
     });
   }
 };
@@ -127,17 +140,17 @@ const insertUser = async (user, client) => {
  */
 const userExistsByField = async (field, value, client) => {
   const context = 'user-repository/userExistsByField';
-  
+
   if (!['id', 'email'].includes(field)) {
     throw AppError.validationError('Invalid field for user existence check.', {
       context,
       field,
     });
   }
-  
+
   const queryText = buildUserExistsByFieldQuery(field);
-  const params    = [value];
-  
+  const params = [value];
+
   try {
     const { rowCount } = await query(queryText, params, client);
     return rowCount > 0;
@@ -145,8 +158,9 @@ const userExistsByField = async (field, value, client) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to check user existence.',
-      meta:    { field },
-      logFn:   (err) => logDbQueryError(queryText, params, err, { context, field }),
+      meta: { field },
+      logFn: (err) =>
+        logDbQueryError(queryText, params, err, { context, field }),
     });
   }
 };
@@ -163,22 +177,25 @@ const userExistsByField = async (field, value, client) => {
  */
 const activeUserExistsByEmail = async (email, activeStatusId, client) => {
   const context = 'user-repository/activeUserExistsByEmail';
-  const params  = [email, activeStatusId];
-  
+  const params = [email, activeStatusId];
+
   try {
-    const { rowCount } = await query(ACTIVE_USER_EXISTS_BY_EMAIL_QUERY, params, client);
+    const { rowCount } = await query(
+      ACTIVE_USER_EXISTS_BY_EMAIL_QUERY,
+      params,
+      client
+    );
     return rowCount > 0;
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to check active user existence.',
-      meta:    { email },
-      logFn:   (err) => logDbQueryError(
-        ACTIVE_USER_EXISTS_BY_EMAIL_QUERY,
-        params,
-        err,
-        { context, email }
-      ),
+      meta: { email },
+      logFn: (err) =>
+        logDbQueryError(ACTIVE_USER_EXISTS_BY_EMAIL_QUERY, params, err, {
+          context,
+          email,
+        }),
     });
   }
 };
@@ -201,51 +218,52 @@ const activeUserExistsByEmail = async (email, activeStatusId, client) => {
  * @throws  {AppError}        Normalized database error if the query fails.
  */
 const getPaginatedUsers = async ({
-                                   filters   = {},
-                                   page      = 1,
-                                   limit     = 10,
-                                   sortBy    = 'createdAt',
-                                   sortOrder = 'DESC',
-                                 }) => {
+  filters = {},
+  page = 1,
+  limit = 10,
+  sortBy = 'createdAt',
+  sortOrder = 'DESC',
+}) => {
   const context = 'user-repository/getPaginatedUsers';
-  
+
   const { whereClause, params } = buildUserFilter(filters);
-  
+
   const sortConfig = resolveSort({
     sortBy,
     sortOrder,
-    moduleKey:   'userSortMap',
+    moduleKey: 'userSortMap',
     defaultSort: SORTABLE_FIELDS.userSortMap.defaultNaturalSort,
   });
-  
+
   // ORDER BY omitted — paginateQuery appends it from sortConfig.
   const queryText = buildPaginatedUsersQuery(whereClause);
-  
+
   try {
     return await paginateQuery({
-      tableName:    USER_LIST_TABLE,
-      joins:        USER_LIST_JOINS,
+      tableName: USER_LIST_TABLE,
+      joins: USER_LIST_JOINS,
       whereClause,
       queryText,
       params,
       page,
       limit,
-      sortBy:       sortConfig.sortBy,
-      sortOrder:    sortConfig.sortOrder,
+      sortBy: sortConfig.sortBy,
+      sortOrder: sortConfig.sortOrder,
       whitelistSet: USER_LIST_SORT_WHITELIST,
-      meta:         { context },
+      meta: { context },
     });
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch paginated user records.',
-      meta:    { filters, page, limit, sortBy, sortOrder },
-      logFn:   (err) => logDbQueryError(
-        queryText,
-        params,
-        err,
-        { context, filters, page, limit }
-      ),
+      meta: { filters, page, limit, sortBy, sortOrder },
+      logFn: (err) =>
+        logDbQueryError(queryText, params, err, {
+          context,
+          filters,
+          page,
+          limit,
+        }),
     });
   }
 };
@@ -265,8 +283,8 @@ const getPaginatedUsers = async ({
  */
 const getUserProfileById = async (userId, activeStatusId) => {
   const context = 'user-repository/getUserProfileById';
-  const params  = [userId, activeStatusId];
-  
+  const params = [userId, activeStatusId];
+
   try {
     const { rows } = await query(GET_USER_PROFILE_BY_ID_QUERY, params);
     return rows[0] ?? null;
@@ -274,13 +292,12 @@ const getUserProfileById = async (userId, activeStatusId) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch user profile.',
-      meta:    { userId },
-      logFn:   (err) => logDbQueryError(
-        GET_USER_PROFILE_BY_ID_QUERY,
-        params,
-        err,
-        { context, userId }
-      ),
+      meta: { userId },
+      logFn: (err) =>
+        logDbQueryError(GET_USER_PROFILE_BY_ID_QUERY, params, err, {
+          context,
+          userId,
+        }),
     });
   }
 };
@@ -304,48 +321,49 @@ const getUserProfileById = async (userId, activeStatusId) => {
  * @throws  {AppError}        Normalized database error if the query fails.
  */
 const getUserLookup = async ({
-                               filters = {},
-                               options = {},
-                               limit   = 50,
-                               offset  = 0,
-                             }) => {
+  filters = {},
+  options = {},
+  limit = 50,
+  offset = 0,
+}) => {
   const context = 'user-repository/getUserLookup';
-  
+
   const { canSearchRole = false, canSearchStatus = false } = options;
-  
-  const joins     = buildUserLookupJoins(canSearchRole, canSearchStatus);
+
+  const joins = buildUserLookupJoins(canSearchRole, canSearchStatus);
   const { whereClause, params } = buildUserFilter(filters, {
     canSearchRole,
     canSearchStatus,
   });
-  
+
   const queryText = buildUserLookupQuery(whereClause, joins);
-  
+
   try {
     return await paginateQueryByOffset({
-      tableName:       USER_LOOKUP_TABLE,
+      tableName: USER_LOOKUP_TABLE,
       joins,
       whereClause,
       queryText,
       params,
       offset,
       limit,
-      sortBy:          'u.firstname',
-      sortOrder:       'ASC',
+      sortBy: 'u.firstname',
+      sortOrder: 'ASC',
       additionalSorts: USER_LOOKUP_ADDITIONAL_SORTS,
-      whitelistSet:    USER_LOOKUP_SORT_WHITELIST,
+      whitelistSet: USER_LOOKUP_SORT_WHITELIST,
     });
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch user lookup.',
-      meta:    { filters, offset, limit, options },
-      logFn:   (err) => logDbQueryError(
-        queryText,
-        params,
-        err,
-        { context, filters, offset, limit }
-      ),
+      meta: { filters, offset, limit, options },
+      logFn: (err) =>
+        logDbQueryError(queryText, params, err, {
+          context,
+          filters,
+          offset,
+          limit,
+        }),
     });
   }
 };
@@ -365,19 +383,19 @@ const getUserLookup = async ({
  */
 const getAuthUserById = async (userId, client = null) => {
   const context = 'user-repository/getAuthUserById';
-  
+
   try {
     const { rows } = await query(GET_AUTH_USER_BY_ID_QUERY, [userId], client);
-    
+
     if (!rows[0]) return null;
-    
+
     logSystemInfo('Auth user fetched by ID', {
       context,
-      userId:   rows[0].id,
-      roleId:   rows[0].role_id,
-      status:   rows[0].status_name,
+      userId: rows[0].id,
+      roleId: rows[0].role_id,
+      status: rows[0].status_name,
     });
-    
+
     return rows[0];
   } catch (error) {
     logSystemException(error, 'Failed to fetch auth user by ID', {

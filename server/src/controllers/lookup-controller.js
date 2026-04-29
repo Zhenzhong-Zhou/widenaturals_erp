@@ -42,7 +42,9 @@ const {
   fetchBatchStatusLookupService,
   fetchPackagingMaterialSupplierLookupService,
 } = require('../services/lookup-service');
-const { createLookupController } = require('./factories/lookup-controller-factory');
+const {
+  createLookupController,
+} = require('./factories/lookup-controller-factory');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Batch Registry
@@ -56,9 +58,9 @@ const { createLookupController } = require('./factories/lookup-controller-factor
  * @permission view_batch_registry_lookup
  */
 const getBatchRegistryLookupController = createLookupController({
-  service:        fetchBatchRegistryLookupService,
+  service: fetchBatchRegistryLookupService,
   successMessage: 'Batch registry lookup retrieved successfully.',
-  passUser:       false,
+  passUser: false,
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -73,7 +75,7 @@ const getBatchRegistryLookupController = createLookupController({
  * @permission view_warehouse_lookup
  */
 const getWarehouseLookupController = createLookupController({
-  service:        fetchWarehouseLookupService,
+  service: fetchWarehouseLookupService,
   successMessage: 'Warehouse lookup retrieved successfully.',
 });
 
@@ -89,7 +91,7 @@ const getWarehouseLookupController = createLookupController({
  * @permission view_lot_adjustment_lookup
  */
 const getLotAdjustmentLookupController = createLookupController({
-  service:        fetchLotAdjustmentLookupService,
+  service: fetchLotAdjustmentLookupService,
   successMessage: 'Lot adjustment lookup retrieved successfully.',
 });
 
@@ -102,7 +104,7 @@ const getLotAdjustmentLookupController = createLookupController({
  * @permission view_customer_lookup
  */
 const getCustomerLookupController = createLookupController({
-  service:        fetchCustomerLookupService,
+  service: fetchCustomerLookupService,
   successMessage: 'Customer lookup retrieved successfully.',
 });
 
@@ -135,7 +137,7 @@ const getCustomerAddressLookupController = createLookupController({
  * @permission view_order_type_lookup
  */
 const getOrderTypeLookupController = createLookupController({
-  service:        fetchOrderTypeLookupService,
+  service: fetchOrderTypeLookupService,
   successMessage: 'Order type lookup retrieved successfully.',
 });
 
@@ -148,7 +150,7 @@ const getOrderTypeLookupController = createLookupController({
  * @permission view_payment_method_lookup
  */
 const getPaymentMethodLookupController = createLookupController({
-  service:        fetchPaginatedPaymentMethodLookupService,
+  service: fetchPaginatedPaymentMethodLookupService,
   successMessage: 'Payment method lookup retrieved successfully.',
 });
 
@@ -161,7 +163,7 @@ const getPaymentMethodLookupController = createLookupController({
  * @permission view_discount_lookup
  */
 const getDiscountLookupController = createLookupController({
-  service:        fetchPaginatedDiscountLookupService,
+  service: fetchPaginatedDiscountLookupService,
   successMessage: 'Discount lookup retrieved successfully.',
 });
 
@@ -174,7 +176,7 @@ const getDiscountLookupController = createLookupController({
  * @permission view_tax_rate_lookup
  */
 const getTaxRateLookupController = createLookupController({
-  service:        fetchPaginatedTaxRateLookupService,
+  service: fetchPaginatedTaxRateLookupService,
   successMessage: 'Tax rate lookup retrieved successfully.',
 });
 
@@ -187,7 +189,7 @@ const getTaxRateLookupController = createLookupController({
  * @permission view_delivery_method_lookup
  */
 const getDeliveryMethodLookupController = createLookupController({
-  service:        fetchPaginatedDeliveryMethodLookupService,
+  service: fetchPaginatedDeliveryMethodLookupService,
   successMessage: 'Delivery method lookup retrieved successfully.',
 });
 
@@ -200,7 +202,7 @@ const getDeliveryMethodLookupController = createLookupController({
  * @permission view_sku_lookup
  */
 const getSkuLookupController = createLookupController({
-  service:        fetchPaginatedSkuLookupService,
+  service: fetchPaginatedSkuLookupService,
   successMessage: 'SKU lookup retrieved successfully.',
 });
 
@@ -225,7 +227,7 @@ const getPricingGroupLookupController = createLookupController({
       limit,
       offset,
       displayOptions: {
-        showSku:   !filters?.skuId,
+        showSku: !filters?.skuId,
         labelOnly: options?.labelOnly,
       },
     });
@@ -265,7 +267,7 @@ const getPackagingMaterialLookupController = createLookupController({
  * @permission view_sku_code_base_lookup
  */
 const getSkuCodeBaseLookupController = createLookupController({
-  service:        fetchSkuCodeBaseLookupService,
+  service: fetchSkuCodeBaseLookupService,
   successMessage: 'SKU code base lookup retrieved successfully.',
 });
 
@@ -278,7 +280,7 @@ const getSkuCodeBaseLookupController = createLookupController({
  * @permission view_product_lookup
  */
 const getProductLookupController = createLookupController({
-  service:        fetchProductLookupService,
+  service: fetchProductLookupService,
   successMessage: 'Product lookup retrieved successfully.',
 });
 
@@ -291,7 +293,7 @@ const getProductLookupController = createLookupController({
  * @permission view_status_lookup
  */
 const getStatusLookupController = createLookupController({
-  service:        fetchStatusLookupService,
+  service: fetchStatusLookupService,
   successMessage: 'Status lookup retrieved successfully.',
 });
 
@@ -304,7 +306,7 @@ const getStatusLookupController = createLookupController({
  * @permission view_user_lookup
  */
 const getUserLookupController = createLookupController({
-  service:        fetchUserLookupService,
+  service: fetchUserLookupService,
   successMessage: 'User lookup retrieved successfully.',
 });
 
@@ -317,7 +319,7 @@ const getUserLookupController = createLookupController({
  * @permission view_role_lookup
  */
 const getRoleLookupController = createLookupController({
-  service:        fetchRoleLookupService,
+  service: fetchRoleLookupService,
   successMessage: 'Role lookup retrieved successfully.',
 });
 
@@ -330,7 +332,7 @@ const getRoleLookupController = createLookupController({
  * @permission view_manufacturer_lookup
  */
 const getManufacturerLookupController = createLookupController({
-  service:        fetchManufacturerLookupService,
+  service: fetchManufacturerLookupService,
   successMessage: 'Manufacturer lookup retrieved successfully.',
 });
 
@@ -343,7 +345,7 @@ const getManufacturerLookupController = createLookupController({
  * @permission view_supplier_lookup
  */
 const getSupplierLookupController = createLookupController({
-  service:        fetchSupplierLookupService,
+  service: fetchSupplierLookupService,
   successMessage: 'Supplier lookup retrieved successfully.',
 });
 
@@ -356,7 +358,7 @@ const getSupplierLookupController = createLookupController({
  * @permission view_location_type_lookup
  */
 const getLocationTypeLookupController = createLookupController({
-  service:        fetchLocationTypeLookupService,
+  service: fetchLocationTypeLookupService,
   successMessage: 'Location type lookup retrieved successfully.',
 });
 
@@ -369,7 +371,7 @@ const getLocationTypeLookupController = createLookupController({
  * @permission view_batch_status_lookup
  */
 const getBatchStatusLookupController = createLookupController({
-  service:        fetchBatchStatusLookupService,
+  service: fetchBatchStatusLookupService,
   successMessage: 'Batch status lookup retrieved successfully.',
 });
 
@@ -382,7 +384,7 @@ const getBatchStatusLookupController = createLookupController({
  * @permission view_packaging_material_supplier_lookup
  */
 const getPackagingMaterialSupplierLookupController = createLookupController({
-  service:        fetchPackagingMaterialSupplierLookupService,
+  service: fetchPackagingMaterialSupplierLookupService,
   successMessage: 'Packaging material supplier lookup retrieved successfully.',
 });
 

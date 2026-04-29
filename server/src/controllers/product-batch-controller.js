@@ -46,27 +46,29 @@ const {
  * Reads from req.normalizedQuery — populated by createQueryNormalizationMiddleware.
  * Requires: auth middleware, query normalizer, VIEW_PRODUCT_BATCHES permission.
  */
-const getPaginatedProductBatchesController = wrapAsyncHandler(async (req, res) => {
-  const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
-  const user = req.auth.user;
-  
-  const { data, pagination } = await fetchPaginatedProductBatchesService({
-    filters,
-    page,
-    limit,
-    sortBy,
-    sortOrder,
-    user,
-  });
-  
-  res.status(200).json({
-    success:   true,
-    message:   'Product batches retrieved successfully.',
-    data,
-    pagination,
-    traceId:   req.traceId,
-  });
-});
+const getPaginatedProductBatchesController = wrapAsyncHandler(
+  async (req, res) => {
+    const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
+    const user = req.auth.user;
+
+    const { data, pagination } = await fetchPaginatedProductBatchesService({
+      filters,
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+      user,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Product batches retrieved successfully.',
+      data,
+      pagination,
+      traceId: req.traceId,
+    });
+  }
+);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/v1/product-batches
@@ -80,14 +82,14 @@ const getPaginatedProductBatchesController = wrapAsyncHandler(async (req, res) =
  */
 const createProductBatchesController = wrapAsyncHandler(async (req, res) => {
   const { productBatches } = req.body;
-  const user               = req.auth.user;
-  
+  const user = req.auth.user;
+
   const result = await createProductBatchesService(productBatches, user);
-  
+
   res.status(201).json({
     success: true,
     message: 'Product batches created successfully.',
-    data:    result,
+    data: result,
     traceId: req.traceId,
   });
 });
@@ -104,9 +106,9 @@ const createProductBatchesController = wrapAsyncHandler(async (req, res) => {
  */
 const getProductBatchDetailsController = wrapAsyncHandler(async (req, res) => {
   const { batchId } = req.params;
-  
+
   const data = await fetchProductBatchDetailsService(batchId);
-  
+
   res.status(200).json({
     success: true,
     message: 'Product batch details retrieved successfully.',
@@ -124,19 +126,25 @@ const getProductBatchDetailsController = wrapAsyncHandler(async (req, res) => {
  *
  * Requires: auth middleware, Joi body validation, EDIT_PRODUCT_BATCH permission.
  */
-const editProductBatchMetadataController = wrapAsyncHandler(async (req, res) => {
-  const { batchId } = req.params;
-  const user        = req.auth.user;
-  
-  const result = await editProductBatchMetadataService(batchId, req.body, user);
-  
-  res.status(200).json({
-    success: true,
-    message: 'Product batch updated successfully.',
-    data:    result,
-    traceId: req.traceId,
-  });
-});
+const editProductBatchMetadataController = wrapAsyncHandler(
+  async (req, res) => {
+    const { batchId } = req.params;
+    const user = req.auth.user;
+
+    const result = await editProductBatchMetadataService(
+      batchId,
+      req.body,
+      user
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Product batch updated successfully.',
+      data: result,
+      traceId: req.traceId,
+    });
+  }
+);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PATCH /api/v1/product-batches/:batchId/status
@@ -147,25 +155,27 @@ const editProductBatchMetadataController = wrapAsyncHandler(async (req, res) => 
  *
  * Requires: auth middleware, Joi body validation, UPDATE_PRODUCT_BATCH_STATUS permission.
  */
-const updateProductBatchStatusController = wrapAsyncHandler(async (req, res) => {
-  const { batchId }          = req.params;
-  const { status_id, notes } = req.body;
-  const user                 = req.auth.user;
-  
-  const result = await updateProductBatchStatusService(
-    batchId,
-    status_id,
-    notes,
-    user,
-  );
-  
-  res.status(200).json({
-    success: true,
-    message: 'Product batch status updated successfully.',
-    data:    result,
-    traceId: req.traceId,
-  });
-});
+const updateProductBatchStatusController = wrapAsyncHandler(
+  async (req, res) => {
+    const { batchId } = req.params;
+    const { status_id, notes } = req.body;
+    const user = req.auth.user;
+
+    const result = await updateProductBatchStatusService(
+      batchId,
+      status_id,
+      notes,
+      user
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Product batch status updated successfully.',
+      data: result,
+      traceId: req.traceId,
+    });
+  }
+);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PATCH /api/v1/product-batches/:batchId/receive
@@ -177,21 +187,21 @@ const updateProductBatchStatusController = wrapAsyncHandler(async (req, res) => 
  * Requires: auth middleware, Joi body validation, RECEIVE_PRODUCT_BATCH permission.
  */
 const receiveProductBatchController = wrapAsyncHandler(async (req, res) => {
-  const { batchId }            = req.params;
+  const { batchId } = req.params;
   const { received_at, notes } = req.body;
-  const user                   = req.auth.user;
-  
+  const user = req.auth.user;
+
   const result = await receiveProductBatchService(
     batchId,
     received_at,
     notes,
-    user,
+    user
   );
-  
+
   res.status(200).json({
     success: true,
     message: 'Product batch marked as received.',
-    data:    result,
+    data: result,
     traceId: req.traceId,
   });
 });
@@ -206,21 +216,21 @@ const receiveProductBatchController = wrapAsyncHandler(async (req, res) => {
  * Requires: auth middleware, Joi body validation, RELEASE_PRODUCT_BATCH permission.
  */
 const releaseProductBatchController = wrapAsyncHandler(async (req, res) => {
-  const { batchId }                  = req.params;
-  const { manufacturer_id, notes }   = req.body;
-  const user                         = req.auth.user;
-  
+  const { batchId } = req.params;
+  const { manufacturer_id, notes } = req.body;
+  const user = req.auth.user;
+
   const result = await releaseProductBatchService(
     batchId,
     manufacturer_id,
     notes,
-    user,
+    user
   );
-  
+
   res.status(200).json({
     success: true,
     message: 'Product batch released successfully.',
-    data:    result,
+    data: result,
     traceId: req.traceId,
   });
 });

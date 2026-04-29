@@ -1,50 +1,48 @@
 import { createSlice } from '@reduxjs/toolkit';
-import type { CreateWarehouseInventoryState } from './warehouseInventoryTypes';
-import { createWarehouseInventoryRecordsThunk } from '@features/warehouseInventory/state/warehouseInventoryThunks';
+import { createWarehouseInventoryThunk } from './warehouseInventoryThunks';
+import type {
+  WarehouseInventoryCreateState,
+  CreateWarehouseInventoryResponse,
+} from './warehouseInventoryTypes';
 import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
-const initialState: CreateWarehouseInventoryState = {
+const initialState: WarehouseInventoryCreateState = {
   data: null,
   loading: false,
   error: null,
 };
 
-const createWarehouseInventorySlice = createSlice({
-  name: 'createWarehouseInventory',
+const warehouseInventoryCreateSlice = createSlice({
+  name: 'warehouseInventoryCreate',
   initialState,
   reducers: {
-    resetCreateWarehouseInventory: (state) => {
-      state.loading = false;
-      state.error = null;
-      state.data = null;
-    },
+    resetWarehouseInventoryCreate: () => initialState,
   },
   extraReducers: (builder) => {
     builder
-      .addCase(createWarehouseInventoryRecordsThunk.pending, (state) => {
+      .addCase(createWarehouseInventoryThunk.pending, (state) => {
         state.loading = true;
         state.error = null;
+        state.data = null;
       })
-      .addCase(
-        createWarehouseInventoryRecordsThunk.fulfilled,
-        (state, action) => {
-          state.loading = false;
-          state.data = action.payload;
-        }
-      )
-      .addCase(
-        createWarehouseInventoryRecordsThunk.rejected,
-        (state, action) => {
-          applyRejected(
-            state,
-            action,
-            'Failed to create warehouse inventory records.'
-          );
-        }
-      );
+      .addCase(createWarehouseInventoryThunk.fulfilled, (state, action) => {
+        state.loading = false;
+        state.error = null;
+        
+        const result = action.payload as CreateWarehouseInventoryResponse;
+        
+        state.data = result.data;
+        state.success = result.success;
+        state.message = result.message;
+      })
+      .addCase(createWarehouseInventoryThunk.rejected, (state, action) => {
+        state.data = null;
+        applyRejected(state, action, 'Failed to create warehouse inventory record(s).');
+      });
   },
 });
 
-export const { resetCreateWarehouseInventory } =
-  createWarehouseInventorySlice.actions;
-export default createWarehouseInventorySlice.reducer;
+export const { resetWarehouseInventoryCreate } =
+  warehouseInventoryCreateSlice.actions;
+
+export default warehouseInventoryCreateSlice.reducer;

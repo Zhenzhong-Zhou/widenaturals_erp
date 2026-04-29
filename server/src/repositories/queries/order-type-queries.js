@@ -62,10 +62,7 @@ const buildOrderTypePaginatedQuery = (whereClause) => `
 
 const ORDER_TYPE_LOOKUP_TABLE = 'order_types ot';
 
-const ORDER_TYPE_LOOKUP_SORT_WHITELIST = new Set([
-  'ot.name',
-  'ot.id',
-]);
+const ORDER_TYPE_LOOKUP_SORT_WHITELIST = new Set(['ot.name', 'ot.id']);
 
 /**
  * @param {string} whereClause - Parameterised WHERE predicate from buildOrderTypeFilter.

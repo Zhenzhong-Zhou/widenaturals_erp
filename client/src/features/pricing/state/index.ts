@@ -6,8 +6,7 @@ export { pricingReducers } from './pricingReducers';
 // --------------------------------------------------
 // Selectors
 // --------------------------------------------------
-export * from './pricingListSelectors';
-export * from './pricingListByTypeSelectors';
+export * from './paginatedPricingSelectors';
 
 // --------------------------------------------------
 // Thunks & Types

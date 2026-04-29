@@ -19,13 +19,13 @@ const generateHash = async (filePath) => {
   return new Promise((resolve, reject) => {
     const hash = crypto.createHash('sha256');
     const stream = fs.createReadStream(filePath);
-    
+
     // Update hash incrementally as data is read
     stream.on('data', (chunk) => hash.update(chunk));
-    
+
     // Finalize hash when stream ends
     stream.on('end', () => resolve(hash.digest('hex')));
-    
+
     // Propagate stream errors
     stream.on('error', reject);
   });
@@ -60,22 +60,22 @@ const verifyFileIntegrity = async (filePath, expectedHash) => {
     if (!filePath || !expectedHash) {
       throw new Error('Invalid input: filePath and expectedHash are required');
     }
-    
+
     logSystemInfo('Verifying file integrity', {
       context: 'backup',
       operation: 'verifyFileIntegrity',
       filePath,
     });
-    
+
     const generatedHash = await generateHash(filePath);
-    
+
     // Strict comparison (no trimming — hashes must match exactly)
     if (generatedHash !== expectedHash) {
       throw new Error(
         'File integrity check failed: hash mismatch (possible corruption or tampering)'
       );
     }
-    
+
     logSystemInfo('File integrity verified successfully', {
       context: 'backup',
       operation: 'verifyFileIntegrity',
@@ -87,7 +87,7 @@ const verifyFileIntegrity = async (filePath, expectedHash) => {
       operation: 'verifyFileIntegrity',
       filePath,
     });
-    
+
     throw error;
   }
 };

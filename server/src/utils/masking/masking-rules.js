@@ -1,9 +1,4 @@
-const {
-  maskEmail,
-  maskUUID,
-  maskId,
-  maskFull,
-} = require('./mask-primitives');
+const { maskEmail, maskUUID, maskId, maskFull } = require('./mask-primitives');
 
 /**
  * Domain-specific masking rules.
@@ -18,12 +13,12 @@ const MASKING_RULES = {
     email: maskEmail,
     user_id: maskUUID,
   },
-  
+
   user_auth: {
     user_id: maskUUID,
     password_hash: maskFull,
   },
-  
+
   orders: {
     order_id: maskId,
   },

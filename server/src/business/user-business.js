@@ -31,7 +31,7 @@ const CONTEXT = 'user-business';
  */
 const evaluateUserCreationAccessControl = async (user) => {
   const context = `${CONTEXT}/evaluateUserCreationAccessControl`;
-  
+
   try {
     // Bootstrap bypass — explicit and auditable.
     if (user?.isBootstrap === true) {
@@ -42,24 +42,24 @@ const evaluateUserCreationAccessControl = async (user) => {
         canCreateRootUsers: true,
       };
     }
-    
+
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     const canCreateUsers =
       isRoot || permissions.includes(USER_CONSTANTS.PERMISSIONS.CREATE_USERS);
-    
+
     const canCreateAdminUsers =
       isRoot ||
       permissions.includes(USER_CONSTANTS.PERMISSIONS.CREATE_ADMIN_USERS);
-    
+
     const canCreateSystemUsers =
       isRoot ||
       permissions.includes(USER_CONSTANTS.PERMISSIONS.CREATE_SYSTEM_USERS);
-    
+
     const canCreateRootUsers =
       isRoot ||
       permissions.includes(USER_CONSTANTS.PERMISSIONS.CREATE_ROOT_USERS);
-    
+
     return {
       canCreateUsers,
       canCreateAdminUsers,
@@ -71,7 +71,7 @@ const evaluateUserCreationAccessControl = async (user) => {
       context,
       userId: user?.id,
     });
-    
+
     throw AppError.businessError(
       'Unable to evaluate user creation access control.'
     );
@@ -91,34 +91,34 @@ const evaluateUserCreationAccessControl = async (user) => {
  */
 const evaluateUserVisibilityAccessControl = async (user) => {
   const context = `${CONTEXT}/evaluateUserVisibilityAccessControl`;
-  
+
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     const canViewSystemUsers =
       isRoot ||
       permissions.includes(USER_CONSTANTS.PERMISSIONS.VIEW_SYSTEM_USERS);
-    
+
     const canViewRootUsers =
       isRoot ||
       permissions.includes(USER_CONSTANTS.PERMISSIONS.VIEW_ROOT_USERS);
-    
+
     // Full visibility override — implies inactive, system, and root visibility.
     const canViewAllUsers =
       isRoot ||
       permissions.includes(
         USER_CONSTANTS.PERMISSIONS.VIEW_USERS_ALL_VISIBILITY
       );
-    
+
     // Inactive users visible via explicit permission or full override.
     const canViewAllStatuses =
       canViewAllUsers ||
       permissions.includes(USER_CONSTANTS.PERMISSIONS.VIEW_INACTIVE_USERS);
-    
+
     // Active-only enforcement is the default — lifted only when the user can
     // view all statuses (which already incorporates canViewAllUsers).
     const enforceActiveOnly = !canViewAllStatuses;
-    
+
     return {
       canViewSystemUsers,
       canViewRootUsers,
@@ -135,7 +135,7 @@ const evaluateUserVisibilityAccessControl = async (user) => {
         userId: user?.id,
       }
     );
-    
+
     throw AppError.businessError(
       'Unable to evaluate user visibility access control.'
     );
@@ -156,7 +156,7 @@ const evaluateUserVisibilityAccessControl = async (user) => {
 const applyUserListVisibilityRules = (filters, acl) => {
   const adjusted = { ...filters };
   const ACTIVE_USER_STATUS_ID = getStatusId('general_active');
-  
+
   // -------------------------------------------------------------
   // 1. Full override → no visibility restrictions
   // -------------------------------------------------------------
@@ -168,7 +168,7 @@ const applyUserListVisibilityRules = (filters, acl) => {
     delete adjusted.activeStatusId;
     return adjusted;
   }
-  
+
   // -------------------------------------------------------------
   // 2. Status visibility (active-only enforced unless permitted)
   // -------------------------------------------------------------
@@ -180,17 +180,17 @@ const applyUserListVisibilityRules = (filters, acl) => {
     delete adjusted.enforceActiveOnly;
     delete adjusted.activeStatusId;
   }
-  
+
   // -------------------------------------------------------------
   // 3. System user visibility
   // -------------------------------------------------------------
   adjusted.includeSystemUsers = acl.canViewSystemUsers === true;
-  
+
   // -------------------------------------------------------------
   // 4. Root user visibility
   // -------------------------------------------------------------
   adjusted.includeRootUsers = acl.canViewRootUsers === true;
-  
+
   return adjusted;
 };
 
@@ -208,15 +208,15 @@ const applyUserListVisibilityRules = (filters, acl) => {
 const sliceUserForUser = (userRow, access) => {
   // Full override → allow everything.
   if (access.canViewAllUsers) return userRow;
-  
+
   // Defensive root-user guard — SQL should already have excluded these.
   if (!access.canViewRootUsers) return null;
-  
+
   // Active-only enforcement.
   if (access.enforceActiveOnly && userRow.status_name !== 'active') {
     return null;
   }
-  
+
   return userRow;
 };
 
@@ -230,20 +230,18 @@ const sliceUserForUser = (userRow, access) => {
  */
 const evaluateUserProfileAccessControl = async (requester, targetUserId) => {
   const context = `${CONTEXT}/evaluateUserProfileAccessControl`;
-  
+
   try {
     const isSelf = requester?.id === targetUserId;
     const { permissions, isRoot } =
       await resolveUserPermissionContext(requester);
-    
+
     return {
       isSelf,
       canViewProfile:
         isSelf ||
         isRoot ||
-        permissions.includes(
-          USER_CONSTANTS.PERMISSIONS.VIEW_ANY_USER_PROFILE
-        ),
+        permissions.includes(USER_CONSTANTS.PERMISSIONS.VIEW_ANY_USER_PROFILE),
     };
   } catch (err) {
     logSystemException(err, 'Failed to evaluate user profile access control', {
@@ -251,7 +249,7 @@ const evaluateUserProfileAccessControl = async (requester, targetUserId) => {
       requesterId: requester?.id,
       targetUserId,
     });
-    
+
     throw AppError.businessError(
       'Unable to evaluate user profile access control.'
     );
@@ -281,11 +279,11 @@ const sliceUserProfileForUser = (row, access) => {
  */
 const evaluateUserRoleViewAccessControl = async (requester, profileAccess) => {
   const context = `${CONTEXT}/evaluateUserRoleViewAccessControl`;
-  
+
   try {
     const { permissions, isRoot } =
       await resolveUserPermissionContext(requester);
-    
+
     return {
       canViewRole:
         profileAccess.isSelf ||
@@ -301,7 +299,7 @@ const evaluateUserRoleViewAccessControl = async (requester, profileAccess) => {
         requesterId: requester?.id,
       }
     );
-    
+
     throw AppError.businessError(
       'Unable to evaluate user role view access control.'
     );
@@ -339,18 +337,18 @@ const sliceUserRoleForUser = (row, access) => {
  */
 const evaluateUserLookupSearchCapabilities = async (user) => {
   const context = `${CONTEXT}/evaluateUserLookupSearchCapabilities`;
-  
+
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     const canSearchRole =
       isRoot ||
       permissions.includes(USER_CONSTANTS.PERMISSIONS.SEARCH_USERS_BY_ROLE);
-    
+
     const canSearchStatus =
       isRoot ||
       permissions.includes(USER_CONSTANTS.PERMISSIONS.SEARCH_USERS_BY_STATUS);
-    
+
     return {
       canSearchRole,
       canSearchStatus,
@@ -364,7 +362,7 @@ const evaluateUserLookupSearchCapabilities = async (user) => {
         userId: user?.id,
       }
     );
-    
+
     throw AppError.businessError(
       'Unable to evaluate user lookup search capabilities.'
     );
@@ -385,7 +383,7 @@ const evaluateUserLookupSearchCapabilities = async (user) => {
  */
 const applyUserLookupVisibilityRules = (filters, acl, activeStatusId) => {
   const adjusted = { ...filters };
-  
+
   // ---------------------------------------------------------
   // Full visibility override
   // ---------------------------------------------------------
@@ -396,18 +394,18 @@ const applyUserLookupVisibilityRules = (filters, acl, activeStatusId) => {
     delete adjusted.activeStatusId;
     return adjusted;
   }
-  
+
   // ---------------------------------------------------------
   // Active-only enforcement (always applied without full override)
   // ---------------------------------------------------------
   adjusted.enforceActiveOnly = true;
   adjusted.activeStatusId = activeStatusId;
   delete adjusted.statusIds;
-  
+
   // System and root users are never shown in lookup without full override.
   adjusted.includeSystemUsers = false;
   adjusted.includeRootUsers = false;
-  
+
   return adjusted;
 };
 

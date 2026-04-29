@@ -45,5 +45,5 @@ const SALES_ORDER_INSERT_QUERY = `
 `;
 
 module.exports = {
-  SALES_ORDER_INSERT_QUERY
+  SALES_ORDER_INSERT_QUERY,
 };

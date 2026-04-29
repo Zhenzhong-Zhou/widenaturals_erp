@@ -36,7 +36,7 @@ const {
  */
 const getPaginatedOrderTypesController = wrapAsyncHandler(async (req, res) => {
   const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
-  
+
   const { data, pagination } = await fetchPaginatedOrderTypesService({
     user: req.auth.user,
     filters,
@@ -45,13 +45,13 @@ const getPaginatedOrderTypesController = wrapAsyncHandler(async (req, res) => {
     sortBy,
     sortOrder,
   });
-  
+
   res.status(200).json({
-    success:   true,
-    message:   'Order types retrieved successfully.',
+    success: true,
+    message: 'Order types retrieved successfully.',
     data,
     pagination,
-    traceId:   req.traceId,
+    traceId: req.traceId,
   });
 });
 

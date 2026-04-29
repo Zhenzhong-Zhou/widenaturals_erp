@@ -95,21 +95,17 @@ const validateIdentifier = (name, type = 'identifier') => {
       `Invalid ${type}: expected string, received ${typeof name}`
     );
   }
-  
+
   const trimmed = name.trim();
-  
+
   if (!trimmed) {
-    throw AppError.validationError(
-      `Invalid ${type}: cannot be empty`
-    );
+    throw AppError.validationError(`Invalid ${type}: cannot be empty`);
   }
-  
+
   if (!isSafeIdent(trimmed)) {
-    throw AppError.validationError(
-      `Invalid ${type}: "${name}"`
-    );
+    throw AppError.validationError(`Invalid ${type}: "${name}"`);
   }
-  
+
   return trimmed;
 };
 
@@ -144,20 +140,23 @@ const q = (identifier) => {
       meta: { identifier },
     });
   }
-  
+
   // Support qualified identifiers (e.g. 's.id', 'public.users').
   // Each segment is validated and quoted independently.
   const parts = identifier.trim().split('.');
-  
+
   for (const part of parts) {
     if (!isSafeIdent(part)) {
-      throw AppError.validationError(`Invalid SQL identifier: "${identifier}"`, {
-        context: 'sql-ident/q',
-        meta: { identifier },
-      });
+      throw AppError.validationError(
+        `Invalid SQL identifier: "${identifier}"`,
+        {
+          context: 'sql-ident/q',
+          meta: { identifier },
+        }
+      );
     }
   }
-  
+
   return parts.map((p) => `"${p}"`).join('.');
 };
 
@@ -180,7 +179,7 @@ const q = (identifier) => {
 const qualify = (schema, table) => {
   // Validate both segments explicitly — no silent fallbacks.
   const safeSchema = validateIdentifier(schema, 'schema');
-  const safeTable  = validateIdentifier(table,  'table');
+  const safeTable = validateIdentifier(table, 'table');
   return `${q(safeSchema)}.${q(safeTable)}`;
 };
 
@@ -217,30 +216,30 @@ const qualify = (schema, table) => {
  */
 const safeOrderBy = (column, direction = 'ASC', whitelistSet) => {
   const context = 'sql-ident/safeOrderBy';
-  
+
   if (!(whitelistSet instanceof Set) || whitelistSet.size === 0) {
     throw AppError.validationError('Invalid ORDER BY whitelist', { context });
   }
-  
+
   if (!column || !whitelistSet.has(column)) {
     throw AppError.validationError('Invalid ORDER BY column', {
       context,
       meta: { column },
     });
   }
-  
+
   const dir =
     typeof direction === 'string' && direction.toUpperCase() === 'DESC'
       ? 'DESC'
       : 'ASC';
-  
+
   // Column came from the whitelist — quote each segment individually.
   // Supports both simple ('name') and qualified ('p.name') forms.
   const quoted = column
     .split('.')
     .map((part) => `"${part}"`)
     .join('.');
-  
+
   return `${quoted} ${dir}`;
 };
 
@@ -264,18 +263,19 @@ const ALLOWED = Object.freeze({
     'audit_log',
     'auth_action_status',
     'auth_action_types',
+    'batch_activity_logs',
+    'batch_activity_types',
     'batch_registry',
     'batch_status',
+    'bom_item_materials',
     'bom_items',
     'boms',
-    'compliances',
+    'compliance_records',
     'customers',
     'delivery_methods',
     'discounts',
-    'entity_types',
     'fulfillment_status',
     'inventory_action_types',
-    'inventory_activity_audit_log',
     'inventory_activity_log',
     'inventory_allocation_status',
     'inventory_allocations',
@@ -284,13 +284,12 @@ const ALLOWED = Object.freeze({
     'inventory_transfers',
     'knex_migrations',
     'knex_migrations_lock',
-    'location_inventory',
     'location_types',
     'locations',
     'login_history',
     'lot_adjustment_types',
     'manufacturers',
-    'order_fulfillment',
+    'order_fulfillments',
     'order_items',
     'order_status',
     'order_types',
@@ -305,8 +304,8 @@ const ALLOWED = Object.freeze({
     'payment_status',
     'permissions',
     'pricing',
+    'pricing_groups',
     'pricing_types',
-    'batch_activity_logs',
     'product_batches',
     'products',
     'return_items',
@@ -315,12 +314,13 @@ const ALLOWED = Object.freeze({
     'roles',
     'sales_orders',
     'sessions',
+    'shipment_batches',
     'shipment_status',
     'sku_code_bases',
+    'sku_compliance_links',
     'sku_images',
     'skus',
     'status',
-    'status_entity_types',
     'suppliers',
     'tax_rates',
     'token_activity_log',
@@ -329,8 +329,11 @@ const ALLOWED = Object.freeze({
     'transfer_order_item_status',
     'transfer_order_items',
     'user_auth',
+    'user_images',
+    'user_warehouse_assignments',
     'users',
     'warehouse_inventory',
+    'warehouse_movements',
     'warehouse_types',
     'warehouse_zones',
     'warehouses',
@@ -360,13 +363,13 @@ const assertAllowed = (schema, table) => {
       `assertAllowed: schema is required. Allowed schemas: ${Object.keys(ALLOWED).join(', ')}`
     );
   }
-  
+
   if (!ALLOWED[schema]) {
     throw AppError.validationError(
       `Schema not allowed: "${schema}". Allowed: ${Object.keys(ALLOWED).join(', ')}`
     );
   }
-  
+
   if (!ALLOWED[schema].has(table)) {
     throw AppError.validationError(`Table not allowed: "${schema}"."${table}"`);
   }

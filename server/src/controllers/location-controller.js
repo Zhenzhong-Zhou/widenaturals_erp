@@ -40,7 +40,7 @@ const {
  */
 const getPaginatedLocationsController = wrapAsyncHandler(async (req, res) => {
   const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
-  
+
   const { data, pagination } = await fetchPaginatedLocationsService({
     filters,
     page,
@@ -48,7 +48,7 @@ const getPaginatedLocationsController = wrapAsyncHandler(async (req, res) => {
     sortBy,
     sortOrder,
   });
-  
+
   res.status(200).json({
     success: true,
     message: 'Locations retrieved successfully.',

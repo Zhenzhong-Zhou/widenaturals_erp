@@ -40,13 +40,14 @@ const {
 const getInventoryAllocationStatusId = async (statusCode, client) => {
   return await getUniqueScalarValue(
     {
-      table:  'inventory_allocation_status',
-      where:  { code: statusCode },
+      table: 'inventory_allocation_status',
+      where: { code: statusCode },
       select: 'id',
     },
     client,
     {
-      context: 'inventory-allocation-status-repository/getInventoryAllocationStatusId',
+      context:
+        'inventory-allocation-status-repository/getInventoryAllocationStatusId',
       statusCode,
     }
   );
@@ -67,23 +68,29 @@ const getInventoryAllocationStatusId = async (statusCode, client) => {
  */
 const getInventoryAllocationStatusesByCodes = async (statusCodes, client) => {
   if (!Array.isArray(statusCodes) || statusCodes.length === 0) return [];
-  
-  const context = 'inventory-allocation-status-repository/getInventoryAllocationStatusesByCodes';
-  
+
+  const context =
+    'inventory-allocation-status-repository/getInventoryAllocationStatusesByCodes';
+
   try {
-    const result = await query(INVENTORY_ALLOCATION_STATUS_GET_BY_CODES, [statusCodes], client);
+    const result = await query(
+      INVENTORY_ALLOCATION_STATUS_GET_BY_CODES,
+      [statusCodes],
+      client
+    );
     return result.rows;
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch inventory allocation statuses by codes.',
-      meta:    { statusCodes },
-      logFn:   (err) => logDbQueryError(
-        INVENTORY_ALLOCATION_STATUS_GET_BY_CODES,
-        [statusCodes],
-        err,
-        { context, statusCodes }
-      ),
+      meta: { statusCodes },
+      logFn: (err) =>
+        logDbQueryError(
+          INVENTORY_ALLOCATION_STATUS_GET_BY_CODES,
+          [statusCodes],
+          err,
+          { context, statusCodes }
+        ),
     });
   }
 };

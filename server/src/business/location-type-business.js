@@ -31,22 +31,22 @@ const CONTEXT = 'location-type-business';
  */
 const evaluateLocationTypeVisibilityAccessControl = async (user) => {
   const context = `${CONTEXT}/evaluateLocationTypeVisibilityAccessControl`;
-  
+
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     const canViewAllLocationTypes =
       isRoot ||
       permissions.includes(
         LOCATION_TYPE_CONSTANTS.PERMISSIONS.VIEW_ALL_LOCATION_TYPES_VISIBILITY
       );
-    
+
     const canViewInactive =
       canViewAllLocationTypes ||
       permissions.includes(
         LOCATION_TYPE_CONSTANTS.PERMISSIONS.VIEW_INACTIVE_LOCATION_TYPES
       );
-    
+
     return {
       canViewAllLocationTypes,
       canViewInactive,
@@ -58,7 +58,7 @@ const evaluateLocationTypeVisibilityAccessControl = async (user) => {
       'Failed to evaluate location type visibility access control',
       { context, userId: user?.id }
     );
-    
+
     throw AppError.businessError(
       'Unable to evaluate location type visibility access control.'
     );
@@ -75,10 +75,10 @@ const evaluateLocationTypeVisibilityAccessControl = async (user) => {
  */
 const evaluateLocationTypeLookupSearchCapabilities = async (user) => {
   const context = `${CONTEXT}/evaluateLocationTypeLookupSearchCapabilities`;
-  
+
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     return {
       canSearchStatus:
         isRoot ||
@@ -92,7 +92,7 @@ const evaluateLocationTypeLookupSearchCapabilities = async (user) => {
       'Failed to evaluate location type lookup search capabilities',
       { context, userId: user?.id }
     );
-    
+
     throw AppError.businessError(
       'Unable to evaluate location type lookup search capabilities.'
     );

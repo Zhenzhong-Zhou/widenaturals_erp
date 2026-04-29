@@ -57,28 +57,30 @@ const buildLocationFilter = (filters = {}) => {
   // Normalize all date ranges — handles both raw strings and Joi-coerced Date objects.
   const normalizedFilters = normalizeDateRangeFilters(
     normalizeDateRangeFilters(filters, 'createdAfter', 'createdBefore'),
-    'updatedAfter', 'updatedBefore'
+    'updatedAfter',
+    'updatedBefore'
   );
-  
-  const conditions    = ['1=1'];
-  const params        = [];
+
+  const conditions = ['1=1'];
+  const params = [];
   const paramIndexRef = { value: 1 };
-  
+
   // ─── Archive ─────────────────────────────────────────────────────────────────
-  
+
   // Exclude archived by default — caller must explicitly opt in.
   if (!normalizedFilters.includeArchived) {
     conditions.push(`l.is_archived = false`);
   }
-  
+
   // ─── Status ──────────────────────────────────────────────────────────────────
-  
+
   // Priority: statusIds (array) → status_id (scalar) → _activeStatusId (server fallback)
-  const statusFilterValue =
-    normalizedFilters.statusIds?.length  ? normalizedFilters.statusIds  :
-      normalizedFilters.status_id          ? normalizedFilters.status_id  :
-        normalizedFilters._activeStatusId;
-  
+  const statusFilterValue = normalizedFilters.statusIds?.length
+    ? normalizedFilters.statusIds
+    : normalizedFilters.status_id
+      ? normalizedFilters.status_id
+      : normalizedFilters._activeStatusId;
+
   if (statusFilterValue != null) {
     conditions.push(
       Array.isArray(statusFilterValue)
@@ -88,14 +90,14 @@ const buildLocationFilter = (filters = {}) => {
     params.push(statusFilterValue);
     paramIndexRef.value++;
   }
-  
+
   // ─── Location Type ────────────────────────────────────────────────────────────
-  
+
   // Priority: locationTypeIds (array) → locationTypeId (scalar)
-  const locationTypeFilterValue =
-    normalizedFilters.locationTypeIds?.length ? normalizedFilters.locationTypeIds :
-      normalizedFilters.locationTypeId;
-  
+  const locationTypeFilterValue = normalizedFilters.locationTypeIds?.length
+    ? normalizedFilters.locationTypeIds
+    : normalizedFilters.locationTypeId;
+
   if (locationTypeFilterValue != null) {
     conditions.push(
       Array.isArray(locationTypeFilterValue)
@@ -105,63 +107,63 @@ const buildLocationFilter = (filters = {}) => {
     params.push(locationTypeFilterValue);
     paramIndexRef.value++;
   }
-  
+
   // ─── Geography ───────────────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.city) {
     conditions.push(`l.city ILIKE $${paramIndexRef.value}`);
     params.push(`%${normalizedFilters.city}%`);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.province_or_state) {
     conditions.push(`l.province_or_state ILIKE $${paramIndexRef.value}`);
     params.push(`%${normalizedFilters.province_or_state}%`);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.country) {
     conditions.push(`l.country ILIKE $${paramIndexRef.value}`);
     params.push(`%${normalizedFilters.country}%`);
     paramIndexRef.value++;
   }
-  
+
   // ─── Audit ──────────────────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.createdBy) {
     conditions.push(`l.created_by = $${paramIndexRef.value}`);
     params.push(normalizedFilters.createdBy);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.updatedBy) {
     conditions.push(`l.updated_by = $${paramIndexRef.value}`);
     params.push(normalizedFilters.updatedBy);
     paramIndexRef.value++;
   }
-  
+
   // ─── Date Range ─────────────────────────────────────────────────────────────
-  
+
   applyDateRangeConditions({
     conditions,
     params,
-    column:        'l.created_at',
-    after:         normalizedFilters.createdAfter,
-    before:        normalizedFilters.createdBefore,
+    column: 'l.created_at',
+    after: normalizedFilters.createdAfter,
+    before: normalizedFilters.createdBefore,
     paramIndexRef,
   });
-  
+
   applyDateRangeConditions({
     conditions,
     params,
-    column:        'l.updated_at',
-    after:         normalizedFilters.updatedAfter,
-    before:        normalizedFilters.updatedBefore,
+    column: 'l.updated_at',
+    after: normalizedFilters.updatedAfter,
+    before: normalizedFilters.updatedBefore,
     paramIndexRef,
   });
-  
+
   // ─── Keyword (must remain last) ──────────────────────────────────────────────
-  
+
   // Same $N referenced across all search fields — single param covers all columns.
   if (normalizedFilters.keyword) {
     const searchFields = [
@@ -173,14 +175,16 @@ const buildLocationFilter = (filters = {}) => {
       'l.postal_code',
       'l.country',
     ];
-    
-    conditions.push(`(${
-      searchFields.map((f) => `${f} ILIKE $${paramIndexRef.value}`).join(' OR ')
-    })`);
+
+    conditions.push(
+      `(${searchFields
+        .map((f) => `${f} ILIKE $${paramIndexRef.value}`)
+        .join(' OR ')})`
+    );
     params.push(`%${normalizedFilters.keyword}%`);
     paramIndexRef.value++;
   }
-  
+
   return {
     whereClause: conditions.join(' AND '),
     params,

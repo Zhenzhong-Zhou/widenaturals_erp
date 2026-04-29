@@ -16,7 +16,7 @@
 
 'use strict';
 
-const { withTransaction }                    = require('../database/db');
+const { withTransaction } = require('../database/db');
 const {
   evaluateUserCreationAccessControl,
   evaluateUserVisibilityAccessControl,
@@ -26,23 +26,23 @@ const {
   sliceUserProfileForUser,
   evaluateUserRoleViewAccessControl,
   sliceUserRoleForUser,
-}                                            = require('../business/user-business');
+} = require('../business/user-business');
 const {
   insertUser,
   getPaginatedUsers,
   getUserProfileById,
-}                                            = require('../repositories/user-repository');
+} = require('../repositories/user-repository');
 const {
   transformPaginatedUserForViewResults,
   transformUserProfileRow,
   transformUserInsertResult,
-}                                            = require('../transformers/user-transformer');
-const AppError                               = require('../utils/AppError');
-const { insertUserAuth }                     = require('../repositories/user-auth-repository');
-const { getStatusId }                        = require('../config/status-cache');
-const { hashPassword }                       = require('../utils/password-utils');
-const { classifyRole }                       = require('../utils/role-classifier');
-const { getRoleById }                        = require('../repositories/role-repository');
+} = require('../transformers/user-transformer');
+const AppError = require('../utils/AppError');
+const { insertUserAuth } = require('../repositories/user-auth-repository');
+const { getStatusId } = require('../config/status-cache');
+const { hashPassword } = require('../utils/password-utils');
+const { classifyRole } = require('../utils/role-classifier');
+const { getRoleById } = require('../repositories/role-repository');
 
 const CONTEXT = 'user-service';
 
@@ -70,44 +70,53 @@ const CONTEXT = 'user-service';
  */
 const createUserService = async (input, actor) => {
   const context = `${CONTEXT}/createUserService`;
-  
+
   return withTransaction(async (client) => {
     try {
       // 1. Resolve target role — single source of truth for role semantics.
       const targetRole = await getRoleById(input.roleId, client);
-      
+
       if (!targetRole || !targetRole.is_active) {
         throw AppError.validationError('Invalid or inactive role.');
       }
-      
-      const { isRootRole, isAdminRole, isSystemRole } = classifyRole(targetRole);
-      
+
+      const { isRootRole, isAdminRole, isSystemRole } =
+        classifyRole(targetRole);
+
       // 2. Evaluate ACL — check actor has permission to create this user type.
       const access = await evaluateUserCreationAccessControl(actor);
-      
+
       if (!access.canCreateUsers) {
-        throw AppError.authorizationError('You are not allowed to create users.');
+        throw AppError.authorizationError(
+          'You are not allowed to create users.'
+        );
       }
-      
+
       if (isSystemRole && !access.canCreateSystemUsers) {
-        throw AppError.authorizationError('You are not allowed to create system users.');
+        throw AppError.authorizationError(
+          'You are not allowed to create system users.'
+        );
       }
-      
+
       if (isRootRole && !access.canCreateRootUsers) {
-        throw AppError.authorizationError('You are not allowed to create root users.');
+        throw AppError.authorizationError(
+          'You are not allowed to create root users.'
+        );
       }
-      
+
       if (isAdminRole && !access.canCreateAdminUsers) {
-        throw AppError.authorizationError('You are not allowed to create admin users.');
+        throw AppError.authorizationError(
+          'You are not allowed to create admin users.'
+        );
       }
-      
+
       // TODO(role-hierarchy): Replace name-based role semantics with hierarchy-based
       // checks once `hierarchy_level` and `parent_role_id` are finalised.
       // Must be implemented inside `classifyRole()` only — no inline checks here.
-      
+
       // 3. Determine initial status — service invariant, callers must not control this.
       let statusId;
-      
+
       if (actor?.isBootstrap === true && actor?.isRoot === true) {
         // Bootstrap-only exception: initial root admin starts active.
         statusId = getStatusId('general_active');
@@ -115,34 +124,34 @@ const createUserService = async (input, actor) => {
         // All normal API-created users start inactive.
         statusId = getStatusId('general_inactive');
       }
-      
+
       // 4. Hash password outside the DB write to avoid holding the transaction open.
       const passwordHash = await hashPassword(input.password);
-      
+
       // 5. Insert user record.
       const userRecord = await insertUser(
         {
-          email:       input.email,
-          roleId:      input.roleId,
+          email: input.email,
+          roleId: input.roleId,
           statusId,
-          firstname:   input.firstname,
-          lastname:    input.lastname,
+          firstname: input.firstname,
+          lastname: input.lastname,
           phoneNumber: input.phoneNumber,
-          jobTitle:    input.jobTitle,
-          note:        input.note,
-          createdBy:   actor.id,
+          jobTitle: input.jobTitle,
+          note: input.note,
+          createdBy: actor.id,
         },
         client
       );
-      
+
       // 6. Insert auth record in the same transaction for atomicity.
       await insertUserAuth({ userId: userRecord.id, passwordHash }, client);
-      
+
       // 7. Transform and return.
       return transformUserInsertResult(userRecord);
     } catch (error) {
       if (error instanceof AppError) throw error;
-      
+
       throw AppError.serviceError('Unable to create user.', {
         context,
         meta: { error: error.message },
@@ -172,23 +181,23 @@ const createUserService = async (input, actor) => {
  * @throws {AppError} Wraps unexpected errors as `AppError.serviceError`.
  */
 const fetchPaginatedUsersService = async ({
-                                            filters   = {},
-                                            page      = 1,
-                                            limit     = 10,
-                                            sortBy    = 'createdAt',
-                                            sortOrder = 'DESC',
-                                            viewMode  = 'list',
-                                            user,
-                                          }) => {
+  filters = {},
+  page = 1,
+  limit = 10,
+  sortBy = 'createdAt',
+  sortOrder = 'DESC',
+  viewMode = 'list',
+  user,
+}) => {
   const context = `${CONTEXT}/fetchPaginatedUsersService`;
-  
+
   try {
     // 1. Resolve visibility access control scope for this user.
     const access = await evaluateUserVisibilityAccessControl(user);
-    
+
     // 2. Apply visibility rules to filters (CRITICAL — must run before query).
     const adjustedFilters = applyUserListVisibilityRules(filters, access);
-    
+
     // 3. Query raw paginated rows.
     const rawResult = await getPaginatedUsers({
       filters: adjustedFilters,
@@ -197,29 +206,31 @@ const fetchPaginatedUsersService = async ({
       sortBy,
       sortOrder,
     });
-    
+
     // 4. Return empty shape immediately — no records to process.
     if (!rawResult || rawResult.data.length === 0) {
       return {
-        data:       [],
+        data: [],
         pagination: { page, limit, totalRecords: 0, totalPages: 0 },
       };
     }
-    
+
     // 5. Apply per-row visibility slicing based on resolved access scope.
     const visibleRows = rawResult.data
       .map((row) => sliceUserForUser(row, access))
       .filter(Boolean);
-    
+
     // 6. Transform for UI consumption.
-    const typedResult = /** @type {{ data: UserRow[], pagination: Object }} */ (
-      { ...rawResult, data: visibleRows }
-    );
-    
+    const typedResult =
+      /** @type {{ data: UserRow[], pagination: Object }} */ ({
+        ...rawResult,
+        data: visibleRows,
+      });
+
     return transformPaginatedUserForViewResults(typedResult, viewMode);
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
+
     throw AppError.serviceError('Unable to retrieve user records.', {
       context,
       meta: { error: error.message },
@@ -245,36 +256,42 @@ const fetchPaginatedUsersService = async ({
  */
 const fetchUserProfileService = async (userId, requester) => {
   const context = `${CONTEXT}/fetchUserProfileService`;
-  
+
   try {
     const activeId = getStatusId('general_active');
-    
+
     // 1. Fetch base profile — active users only.
     const userRow = await getUserProfileById(userId, activeId);
-    
+
     if (!userRow) {
       throw AppError.notFoundError(`User not found: ${userId}`);
     }
-    
+
     // 2. Evaluate profile-level visibility — blocks entire profile if denied.
-    const profileAccess   = await evaluateUserProfileAccessControl(requester, userId);
-    const safeProfileRow  = sliceUserProfileForUser(userRow, profileAccess);
-    
+    const profileAccess = await evaluateUserProfileAccessControl(
+      requester,
+      userId
+    );
+    const safeProfileRow = sliceUserProfileForUser(userRow, profileAccess);
+
     if (!safeProfileRow) {
       throw AppError.authorizationError(
         'You are not authorized to view this user profile.'
       );
     }
-    
+
     // 3. Evaluate role visibility — self or explicit permission.
-    const roleAccess = await evaluateUserRoleViewAccessControl(requester, profileAccess);
-    const withRole   = sliceUserRoleForUser(safeProfileRow, roleAccess);
-    
+    const roleAccess = await evaluateUserRoleViewAccessControl(
+      requester,
+      profileAccess
+    );
+    const withRole = sliceUserRoleForUser(safeProfileRow, roleAccess);
+
     // 4. Transform to API DTO — avatar visibility is intentionally public.
     return transformUserProfileRow(withRole);
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
+
     throw AppError.serviceError('Unable to fetch user profile.', {
       context,
       meta: { error: error.message },

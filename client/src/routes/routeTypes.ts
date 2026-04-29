@@ -10,33 +10,79 @@ import type { LazyExoticComponent, ComponentType, ReactNode } from 'react';
 /**
  * Route parameter map passed to dynamic permission resolvers.
  *
- * Values may be `undefined` when optional route params
- * are not present or not matched.
+ * Values may be undefined when optional route params
+ * are absent or not matched.
  */
 export type RouteParams = Record<string, string | undefined>;
 
 /**
- * Resolves a permission dynamically based on route parameters.
+ * Static permission rule requiring at least one permission match.
  *
- * Returning:
- * - a string → required permission
- * - `null` → invalid route state (e.g. bad param), typically treated as 404
+ * Example:
+ * { any: ['view_warehouses', 'view_warehouse_inventory'] }
  */
-export type DynamicPermissionResolver = (params: RouteParams) => string | null;
+export type AnyPermissionRule = {
+  any: readonly string[];
+  all?: never;
+};
 
 /**
- * Navigation item definition.
+ * Static permission rule requiring all listed permissions.
  *
- * Represents a single entry in the application navigation tree.
- *
- * Design notes:
- * - Navigation visibility is permission-aware
- * - Permission evaluation is handled externally via permission hooks
- * - This type is framework-agnostic and contains no logic
+ * Example:
+ * { all: ['view_orders', 'edit_orders'] }
+ */
+export type AllPermissionRule = {
+  all: readonly string[];
+  any?: never;
+};
+
+/**
+ * Declarative static permission rule.
  *
  * Semantics:
- * - If `requiredPermission` is undefined, the item is always visible
- * - If defined, visibility is determined by the caller using permission hooks
+ * - string: a single required permission
+ * - { any: [...] }: user must have at least one permission
+ * - { all: [...] }: user must have every listed permission
+ */
+export type StaticPermissionRule =
+  | string
+  | AnyPermissionRule
+  | AllPermissionRule;
+
+/**
+ * Resolves a permission rule dynamically from route params.
+ *
+ * Return values:
+ * - StaticPermissionRule: permission rule to enforce
+ * - null: invalid or unsupported route state
+ *
+ * Important:
+ * The caller should handle null consistently, typically as
+ * a denied route or invalid route state.
+ */
+export type DynamicPermissionResolver = (
+  params: RouteParams
+) => StaticPermissionRule | null;
+
+/**
+ * Permission requirement accepted by route-level guards.
+ *
+ * Routes may use either:
+ * - a static permission rule
+ * - a dynamic resolver based on route params
+ */
+export type PermissionRequirement =
+  | StaticPermissionRule
+  | DynamicPermissionResolver;
+
+/**
+ * Sidebar / navigation item definition.
+ *
+ * Design notes:
+ * - Visibility is permission-aware
+ * - Navigation permissions are declarative only
+ * - Enforcement is handled by the rendering layer
  */
 export type NavigationItem = {
   /**
@@ -45,25 +91,22 @@ export type NavigationItem = {
    * Must match a valid application route.
    */
   path: string;
-
+  
   /**
-   * Human-readable label for display in the UI.
+   * Human-readable label shown in the UI.
    */
   title: string;
-
+  
   /**
-   * Permission required to display this navigation item.
+   * Static permission rule controlling visibility of this item.
    *
-   * When provided, the item should only be rendered if
-   * the current user satisfies the permission.
-   *
-   * This is a declarative requirement; enforcement is handled
-   * by the navigation renderer, not by this type.
+   * Navigation should remain declarative and should not depend on
+   * route params, so only static permission rules are allowed here.
    */
-  requiredPermission?: string | readonly string[];
-
+  requiredPermission?: StaticPermissionRule;
+  
   /**
-   * Whether the route match should be exact.
+   * Whether active matching should use an exact path match.
    *
    * Defaults to false when omitted.
    */
@@ -71,43 +114,62 @@ export type NavigationItem = {
 };
 
 /**
- * Metadata associated with a route.
- *
- * Semantics:
- * - `requiresAuth` indicates the route requires an authenticated session
- * - `guestOnly` indicates the route is only for unauthenticated users
- * - `requiredPermission` may be static or dynamically resolved from route params
- * - `menu` controls sidebar visibility, labeling, and ordering (list routes only)
- * - `parent` links detail routes to their list/section route for hierarchy
- * - `hidden` explicitly prevents a route from appearing in navigation
- *
- * Rules:
- * - Only list routes should define `menu`
- * - Detail and nested routes should define `parent`
- * - Routes without `menu` never appear in the sidebar
- * - `hidden` overrides `menu` visibility when present
+ * Metadata attached to an application route.
  */
 export type RouteMeta = {
-  /** Route requires authenticated session */
+  /**
+   * Whether the route requires an authenticated session.
+   */
   requiresAuth?: boolean;
-
-  /** Route is only available to unauthenticated users (e.g. login/register) */
+  
+  /**
+   * Whether the route is only available to unauthenticated users.
+   *
+   * Typical examples:
+   * - login
+   * - register
+   * - forgot password
+   */
   guestOnly?: boolean;
-
-  /** Permission required to access the route */
-  requiredPermission?: string | DynamicPermissionResolver;
-
-  /** Sidebar / navigation menu config (list routes only) */
+  
+  /**
+   * Permission requirement for accessing the route.
+   *
+   * Routes support both static rules and dynamic resolvers.
+   */
+  requiredPermission?: PermissionRequirement;
+  
+  /**
+   * Optional menu metadata for list/navigation generation.
+   *
+   * Intended for menu-building concerns only.
+   */
   menu?: {
+    /**
+     * Display title used in navigation UIs.
+     */
     title: string;
+    
+    /**
+     * Optional sort order within a menu group.
+     */
     order?: number;
+    
+    /**
+     * Optional icon rendered alongside the title.
+     */
     icon?: ReactNode;
   };
-
-  /** Parent route path for hierarchy, breadcrumbs, and active menu */
+  
+  /**
+   * Parent route path used for hierarchy, breadcrumbs,
+   * and active menu resolution.
+   */
   parent?: string;
-
-  /** Explicitly prevent route from appearing in menus */
+  
+  /**
+   * Explicitly hide this route from generated navigation.
+   */
   hidden?: boolean;
 };
 
@@ -115,8 +177,19 @@ export type RouteMeta = {
  * Application route definition.
  */
 export type AppRoute = {
+  /**
+   * Route path pattern.
+   */
   path: string;
+  
+  /**
+   * Lazy-loaded route component.
+   */
   component: LazyExoticComponent<ComponentType<any>>;
+  
+  /**
+   * Optional route metadata.
+   */
   meta?: RouteMeta;
 };
 

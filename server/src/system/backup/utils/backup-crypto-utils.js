@@ -25,7 +25,7 @@ const { logSystemInfo } = require('../../../utils/logging/system-logger');
 const CONTEXT = 'file-encryption';
 
 const AES_KEY_BYTES = 32; // AES-256 requires a 32-byte key
-const AES_IV_BYTES  = 16; // CBC mode requires a 16-byte IV
+const AES_IV_BYTES = 16; // CBC mode requires a 16-byte IV
 
 /**
  * Validates that an encryption key is a correctly formatted AES-256 key.
@@ -38,14 +38,20 @@ const AES_IV_BYTES  = 16; // CBC mode requires a 16-byte IV
  */
 const parseAndValidateKey = (encryptionKey, operation) => {
   const key = Buffer.from(encryptionKey, 'hex');
-  
-  if (encryptionKey.length !== AES_KEY_BYTES * 2 || key.length !== AES_KEY_BYTES) {
-    throw AppError.validationError('Invalid AES-256 key: must be a 64-character hex string (32 bytes)', {
-      context: CONTEXT,
-      operation,
-    });
+
+  if (
+    encryptionKey.length !== AES_KEY_BYTES * 2 ||
+    key.length !== AES_KEY_BYTES
+  ) {
+    throw AppError.validationError(
+      'Invalid AES-256 key: must be a 64-character hex string (32 bytes)',
+      {
+        context: CONTEXT,
+        operation,
+      }
+    );
   }
-  
+
   return key;
 };
 
@@ -95,22 +101,27 @@ const cleanupFile = async (filePath) => {
  * @returns {Promise<void>}
  * @throws {AppError} If the key is invalid, or if encryption or file I/O fails.
  */
-const encryptFile = async (filePath, encryptedFilePath, encryptionKey, ivFilePath) => {
+const encryptFile = async (
+  filePath,
+  encryptedFilePath,
+  encryptionKey,
+  ivFilePath
+) => {
   const key = parseAndValidateKey(encryptionKey, 'encryptFile');
   const iv = /** @type {Buffer} */ (crypto.randomBytes(AES_IV_BYTES));
-  
+
   try {
     // IV must be persisted before streaming — decryption cannot proceed without it
     await fs.writeFile(ivFilePath, iv);
-    
+
     const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
-    
+
     await pipeline(
       createReadStream(filePath),
       cipher,
       createWriteStream(encryptedFilePath)
     );
-    
+
     logSystemInfo('File encrypted successfully', {
       context: CONTEXT,
       operation: 'encryptFile',
@@ -118,18 +129,17 @@ const encryptFile = async (filePath, encryptedFilePath, encryptionKey, ivFilePat
       encryptedFilePath,
       ivFilePath,
     });
-    
   } catch (error) {
     // Remove partial output to avoid leaving corrupted ciphertext on disk
     await cleanupFile(encryptedFilePath);
-    
+
     throw error instanceof AppError
       ? error
       : AppError.systemError('File encryption failed', {
-        context: CONTEXT,
-        operation: 'encryptFile',
-        cause: error,
-      });
+          context: CONTEXT,
+          operation: 'encryptFile',
+          cause: error,
+        });
   }
 };
 
@@ -151,40 +161,44 @@ const encryptFile = async (filePath, encryptedFilePath, encryptionKey, ivFilePat
  * @returns {Promise<void>}
  * @throws {AppError} If the key or IV is invalid, or if decryption or file I/O fails.
  */
-const decryptFile = async (encryptedFilePath, decryptedFilePath, encryptionKey, ivFilePath) => {
+const decryptFile = async (
+  encryptedFilePath,
+  decryptedFilePath,
+  encryptionKey,
+  ivFilePath
+) => {
   const key = parseAndValidateKey(encryptionKey, 'decryptFile');
-  
+
   try {
     const iv = /** @type {Buffer} */ (await fs.readFile(ivFilePath));
-    
+
     validateIv(iv, 'decryptFile');
-    
+
     const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
-    
+
     await pipeline(
       createReadStream(encryptedFilePath),
       decipher,
       createWriteStream(decryptedFilePath)
     );
-    
+
     logSystemInfo('File decrypted successfully', {
       context: CONTEXT,
       operation: 'decryptFile',
       encryptedFilePath,
       decryptedFilePath,
     });
-    
   } catch (error) {
     // Remove partial output to avoid leaving incomplete plaintext on disk
     await cleanupFile(decryptedFilePath);
-    
+
     throw error instanceof AppError
       ? error
       : AppError.systemError('File decryption failed', {
-        context: CONTEXT,
-        operation: 'decryptFile',
-        cause: error,
-      });
+          context: CONTEXT,
+          operation: 'decryptFile',
+          cause: error,
+        });
   }
 };
 

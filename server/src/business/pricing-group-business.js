@@ -16,7 +16,9 @@
 
 'use strict';
 
-const { resolveUserPermissionContext } = require('../services/permission-service');
+const {
+  resolveUserPermissionContext,
+} = require('../services/permission-service');
 const { PERMISSIONS } = require('../utils/constants/domain/pricing-constants');
 const { logSystemException } = require('../utils/logging/system-logger');
 const AppError = require('../utils/AppError');
@@ -32,30 +34,26 @@ const CONTEXT = 'pricing-group-buiness';
  */
 const evaluatePricingGroupVisibility = async (user) => {
   const context = `${CONTEXT}/evaluatePricingGroupVisibility`;
-  
+
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     const canViewAllPricingStates =
-      isRoot ||
-      permissions.includes(PERMISSIONS.VIEW_ALL_PRICING_STATES);
-    
+      isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_PRICING_STATES);
+
     const canViewAllValidPricing =
-      isRoot ||
-      permissions.includes(PERMISSIONS.VIEW_ALL_VALID_PRICING);
-    
+      isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_VALID_PRICING);
+
     const canViewInactive =
-      isRoot ||
-      permissions.includes(PERMISSIONS.VIEW_INACTIVE);
-    
+      isRoot || permissions.includes(PERMISSIONS.VIEW_INACTIVE);
+
     const canManagePricingGroups =
-      isRoot ||
-      permissions.includes(PERMISSIONS.MANAGE_PRICING_GROUPS);
-    
+      isRoot || permissions.includes(PERMISSIONS.MANAGE_PRICING_GROUPS);
+
     const canAssignSkus =
       canManagePricingGroups ||
       permissions.includes(PERMISSIONS.ASSIGN_PRICING_SKUS);
-    
+
     return {
       canViewAllPricingStates,
       canViewAllValidPricing,
@@ -68,7 +66,9 @@ const evaluatePricingGroupVisibility = async (user) => {
       context,
       userId: user?.id,
     });
-    throw AppError.businessError('Unable to evaluate pricing group visibility.');
+    throw AppError.businessError(
+      'Unable to evaluate pricing group visibility.'
+    );
   }
 };
 
@@ -88,17 +88,17 @@ const evaluatePricingGroupVisibility = async (user) => {
  */
 const applyPricingGroupVisibilityRules = (filters, acl) => {
   const adjusted = { ...filters };
-  
+
   // Restrict to currently valid pricing unless user can view all valid states.
   if (!acl.canViewAllValidPricing) {
     adjusted.currentlyValid = true;
   }
-  
+
   // Restrict to active status unless user can view inactive groups.
   if (!acl.canViewInactive && !acl.canViewAllPricingStates) {
     adjusted._restrictKeywordToValidOnly = true;
   }
-  
+
   return adjusted;
 };
 
@@ -111,10 +111,10 @@ const applyPricingGroupVisibilityRules = (filters, acl) => {
  */
 const evaluatePricingGroupLookupVisibility = async (user) => {
   const context = `${CONTEXT}/evaluatePricingGroupLookupVisibility`;
-  
+
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     return {
       canViewAllPricingStates:
         isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_PRICING_STATES),
@@ -144,19 +144,23 @@ const evaluatePricingGroupLookupVisibility = async (user) => {
  * @param {string}                 activeStatusId - UUID of the active status record.
  * @returns {Object} Adjusted copy of filters with visibility rules applied.
  */
-const applyPricingGroupLookupVisibilityRules = (filters, acl, activeStatusId) => {
+const applyPricingGroupLookupVisibilityRules = (
+  filters,
+  acl,
+  activeStatusId
+) => {
   const adjusted = { ...filters };
-  
+
   // Restrict keyword searches to currently valid pricing for unpermitted users.
   if (filters.keyword?.trim().length > 0 && !acl.canViewAllValidPricing) {
     adjusted._restrictKeywordToValidOnly = true;
   }
-  
+
   // Pin to active status for users without full status visibility.
   if (!acl.canViewAllPricingStates && activeStatusId) {
     adjusted.statusId = activeStatusId;
   }
-  
+
   return adjusted;
 };
 
@@ -173,19 +177,19 @@ const applyPricingGroupLookupVisibilityRules = (filters, acl, activeStatusId) =>
  */
 const buildPricingGroupLookupQueryFilters = (filters, acl, activeStatusId) => {
   const adjusted = { ...filters };
-  const now      = new Date().toISOString();
-  
+  const now = new Date().toISOString();
+
   // Pin to active status for users without full status visibility.
   if (!acl.canViewAllPricingStates && activeStatusId) {
     adjusted.statusId = activeStatusId;
   }
-  
+
   // Restrict to currently valid pricing groups for unpermitted users.
   if (!acl.canViewAllValidPricing) {
     adjusted.currentlyValid = true;
-    adjusted.validOn        = now;
+    adjusted.validOn = now;
   }
-  
+
   return adjusted;
 };
 
@@ -198,11 +202,12 @@ const buildPricingGroupLookupQueryFilters = (filters, acl, activeStatusId) => {
  */
 const enrichPricingGroupRow = (row, activeStatusId) => {
   const now = new Date();
-  
+
   return {
     ...row,
-    isActive:     row.status_id === activeStatusId,
-    isValidToday: row.valid_from <= now && (!row.valid_to || row.valid_to >= now),
+    isActive: row.status_id === activeStatusId,
+    isValidToday:
+      row.valid_from <= now && (!row.valid_to || row.valid_to >= now),
   };
 };
 

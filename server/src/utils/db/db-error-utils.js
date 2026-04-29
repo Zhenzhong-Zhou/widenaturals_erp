@@ -12,7 +12,7 @@ const RETRYABLE_CODES = new Set([
   'ECONNRESET',
   'ETIMEDOUT',
   'ECONNREFUSED',
-  
+
   // PostgreSQL transient errors
   '57P01', // admin shutdown
   '40001', // serialization failure
@@ -35,7 +35,7 @@ const RETRYABLE_CODES = new Set([
  */
 const isRetryableDbError = (error) => {
   if (!error || typeof error !== 'object') return false;
-  
+
   //--------------------------------------------------
   // Extract error code safely
   //--------------------------------------------------
@@ -43,9 +43,9 @@ const isRetryableDbError = (error) => {
     error instanceof AppError
       ? error.code // assumes AppError preserves original code
       : error.code;
-  
+
   if (!code) return false;
-  
+
   //--------------------------------------------------
   // Check retryable codes
   //--------------------------------------------------
@@ -60,16 +60,16 @@ const RETRYABLE_HTTP_CODES = new Set([
 
 const isRetryableHttpError = (error) => {
   if (!error || typeof error !== 'object') return false;
-  
+
   // Network-level errors
   if (RETRYABLE_HTTP_CODES.has(error.code)) return true;
-  
+
   // Fetch response errors (optional)
   if (error.response) {
     const status = error.response.status;
     return status >= 500; // retry 5xx
   }
-  
+
   return false;
 };
 

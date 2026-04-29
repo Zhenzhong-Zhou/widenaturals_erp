@@ -42,12 +42,12 @@ const canViewOrderTypeCode = async (user) =>
  */
 const enforceOrderTypeCodeAccessControl = async ({ user, filters, sortBy }) => {
   const canViewCode = await canViewOrderTypeCode(user);
-  
+
   if (!canViewCode) {
     if ('code' in filters) {
       throw AppError.authorizationError('Filtering by code is not allowed.');
     }
-    
+
     if (sortBy === 'code') {
       throw AppError.authorizationError('Sorting by code is not allowed.');
     }
@@ -64,9 +64,9 @@ const enforceOrderTypeCodeAccessControl = async ({ user, filters, sortBy }) => {
  */
 const filterOrderTypeRowsByPermission = async (result, user) => {
   const canViewCode = await canViewOrderTypeCode(user);
-  
+
   if (!result?.data || !Array.isArray(result.data)) return result;
-  
+
   return {
     ...result,
     data: result.data.map((row) => {
@@ -94,16 +94,19 @@ const evaluateOrderTypeLookupAccessControl = async (
   { action = 'VIEW' } = {}
 ) => {
   const context = `${CONTEXT}/evaluateOrderTypeLookupAccessControl`;
-  
+
   try {
     const { isRoot, permissions } = await resolveUserPermissionContext(user);
-    const { accessibleCategories } = await resolveOrderAccessContext(user, { action });
-    
+    const { accessibleCategories } = await resolveOrderAccessContext(user, {
+      action,
+    });
+
     return {
       canViewAllCategories:
         isRoot || permissions.includes(PERMISSIONS.VIEW_ORDER_TYPE_CODE),
       canViewAllStatuses:
-        isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_ORDER_TYPE_STATUSES),
+        isRoot ||
+        permissions.includes(PERMISSIONS.VIEW_ALL_ORDER_TYPE_STATUSES),
       canViewAllKeywords:
         isRoot || permissions.includes(PERMISSIONS.VIEW_ORDER_TYPE),
       accessibleCategories: accessibleCategories ?? [],
@@ -114,7 +117,7 @@ const evaluateOrderTypeLookupAccessControl = async (
       'Failed to evaluate order type lookup access control',
       { context, userId: user?.id }
     );
-    
+
     throw AppError.businessError(
       'Unable to evaluate user access control for order type lookup.'
     );
@@ -144,7 +147,7 @@ const enforceOrderTypeLookupVisibilityRules = (
   options = {}
 ) => {
   const adjusted = { ...filters };
-  
+
   if (access.accessibleCategories && !access.canViewAllCategories) {
     if (access.accessibleCategories.length === 0) {
       throw AppError.authorizationError(
@@ -153,18 +156,18 @@ const enforceOrderTypeLookupVisibilityRules = (
     }
     adjusted.category = access.accessibleCategories;
   }
-  
+
   if (filters.keyword && !access.canViewAllKeywords) {
     adjusted._restrictKeywordToValidOnly = true;
   }
-  
+
   if (!access.canViewAllStatuses) {
     delete adjusted.statusId;
     if (options.activeStatusId) {
       adjusted._activeStatusId = options.activeStatusId;
     }
   }
-  
+
   return adjusted;
 };
 

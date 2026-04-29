@@ -7,18 +7,15 @@
 
 'use strict';
 
-const {
-  validateStatusTransition,
-} = require('./batch-lifecycle');
-const {
-  getStatusId,
-  getStatusNameById,
-} = require('../../config/status-cache');
+const { validateStatusTransition } = require('./batch-lifecycle');
+const { getStatusId, getStatusNameById } = require('../../config/status-cache');
 const {
   buildBatchStatusChangeActivityRow,
   buildBatchMetadataUpdateActivityRow,
 } = require('./batch-activity-builder');
-const { getBatchActivityTypeId } = require('../../cache/batch-activity-type-cache');
+const {
+  getBatchActivityTypeId,
+} = require('../../cache/batch-activity-type-cache');
 const AppError = require('../../utils/AppError');
 
 /**
@@ -44,20 +41,20 @@ const AppError = require('../../utils/AppError');
  * @returns {{ lifecycleUpdates: object, isStatusChange: boolean }}
  */
 const applyLifecycleTransition = ({
-                                    batch,
-                                    nextStatus,
-                                    actorId,
-                                    statusTransitions,
-                                    access,
-                                    updates,
-                                  }) => {
+  batch,
+  nextStatus,
+  actorId,
+  statusTransitions,
+  access,
+  updates,
+}) => {
   if (nextStatus == null) {
     return {
       lifecycleUpdates: {},
       isStatusChange: false,
     };
   }
-  
+
   if (access?.isRoot) {
     // Root users bypass transition validation — no restriction on target status.
   } else {
@@ -69,12 +66,12 @@ const applyLifecycleTransition = ({
       actorId
     );
   }
-  
+
   const lifecycleUpdates = {};
-  
+
   const receivedStatusId = getStatusId('batch_received');
   const releasedStatusId = getStatusId('batch_released');
-  
+
   // Lifecycle hooks automatically apply system-managed fields when a batch
   // reaches certain statuses. Caller-provided timestamps take precedence.
   const lifecycleHooks = {
@@ -87,11 +84,11 @@ const applyLifecycleTransition = ({
       released_by: actorId,
     }),
   };
-  
+
   if (lifecycleHooks[nextStatus]) {
     Object.assign(lifecycleUpdates, lifecycleHooks[nextStatus](updates));
   }
-  
+
   return {
     lifecycleUpdates,
     isStatusChange: nextStatus !== batch.status_id,
@@ -110,7 +107,7 @@ const prepareMetadataUpdates = ({ updates = {} }) => {
   if (typeof updates !== 'object' || Array.isArray(updates)) {
     throw AppError.validationError('Invalid batch update payload.');
   }
-  
+
   return {
     safeUpdates: { ...updates },
     hasMetadataUpdates: Object.keys(updates).some((k) => k !== 'status_id'),
@@ -129,11 +126,11 @@ const prepareMetadataUpdates = ({ updates = {} }) => {
  */
 const extractPreviousValues = (batch, updates) => {
   const previous = {};
-  
+
   for (const key of Object.keys(updates)) {
     previous[key] = batch[key] ?? null;
   }
-  
+
   return previous;
 };
 
@@ -157,25 +154,25 @@ const extractPreviousValues = (batch, updates) => {
  * @returns {object[]} Array of activity row objects ready for bulk insert.
  */
 const buildBatchActivities = ({
-                                batch,
-                                batchType,
-                                actorId,
-                                nextStatus,
-                                isStatusChange,
-                                hasMetadataUpdates,
-                                updates,
-                                activityTypeResolver,
-                              }) => {
+  batch,
+  batchType,
+  actorId,
+  nextStatus,
+  isStatusChange,
+  hasMetadataUpdates,
+  updates,
+  activityTypeResolver,
+}) => {
   const rows = [];
-  
+
   // Activity logging requires a registry record — skip if absent.
   if (!batch.batch_registry_id) {
     return rows;
   }
-  
+
   if (isStatusChange) {
     const activityTypeId = activityTypeResolver(nextStatus);
-    
+
     if (activityTypeId) {
       rows.push(
         buildBatchStatusChangeActivityRow({
@@ -189,17 +186,21 @@ const buildBatchActivities = ({
       );
     }
   }
-  
+
   if (hasMetadataUpdates && updates) {
     const updateKeys = Object.keys(updates);
-    
+
     if (updateKeys.length > 0) {
-      const metadataActivityTypeId = getBatchActivityTypeId('BATCH_METADATA_UPDATED');
+      const metadataActivityTypeId = getBatchActivityTypeId(
+        'BATCH_METADATA_UPDATED'
+      );
       const previousValues = extractPreviousValues(batch, updates);
-      
+
       // Only create an activity record when at least one field value changed.
-      const changedFields = updateKeys.filter((key) => batch[key] !== updates[key]);
-      
+      const changedFields = updateKeys.filter(
+        (key) => batch[key] !== updates[key]
+      );
+
       if (changedFields.length > 0) {
         rows.push(
           buildBatchMetadataUpdateActivityRow({
@@ -214,7 +215,7 @@ const buildBatchActivities = ({
       }
     }
   }
-  
+
   return rows;
 };
 

@@ -74,16 +74,16 @@ const isValidTraceId = (value) =>
  */
 const attachTraceId = (req, res, next) => {
   const incoming = req.get('x-request-id');
-  
+
   // Reuse upstream trace ID only if it passes UUID v4 validation.
   // An invalid or missing header gets a fresh ID to guarantee log safety.
-  req.traceId   = isValidTraceId(incoming) ? incoming : randomUUID();
+  req.traceId = isValidTraceId(incoming) ? incoming : randomUUID();
   req.startTime = process.hrtime.bigint();
-  
+
   // Mirror the trace ID back to the client so it can be included in
   // support requests and correlated with server-side log entries.
   res.setHeader('x-request-id', req.traceId);
-  
+
   next();
 };
 

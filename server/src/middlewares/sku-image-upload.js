@@ -52,7 +52,7 @@ const parseSkuImageJson = (req, res, next) => {
       return;
     }
   }
-  
+
   next();
 };
 
@@ -92,24 +92,24 @@ const parseSkuImageJson = (req, res, next) => {
  */
 const attachUploadedFilesToSkus = (req, res, next) => {
   const files = normalizeToArray(req.files);
-  const skus  = normalizeToArray(req.body?.skus);
-  
+  const skus = normalizeToArray(req.body?.skus);
+
   // No files uploaded or no SKUs present — nothing to merge.
   if (!files.length || !skus.length) {
     next();
     return;
   }
-  
+
   let fileIndex = 0;
-  
+
   for (const sku of skus) {
     const images = normalizeToArray(sku.images);
-    
+
     for (const img of images) {
       if (img.file_uploaded !== true) continue;
-      
+
       const file = files[fileIndex];
-      
+
       // More file_uploaded entries than uploaded files — client mismatch.
       if (!file) {
         next(
@@ -119,23 +119,23 @@ const attachUploadedFilesToSkus = (req, res, next) => {
         );
         return;
       }
-      
+
       img.image_url = file.path;
-      
+
       // Preserve caller-supplied alt_text; fall back to the original filename.
       if (!img.alt_text) {
         img.alt_text = file.originalname;
       }
-      
+
       // Default source to 'uploaded' if the client did not specify one.
       if (!img.source) {
         img.source = 'uploaded';
       }
-      
+
       fileIndex++;
     }
   }
-  
+
   // Extra uploaded files with no matching file_uploaded entry — client mismatch.
   if (fileIndex !== files.length) {
     next(
@@ -145,7 +145,7 @@ const attachUploadedFilesToSkus = (req, res, next) => {
     );
     return;
   }
-  
+
   next();
 };
 

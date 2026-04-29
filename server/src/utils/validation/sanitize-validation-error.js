@@ -36,24 +36,24 @@ const sanitizeValidationError = (error) => {
   if (!error || !Array.isArray(error.details)) {
     return [];
   }
-  
+
   return error.details.map((detail) => {
     // Strip surrounding quotes Joi adds around field names (e.g. "name" → name).
     const message =
       typeof detail.message === 'string'
         ? detail.message.replace(/["']/g, '')
         : 'Invalid value';
-    
+
     // Flatten the path array to dot notation (e.g. ['address', 'city'] → 'address.city').
     const path =
       Array.isArray(detail.path) && detail.path.length > 0
         ? detail.path.join('.')
         : 'unknown';
-    
+
     return { message, path };
   });
 };
 
 module.exports = {
-  sanitizeValidationError
+  sanitizeValidationError,
 };

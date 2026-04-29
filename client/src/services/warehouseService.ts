@@ -1,65 +1,52 @@
-import type {
-  WarehouseDetailsResponse,
-  WarehouseResponse,
-} from '@features/warehouse';
-import { AppError } from '@utils/error';
-import { getRequest } from '@utils/http';
-import { API_ENDPOINTS } from '@services/apiEndpoints';
+/**
+ * @file warehouseService.ts
+ *
+ * API service for the Warehouse domain.
+ * All HTTP calls to warehouse endpoints are centralised here.
+ */
 
-/* =========================================================
- * Warehouses
- * ======================================================= */
+import type {
+  PaginatedWarehouseListApiResponse,
+  WarehouseDetailApiResponse,
+  WarehouseQueryParams,
+} from '@features/warehouse/state/warehouseTypes';
+import { buildQueryString, flattenListQueryParams } from '@utils/query';
+import { API_ENDPOINTS } from '@services/apiEndpoints';
+import { getRequest } from '@utils/http';
 
 /**
- * Fetch a paginated list of warehouses.
+ * Fetch a paginated list of warehouses with optional filters and sorting.
  *
- * GET /warehouses?page=&limit=
- *
- * - Read-only
- * - Idempotent
- * - Adds pagination via query params
+ * READ-only operation.
  */
-const fetchAllWarehouses = async (
-  page = 1,
-  limit = 20
-): Promise<WarehouseResponse> => {
-  if (page <= 0 || limit <= 0) {
-    throw AppError.validation('Invalid pagination parameters', { page, limit });
-  }
-
-  return getRequest<WarehouseResponse>(API_ENDPOINTS.WAREHOUSES.ALL_RECORDS, {
+const fetchPaginatedWarehouses = async (
+  params: WarehouseQueryParams
+): Promise<PaginatedWarehouseListApiResponse> => {
+  const flatParams = flattenListQueryParams(params, []);
+  const queryString = buildQueryString(flatParams);
+  const url = `${API_ENDPOINTS.WAREHOUSES.ALL_RECORDS}${queryString}`;
+  
+  return getRequest<PaginatedWarehouseListApiResponse>(url, {
     policy: 'READ',
-    config: {
-      params: { page, limit },
-    },
   });
 };
 
 /**
- * Fetch warehouse details by ID.
+ * Fetch full warehouse detail by id.
  *
- * GET /warehouses/:warehouseId/details
- *
- * @param warehouseId - Warehouse UUID
+ * READ-only operation.
  */
-const fetchWarehouseDetails = async (
+const fetchWarehouseById = async (
   warehouseId: string
-): Promise<WarehouseDetailsResponse> => {
-  if (!warehouseId) {
-    throw AppError.validation('Warehouse ID is required');
-  }
-
-  return getRequest<WarehouseDetailsResponse>(
-    API_ENDPOINTS.WAREHOUSES.WAREHOUSE_DETAILS(warehouseId),
-    { policy: 'READ' }
-  );
+): Promise<WarehouseDetailApiResponse> => {
+  const url = API_ENDPOINTS.WAREHOUSES.DETAIL(warehouseId);
+  
+  return getRequest<WarehouseDetailApiResponse>(url, {
+    policy: 'READ',
+  });
 };
 
-/* =========================================================
- * Public API
- * ======================================================= */
-
 export const warehouseService = {
-  fetchAllWarehouses,
-  fetchWarehouseDetails,
+  fetchPaginatedWarehouses,
+  fetchWarehouseById,
 };

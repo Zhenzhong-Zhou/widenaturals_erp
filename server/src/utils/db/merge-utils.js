@@ -56,12 +56,12 @@ const { q, validateIdentifier } = require('../sql-ident');
  * // → '"notes" = CASE WHEN EXCLUDED."notes" IS NULL OR TRIM(...) ...'
  */
 const buildMergeExpression = (col, tableAlias, type = 'text') => {
-  const safeCol   = validateIdentifier(col, 'column');
+  const safeCol = validateIdentifier(col, 'column');
   const safeAlias = validateIdentifier(tableAlias, 'table alias');
-  
+
   const c = q(safeCol);
   const t = q(safeAlias);
-  
+
   // JSONB audit append: wraps the incoming value in a timestamped object
   // and concatenates it onto the existing array. COALESCE initialises a
   // null column to an empty array before appending.
@@ -79,7 +79,7 @@ const buildMergeExpression = (col, tableAlias, type = 'text') => {
       END
     `;
   }
-  
+
   // TEXT audit append: prefixes the incoming value with a timestamp and
   // joins it to the existing text with a blank line separator.
   // NULLIF(TRIM(...), '') ensures a leading blank line is not added when

@@ -16,7 +16,9 @@
 const { query } = require('../database/db');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { logDbQueryError } = require('../utils/db-logger');
-const { BOM_ITEM_MATERIAL_SUPPLY_DETAILS } = require('./queries/bom-item-queries');
+const {
+  BOM_ITEM_MATERIAL_SUPPLY_DETAILS,
+} = require('./queries/bom-item-queries');
 
 // ─── Detail ───────────────────────────────────────────────────────────────────
 
@@ -37,7 +39,7 @@ const { BOM_ITEM_MATERIAL_SUPPLY_DETAILS } = require('./queries/bom-item-queries
  */
 const getBomMaterialSupplyDetailsById = async (bomId) => {
   const context = 'bom-item-repository/getBomMaterialSupplyDetailsById';
-  
+
   try {
     const result = await query(BOM_ITEM_MATERIAL_SUPPLY_DETAILS, [bomId]);
     return result.rows;
@@ -45,13 +47,12 @@ const getBomMaterialSupplyDetailsById = async (bomId) => {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch BOM material supply details.',
-      meta:    { bomId },
-      logFn:   (err) => logDbQueryError(
-        BOM_ITEM_MATERIAL_SUPPLY_DETAILS,
-        [bomId],
-        err,
-        { context, bomId }
-      ),
+      meta: { bomId },
+      logFn: (err) =>
+        logDbQueryError(BOM_ITEM_MATERIAL_SUPPLY_DETAILS, [bomId], err, {
+          context,
+          bomId,
+        }),
     });
   }
 };

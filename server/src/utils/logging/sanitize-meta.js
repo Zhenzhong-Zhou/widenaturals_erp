@@ -43,7 +43,7 @@ const MAX_STRING_LENGTH = 500;
 const truncateString = (str) => {
   if (typeof str !== 'string') return str;
   if (str.length <= MAX_STRING_LENGTH) return str;
-  
+
   return `${str.slice(0, MAX_STRING_LENGTH)}...[truncated]`;
 };
 
@@ -68,11 +68,11 @@ const truncateString = (str) => {
  */
 const isUnsafeObject = (value) => {
   if (!value || typeof value !== 'object') return false;
-  
+
   // Functions & Promises
   if (typeof value === 'function') return true;
   if (value instanceof Promise) return true;
-  
+
   // Express / HTTP objects
   if (
     value instanceof http.IncomingMessage ||
@@ -80,15 +80,12 @@ const isUnsafeObject = (value) => {
   ) {
     return true;
   }
-  
+
   // Stream detection (safe pattern)
-  if (
-    typeof value.pipe === 'function' &&
-    typeof value.on === 'function'
-  ) {
+  if (typeof value.pipe === 'function' && typeof value.on === 'function') {
     return true;
   }
-  
+
   // Low-level sockets (constructor-based detection)
   const name = value.constructor?.name;
   return name === 'Socket' || name === 'TLSSocket';
@@ -112,11 +109,7 @@ const isUnsafeObject = (value) => {
  * @param {WeakSet<object>} [seen=new WeakSet()] - Circular reference tracker
  * @returns {any} Sanitized, log-safe metadata
  */
-const sanitizeAndLimitMeta = (
-  input,
-  depth = 0,
-  seen = new WeakSet()
-) => {
+const sanitizeAndLimitMeta = (input, depth = 0, seen = new WeakSet()) => {
   // =========================
   // Primitive handling (fast path)
   // =========================
@@ -125,27 +118,27 @@ const sanitizeAndLimitMeta = (
     if (typeof input === 'string') return truncateString(input);
     return input;
   }
-  
+
   // =========================
   // Circular reference protection
   // =========================
   if (seen.has(input)) return '[Circular]';
   seen.add(input);
-  
+
   // =========================
   // Depth limiting
   // =========================
   if (depth >= MAX_DEPTH) {
     return '[MaxDepthExceeded]';
   }
-  
+
   // =========================
   // Special object normalization
   // =========================
   if (input instanceof Date) {
     return input.toISOString();
   }
-  
+
   if (input instanceof Error) {
     return {
       name: input.name,
@@ -155,64 +148,64 @@ const sanitizeAndLimitMeta = (
       }),
     };
   }
-  
+
   if (Buffer.isBuffer(input)) {
     return `[Buffer length=${input.length}]`;
   }
-  
+
   // =========================
   // Unsafe object filtering
   // =========================
   if (isUnsafeObject(input)) {
     return `[Unsafe:${input.constructor?.name || 'Object'}]`;
   }
-  
+
   // =========================
   // Array handling
   // =========================
   if (Array.isArray(input)) {
     const limited = input.slice(0, MAX_ARRAY_LENGTH);
-    
+
     const result = limited
       .map((v) => sanitizeAndLimitMeta(v, depth + 1, seen))
       .filter((v) => v !== null && v !== undefined);
-    
+
     // Indicate truncation
     if (input.length > MAX_ARRAY_LENGTH) {
       result.push(`[+${input.length - MAX_ARRAY_LENGTH} more items]`);
     }
-    
+
     return result;
   }
-  
+
   // =========================
   // Object handling
   // =========================
   const keys = Object.keys(input);
   const limitedKeys = keys.slice(0, MAX_KEYS);
-  
+
   const result = {};
-  
+
   for (const key of limitedKeys) {
     const value = input[key];
-    
+
     // Skip null/undefined early (perf optimization)
     if (value === null || value === undefined) continue;
-    
+
     // Key-level masking (LAST LINE DEFENSE)
     if (isSensitiveField(key)) {
       result[key] = '[REDACTED]';
       continue;
     }
-    
+
     result[key] = sanitizeAndLimitMeta(value, depth + 1, seen);
   }
-  
+
   // Indicate truncated keys
   if (keys.length > MAX_KEYS) {
     result.__truncatedKeys = `[+${keys.length - MAX_KEYS} more keys]`;
   }
-  
+
   return result;
 };
 

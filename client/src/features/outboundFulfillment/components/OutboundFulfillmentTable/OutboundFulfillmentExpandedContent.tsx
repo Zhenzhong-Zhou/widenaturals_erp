@@ -25,7 +25,7 @@ const OutboundFulfillmentExpandedContent: FC<
     },
     {
       label: 'Created By',
-      value: row.createdByName ?? '—',
+      value: row.createdBy ?? '—',
     },
     {
       label: 'Updated At',
@@ -33,7 +33,7 @@ const OutboundFulfillmentExpandedContent: FC<
     },
     {
       label: 'Updated By',
-      value: row.updatedByName ?? '—',
+      value: row.updatedBy ?? '—',
     },
     {
       label: 'Notes',

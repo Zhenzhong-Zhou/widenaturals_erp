@@ -12,7 +12,9 @@ const { query } = require('../database/db');
 const AppError = require('../utils/AppError');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { logDbQueryError } = require('../utils/db-logger');
-const { ROLE_PERMISSIONS_BY_ROLE_QUERY } = require('./queries/role-permission-queries');
+const {
+  ROLE_PERMISSIONS_BY_ROLE_QUERY,
+} = require('./queries/role-permission-queries');
 
 // ─── Query ────────────────────────────────────────────────────────────────────
 
@@ -34,32 +36,34 @@ const { ROLE_PERMISSIONS_BY_ROLE_QUERY } = require('./queries/role-permission-qu
  */
 const getRolePermissionsByRoleId = async (roleId, statusId) => {
   const context = 'role-permission-repository/getRolePermissionsByRoleId';
-  const params  = [roleId, statusId];
-  
+  const params = [roleId, statusId];
+
   let rows;
-  
+
   try {
     ({ rows } = await query(ROLE_PERMISSIONS_BY_ROLE_QUERY, params));
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch permissions for the specified role.',
-      meta:    { roleId, statusId },
-      logFn:   (err) => logDbQueryError(
-        ROLE_PERMISSIONS_BY_ROLE_QUERY, params, err, { context, roleId }
-      ),
+      meta: { roleId, statusId },
+      logFn: (err) =>
+        logDbQueryError(ROLE_PERMISSIONS_BY_ROLE_QUERY, params, err, {
+          context,
+          roleId,
+        }),
     });
   }
-  
+
   // Not-found check outside try — throwing notFoundError inside would be
   // caught and re-thrown as a databaseError.
   if (!rows.length) {
-    throw AppError.notFoundError(
-      `No permissions found for role: ${roleId}`,
-      { context, meta: { roleId, statusId } }
-    );
+    throw AppError.notFoundError(`No permissions found for role: ${roleId}`, {
+      context,
+      meta: { roleId, statusId },
+    });
   }
-  
+
   return rows[0];
 };
 

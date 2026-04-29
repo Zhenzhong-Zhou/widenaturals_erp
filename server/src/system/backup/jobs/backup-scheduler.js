@@ -1,4 +1,4 @@
-const fs   = require('node:fs/promises');
+const fs = require('node:fs/promises');
 const path = require('node:path');
 const {
   logSystemInfo,
@@ -43,20 +43,22 @@ const runScheduledBackup = async () => {
  */
 const getLastBackupTimestamp = async () => {
   const backupDir = process.env.BACKUP_DIR;
-  
+
   // Env var not set — cannot locate backup directory, treat as no backup
   if (!backupDir) return null;
-  
+
   try {
-    const files    = await fs.readdir(backupDir);
-    const encFiles = files.filter(f => f.endsWith('.enc'));
-    
+    const files = await fs.readdir(backupDir);
+    const encFiles = files.filter((f) => f.endsWith('.enc'));
+
     if (encFiles.length === 0) return null;
-    
+
     const mtimes = await Promise.all(
-      encFiles.map(f => fs.stat(path.join(backupDir, f)).then(s => s.mtimeMs))
+      encFiles.map((f) =>
+        fs.stat(path.join(backupDir, f)).then((s) => s.mtimeMs)
+      )
     );
-    
+
     return Math.max(...mtimes);
   } catch {
     // Directory missing or unreadable — treat as no backup
@@ -95,22 +97,22 @@ const startBackupScheduler = (options = {}) => {
     });
     return;
   }
-  
-  const parsed     = parseInt(process.env.BACKUP_INTERVAL_MS, 10);
-  const intervalMs = options.intervalMs
-    ?? (isNaN(parsed) ? 24 * 60 * 60 * 1000 : parsed);
-  
+
+  const parsed = parseInt(process.env.BACKUP_INTERVAL_MS, 10);
+  const intervalMs =
+    options.intervalMs ?? (isNaN(parsed) ? 24 * 60 * 60 * 1000 : parsed);
+
   logSystemInfo('Starting in-process backup scheduler', {
     context: CONTEXT,
     intervalMs,
   });
-  
+
   // Check for a recent backup before deciding whether to run immediately.
   // setInterval is registered below regardless — schedule clock starts now.
   getLastBackupTimestamp()
-    .then(lastTs => {
-      const isStale = !lastTs || (Date.now() - lastTs) > intervalMs;
-      
+    .then((lastTs) => {
+      const isStale = !lastTs || Date.now() - lastTs > intervalMs;
+
       if (isStale) {
         logSystemInfo('No recent backup found — running immediately', {
           context: CONTEXT,
@@ -129,11 +131,11 @@ const startBackupScheduler = (options = {}) => {
       // Timestamp check failed — run immediately rather than risk missing a backup
       logSystemWarn('Timestamp check failed — running backup immediately', {
         context: CONTEXT,
-        reason:  error.message,
+        reason: error.message,
       });
       void runScheduledBackup();
     });
-  
+
   // Register interval synchronously — clock starts from process boot, not first backup
   intervalId = setInterval(runScheduledBackup, intervalMs);
 };
@@ -148,10 +150,10 @@ const startBackupScheduler = (options = {}) => {
  */
 const stopBackupScheduler = () => {
   if (!intervalId) return; // already stopped — no-op
-  
+
   clearInterval(intervalId);
   intervalId = null;
-  
+
   logSystemInfo('Backup scheduler stopped', { context: CONTEXT });
 };
 

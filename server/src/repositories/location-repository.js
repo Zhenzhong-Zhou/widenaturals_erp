@@ -46,50 +46,51 @@ const {
  * @throws  {AppError}        Normalized database error if the query fails.
  */
 const getPaginatedLocations = async ({
-                                       filters   = {},
-                                       page      = 1,
-                                       limit     = 10,
-                                       sortBy    = 'created_at',
-                                       sortOrder = 'DESC',
-                                     }) => {
+  filters = {},
+  page = 1,
+  limit = 10,
+  sortBy = 'created_at',
+  sortOrder = 'DESC',
+}) => {
   const context = 'location-repository/getPaginatedLocations';
-  
+
   const { whereClause, params } = buildLocationFilter(filters);
-  
+
   const sortConfig = resolveSort({
     sortBy,
     sortOrder,
-    moduleKey:   'locationSortMap',
+    moduleKey: 'locationSortMap',
     defaultSort: SORTABLE_FIELDS.locationSortMap.defaultNaturalSort,
   });
-  
+
   // ORDER BY omitted — paginateQuery appends it from sortBy/sortOrder.
   const queryText = buildLocationQuery(whereClause);
-  
+
   try {
     return await paginateQuery({
-      tableName:    LOCATION_TABLE,
-      joins:        LOCATION_JOINS,
+      tableName: LOCATION_TABLE,
+      joins: LOCATION_JOINS,
       whereClause,
       queryText,
       params,
       page,
       limit,
-      sortBy:       sortConfig.sortBy,
-      sortOrder:    sortConfig.sortOrder,
+      sortBy: sortConfig.sortBy,
+      sortOrder: sortConfig.sortOrder,
       whitelistSet: LOCATION_SORT_WHITELIST,
     });
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch paginated locations.',
-      meta:    { filters, page, limit, sortBy, sortOrder },
-      logFn:   (err) => logDbQueryError(
-        queryText,
-        params,
-        err,
-        { context, filters, page, limit }
-      ),
+      meta: { filters, page, limit, sortBy, sortOrder },
+      logFn: (err) =>
+        logDbQueryError(queryText, params, err, {
+          context,
+          filters,
+          page,
+          limit,
+        }),
     });
   }
 };

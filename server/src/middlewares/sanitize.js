@@ -30,7 +30,7 @@ const {
   sanitizeQueryParams,
   sanitizeParams,
 } = require('../utils/sanitization-utils');
-const AppError     = require('../utils/AppError');
+const AppError = require('../utils/AppError');
 
 // -----------------------------------------------------------------------------
 // Global sanitizer
@@ -58,7 +58,7 @@ const sanitizeInput = (req, res, next) => {
     sanitizeRequestBody(req, Object.keys(req.body || {}));
     sanitizeQueryParams(req);
     sanitizeParams(req);
-    
+
     next();
   } catch (error) {
     next(AppError.sanitizationError('Input sanitization failed.'));

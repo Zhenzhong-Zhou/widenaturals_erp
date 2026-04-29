@@ -1,49 +1,64 @@
-import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import {
-  fetchWarehouseDetailsThunk,
-  type WarehouseDetailsResponse,
-} from '@features/warehouse';
+/**
+ * @file warehouseDetailSlice.ts
+ *
+ * Redux slice for the warehouse detail view.
+ */
 
-interface WarehouseState {
-  warehouseDetails: WarehouseDetailsResponse | null;
-  loading: boolean;
-  error: string | null;
-}
+import { createSlice } from '@reduxjs/toolkit';
+import { fetchWarehouseByIdThunk } from './warehouseThunks';
+import type {
+  WarehouseDetailState,
+  WarehouseDetailApiResponse,
+} from './warehouseTypes';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
-const initialState: WarehouseState = {
-  warehouseDetails: null,
+const detailInitialState: WarehouseDetailState = {
+  data:    null,
   loading: false,
-  error: null,
+  error:   null,
 };
 
-const warehouseSlice = createSlice({
-  name: 'warehouseDetails',
-  initialState,
+const warehouseDetailSlice = createSlice({
+  name: 'warehouseDetail',
+  initialState: detailInitialState,
+  
   reducers: {
-    clearWarehouseDetails(state) {
-      state.warehouseDetails = null;
-      state.error = null;
-    },
+    /**
+     * Reset the warehouse detail state back to its initial empty configuration.
+     * Typically used when navigating away from the warehouse detail page.
+     */
+    resetWarehouseDetail: () => detailInitialState,
   },
+  
+  // ---------------------------
+  // Extra reducers (async thunk lifecycle)
+  // ---------------------------
   extraReducers: (builder) => {
     builder
-      .addCase(fetchWarehouseDetailsThunk.pending, (state) => {
+      // ---- pending ----
+      .addCase(fetchWarehouseByIdThunk.pending, (state) => {
         state.loading = true;
         state.error = null;
+        state.data = null;
       })
-      .addCase(
-        fetchWarehouseDetailsThunk.fulfilled,
-        (state, action: PayloadAction<WarehouseDetailsResponse>) => {
-          state.warehouseDetails = action.payload;
-          state.loading = false;
-        }
-      )
-      .addCase(fetchWarehouseDetailsThunk.rejected, (state, action) => {
+      
+      // ---- fulfilled ----
+      .addCase(fetchWarehouseByIdThunk.fulfilled, (state, action) => {
         state.loading = false;
-        state.error = action.payload as string;
+        state.error = null;
+        
+        const result = action.payload as WarehouseDetailApiResponse;
+        state.data = result.data;
+      })
+      
+      // ---- rejected ----
+      .addCase(fetchWarehouseByIdThunk.rejected, (state, action) => {
+        state.data = null;
+        applyRejected(state, action, 'Failed to fetch warehouse details.');
       });
   },
 });
 
-export const { clearWarehouseDetails } = warehouseSlice.actions;
-export default warehouseSlice.reducer;
+export const { resetWarehouseDetail } = warehouseDetailSlice.actions;
+
+export default warehouseDetailSlice.reducer;
