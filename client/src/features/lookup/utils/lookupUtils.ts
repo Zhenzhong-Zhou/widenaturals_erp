@@ -98,7 +98,6 @@ type LookupLike<T> = {
  *   onOpen={createOnOpenHandler(customerLookup)}
  * />
  */
-// todo: refactor all  old to new one
 export const createOnOpenHandler = <T>(lookup: LookupLike<T>) => () => {
   if (lookup.options.length === 0 && !lookup.loading) {
     lookup.fetch();
