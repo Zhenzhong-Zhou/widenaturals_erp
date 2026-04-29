@@ -13,6 +13,7 @@ import Skeleton from '@mui/material/Skeleton';
 import Divider from '@mui/material/Divider';
 import {
   CustomTypography,
+  ErrorMessage,
   GoBackButton,
 } from '@components/index';
 import {
@@ -234,7 +235,7 @@ const WarehouseInventoryListPage: FC = () => {
       
       {/* ── Table ─────────────────────────────────────────────────── */}
       {inventoriesError ? (
-        <CustomTypography color="error">{inventoriesError}</CustomTypography>
+        <ErrorMessage message={inventoriesError} showNavigation />
       ) : (
         <WarehouseInventoryListTable
           data={inventories}
