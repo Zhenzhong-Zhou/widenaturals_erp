@@ -2,13 +2,21 @@ import { type FC } from 'react';
 import Stack from '@mui/material/Stack';
 import { useAppSelector } from '@store/storeHooks';
 import { selectSelfUserFullName } from '@features/user';
-import CustomTypography from '@components/common/CustomTypography';
-import DashboardLayout from '@features/dashboard/components/DashboardLayout';
+
 import type { DashboardPageProps } from '@features/dashboard';
-import { DashboardInventoryOverview, MyWarehouses } from '@features/dashboard/components';
+import {
+  DashboardInventoryOverview,
+  DashboardLayout,
+  DashboardSectionGate,
+  DashboardWarehouseAlerts,
+  MyWarehouses,
+} from '@features/dashboard/components';
+import { CustomTypography } from '@components/index';
+import { useDashboardWarehouses } from '@features/dashboard/hooks';
 
 const UserDashboardPage: FC<DashboardPageProps> = () => {
   const fullName = useAppSelector(selectSelfUserFullName);
+  const { warehouses, loading, error, canView } = useDashboardWarehouses();
   
   return (
     <DashboardLayout
@@ -20,7 +28,10 @@ const UserDashboardPage: FC<DashboardPageProps> = () => {
       }
     >
       <Stack spacing={3}>
-        <DashboardInventoryOverview />
+        <DashboardSectionGate canView={canView} loading={loading} error={error}>
+          <DashboardInventoryOverview warehouses={warehouses} />
+          <DashboardWarehouseAlerts warehouses={warehouses} />
+        </DashboardSectionGate>
         <MyWarehouses />
       </Stack>
     </DashboardLayout>
