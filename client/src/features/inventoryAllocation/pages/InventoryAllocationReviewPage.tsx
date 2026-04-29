@@ -38,12 +38,11 @@ const InventoryAllocationReviewPage = () => {
     allocationIds = [],
     category,
   }: LocationState = location.state || {};
-
+  
   // === Hooks ===
   const {
     loading: isReviewLoading,
     error: reviewError,
-    message: reviewMessage,
     header: allocationReviewHeader,
     items: allocationReviewItems,
     itemCount: allocationItemCount,
@@ -60,18 +59,6 @@ const InventoryAllocationReviewPage = () => {
     confirm: confirmedAllocation,
     reset: resetConfirmation,
   } = useInventoryAllocationConfirmation();
-
-  // === Early Bailouts ===
-  if (!orderId) {
-    return <ErrorMessage message="Missing order ID in URL." />;
-  }
-  if (reviewError) {
-    return (
-      <ErrorMessage
-        message={reviewMessage ?? 'Failed to load allocation review.'}
-      />
-    );
-  }
 
   // === Fetch & Refresh Logic ===
   const refresh = useCallback(() => {
@@ -157,7 +144,7 @@ const InventoryAllocationReviewPage = () => {
   const handleConfirmationSubmit = async () => {
     try {
       resetConfirmation();
-      await confirmedAllocation(orderId); // Safe now
+      await confirmedAllocation(orderId!); // Safe now
     } catch (error) {
       console.error('Confirmation error:', error);
     }
@@ -209,20 +196,24 @@ const InventoryAllocationReviewPage = () => {
             <CustomTypography variant="h4" sx={{ fontWeight: 'bold' }}>
               Inventory Allocation Review
             </CustomTypography>
-
-            <AllocationActionToolbar
-              confirmError={confirmError}
-              canConfirm={canConfirm}
-              handleConfirmationSubmit={handleConfirmationSubmit}
-              isReviewLoading={isReviewLoading}
-              isConfirming={isConfirming}
-              allocationSummary={allocationSummary}
-              canInitiateFulfillment={canInitiateFulfillment}
-              orderId={orderId}
-              allocationIds={allocationIds}
-              allocationReviewHeader={allocationReviewHeader}
-              refresh={refresh}
-            />
+            
+            {reviewError ? (
+              <ErrorMessage message={reviewError} />
+            ) : (
+              <AllocationActionToolbar
+                confirmError={confirmError}
+                canConfirm={canConfirm}
+                handleConfirmationSubmit={handleConfirmationSubmit}
+                isReviewLoading={isReviewLoading}
+                isConfirming={isConfirming}
+                allocationSummary={allocationSummary}
+                canInitiateFulfillment={canInitiateFulfillment}
+                orderId={orderId!}
+                allocationIds={allocationIds}
+                allocationReviewHeader={allocationReviewHeader}
+                refresh={refresh}
+              />
+            )}
           </Box>
 
           <Divider sx={{ mb: 3 }} />
