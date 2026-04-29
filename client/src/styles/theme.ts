@@ -41,6 +41,19 @@ declare module '@mui/material/Chip' {
   }
 }
 
+declare module '@mui/material/styles' {
+  interface Theme {
+    customShadows: {
+      card: string;
+    };
+  }
+  interface ThemeOptions {
+    customShadows?: {
+      card?: string;
+    };
+  }
+}
+
 // Define your shared tokens for consistency
 const sharedTokens: ThemeOptions = {
   typography: {
@@ -168,6 +181,9 @@ const lightTheme = createTheme({
       contrastText: '#ffffff',
     },
   },
+  customShadows: {
+    card: '0 10px 30px rgba(15,23,42,0.04)',
+  },
 });
 
 // Dark theme
@@ -197,6 +213,9 @@ const darkTheme = createTheme({
       main: '#adb5bd',
       contrastText: '#1e1e1e',
     },
+  },
+  customShadows: {
+    card: '0 10px 30px rgba(0,0,0,0.35)',
   },
 });
 
