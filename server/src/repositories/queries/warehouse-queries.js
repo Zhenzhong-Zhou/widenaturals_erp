@@ -48,13 +48,28 @@ const _DETAIL_JOINS_SQL = [
 const _INVENTORY_SUMMARY_LATERAL = `
   LEFT JOIN LATERAL (
     SELECT
-      COUNT(*)                                        AS total_batches,
-      COALESCE(SUM(wi.warehouse_quantity), 0)         AS total_quantity,
-      COALESCE(SUM(wi.reserved_quantity),  0)         AS total_reserved
+      COUNT(wi.id)                              AS total_batches,
+      COALESCE(SUM(wi.warehouse_quantity), 0)   AS total_quantity,
+      COALESCE(SUM(wi.reserved_quantity), 0)    AS total_reserved,
+      COUNT(CASE
+        WHEN (wi.warehouse_quantity - wi.reserved_quantity) <= 10
+        THEN 1
+      END) AS low_stock_count,
+      COUNT(CASE
+        WHEN COALESCE(pb.expiry_date, pmb.expiry_date) < NOW()
+        THEN 1
+      END) AS expired_count,
+      COUNT(CASE
+        WHEN COALESCE(pb.expiry_date, pmb.expiry_date) >= NOW()
+         AND COALESCE(pb.expiry_date, pmb.expiry_date) <= NOW() + INTERVAL '30 days'
+        THEN 1
+      END) AS expiring_soon_count
     FROM warehouse_inventory wi
+    LEFT JOIN batch_registry br             ON br.id  = wi.batch_id
+    LEFT JOIN product_batches pb            ON pb.id  = br.product_batch_id
+    LEFT JOIN packaging_material_batches pmb ON pmb.id = br.packaging_material_batch_id
     WHERE wi.warehouse_id = w.id
-      AND wi.outbound_date IS NULL
-  ) inv ON true
+  ) inv ON TRUE
 `;
 
 // ─── Lookup Select Fields ─────────────────────────────────────────────────────
@@ -109,6 +124,9 @@ const buildWarehousePaginatedQuery = (whereClause) => `
     inv.total_quantity,
     inv.total_reserved,
     (inv.total_quantity - inv.total_reserved)         AS available_quantity,
+    inv.low_stock_count,
+    inv.expired_count,
+    inv.expiring_soon_count,
     w.created_at,
     w.created_by,
     cu.firstname                                      AS created_by_firstname,

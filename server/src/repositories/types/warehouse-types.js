@@ -33,6 +33,9 @@
  * @property {string}      total_quantity       - PostgreSQL aggregate — string over the wire.
  * @property {string}      total_reserved       - PostgreSQL aggregate — string over the wire.
  * @property {string}      available_quantity   - Derived: total_quantity - total_reserved.
+ * @property {string}      low_stock_count      - PostgreSQL aggregate — string over the wire.
+ * @property {string}      expired_count        - PostgreSQL aggregate — string over the wire.
+ * @property {string}      expiring_soon_count  - PostgreSQL aggregate — string over the wire.
  * @property {string|null} created_at
  * @property {string|null} created_by
  * @property {string|null} created_by_firstname
@@ -150,5 +153,9 @@
  * @property {number}      summary.totalQuantity
  * @property {number}      summary.totalReserved
  * @property {number}      summary.availableQuantity
+ * @property {object}      alerts
+ * @property {number}      alerts.lowStock
+ * @property {number}      alerts.expiringSoon
+ * @property {number}      alerts.expired
  * @property {object}      audit
  */
