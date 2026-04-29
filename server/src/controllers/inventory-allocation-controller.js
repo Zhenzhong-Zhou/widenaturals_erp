@@ -97,7 +97,7 @@ const reviewInventoryAllocationController = wrapAsyncHandler(
     res.status(200).json({
       success: true,
       message: 'Inventory allocation review retrieved successfully.',
-      payload: { data: result },
+      data: result,
       traceId: req.traceId,
     });
   }
