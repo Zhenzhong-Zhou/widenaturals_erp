@@ -58,8 +58,13 @@ const LoginPage: FC = () => {
         <Box
           component="img"
           src={logo}
-          alt="Company Logo"
-          sx={{ mb: 2, width: 100, height: 100 }}
+          alt="Wide Naturals"
+          sx={{
+            mb: 2,
+            width: 200,
+            height: 'auto',
+            mixBlendMode: theme.palette.mode === 'dark' ? 'screen' : 'multiply',
+          }}
         />
         <CustomTypography
           variant="h4"

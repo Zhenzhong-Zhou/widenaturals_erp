@@ -1,6 +1,6 @@
 import type { FC } from 'react';
 import { useMemo } from 'react';
-import { NavLink } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 import { useTheme } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
@@ -102,12 +102,19 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
               alignItems: 'center',
             }}
           >
-            <img
-              src={logo}
-              alt="WIDE Naturals Inc."
-              loading="eager"
-              style={{ height: 50, objectFit: 'contain' }}
-            />
+            <Link to="/dashboard" style={{ display: 'flex', alignItems: 'center' }}>
+              <img
+                src={logo}
+                alt="Wide Naturals"
+                loading="eager"
+                style={{
+                  height: 50,
+                  width: 'auto',
+                  objectFit: 'contain',
+                  filter: theme.palette.mode === 'dark' ? 'invert(1)' : 'none',
+                }}
+              />
+            </Link>
           </Box>
 
           {isOpen && (
