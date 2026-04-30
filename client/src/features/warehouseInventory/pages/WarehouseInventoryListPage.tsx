@@ -21,10 +21,9 @@ import {
   WarehouseInventoryListTable,
   WarehouseInventorySortControls,
 } from '@features/warehouseInventory/components/WarehouseInventoryListTable';
-import {
-  WarehouseSummarySection,
-} from '@features/warehouseInventory/components/WarehouseSummaryHeader';
+import { WarehouseSummarySection } from '@features/warehouseInventory/components/WarehouseSummaryHeader';
 import type {
+  FlattenedWarehouseInventory,
   WarehouseInventoryFilters,
   WarehouseInventoryQueryParams,
   WarehouseInventorySortField,
@@ -41,13 +40,18 @@ import { createOnOpenHandler } from '@features/lookup/utils/lookupUtils';
 import { WarehouseItemSummaryPanel } from '@features/warehouseInventory/components/WarehouseItemSummary';
 import { useRecentWarehouses } from '@features/warehouse/hooks';
 
+const INITIAL_FILTERS: WarehouseInventoryFilters = {};
+
 const WarehouseInventoryListPage: FC = () => {
   const { warehouseId } = useParams<{ warehouseId: string }>();
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(25);
+  const [page, setPage]           = useState(1);
+  const [limit, setLimit]         = useState(25);
   const [sortBy, setSortBy]       = useState<WarehouseInventorySortField>('defaultNaturalSort');
   const [sortOrder, setSortOrder] = useState<'' | 'ASC' | 'DESC'>('');
-  const [filters, setFilters]     = useState<WarehouseInventoryFilters>({});
+  const [filters, setFilters]     = useState<WarehouseInventoryFilters>(INITIAL_FILTERS);
+  
+  // ── Selection state ───────────────────────────────────────────────────────
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   
   const {
     warehouseInfo,
@@ -82,17 +86,17 @@ const WarehouseInventoryListPage: FC = () => {
   } = useWarehouseItemSummary();
   
   const { addRecent } = useRecentWarehouses();
-  
-  const lookups = useWarehouseInventoryLookups();
-  
+  const lookups       = useWarehouseInventoryLookups();
   const hasPermission = useHasPermissionBoolean();
   
-  const canViewInventoryDetail   = hasPermission('view_warehouse_inventory_detail');
-  const canAdjustInventory       = hasPermission('adjust_warehouse_inventory');
-  const canUpdateInventoryStatus = hasPermission('update_warehouse_inventory_status');
-  const canViewWarehouseSummary = hasPermission('view_warehouse_inventory_summary');
+  const canViewInventoryDetail       = hasPermission('view_warehouse_inventory_detail');
+  const canCreateInventory           = hasPermission('create_warehouse_inventory');
+  const canAdjustInventory           = hasPermission('adjust_warehouse_inventory');
+  const canAdjustReserved            = hasPermission('force_adjust_reserved');
+  const canUpdateInventoryStatus     = hasPermission('update_warehouse_inventory_status');
+  const canViewWarehouseSummary      = hasPermission('view_warehouse_inventory_summary');
   const canViewWarehouseItemsSummary = hasPermission('view_warehouse_inventory_summary_item_details');
-
+  
   // Warehouse summary
   useEffect(() => {
     if (!warehouseId || !canViewWarehouseSummary) return;
@@ -123,27 +127,41 @@ const WarehouseInventoryListPage: FC = () => {
     });
   }, [warehouseInfo, addRecent]);
   
+  const fullQuery = useMemo(
+    () => ({
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+      filters,
+    }),
+    [page, limit, sortBy, sortOrder, filters]
+  );
+  
+  const refreshWarehouseInventoryList = useCallback(() => {
+    if (!warehouseId) return;
+    fetchWarehouseInventory({ warehouseId, ...fullQuery });
+  }, [warehouseId, fullQuery, fetchWarehouseInventory]);
+  
   const queryParams = useMemo<WarehouseInventoryQueryParams | null>(
     () => {
       if (!warehouseId) return null;
       return {
         warehouseId,
-        page,
-        limit,
-        sortBy,
-        sortOrder,
-        filters,
+        ...fullQuery,
+        fetchFn: refreshWarehouseInventoryList,
       };
     },
-    [warehouseId, page, limit, sortBy, sortOrder, filters]
+    [warehouseId, fullQuery, refreshWarehouseInventoryList]
   );
-
+  
   // Fetch effect — fires whenever queryParams change
   useEffect(() => {
-    if (!queryParams) return;
-    fetchWarehouseInventory(queryParams);
-  }, [queryParams, fetchWarehouseInventory]);
-
+    if (!warehouseId) return;
+    const t = setTimeout(() => fetchWarehouseInventory({ warehouseId, ...fullQuery }), 200);
+    return () => clearTimeout(t);
+  }, [warehouseId, fullQuery, fetchWarehouseInventory]);
+  
   // Reset effect — fires ONLY on unmount
   useEffect(() => {
     return () => { resetWarehouseInventory(); };
@@ -154,15 +172,21 @@ const WarehouseInventoryListPage: FC = () => {
     setLimit,
   );
   
-  const handleRefresh = useCallback(() => {
-    if (!queryParams) return;
-    fetchWarehouseInventory(queryParams);
-  }, [queryParams, fetchWarehouseInventory]);
-  
   const handleResetFilters = useCallback(() => {
     resetWarehouseInventory();
-    setFilters({});
+    setFilters(INITIAL_FILTERS);
+    setSelectedIds([]);
   }, [resetWarehouseInventory]);
+  
+  // Derive full selected item objects from current page data
+  const selectedItems = useMemo<FlattenedWarehouseInventory[]>(() => {
+    const set = new Set(selectedIds);
+    return inventories.filter((row) => set.has(row.id));
+  }, [inventories, selectedIds]);
+  
+  const handleSelectionChange = useCallback((ids: string[]) => {
+    setSelectedIds(ids);
+  }, []);
   
   const lookupHandlers = useMemo(
     () => ({
@@ -173,15 +197,13 @@ const WarehouseInventoryListPage: FC = () => {
         packagingMaterial: createOnOpenHandler(lookups.packagingMaterial),
       },
     }),
-    [lookups]
+    [lookups],
   );
   
   if (!warehouseId) {
     return (
       <Box sx={{ px: 4, py: 3 }}>
-        <CustomTypography color="error">
-          Missing warehouse ID in route.
-        </CustomTypography>
+        <CustomTypography color="error">Missing warehouse ID in route.</CustomTypography>
       </Box>
     );
   }
@@ -244,11 +266,17 @@ const WarehouseInventoryListPage: FC = () => {
           rowsPerPage={limit}
           totalRecords={totalInventoryRecords}
           totalPages={inventoryPagination?.totalPages ?? 0}
+          warehouseId={warehouseId}
           onPageChange={handlePageChange}
           onRowsPerPageChange={handleRowsPerPageChange}
-          onRefresh={handleRefresh}
+          onRefresh={refreshWarehouseInventoryList}
+          selectedRowIds={selectedIds}
+          selectedItems={selectedItems}
+          onSelectionChange={handleSelectionChange}
           canViewDetail={canViewInventoryDetail}
+          canCreate={canCreateInventory}
           canAdjust={canAdjustInventory}
+          canAdjustReserved={canAdjustReserved}
           canUpdateStatus={canUpdateInventoryStatus}
         />
       )}
