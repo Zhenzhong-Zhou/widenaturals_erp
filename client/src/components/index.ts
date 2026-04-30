@@ -16,6 +16,7 @@ export { default as CustomTable } from './common/CustomTable';
 export { default as SkeletonExpandedRow } from './common/SkeletonExpandedRow';
 export { default as CustomModal } from './common/CustomModal';
 export { default as CustomForm } from './common/CustomForm';
+export { default as MultiItemRow } from './common/MultiItemRow';
 export { default as MultiItemForm } from './common/MultiItemForm';
 export { default as CustomCard } from './common/CustomCard';
 export { default as CustomList } from './common/CustomList';
