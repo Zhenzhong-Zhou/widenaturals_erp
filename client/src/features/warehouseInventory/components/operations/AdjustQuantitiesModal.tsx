@@ -1,7 +1,15 @@
-import { type FC, ReactNode, useCallback, useEffect, useMemo, useRef } from 'react';
+import {
+  type FC,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+} from 'react';
+import { Box } from '@mui/material';
 import {
   CustomButton,
-  CustomModal, CustomTypography,
+  CustomModal,
+  CustomTypography,
   ErrorMessage,
   Section,
   SummaryStat,
@@ -17,7 +25,6 @@ import type {
   FlattenedWarehouseInventory,
   WarehouseInventoryDetailRecord,
 } from '@features/warehouseInventory';
-import { Box } from '@mui/material';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -32,37 +39,12 @@ interface AdjustQuantitiesModalProps {
   record?: WarehouseInventoryDetailRecord;
   selectedItems?: FlattenedWarehouseInventory[];
   canAdjustReserved?: boolean;
-  onSuccess?: () => void;
+  onSuccess?: (message?: string) => void;
 }
 
 type AdjustableQuantities = {
   warehouseQuantity: number;
   reservedQuantity: number;
-};
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const getItemLabel = (item: FlattenedWarehouseInventory): ReactNode => {
-  const isProduct = item.batchType === 'product';
-  const name = isProduct ? item.productName : item.supplierName;
-  const code = isProduct ? item.sku : item.materialCode;
-  const lotNumber = isProduct ? item.productLotNumber : item.packagingLotNumber;
-  
-  return (
-    <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-      <Box sx={{ display: 'flex', gap: 1, alignItems: 'baseline' }}>
-        <CustomTypography variant="subtitle1" fontWeight={600}>
-          {name ?? '—'}
-        </CustomTypography>
-        <CustomTypography variant="body2" color="text.secondary">
-          {code}
-        </CustomTypography>
-      </Box>
-      <CustomTypography variant="caption" color="text.tertiary">
-        {isProduct ? 'Product' : 'Packaging'} · {lotNumber}
-      </CustomTypography>
-    </Box>
-  );
 };
 
 // ─── Batch fields ─────────────────────────────────────────────────────────────
@@ -137,8 +119,10 @@ const AdjustQuantitiesModal: FC<AdjustQuantitiesModalProps> = ({
   const {
     loading,
     error,
+    isSuccess,
     adjustResponse,
     adjustQuantities,
+    resetAdjustQuantityState,
   } = useWarehouseInventoryAdjustQuantity();
   
   // Single record source — either explicit prop or first (only) selected item
@@ -149,18 +133,16 @@ const AdjustQuantitiesModal: FC<AdjustQuantitiesModalProps> = ({
   const singleFormRef = useRef<CustomFormRef>(null);
   const batchFormRef = useRef<MultiItemFormRef>(null);
   
-  useEffect(() => {
-    if (adjustResponse) {
-      singleFormRef.current?.resetForm();
-      onClose();
-      onSuccess?.();
-    }
-  }, [adjustResponse]);
-  
-  const handleClose = () => {
-    singleFormRef.current?.resetForm();
+  const handleClose = useCallback(() => {
+    resetAdjustQuantityState();
     onClose();
-  };
+  }, [resetAdjustQuantityState, onClose]);
+  
+  useEffect(() => {
+    if (!isSuccess) return;
+    onSuccess?.(adjustResponse?.message);
+    handleClose();
+  }, [isSuccess, adjustResponse, onSuccess, handleClose]);
   
   // ── Batch submit ────────────────────────────────────────────────────────────
   const handleBatchSubmit = (rows: Record<string, any>[]) => {
@@ -191,27 +173,23 @@ const AdjustQuantitiesModal: FC<AdjustQuantitiesModalProps> = ({
     });
   };
   
-  // ── Label cache ──────────────────────────────────────────────────────────
-  const labelCache = useMemo(() => new WeakMap<object, ReactNode>(), []);
-  const cachedLabel = useCallback((item: FlattenedWarehouseInventory) => {
-    if (labelCache.has(item)) return labelCache.get(item)!;
-    const label = getItemLabel(item);
-    labelCache.set(item, label);
-    return label;
-  }, [labelCache]);
-  
   // Pre-populate batch rows from selectedItems
   const batchDefaultValues = useMemo(
     () =>
       selectedItems?.map((item) => ({
         id: item.id,
-        label: cachedLabel(item),
         warehouseQuantity: item.warehouseQuantity,
         reservedQuantity: item.reservedQuantity,
         _origWarehouse: item.warehouseQuantity,
         _origReserved: item.reservedQuantity,
+        _meta: {
+          isProduct: item.batchType === 'product',
+          name: item.batchType === 'product' ? item.productName : item.supplierName,
+          code: item.batchType === 'product' ? item.sku : item.materialCode,
+          lotNumber: item.batchType === 'product' ? item.productLotNumber : item.packagingLotNumber,
+        },
       })) ?? [],
-    [selectedItems, cachedLabel],
+    [selectedItems],
   );
   
   const title = isBatch
@@ -238,15 +216,42 @@ const AdjustQuantitiesModal: FC<AdjustQuantitiesModalProps> = ({
               showSubmitButton={false}
               showAddButton={false}
               showResetButton={false}
-              getItemTitle={(_, item) => item.label as string}
+              getItemTitle={(_, row) => {
+                const m = row._meta;
+                if (!m) return null;
+                return (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+                    <CustomTypography variant="subtitle1" fontWeight={700} sx={{ lineHeight: 1.2 }}>
+                      {m.name ?? '—'}
+                    </CustomTypography>
+                    <CustomTypography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ fontFamily: 'monospace', letterSpacing: 0.2 }}
+                    >
+                      {m.code} · {m.isProduct ? 'Product' : 'Packaging'} · {m.lotNumber}
+                    </CustomTypography>
+                  </Box>
+                );
+              }}
               renderBeforeFields={(item) => (
-                <Box sx={{ mb: 1, display: 'flex', gap: 2 }}>
-                  <CustomTypography variant="body2" color="textSecondary">
-                    Original warehouse: <strong>{item._origWarehouse}</strong>
-                  </CustomTypography>
-                  <CustomTypography variant="body2" color="textSecondary">
-                    Original reserved: <strong>{item._origReserved}</strong>
-                  </CustomTypography>
+                <Box sx={{ display: 'flex', gap: 3, mb: 1 }}>
+                  <Box>
+                    <CustomTypography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                      Original Warehouse
+                    </CustomTypography>
+                    <CustomTypography variant="body2" fontWeight={600}>
+                      {item._origWarehouse}
+                    </CustomTypography>
+                  </Box>
+                  <Box>
+                    <CustomTypography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                      Original Reserved
+                    </CustomTypography>
+                    <CustomTypography variant="body2" fontWeight={600}>
+                      {item._origReserved}
+                    </CustomTypography>
+                  </Box>
                 </Box>
               )}
             />

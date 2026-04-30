@@ -1,5 +1,15 @@
-import { startTransition, Suspense, useCallback, useMemo, useState } from 'react';
-import Box from '@mui/material/Box';
+import {
+  startTransition,
+  Suspense,
+  useCallback,
+  useMemo,
+  useState
+} from 'react';
+import {
+  Alert,
+  Box,
+  Snackbar
+} from '@mui/material';
 import {
   CustomButton,
   CustomTable,
@@ -81,8 +91,18 @@ const WarehouseInventoryListTable = ({
   const [createOpen, setCreateOpen]           = useState(false);
   const [adjustOpen, setAdjustOpen]           = useState(false);
   const [updateStatusOpen, setUpdateStatusOpen] = useState(false);
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    message: string;
+    severity: 'success' | 'error';
+  } | null>(null);
   
-  const handleSuccess = useCallback(() => {
+  const handleSuccess = useCallback((message?: string) => {
+    setSnackbar({
+      open: true,
+      message: message || 'Operation completed',
+      severity: 'success',
+    });
     onSelectionChange([]);
     onRefresh();
   }, [onRefresh, onSelectionChange]);
@@ -235,6 +255,17 @@ const WarehouseInventoryListTable = ({
           onSuccess={handleSuccess}
         />
       )}
+      
+      <Snackbar
+        open={snackbar?.open ?? false}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert severity={snackbar?.severity ?? 'info'} variant="filled">
+          {snackbar?.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
