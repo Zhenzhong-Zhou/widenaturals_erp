@@ -152,7 +152,10 @@ const CustomTable = <T extends Record<string, any>>({
           <TableHead>
             <TableRow>
               {showCheckboxes && (
-                <TableCell padding="checkbox">
+                <TableCell
+                  padding="checkbox"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <Checkbox
                     slotProps={{
                       input: {
@@ -170,6 +173,7 @@ const CustomTable = <T extends Record<string, any>>({
                       selectedRowIds.length === selectableRows.length
                     }
                     onChange={(e) => {
+                      e.stopPropagation();
                       if (!onSelectionChange) return;
 
                       const shouldSelectAll = e.target.checked;
@@ -294,7 +298,10 @@ const CustomTable = <T extends Record<string, any>>({
                         }}
                       >
                         {showCheckboxes && (
-                          <TableCell padding="checkbox">
+                          <TableCell
+                            padding="checkbox"
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             <Checkbox
                               slotProps={{
                                 input: {
@@ -308,15 +315,17 @@ const CustomTable = <T extends Record<string, any>>({
                                   ? !isRowSelectable(row, rowIndex)
                                   : false)
                               }
-                              checked={selectedRowIds?.includes(rowId)}
+                              checked={selectedRowIds?.includes(rowId) ?? false}
                               onChange={(e) => {
+                                e.stopPropagation();
                                 const isChecked = e.target.checked;
                                 if (!onSelectionChange) return;
                                 if (isChecked) {
-                                  onSelectionChange([
-                                    ...(selectedRowIds ?? []),
-                                    rowId,
-                                  ]);
+                                  onSelectionChange(
+                                    isChecked
+                                      ? [...(selectedRowIds ?? []), rowId]
+                                      : (selectedRowIds ?? []).filter((id) => id !== rowId)
+                                  );
                                 } else {
                                   onSelectionChange(
                                     (selectedRowIds ?? []).filter(
