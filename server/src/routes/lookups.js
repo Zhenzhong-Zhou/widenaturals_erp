@@ -79,9 +79,12 @@ const router = express.Router();
 
 /**
  * @route GET /lookups/batch-registry
- * @description Paginated batch registry records for inventory dropdowns.
- * Filters: batchType, warehouseId, locationId. No sorting.
- * Pagination: offset-based — navigates by raw offset, not page number.
+ * @description Paginated batch registry records for inventory placement dropdowns.
+ *   Privileged users (`canViewAllBatches`) see all batches across all warehouses
+ *   and statuses. Standard users must supply `warehouseId` (verified against their
+ *   assigned warehouses) and only released batches are returned.
+ *   Filters: batchType, warehouseId. No sorting.
+ *   Pagination: offset-based — navigates by raw offset, not page number.
  * @access protected
  * @permission LOOKUP.PERMISSIONS.VIEW_BATCH_REGISTRY
  */
@@ -91,7 +94,8 @@ registerLookupRoute(router, {
   schema: batchRegistryLookupQuerySchema,
   controller: getBatchRegistryLookupController,
   config: {
-    filterKeysOrSchema: ['batchType', 'warehouseId', 'locationId'],
+    filterKeysOrSchema: ['batchType', 'warehouseId'],
+    passUser: true,
   },
 });
 
