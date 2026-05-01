@@ -53,8 +53,25 @@ const PRICING_GROUP_FLAG_MAP = {
   canViewAllValidPricing: 'isValidToday',
 };
 
+/**
+ * Flag map for batch registry lookup row visibility.
+ *
+ * Maps ACL keys from BatchRegistryLookupAcl to row fields surfaced by
+ * the batch registry lookup query. Each field is only included in the
+ * transformed output when the corresponding ACL key is true.
+ *
+ * Used with includeFlagsBasedOnAccess in transformBatchRegistryLookupRow.
+ *
+ * @type {FlagMap}
+ */
+const BATCH_REGISTRY_FLAG_MAP = {
+  canViewAllBatches: 'isExpired',
+  canViewAllBatchStatus: 'isReleased',
+};
+
 module.exports = {
   STANDARD_FLAG_MAP,
   STATUS_ONLY_FLAG_MAP,
   PRICING_GROUP_FLAG_MAP,
+  BATCH_REGISTRY_FLAG_MAP,
 };

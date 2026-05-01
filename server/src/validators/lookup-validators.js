@@ -32,9 +32,8 @@ const baseLookupQuerySchema = {
  * Joi schema for validating batch registry lookup query parameters.
  *
  * Inherits base lookup options and adds:
- * - batchType: 'product' | 'packaging_material' (optional)
- * - warehouseId: UUID (optional)
- * - locationId: UUID (optional)
+ * - batchType:   'product' | 'packaging_material' (optional)
+ * - warehouseId: UUID (optional; required at the business layer for non-privileged users)
  */
 const batchRegistryLookupQuerySchema = Joi.object({
   batchType: Joi.string()
@@ -42,10 +41,9 @@ const batchRegistryLookupQuerySchema = Joi.object({
     .optional()
     .allow('', null)
     .label('Batch Type'),
-
+  
   warehouseId: validateUUID('Warehouse ID').optional().allow('', null),
-  locationId: validateUUID('Location ID').optional().allow('', null),
-
+  
   ...baseLookupQuerySchema,
 });
 

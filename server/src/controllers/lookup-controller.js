@@ -60,7 +60,7 @@ const {
 const getBatchRegistryLookupController = createLookupController({
   service: fetchBatchRegistryLookupService,
   successMessage: 'Batch registry lookup retrieved successfully.',
-  passUser: false,
+  passUser: true,
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

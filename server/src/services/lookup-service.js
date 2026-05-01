@@ -199,24 +199,29 @@ const {
   enforcePackagingMaterialSupplierLookupVisibilityRules,
   enrichPackagingMaterialSupplierLookupWithActiveFlag,
 } = require('../business/packaging-material-supplier-business');
+const { fetchBatchRegistryForInventoryLookup } = require('../business/batch-registry-business');
 
 const CONTEXT = 'lookup-service';
 
 // ---------------------------------------------------------------------------
 
-const fetchBatchRegistryLookupService = async ({
-  filters = {},
-  limit,
-  offset = 0,
-}) => {
+const fetchBatchRegistryLookupService = async (
+  user,
+  { filters = {}, limit = 50, offset = 0 }
+) => {
   const context = `${CONTEXT}/fetchBatchRegistryLookupService`;
-
+  
   try {
-    const rawResult = await getBatchRegistryLookup({ filters, limit, offset });
+    const preparedFilters = await fetchBatchRegistryForInventoryLookup(filters, user);
+    const rawResult = await getBatchRegistryLookup({
+      filters: preparedFilters,
+      limit,
+      offset,
+    });
     return transformBatchRegistryPaginatedLookupResult(rawResult);
   } catch (error) {
     if (error instanceof AppError) throw error;
-
+    
     throw AppError.serviceError('Unable to fetch batch registry lookup list.', {
       context,
       meta: { error: error.message },

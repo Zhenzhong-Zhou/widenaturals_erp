@@ -32,37 +32,59 @@ const {
   STANDARD_FLAG_MAP,
   STATUS_ONLY_FLAG_MAP,
   PRICING_GROUP_FLAG_MAP,
+  BATCH_REGISTRY_FLAG_MAP,
 } = require('../utils/constants/lookup-flag-maps');
+const { getExpiryMeta } = require('../utils/batch-utils');
 
 // ---------------------------------------------------------------------------
 // Batch registry
 // ---------------------------------------------------------------------------
 
-const transformBatchRegistryLookupItem = (row) =>
-  cleanObject({
+const transformBatchRegistryLookupItem = (row, userAccess) => {
+  const productExpiryMeta = row.product_batch_id
+    ? getExpiryMeta(row.product_expiry_date)
+    : null;
+  
+  const packagingExpiryMeta = row.packaging_material_batch_id
+    ? getExpiryMeta(row.material_expiry_date)
+    : null;
+  
+  const flagSubset = includeFlagsBasedOnAccess(
+    row,
+    userAccess,
+    BATCH_REGISTRY_FLAG_MAP
+  );
+  
+  return cleanObject({
     id: row.batch_registry_id,
     type: row.batch_type,
     product: row.product_batch_id
       ? {
-          id: row.product_batch_id,
-          name: getProductDisplayName(row),
-          lotNumber: row.product_lot_number,
-          expiryDate: row.product_expiry_date,
-        }
+        id: row.product_batch_id,
+        name: getProductDisplayName(row),
+        lotNumber: row.product_lot_number,
+        expiryDate: row.product_expiry_date,
+        ...productExpiryMeta,
+      }
       : null,
     packagingMaterial: row.packaging_material_batch_id
       ? {
-          id: row.packaging_material_batch_id,
-          lotNumber: row.material_lot_number,
-          expiryDate: row.material_expiry_date,
-          snapshotName: row.material_snapshot_name,
-          receivedLabel: row.received_label_name,
-        }
+        id: row.packaging_material_batch_id,
+        lotNumber: row.material_lot_number,
+        expiryDate: row.material_expiry_date,
+        snapshotName: row.material_snapshot_name,
+        receivedLabel: row.received_label_name,
+        ...packagingExpiryMeta,
+      }
       : null,
+    ...flagSubset,
   });
+};
 
-const transformBatchRegistryPaginatedLookupResult = (paginatedResult) =>
-  transformLoadMoreResult(paginatedResult, transformBatchRegistryLookupItem);
+const transformBatchRegistryPaginatedLookupResult = (paginatedResult, userAccess) =>
+  transformLoadMoreResult(paginatedResult, (row) =>
+    transformBatchRegistryLookupItem(row, userAccess)
+  );
 
 // ---------------------------------------------------------------------------
 // Warehouse
