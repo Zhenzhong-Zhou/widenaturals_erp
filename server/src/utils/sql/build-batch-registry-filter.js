@@ -1,16 +1,17 @@
 /**
  * @file build-batch-registry-filter.js
- * @description SQL WHERE clause builders for batch registry queries.
+ * @description SQL WHERE clause builder for batch registry queries.
  *
- * Two cooperating builders — one for warehouse inventory scope filtering (lookup),
- * one for full paginated filtering with date ranges and keyword search.
+ * Single builder covers paginated list queries, polymorphic filters across
+ * product and packaging batches (status, lot number, expiry), date ranges,
+ * permission-gated keyword search, and inventory-scope exclusion (surfacing
+ * batches not yet placed in a target warehouse).
  *
- * Both are pure functions — no DB access, no logging, no side effects on inputs.
+ * Pure function — no DB access, no logging, no side effects on inputs.
  * Joi middleware validates inputs upstream; no defensive try/catch needed here.
  *
  * Exports:
- *  - buildBatchRegistryInventoryScopeFilter — WHERE clause scoped to warehouse inventory availability
- *  - buildBatchRegistryFilter               — WHERE clause for paginated batch registry list
+ *  - buildBatchRegistryFilter — WHERE clause for batch registry list/lookup queries
  */
 
 'use strict';
@@ -21,50 +22,6 @@ const {
 } = require('./date-range-utils');
 const { addKeywordIlikeGroup } = require('./sql-helpers');
 
-// ─── Inventory Scope Filter ───────────────────────────────────────────────────
-
-/**
- * Builds a parameterised WHERE clause scoped to inventory availability.
- *
- * Used by getBatchRegistryLookup to surface batches not yet placed in a
- * specific warehouse. Conditions use NOT EXISTS subqueries rather than
- * joins to avoid row multiplication from batches placed in multiple warehouses.
- *
- * @param {object} [filters={}]
- * @param {string} [filters.batchType]   - Filter by batch type (`'product'` or `'packaging_material'`).
- * @param {string} [filters.warehouseId] - Exclude batches already assigned to this warehouse UUID.
- *
- * @returns {{ whereClause: string, params: Array }} Parameterised WHERE clause and bound values.
- */
-const buildBatchRegistryInventoryScopeFilter = (filters = {}) => {
-  const conditions = ['1=1'];
-  const params = [];
-  const paramIndexRef = { value: 1 };
-
-  if (filters.batchType) {
-    conditions.push(`br.batch_type = $${paramIndexRef.value}`);
-    params.push(filters.batchType);
-    paramIndexRef.value++;
-  }
-
-  if (filters.warehouseId) {
-    conditions.push(`
-      NOT EXISTS (
-        SELECT 1 FROM warehouse_inventory wi
-        WHERE wi.batch_id    = br.id
-          AND wi.warehouse_id = $${paramIndexRef.value}
-      )
-    `);
-    params.push(filters.warehouseId);
-    paramIndexRef.value++;
-  }
-
-  return {
-    whereClause: conditions.join(' AND '),
-    params,
-  };
-};
-
 // ─── Paginated List Filter ────────────────────────────────────────────────────
 
 /**
@@ -72,7 +29,8 @@ const buildBatchRegistryInventoryScopeFilter = (filters = {}) => {
  *
  * Normalizes date range filters to UTC ISO boundaries before applying conditions.
  * Supports polymorphic filters that apply to both product and packaging batches
- * (e.g. statusIds, lotNumber, expiryAfter/Before).
+ * (e.g. statusIds, lotNumber, expiryAfter/Before) and an optional inventory-scope
+ * exclusion that surfaces batches not yet placed in a target warehouse.
  *
  * `forceEmptyResult` short-circuits all other conditions and returns a guaranteed
  * zero-row clause — injected by the business layer only when the caller has no
@@ -83,21 +41,22 @@ const buildBatchRegistryInventoryScopeFilter = (filters = {}) => {
  * after it would use a stale index.
  *
  * @param {Object}   [filters={}]
- * @param {boolean}  [filters.forceEmptyResult]          - If true, returns zero-row clause immediately.
- * @param {string}   [filters.batchType]                 - Filter by batch type.
- * @param {string[]} [filters.statusIds]                 - Filter by product or packaging batch status UUIDs.
- * @param {string[]} [filters.skuIds]                    - Filter by SKU UUIDs.
- * @param {string[]} [filters.productIds]                - Filter by product UUIDs.
- * @param {string[]} [filters.manufacturerIds]           - Filter by manufacturer UUIDs.
- * @param {string[]} [filters.packagingMaterialIds]      - Filter by packaging material UUIDs.
- * @param {string[]} [filters.supplierIds]               - Filter by supplier UUIDs.
- * @param {string}   [filters.lotNumber]                 - ILIKE search on product and packaging lot numbers.
- * @param {string}   [filters.expiryAfter]               - Lower bound for expiry date (inclusive, UTC).
- * @param {string}   [filters.expiryBefore]              - Upper bound for expiry date (exclusive, UTC).
- * @param {string}   [filters.registeredAfter]           - Lower bound for registered_at (inclusive, UTC).
- * @param {string}   [filters.registeredBefore]          - Upper bound for registered_at (exclusive, UTC).
- * @param {string}   [filters.keyword]                   - Fuzzy keyword search across permission-gated fields.
- * @param {Object}   [filters.keywordCapabilities]       - Permission flags controlling keyword search scope.
+ * @param {boolean}  [filters.forceEmptyResult]      - If true, returns zero-row clause immediately.
+ * @param {string}   [filters.batchType]             - Filter by batch type.
+ * @param {string}   [filters.excludeFromWarehouseId] - Exclude batches already placed in this warehouse UUID (inventory-scope).
+ * @param {string[]} [filters.statusIds]             - Filter by product or packaging batch status UUIDs.
+ * @param {string[]} [filters.skuIds]                - Filter by SKU UUIDs.
+ * @param {string[]} [filters.productIds]            - Filter by product UUIDs.
+ * @param {string[]} [filters.manufacturerIds]       - Filter by manufacturer UUIDs.
+ * @param {string[]} [filters.packagingMaterialIds]  - Filter by packaging material UUIDs.
+ * @param {string[]} [filters.supplierIds]           - Filter by supplier UUIDs.
+ * @param {string}   [filters.lotNumber]             - ILIKE search on product and packaging lot numbers.
+ * @param {string}   [filters.expiryAfter]           - Lower bound for expiry date (inclusive, UTC).
+ * @param {string}   [filters.expiryBefore]          - Upper bound for expiry date (exclusive, UTC).
+ * @param {string}   [filters.registeredAfter]       - Lower bound for registered_at (inclusive, UTC).
+ * @param {string}   [filters.registeredBefore]      - Upper bound for registered_at (exclusive, UTC).
+ * @param {string}   [filters.keyword]               - Fuzzy keyword search across permission-gated fields.
+ * @param {Object}   [filters.keywordCapabilities]   - Permission flags controlling keyword search scope.
  *
  * @returns {{ whereClause: string, params: Array }} Parameterised WHERE clause and bound values.
  */
@@ -128,7 +87,21 @@ const buildBatchRegistryFilter = (filters = {}) => {
     params.push(normalizedFilters.batchType);
     paramIndexRef.value++;
   }
-
+  
+  // ─── Inventory Scope (optional) ─────────────────────────────────────────────
+  
+  if (normalizedFilters.excludeFromWarehouseId) {
+    conditions.push(`
+    NOT EXISTS (
+      SELECT 1 FROM warehouse_inventory wi
+      WHERE wi.batch_id = br.id
+        AND wi.warehouse_id = $${paramIndexRef.value}
+    )
+  `);
+    params.push(normalizedFilters.excludeFromWarehouseId);
+    paramIndexRef.value++;
+  }
+  
   // ─── Status (polymorphic) ───────────────────────────────────────────────────
 
   if (normalizedFilters.statusIds?.length) {
@@ -270,6 +243,5 @@ const buildBatchRegistryFilter = (filters = {}) => {
 };
 
 module.exports = {
-  buildBatchRegistryInventoryScopeFilter,
   buildBatchRegistryFilter,
 };
