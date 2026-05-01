@@ -12,6 +12,7 @@
 /**
  * @typedef {object} BatchRegistryVisibilityAcl
  * @property {boolean} canViewAllBatches
+ * @property {boolean} canViewAllBatchStatus
  * @property {boolean} canViewProductBatches
  * @property {boolean} canViewPackagingBatches
  * @property {boolean} canViewManufacturer
