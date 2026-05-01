@@ -16,12 +16,14 @@ import { resetWarehouseInventoryOutbound } from '@features/warehouseInventory/st
  */
 const useWarehouseInventoryOutbound = () => {
   const dispatch = useAppDispatch();
-  
+
   const loading = useAppSelector(selectWarehouseInventoryOutboundLoading);
   const error = useAppSelector(selectWarehouseInventoryOutboundError);
   const success = useAppSelector(selectWarehouseInventoryOutboundSuccess);
-  const outboundResponse = useAppSelector(selectWarehouseInventoryOutboundResponse);
-  
+  const outboundResponse = useAppSelector(
+    selectWarehouseInventoryOutboundResponse
+  );
+
   /**
    * Dispatches the thunk to record warehouse inventory outbound.
    * @param warehouseId - Target warehouse UUID.
@@ -35,14 +37,14 @@ const useWarehouseInventoryOutbound = () => {
       recordWarehouseInventoryOutboundThunk({ warehouseId, payload })
     );
   };
-  
+
   /**
    * Resets the outbound recording state to initial.
    */
   const resetOutboundState = useCallback(() => {
     dispatch(resetWarehouseInventoryOutbound());
   }, [dispatch]);
-  
+
   return {
     loading,
     error,

@@ -324,7 +324,9 @@ const CustomTable = <T extends Record<string, any>>({
                                   onSelectionChange(
                                     isChecked
                                       ? [...(selectedRowIds ?? []), rowId]
-                                      : (selectedRowIds ?? []).filter((id) => id !== rowId)
+                                      : (selectedRowIds ?? []).filter(
+                                          (id) => id !== rowId
+                                        )
                                   );
                                 } else {
                                   onSelectionChange(

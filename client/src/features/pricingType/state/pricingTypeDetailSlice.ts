@@ -32,7 +32,7 @@ export const pricingTypeDetailSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      
+
       // --- Fulfilled ---
       .addCase(
         fetchPricingTypeByIdThunk.fulfilled,
@@ -41,7 +41,7 @@ export const pricingTypeDetailSlice = createSlice({
           state.data = action.payload.data; // unwrap API envelope
         }
       )
-      
+
       // --- Rejected ---
       .addCase(fetchPricingTypeByIdThunk.rejected, (state, action) => {
         applyRejected(state, action, 'Failed to load pricing type details.');

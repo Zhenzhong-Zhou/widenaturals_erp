@@ -7,25 +7,25 @@ import type { StatusColor } from '@utils/getStatusColor';
 export interface StatusChipProps {
   /** Display label. Already-formatted — the chip does not transform this further. */
   label: string;
-  
+
   /** Semantic color for the chip. Defaults to 'default' (neutral). */
   color?: StatusColor;
-  
+
   /**
    * Visual variant. When omitted, defaults to 'outlined' for neutral colors
    * and 'filled' for semantic colors.
    */
   variant?: 'filled' | 'outlined';
-  
+
   /** Chip size. Defaults to 'small'. */
   size?: 'small' | 'medium';
-  
+
   /** Optional leading icon. */
   icon?: ReactElement;
-  
+
   /** Optional tooltip shown on hover — useful for explaining non-obvious statuses. */
   tooltip?: string;
-  
+
   /** Additional MUI sx styling, merged with the component's base styles. */
   sx?: SxProps<Theme>;
 }
@@ -44,16 +44,17 @@ export interface StatusChipProps {
  *   <StatusChip label="Archived" color="error" icon={<ArchiveIcon />} />
  */
 const StatusChip: FC<StatusChipProps> = ({
-                                           label,
-                                           color = 'default',
-                                           variant,
-                                           size = 'small',
-                                           icon,
-                                           tooltip,
-                                           sx,
-                                         }) => {
-  const resolvedVariant = variant ?? (color === 'default' ? 'outlined' : 'filled');
-  
+  label,
+  color = 'default',
+  variant,
+  size = 'small',
+  icon,
+  tooltip,
+  sx,
+}) => {
+  const resolvedVariant =
+    variant ?? (color === 'default' ? 'outlined' : 'filled');
+
   const baseSx: SxProps<Theme> = (theme) => ({
     textTransform: 'uppercase',
     fontWeight: 700,
@@ -74,11 +75,11 @@ const StatusChip: FC<StatusChipProps> = ({
         color: theme.palette[color]?.contrastText,
       }),
   });
-  
+
   const mergedSx: SxProps<Theme> = sx
     ? [baseSx, ...(Array.isArray(sx) ? sx : [sx])]
     : baseSx;
-  
+
   const chip = (
     <Chip
       label={label}
@@ -89,7 +90,7 @@ const StatusChip: FC<StatusChipProps> = ({
       sx={mergedSx}
     />
   );
-  
+
   return tooltip ? <Tooltip title={tooltip}>{chip}</Tooltip> : chip;
 };
 

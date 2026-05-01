@@ -178,7 +178,7 @@ const applyWarehouseInventoryVisibilityRules = (filters, acl) => {
   const adjusted = { ...filters };
 
   // ─── 1. Warehouse scope ──────────────────────────────────────────────────────
-  
+
   if (
     !acl.canViewAllWarehouses &&
     acl.assignedWarehouseIds &&
@@ -210,14 +210,14 @@ const assertWarehouseAccess = async (user) => {
 
     const canViewAll =
       isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_WAREHOUSES);
-    
+
     const canAdjustReserved =
       isRoot || permissions.includes(PERMISSIONS.FORCE_ADJUST_RESERVED);
-    
+
     if (canViewAll) {
       return { assignedWarehouseIds: null, canViewAll, canAdjustReserved };
     }
-    
+
     const assignedIds = await getWarehouseIdsByUserId(user.id);
     return { assignedWarehouseIds: assignedIds, canViewAll, canAdjustReserved };
   } catch (err) {
@@ -426,7 +426,7 @@ const buildInboundActivityLogEntries = (
  */
 const validateQuantityAdjustments = (updates, canAdjustReserved) => {
   const invalidIndices = [];
-  
+
   updates.forEach((update, index) => {
     if (
       update.warehouseQuantity == null ||
@@ -436,24 +436,24 @@ const validateQuantityAdjustments = (updates, canAdjustReserved) => {
       invalidIndices.push(index);
       return;
     }
-    
+
     const reserved = update.reservedQuantity ?? 0;
     if (reserved < 0 || !Number.isInteger(reserved)) {
       invalidIndices.push(index);
       return;
     }
-    
+
     if (reserved > update.warehouseQuantity) {
       invalidIndices.push(index);
       return;
     }
-    
+
     // Non-admin trying to adjust reserved
     if (!canAdjustReserved && update.reservedQuantity != null) {
       invalidIndices.push(index);
     }
   });
-  
+
   if (invalidIndices.length > 0) {
     throw AppError.validationError(
       'Invalid quantity values. Warehouse quantity must be a non-negative integer and reserved must not exceed warehouse quantity.',

@@ -11,13 +11,13 @@ export type WarehouseSummaryAlerts = {
    * low-stock threshold (currently 10 units).
    */
   lowStock: number;
-  
+
   /**
    * Number of batches expiring within the next 30 days.
    * Excludes batches already expired.
    */
   expiringSoon: number;
-  
+
   /**
    * Number of batches whose expiry date has already passed.
    */

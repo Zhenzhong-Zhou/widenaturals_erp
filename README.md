@@ -140,6 +140,7 @@ npm run dev
 ## Code Quality
 
 ### Lint
+
 ```bash
 # Scan everything
 npx eslint .
@@ -156,6 +157,7 @@ npx eslint client/ --fix
 ```
 
 ### Format
+
 ```bash
 # Check formatting
 npx prettier --check .
@@ -165,6 +167,7 @@ npx prettier --write .
 ```
 
 ### Both at once (recommended before committing)
+
 ```bash
 npx prettier --write . && npx eslint . --fix
 ```

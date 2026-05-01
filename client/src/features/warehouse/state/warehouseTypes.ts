@@ -69,7 +69,7 @@ export interface WarehouseRecord {
   warehouseType: WarehouseType | null;
   status: WarehouseStatus;
   summary: WarehouseInventorySummary;
-  alerts: WarehouseSummaryAlerts,
+  alerts: WarehouseSummaryAlerts;
   audit: GenericAudit;
 }
 
@@ -108,23 +108,26 @@ export interface WarehouseDetailRecord {
 // API Response Types
 // =============================================================================
 
-export type PaginatedWarehouseListApiResponse = PaginatedResponse<WarehouseRecord>;
+export type PaginatedWarehouseListApiResponse =
+  PaginatedResponse<WarehouseRecord>;
 
-export type WarehouseDetailApiResponse = ApiSuccessResponse<WarehouseDetailRecord>;
+export type WarehouseDetailApiResponse =
+  ApiSuccessResponse<WarehouseDetailRecord>;
 
 // =============================================================================
 // Filters
 // =============================================================================
 
-export type WarehouseFilters = CreatedUpdatedDateFilter & CreatedUpdatedByFilter & {
-  statusId?: string;
-  isArchived?: boolean;
-  warehouseTypeId?: string;
-  locationId?: string;
-  name?: string;
-  code?: string;
-  keyword?: string;
-};
+export type WarehouseFilters = CreatedUpdatedDateFilter &
+  CreatedUpdatedByFilter & {
+    statusId?: string;
+    isArchived?: boolean;
+    warehouseTypeId?: string;
+    locationId?: string;
+    name?: string;
+    code?: string;
+    keyword?: string;
+  };
 
 // =============================================================================
 // Query Params

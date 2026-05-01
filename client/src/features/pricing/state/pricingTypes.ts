@@ -81,87 +81,87 @@ export interface FlattenedPricingJoinRecord {
   // -----------------------------
   // Pricing
   // -----------------------------
-  
+
   /** Unique pricing record identifier */
   pricingId: string;
-  
+
   /** Associated pricing group identifier */
   pricingGroupId: string;
-  
+
   /** Unit price */
   price: number;
-  
+
   /** ISO date string from which this pricing is valid */
   validFrom: string;
-  
+
   /** ISO date string until which this pricing is valid (nullable) */
   validTo: NullableString;
-  
+
   // -----------------------------
   // Pricing Type
   // -----------------------------
-  
+
   /** Pricing type identifier */
   pricingTypeId: string;
-  
+
   /** Pricing type display name */
   pricingTypeName: string;
-  
+
   /** Pricing type code */
   pricingTypeCode: string;
-  
+
   // -----------------------------
   // Geography
   // -----------------------------
-  
+
   /** Country code this pricing applies to */
   countryCode: string;
-  
+
   // -----------------------------
   // SKU
   // -----------------------------
-  
+
   /** Associated SKU identifier */
   skuId: string;
-  
+
   /** SKU code string */
   sku: string;
-  
+
   /** SKU barcode */
   barcode: string;
-  
+
   /** SKU size label */
   sizeLabel: string;
-  
+
   /** Country code the SKU is designated for */
   skuCountryCode: string;
-  
+
   // -----------------------------
   // Product
   // -----------------------------
-  
+
   /** Associated product identifier */
   productId: string;
-  
+
   /** Product name */
   productName: string;
-  
+
   /** Product brand */
   brand: string;
-  
+
   /** Product category */
   category: string;
-  
+
   /** Display name combining product name and country */
   displayName: string;
-  
+
   // -----------------------------
   // Status
   // -----------------------------
-  
+
   /** Human-readable status name (e.g., "active", "inactive") */
   statusName: string;
-  
+
   /** ISO timestamp representing when the status was last updated (nullable) */
   statusDate: NullableString;
 }

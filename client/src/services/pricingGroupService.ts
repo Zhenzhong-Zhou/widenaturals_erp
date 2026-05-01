@@ -24,10 +24,10 @@ const fetchPaginatedPricingGroups = async (
     'createdAfter',
     'createdBefore',
   ]);
-  
+
   const queryString = buildQueryString(flatParams);
   const url = `${API_ENDPOINTS.PRICING_GROUPS.ALL_RECORDS}${queryString}`;
-  
+
   return getRequest<PaginatedPricingGroupApiResponse>(url, {
     policy: 'READ',
   });

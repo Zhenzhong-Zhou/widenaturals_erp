@@ -155,9 +155,9 @@ export interface OrderListFilters {
    * This may be user-provided or injected from access stage control.
    */
   orderStatusId?: string | string[];
-  
+
   customerType?: string;
-  
+
   customerName?: string;
 
   /**
@@ -287,9 +287,9 @@ export interface OrderListItem {
 
   /** Optional note or comment attached to the order */
   note?: string | null;
-  
+
   customerType?: string | null;
-  
+
   /** Full name of the associated customer, if available */
   customerName?: string | null;
 
@@ -812,7 +812,7 @@ export interface FlattenedOrderHeader {
     /** Formatted billing address string */
     address: string;
   };
-  
+
   customerType: string;
 
   /** Full name of the customer or company placing the order */
@@ -823,7 +823,7 @@ export interface FlattenedOrderHeader {
 
   /** Customer’s phone number */
   customerPhone: string;
-  
+
   companyName?: string | null;
 
   /** Metadata about who created/updated the order */

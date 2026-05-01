@@ -27,7 +27,10 @@ import type {
   WarehouseItemSummaryResponse,
   WarehouseSummaryResponse,
 } from '@features/warehouseInventory';
-import { extractUiErrorPayload, type UiErrorPayload } from '@utils/error/uiErrorUtils';
+import {
+  extractUiErrorPayload,
+  type UiErrorPayload,
+} from '@utils/error/uiErrorUtils';
 import { warehouseInventoryService } from '@services/warehouseInventoryService';
 import { flattenWarehouseInventoryRecords } from '@features/warehouseInventory/utils';
 
@@ -40,18 +43,20 @@ export const fetchPaginatedWarehouseInventoryThunk = createAsyncThunk<
   { rejectValue: UiErrorPayload }
 >(
   'warehouseInventory/fetchPaginatedWarehouseInventory',
-    async (params, { rejectWithValue }) => {
-      try {
-        const response =
-          await warehouseInventoryService.fetchPaginatedWarehouseInventory(params);
-        return {
-          ...response,
-          data: flattenWarehouseInventoryRecords(response.data),
-        };
-      } catch (error: unknown) {
-        return rejectWithValue(extractUiErrorPayload(error));
-      }
+  async (params, { rejectWithValue }) => {
+    try {
+      const response =
+        await warehouseInventoryService.fetchPaginatedWarehouseInventory(
+          params
+        );
+      return {
+        ...response,
+        data: flattenWarehouseInventoryRecords(response.data),
+      };
+    } catch (error: unknown) {
+      return rejectWithValue(extractUiErrorPayload(error));
     }
+  }
 );
 
 /**
@@ -63,16 +68,16 @@ export const createWarehouseInventoryThunk = createAsyncThunk<
   { rejectValue: UiErrorPayload }
 >(
   'warehouseInventory/create',
-    async ({ warehouseId, payload }, { rejectWithValue }) => {
-      try {
-        return await warehouseInventoryService.createWarehouseInventory(
-          warehouseId,
-          payload
-        );
-      } catch (error: unknown) {
-        return rejectWithValue(extractUiErrorPayload(error));
-      }
+  async ({ warehouseId, payload }, { rejectWithValue }) => {
+    try {
+      return await warehouseInventoryService.createWarehouseInventory(
+        warehouseId,
+        payload
+      );
+    } catch (error: unknown) {
+      return rejectWithValue(extractUiErrorPayload(error));
     }
+  }
 );
 
 /**
@@ -84,16 +89,16 @@ export const adjustWarehouseInventoryQuantitiesThunk = createAsyncThunk<
   { rejectValue: UiErrorPayload }
 >(
   'warehouseInventory/adjustQuantities',
-    async ({ warehouseId, payload }, { rejectWithValue }) => {
-      try {
-        return await warehouseInventoryService.adjustWarehouseInventoryQuantities(
-          warehouseId,
-          payload
-        );
-      } catch (error: unknown) {
-        return rejectWithValue(extractUiErrorPayload(error));
-      }
+  async ({ warehouseId, payload }, { rejectWithValue }) => {
+    try {
+      return await warehouseInventoryService.adjustWarehouseInventoryQuantities(
+        warehouseId,
+        payload
+      );
+    } catch (error: unknown) {
+      return rejectWithValue(extractUiErrorPayload(error));
     }
+  }
 );
 
 /**
@@ -105,16 +110,16 @@ export const updateWarehouseInventoryStatusesThunk = createAsyncThunk<
   { rejectValue: UiErrorPayload }
 >(
   'warehouseInventory/updateStatuses',
-    async ({ warehouseId, payload }, { rejectWithValue }) => {
-      try {
-        return await warehouseInventoryService.updateWarehouseInventoryStatuses(
-          warehouseId,
-          payload
-        );
-      } catch (error: unknown) {
-        return rejectWithValue(extractUiErrorPayload(error));
-      }
+  async ({ warehouseId, payload }, { rejectWithValue }) => {
+    try {
+      return await warehouseInventoryService.updateWarehouseInventoryStatuses(
+        warehouseId,
+        payload
+      );
+    } catch (error: unknown) {
+      return rejectWithValue(extractUiErrorPayload(error));
     }
+  }
 );
 
 /**
@@ -122,21 +127,25 @@ export const updateWarehouseInventoryStatusesThunk = createAsyncThunk<
  */
 export const updateWarehouseInventoryMetadataThunk = createAsyncThunk<
   UpdateWarehouseInventoryMetadataResponse,
-  { warehouseId: string; inventoryId: string; payload: UpdateWarehouseInventoryMetadataRequest },
+  {
+    warehouseId: string;
+    inventoryId: string;
+    payload: UpdateWarehouseInventoryMetadataRequest;
+  },
   { rejectValue: UiErrorPayload }
 >(
   'warehouseInventory/updateMetadata',
-    async ({ warehouseId, inventoryId, payload }, { rejectWithValue }) => {
-      try {
-        return await warehouseInventoryService.updateWarehouseInventoryMetadata(
-          warehouseId,
-          inventoryId,
-          payload
-        );
-      } catch (error: unknown) {
-        return rejectWithValue(extractUiErrorPayload(error));
-      }
+  async ({ warehouseId, inventoryId, payload }, { rejectWithValue }) => {
+    try {
+      return await warehouseInventoryService.updateWarehouseInventoryMetadata(
+        warehouseId,
+        inventoryId,
+        payload
+      );
+    } catch (error: unknown) {
+      return rejectWithValue(extractUiErrorPayload(error));
     }
+  }
 );
 
 /**
@@ -148,16 +157,16 @@ export const recordWarehouseInventoryOutboundThunk = createAsyncThunk<
   { rejectValue: UiErrorPayload }
 >(
   'warehouseInventory/recordOutbound',
-    async ({ warehouseId, payload }, { rejectWithValue }) => {
-      try {
-        return await warehouseInventoryService.recordWarehouseInventoryOutbound(
-          warehouseId,
-          payload
-        );
-      } catch (error: unknown) {
-        return rejectWithValue(extractUiErrorPayload(error));
-      }
+  async ({ warehouseId, payload }, { rejectWithValue }) => {
+    try {
+      return await warehouseInventoryService.recordWarehouseInventoryOutbound(
+        warehouseId,
+        payload
+      );
+    } catch (error: unknown) {
+      return rejectWithValue(extractUiErrorPayload(error));
     }
+  }
 );
 
 /**
@@ -169,16 +178,16 @@ export const fetchWarehouseInventoryDetailThunk = createAsyncThunk<
   { rejectValue: UiErrorPayload }
 >(
   'warehouseInventory/fetchDetail',
-    async ({ warehouseId, inventoryId }, { rejectWithValue }) => {
-      try {
-        return await warehouseInventoryService.fetchWarehouseInventoryDetail(
-          warehouseId,
-          inventoryId
-        );
-      } catch (error: unknown) {
-        return rejectWithValue(extractUiErrorPayload(error));
-      }
+  async ({ warehouseId, inventoryId }, { rejectWithValue }) => {
+    try {
+      return await warehouseInventoryService.fetchWarehouseInventoryDetail(
+        warehouseId,
+        inventoryId
+      );
+    } catch (error: unknown) {
+      return rejectWithValue(extractUiErrorPayload(error));
     }
+  }
 );
 
 /**
@@ -190,13 +199,13 @@ export const fetchInventoryActivityLogThunk = createAsyncThunk<
   { rejectValue: UiErrorPayload }
 >(
   'warehouseInventory/fetchActivityLog',
-    async (params, { rejectWithValue }) => {
-      try {
-        return await warehouseInventoryService.fetchInventoryActivityLog(params);
-      } catch (error: unknown) {
-        return rejectWithValue(extractUiErrorPayload(error));
-      }
+  async (params, { rejectWithValue }) => {
+    try {
+      return await warehouseInventoryService.fetchInventoryActivityLog(params);
+    } catch (error: unknown) {
+      return rejectWithValue(extractUiErrorPayload(error));
     }
+  }
 );
 
 /**
@@ -208,13 +217,13 @@ export const fetchWarehouseSummaryThunk = createAsyncThunk<
   { rejectValue: UiErrorPayload }
 >(
   'warehouseInventory/fetchSummary',
-    async (warehouseId, { rejectWithValue }) => {
-      try {
-        return await warehouseInventoryService.fetchWarehouseSummary(warehouseId);
-      } catch (error: unknown) {
-        return rejectWithValue(extractUiErrorPayload(error));
-      }
+  async (warehouseId, { rejectWithValue }) => {
+    try {
+      return await warehouseInventoryService.fetchWarehouseSummary(warehouseId);
+    } catch (error: unknown) {
+      return rejectWithValue(extractUiErrorPayload(error));
     }
+  }
 );
 
 /**
@@ -226,11 +235,11 @@ export const fetchWarehouseItemSummaryThunk = createAsyncThunk<
   { rejectValue: UiErrorPayload }
 >(
   'warehouseInventory/fetchItemSummary',
-    async (params, { rejectWithValue }) => {
-      try {
-        return await warehouseInventoryService.fetchWarehouseItemSummary(params);
-      } catch (error: unknown) {
-        return rejectWithValue(extractUiErrorPayload(error));
-      }
+  async (params, { rejectWithValue }) => {
+    try {
+      return await warehouseInventoryService.fetchWarehouseItemSummary(params);
+    } catch (error: unknown) {
+      return rejectWithValue(extractUiErrorPayload(error));
     }
+  }
 );

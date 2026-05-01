@@ -8,9 +8,7 @@ import {
   updateWarehouseInventoryMetadataThunk,
 } from '@features/warehouseInventory/state';
 import type { UpdateWarehouseInventoryMetadataRequest } from '@features/warehouseInventory';
-import {
-  resetWarehouseInventoryUpdateMetadata
-} from '@features/warehouseInventory/state/warehouseInventoryUpdateMetadataSlice';
+import { resetWarehouseInventoryUpdateMetadata } from '@features/warehouseInventory/state/warehouseInventoryUpdateMetadataSlice';
 
 /**
  * Custom hook to access memoized warehouse inventory metadata update state.
@@ -18,12 +16,14 @@ import {
  */
 const useWarehouseInventoryUpdateMetadata = () => {
   const dispatch = useAppDispatch();
-  
+
   const loading = useAppSelector(selectWarehouseInventoryUpdateMetadataLoading);
   const error = useAppSelector(selectWarehouseInventoryUpdateMetadataError);
   const success = useAppSelector(selectWarehouseInventoryUpdateMetadataSuccess);
-  const updateResponse = useAppSelector(selectWarehouseInventoryUpdateMetadataResponse);
-  
+  const updateResponse = useAppSelector(
+    selectWarehouseInventoryUpdateMetadataResponse
+  );
+
   /**
    * Dispatches the thunk to update a single inventory record's metadata.
    * @param warehouseId - Target warehouse UUID.
@@ -36,17 +36,21 @@ const useWarehouseInventoryUpdateMetadata = () => {
     payload: UpdateWarehouseInventoryMetadataRequest
   ) => {
     return dispatch(
-      updateWarehouseInventoryMetadataThunk({ warehouseId, inventoryId, payload })
+      updateWarehouseInventoryMetadataThunk({
+        warehouseId,
+        inventoryId,
+        payload,
+      })
     );
   };
-  
+
   /**
    * Resets the metadata update state to initial.
    */
   const resetUpdateMetadataState = useCallback(() => {
     dispatch(resetWarehouseInventoryUpdateMetadata());
   }, [dispatch]);
-  
+
   return {
     loading,
     error,

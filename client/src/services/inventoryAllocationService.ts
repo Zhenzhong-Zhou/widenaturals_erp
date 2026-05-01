@@ -76,7 +76,7 @@ const fetchPaginatedInventoryAllocations = async (
   const flatParams = flattenListQueryParams(params, []);
   const queryString = buildQueryString(flatParams);
   const url = `${API_ENDPOINTS.INVENTORY_ALLOCATIONS.ALL_ALLOCATIONS}${queryString}`;
-  
+
   return getRequest<PaginatedInventoryAllocationApiResponse>(url, {
     policy: 'READ',
   });

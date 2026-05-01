@@ -68,32 +68,32 @@ const PRICING_TYPE_DATE_FIELDS: PricingTypeDateField[] = [
  * - audit creation date range
  */
 const PricingTypeFiltersPanel: FC<Props> = ({
-                                              filters,
-                                              lookups,
-                                              lookupHandlers,
-                                              onChange,
-                                              onApply,
-                                              onReset,
-                                            }) => {
+  filters,
+  lookups,
+  lookupHandlers,
+  onChange,
+  onApply,
+  onReset,
+}) => {
   const { control, handleSubmit, reset, watch, setValue } =
     useForm<PricingTypeFilters>({
       defaultValues: filters,
     });
-  
+
   const { status } = lookups;
-  
+
   /* -----------------------------
    * Sync external filters
    * --------------------------- */
-  
+
   useEffect(() => {
     reset(filters);
   }, [filters, reset]);
-  
+
   /* -----------------------------
    * Submit / Reset
    * --------------------------- */
-  
+
   const submitFilters = (data: PricingTypeFilters) => {
     const adjusted: PricingTypeFilters = {
       ...data,
@@ -101,20 +101,20 @@ const PricingTypeFiltersPanel: FC<Props> = ({
       createdAfter: toISODate(data.createdAfter),
       createdBefore: toISODate(data.createdBefore),
     };
-    
+
     onChange(adjusted);
     onApply();
   };
-  
+
   const resetFilters = () => {
     reset(emptyFilters);
     onReset();
   };
-  
+
   /* -----------------------------
    * Status single select
    * --------------------------- */
-  
+
   const {
     selectedOptions: selectedStatusOptions,
     handleSelect: handleStatusSelect,
@@ -124,28 +124,23 @@ const PricingTypeFiltersPanel: FC<Props> = ({
     fieldName: 'statusId',
     options: status.options,
   });
-  
+
   const formattedStatusOptions = useFormattedOptions(
     status.options,
     formatLabel
   );
-  
+
   /* -----------------------------
    * Render
    * --------------------------- */
-  
+
   return (
     <form onSubmit={handleSubmit(submitFilters)}>
       <FilterPanelLayout onReset={resetFilters}>
         <Grid container spacing={2}>
           {/* --- Search --- */}
-          {renderInputField(
-            control,
-            'search',
-            'Search',
-            'Name, code, or slug'
-          )}
-          
+          {renderInputField(control, 'search', 'Search', 'Name, code, or slug')}
+
           {/* --- Status --- */}
           <Grid size={{ xs: 12, md: 3 }}>
             <StatusMultiSelectDropdown
@@ -155,7 +150,7 @@ const PricingTypeFiltersPanel: FC<Props> = ({
               onOpen={lookupHandlers.onOpen.status}
             />
           </Grid>
-          
+
           {/* --- Date ranges --- */}
           {PRICING_TYPE_DATE_FIELDS.map(({ name, label }) =>
             renderDateField(control, name, label)

@@ -91,12 +91,12 @@ export type NavigationItem = {
    * Must match a valid application route.
    */
   path: string;
-  
+
   /**
    * Human-readable label shown in the UI.
    */
   title: string;
-  
+
   /**
    * Static permission rule controlling visibility of this item.
    *
@@ -104,7 +104,7 @@ export type NavigationItem = {
    * route params, so only static permission rules are allowed here.
    */
   requiredPermission?: StaticPermissionRule;
-  
+
   /**
    * Whether active matching should use an exact path match.
    *
@@ -121,7 +121,7 @@ export type RouteMeta = {
    * Whether the route requires an authenticated session.
    */
   requiresAuth?: boolean;
-  
+
   /**
    * Whether the route is only available to unauthenticated users.
    *
@@ -131,14 +131,14 @@ export type RouteMeta = {
    * - forgot password
    */
   guestOnly?: boolean;
-  
+
   /**
    * Permission requirement for accessing the route.
    *
    * Routes support both static rules and dynamic resolvers.
    */
   requiredPermission?: PermissionRequirement;
-  
+
   /**
    * Optional menu metadata for list/navigation generation.
    *
@@ -149,24 +149,24 @@ export type RouteMeta = {
      * Display title used in navigation UIs.
      */
     title: string;
-    
+
     /**
      * Optional sort order within a menu group.
      */
     order?: number;
-    
+
     /**
      * Optional icon rendered alongside the title.
      */
     icon?: ReactNode;
   };
-  
+
   /**
    * Parent route path used for hierarchy, breadcrumbs,
    * and active menu resolution.
    */
   parent?: string;
-  
+
   /**
    * Explicitly hide this route from generated navigation.
    */
@@ -181,12 +181,12 @@ export type AppRoute = {
    * Route path pattern.
    */
   path: string;
-  
+
   /**
    * Lazy-loaded route component.
    */
   component: LazyExoticComponent<ComponentType<any>>;
-  
+
   /**
    * Optional route metadata.
    */

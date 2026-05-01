@@ -114,8 +114,7 @@ const getBatchRegistryById = async (batchRegistryId, client) => {
 const getBatchRegistryLookup = async ({ filters, limit = 50, offset = 0 }) => {
   const context = `${CONTEXT}/getBatchRegistryLookup`;
 
-  const { whereClause, params } =
-    buildBatchRegistryFilter(filters);
+  const { whereClause, params } = buildBatchRegistryFilter(filters);
   const queryText = buildBatchRegistryLookupQuery(whereClause);
 
   try {

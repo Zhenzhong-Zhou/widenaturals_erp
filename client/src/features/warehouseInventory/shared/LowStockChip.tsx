@@ -9,7 +9,7 @@ interface Props {
 
 const LowStockChip: FC<Props> = ({ available }) => {
   if (available > LOW_STOCK_THRESHOLD) return null;
-  
+
   return (
     <Chip
       label="Low Stock"

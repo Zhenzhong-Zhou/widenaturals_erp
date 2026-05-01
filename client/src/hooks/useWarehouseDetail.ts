@@ -14,9 +14,7 @@ import {
   selectWarehouseDetailSummary,
   selectWarehouseDetailAudit,
 } from '@features/warehouse/state/warehouseDetailSelectors';
-import {
-  resetWarehouseDetail,
-} from '@features/warehouse/state/warehouseDetailSlice';
+import { resetWarehouseDetail } from '@features/warehouse/state/warehouseDetailSlice';
 import { fetchWarehouseByIdThunk } from '@features/warehouse';
 
 /**
@@ -25,14 +23,14 @@ import { fetchWarehouseByIdThunk } from '@features/warehouse';
  */
 const useWarehouseDetail = () => {
   const dispatch = useAppDispatch();
-  
-  const data     = useAppSelector(selectWarehouseDetailData);
-  const loading  = useAppSelector(selectWarehouseDetailLoading);
-  const error    = useAppSelector(selectWarehouseDetailError);
+
+  const data = useAppSelector(selectWarehouseDetailData);
+  const loading = useAppSelector(selectWarehouseDetailLoading);
+  const error = useAppSelector(selectWarehouseDetailError);
   const location = useAppSelector(selectWarehouseDetailLocation);
-  const summary  = useAppSelector(selectWarehouseDetailSummary);
-  const audit    = useAppSelector(selectWarehouseDetailAudit);
-  
+  const summary = useAppSelector(selectWarehouseDetailSummary);
+  const audit = useAppSelector(selectWarehouseDetailAudit);
+
   /**
    * Dispatches the thunk to fetch a single warehouse detail record.
    * @param warehouseId - Target warehouse UUID.
@@ -43,14 +41,14 @@ const useWarehouseDetail = () => {
     },
     [dispatch]
   );
-  
+
   /**
    * Resets the warehouse detail state to initial.
    */
   const resetWarehouse = useCallback(() => {
     dispatch(resetWarehouseDetail());
   }, [dispatch]);
-  
+
   return {
     data,
     loading,

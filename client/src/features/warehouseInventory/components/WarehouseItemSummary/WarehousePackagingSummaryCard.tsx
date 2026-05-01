@@ -26,7 +26,6 @@ interface Props {
  * No SKU breakdown — packaging materials roll up directly.
  */
 const WarehousePackagingSummaryCard: FC<Props> = ({ material }) => {
-  
   return (
     <Card variant="outlined" sx={{ p: 2, mb: 1, borderRadius: 2 }}>
       <Box display="flex" alignItems="center" gap={2} flexWrap="wrap">
@@ -51,23 +50,41 @@ const WarehousePackagingSummaryCard: FC<Props> = ({ material }) => {
             {material.batchCount === 1 ? '' : 'es'}
           </CustomTypography>
         </Box>
-        
+
         <Stack direction="row" spacing={3} alignItems="center" flexWrap="wrap">
-          <SummaryStat label="Total" value={material.totalQuantity} minWidth={80} />
-          <SummaryStat label="Reserved" value={material.totalReserved} minWidth={80} />
+          <SummaryStat
+            label="Total"
+            value={material.totalQuantity}
+            minWidth={80}
+          />
+          <SummaryStat
+            label="Reserved"
+            value={material.totalReserved}
+            minWidth={80}
+          />
           <Box display="flex" alignItems="center" gap={1}>
-            <SummaryStat label="Available" value={material.totalAvailable} minWidth={80} />
+            <SummaryStat
+              label="Available"
+              value={material.totalAvailable}
+              minWidth={80}
+            />
             <ChipSlot>
               <LowStockChip available={material.totalAvailable} />
             </ChipSlot>
           </Box>
           <Box display="flex" alignItems="center" gap={1} minWidth={140}>
             <Box>
-              <CustomTypography variant="caption" color="text.secondary" display="block">
+              <CustomTypography
+                variant="caption"
+                color="text.secondary"
+                display="block"
+              >
                 Earliest Expiry
               </CustomTypography>
               <CustomTypography variant="body2" fontWeight={600}>
-                {material.earliestExpiry ? formatDate(material.earliestExpiry) : '—'}
+                {material.earliestExpiry
+                  ? formatDate(material.earliestExpiry)
+                  : '—'}
               </CustomTypography>
             </Box>
             <ChipSlot>

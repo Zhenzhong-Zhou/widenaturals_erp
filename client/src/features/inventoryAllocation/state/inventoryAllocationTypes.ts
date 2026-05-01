@@ -546,37 +546,37 @@ export interface InventoryAllocationSummary {
   orderType: string | null;
   /** Order category. */
   orderCategory: string | null;
-  
+
   /** Current order status. */
   orderStatus: InventoryAllocationOrderStatus;
-  
+
   /** Customer associated with the order. */
   customer: InventoryAllocationCustomer;
-  
+
   /** Payment method used. */
   paymentMethod: string | null;
   /** Current payment status. */
   paymentStatus: InventoryAllocationPaymentStatus;
   /** Delivery method. */
   deliveryMethod: string | null;
-  
+
   /** User who created the order. */
   orderCreatedBy: InventoryAllocationUserSummary;
   /** User who last updated the order. */
   orderUpdatedBy: InventoryAllocationUserSummary;
-  
+
   /** Item count breakdown. */
   itemCount: InventoryAllocationItemCount;
-  
+
   /** Warehouses involved in the allocation. */
   warehouses: InventoryAllocationWarehouses;
-  
+
   /** Aggregate allocation status. */
   allocationStatus: InventoryAllocationStatus;
-  
+
   /** UUIDs of individual allocation records. */
   allocationIds: string[];
-  
+
   /** Timestamp of the most recent allocation action. */
   allocatedAt: string | null;
   /** Timestamp when the allocation was first created. */
@@ -599,48 +599,48 @@ export interface FlattenedInventoryAllocationSummary {
   orderNumber: string;
   orderType: string | null;
   orderCategory: string | null;
-  
+
   // --- Order status ---
   orderStatusName: string | null;
   orderStatusCode: string | null;
-  
+
   // --- Customer ---
   customerType: string | null;
   customerFirstname: string | null;
   customerLastname: string | null;
   customerCompanyName: string | null;
   customerName: string | null;
-  
+
   // --- Payment ---
   paymentMethod: string | null;
   paymentStatusName: string | null;
   paymentStatusCode: string | null;
-  
+
   // --- Delivery ---
   deliveryMethod: string | null;
-  
+
   // --- Audit ---
   orderCreatedByFirstname: string | null;
   orderCreatedByLastname: string | null;
   orderCreatedBy: string | null;
-  
+
   orderUpdatedByFirstname: string | null;
   orderUpdatedByLastname: string | null;
   orderUpdatedBy: string | null;
-  
+
   // --- Item counts ---
   totalItemCount: number;
   allocatedItemCount: number;
-  
+
   // --- Warehouses ---
   warehouseIds: string[];
   warehouseNames: string;
-  
+
   // --- Allocation status ---
   allocationStatusCodes: string[];
   allocationStatusNames: string;
   allocationSummaryStatus: AllocationSummaryStatus;
-  
+
   // --- Allocation metadata ---
   allocationIds: string[];
   allocatedAt: string | null;
@@ -662,7 +662,7 @@ export interface InventoryAllocationFilters {
   batchIds?: string[];
   /** Filter by user who created the allocation (UUID). */
   allocationCreatedBy?: string;
-  
+
   // --- Order-level ---
   /** Filter by order number (partial match). */
   orderNumber?: string;
@@ -672,69 +672,70 @@ export interface InventoryAllocationFilters {
   orderTypeId?: string;
   /** Filter by user who created the order (UUID). */
   orderCreatedBy?: string;
-  
+
   // --- Sales order-level ---
   /** Filter by payment status UUID. */
   paymentStatusId?: string;
-  
+
   // --- Date range (aggregated allocated_at) ---
   /** Filter allocations on or after this date (ISO string). */
   aggregatedAllocatedAfter?: string;
   /** Filter allocations on or before this date (ISO string). */
   aggregatedAllocatedBefore?: string;
-  
+
   // --- Date range (aggregated created_at) ---
   /** Filter allocation creation on or after this date (ISO string). */
   aggregatedCreatedAfter?: string;
   /** Filter allocation creation on or before this date (ISO string). */
   aggregatedCreatedBefore?: string;
-  
+
   // --- Search ---
   /** Fuzzy keyword search across order number, SKU, product name, or customer. */
   keyword?: string;
 }
 
 /** Full query parameter shape for the inventory allocation list endpoint. */
-export interface InventoryAllocationQueryParams extends PaginationParams, SortConfig {
+export interface InventoryAllocationQueryParams
+  extends PaginationParams, SortConfig {
   filters?: InventoryAllocationFilters;
 }
 
 /** Valid sort field keys for the inventory allocation list. */
 export type InventoryAllocationSortField =
-// Allocation-level
+  // Allocation-level
   | 'allocationStatus'
   | 'allocationStatuses'
   | 'allocatedAt'
   | 'allocatedCreatedAt'
   | 'warehouseNames'
   | 'allocatedItems'
-  
+
   // Order-level
   | 'orderNumber'
   | 'orderDate'
   | 'orderType'
   | 'orderStatus'
-  
+
   // Customer
   | 'customerName'
   | 'customerFirstname'
   | 'customerLastname'
   | 'customerCompanyName'
-  
+
   // Payment
   | 'paymentMethod'
   | 'paymentStatus'
   | 'deliveryMethod'
-  
+
   // Audit
   | 'createdByFirstname'
   | 'createdByLastname'
   | 'updatedByFirstname'
   | 'updatedByLastname'
-  
+
   // Item counts
   | 'totalItems'
-  
+
   // Fallback
   | 'defaultNaturalSort';
 

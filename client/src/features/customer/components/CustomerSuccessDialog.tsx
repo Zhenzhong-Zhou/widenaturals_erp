@@ -38,9 +38,10 @@ const CustomerSuccessDialog: FC<CustomerSuccessDialogProps> = ({
     },
     {
       label: 'Customer Name',
-      value: data.customerType === 'company'
-        ? data.companyName
-        : `${data.firstname ?? ''} ${data.lastname ?? ''}`.trim(),
+      value:
+        data.customerType === 'company'
+          ? data.companyName
+          : `${data.firstname ?? ''} ${data.lastname ?? ''}`.trim(),
       format: (value) => formatLabel(value),
     },
     { label: 'Email', value: data.email },

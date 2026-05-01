@@ -41,9 +41,9 @@ const batchRegistryLookupQuerySchema = Joi.object({
     .optional()
     .allow('', null)
     .label('Batch Type'),
-  
+
   warehouseId: validateUUID('Warehouse ID').optional().allow('', null),
-  
+
   ...baseLookupQuerySchema,
 });
 

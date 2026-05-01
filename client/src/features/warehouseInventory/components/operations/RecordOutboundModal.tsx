@@ -66,12 +66,12 @@ const buildFields = (record: WarehouseInventoryDetailRecord) => [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const RecordOutboundModal: FC<RecordOutboundModalProps> = ({
-                                                                   open,
-                                                                   onClose,
-                                                                   warehouseId,
-                                                                   record,
-                                                                   onSuccess,
-                                                                 }) => {
+  open,
+  onClose,
+  warehouseId,
+  record,
+  onSuccess,
+}) => {
   const {
     loading,
     error,
@@ -80,9 +80,9 @@ const RecordOutboundModal: FC<RecordOutboundModalProps> = ({
     recordOutbound,
     resetOutboundState,
   } = useWarehouseInventoryOutbound();
-  
+
   const formRef = useRef<CustomFormRef>(null);
-  
+
   useEffect(() => {
     if (outboundResponse) {
       formRef.current?.resetForm();
@@ -90,12 +90,12 @@ const RecordOutboundModal: FC<RecordOutboundModalProps> = ({
       onSuccess?.();
     }
   }, [outboundResponse]);
-  
+
   const handleClose = () => {
     formRef.current?.resetForm();
     onClose();
   };
-  
+
   const onSubmit = (values: Record<string, any>) => {
     void recordOutbound(warehouseId, {
       updates: [
@@ -107,7 +107,7 @@ const RecordOutboundModal: FC<RecordOutboundModalProps> = ({
       ],
     });
   };
-  
+
   return (
     <CustomModal open={open} onClose={handleClose} title="Record Outbound">
       {/* Current quantity context */}
@@ -116,17 +116,19 @@ const RecordOutboundModal: FC<RecordOutboundModalProps> = ({
         <SummaryStat label="Reserved Qty" value={record.reservedQuantity} />
         <SummaryStat label="Available Qty" value={record.availableQuantity} />
       </Section>
-      
+
       {/* Zone breakdown — read-only context */}
       {record.zones.length > 0 && (
         <Section>
-          <CustomTypography variant="subtitle2">Zone Breakdown</CustomTypography>
+          <CustomTypography variant="subtitle2">
+            Zone Breakdown
+          </CustomTypography>
           <CustomMiniTable columns={ZONE_COLUMNS} data={record.zones} />
         </Section>
       )}
-      
+
       {error && <ErrorMessage message={error} />}
-      
+
       <CustomForm
         ref={formRef}
         fields={buildFields(record)}

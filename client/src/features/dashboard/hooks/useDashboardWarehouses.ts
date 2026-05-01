@@ -5,10 +5,14 @@ import ROUTE_PERMISSIONS from '@utils/constants/routePermissionConstants';
 import { usePaginatedWarehouses } from '@hooks/index';
 
 const useDashboardWarehouses = () => {
-  let hasPermission: (required: (string | readonly string[]), options?: PermissionCheckOptions) => (boolean | 'pending');
+  let hasPermission: (
+    required: string | readonly string[],
+    options?: PermissionCheckOptions
+  ) => boolean | 'pending';
   hasPermission = useHasPermission();
-  const canView = hasPermission(ROUTE_PERMISSIONS.WAREHOUSE_INVENTORY.VIEW) === true;
-  
+  const canView =
+    hasPermission(ROUTE_PERMISSIONS.WAREHOUSE_INVENTORY.VIEW) === true;
+
   const {
     data: warehouses,
     loading,
@@ -16,13 +20,18 @@ const useDashboardWarehouses = () => {
     fetchWarehouses,
     resetWarehouses,
   } = usePaginatedWarehouses();
-  
+
   useEffect(() => {
     if (canView) fetchWarehouses({ page: 1, limit: 100 });
   }, [canView, fetchWarehouses]);
-  
-  useEffect(() => () => { resetWarehouses(); }, [resetWarehouses]);
-  
+
+  useEffect(
+    () => () => {
+      resetWarehouses();
+    },
+    [resetWarehouses]
+  );
+
   return { warehouses, loading, error, canView };
 };
 

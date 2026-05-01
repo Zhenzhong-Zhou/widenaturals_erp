@@ -38,24 +38,19 @@ interface UpdateStatusModalProps {
 
 const getItemLabel = (item: FlattenedWarehouseInventory): string => {
   if (item.batchType === 'product') {
-    const parts = [
-      item.productLotNumber,
-      item.sku,
-      item.productName,
-    ].filter(Boolean);
+    const parts = [item.productLotNumber, item.sku, item.productName].filter(
+      Boolean
+    );
     return parts.join(' · ');
   }
-  const parts = [
-    item.packagingLotNumber,
-    item.materialCode,
-  ].filter(Boolean);
+  const parts = [item.packagingLotNumber, item.materialCode].filter(Boolean);
   return parts.join(' · ');
 };
 
 // ─── MultiItemForm fields ─────────────────────────────────────────────────────
 // todo: label: lot number, sku/code, product name/ packing name , status
 const buildBatchFields = (
-  statusOptions: StatusOption[],
+  statusOptions: StatusOption[]
 ): MultiItemFieldConfig[] => [
   {
     id: 'label',
@@ -76,9 +71,7 @@ const buildBatchFields = (
 
 // ─── SingleForm fields ────────────────────────────────────────────────────────
 // todo: need to be custom dropdown
-const buildSingleFields = (
-  statusOptions: StatusOption[],
-) => [
+const buildSingleFields = (statusOptions: StatusOption[]) => [
   {
     id: 'statusId',
     label: 'New Status',
@@ -91,28 +84,24 @@ const buildSingleFields = (
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const UpdateStatusModal: FC<UpdateStatusModalProps> = ({
-                                                               open,
-                                                               onClose,
-                                                               warehouseId,
-                                                               selectedItems,
-                                                               statusOptions,
-                                                               onSuccess,
-                                                             }) => {
+  open,
+  onClose,
+  warehouseId,
+  selectedItems,
+  statusOptions,
+  onSuccess,
+}) => {
   // todo: need to use all hook params
-  const {
-    loading,
-    error,
-    updateResponse,
-    updateStatuses,
-  } = useWarehouseInventoryUpdateStatus();
-  
+  const { loading, error, updateResponse, updateStatuses } =
+    useWarehouseInventoryUpdateStatus();
+
   const isBatch = selectedItems.length > 1;
-  
+
   // single mode ref
   const singleFormRef = useRef<CustomFormRef>(null);
   // batch mode ref
   const batchFormRef = useRef<MultiItemFormRef>(null);
-  
+
   useEffect(() => {
     if (updateResponse) {
       singleFormRef.current?.resetForm();
@@ -120,12 +109,12 @@ const UpdateStatusModal: FC<UpdateStatusModalProps> = ({
       onSuccess?.();
     }
   }, [updateResponse]);
-  
+
   const handleClose = () => {
     singleFormRef.current?.resetForm();
     onClose();
   };
-  
+
   // ── Batch submit ────────────────────────────────────────────────────────────
   const handleBatchSubmit = (rows: Record<string, any>[]) => {
     void updateStatuses(warehouseId, {
@@ -135,7 +124,7 @@ const UpdateStatusModal: FC<UpdateStatusModalProps> = ({
       })),
     });
   };
-  
+
   // ── Single submit ───────────────────────────────────────────────────────────
   const handleSingleSubmit = (values: Record<string, any>) => {
     const item = selectedItems[0];
@@ -144,22 +133,22 @@ const UpdateStatusModal: FC<UpdateStatusModalProps> = ({
       updates: [{ id: item.id, statusId: values.statusId }],
     });
   };
-  
+
   const title = isBatch
     ? `Update Status — ${selectedItems.length} Records`
     : 'Update Status';
-  
+
   // Pre-populate batch rows from selectedItems
   const batchDefaultValues = selectedItems.map((item) => ({
     id: item.id,
     label: getItemLabel(item),
     statusId: item.statusId,
   }));
-  
+
   return (
     <CustomModal open={open} onClose={handleClose} title={title}>
       {error && <ErrorMessage message={error} />}
-      
+
       {isBatch ? (
         <MultiItemForm
           ref={batchFormRef}
@@ -183,7 +172,7 @@ const UpdateStatusModal: FC<UpdateStatusModalProps> = ({
               </CustomTypography>
             </Section>
           )}
-          
+
           <CustomForm
             ref={singleFormRef}
             fields={buildSingleFields(statusOptions)}

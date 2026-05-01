@@ -16,7 +16,7 @@ import { useDashboardWarehouses } from '@features/dashboard/hooks';
 const ManagerDashboardPage: FC<DashboardPageProps> = () => {
   const fullName = useAppSelector(selectSelfUserFullName);
   const { warehouses, loading, error, canView } = useDashboardWarehouses();
-  
+
   return (
     <DashboardLayout
       fullName={fullName ?? undefined}

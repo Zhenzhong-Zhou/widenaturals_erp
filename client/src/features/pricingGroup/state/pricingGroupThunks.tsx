@@ -19,14 +19,14 @@ import type { UiErrorPayload } from '@utils/error/uiErrorUtils';
 export const fetchPaginatedPricingGroupsThunk = createAsyncThunk<
   PaginatedPricingGroupApiResponse,
   PricingGroupQueryParams,
-{ rejectValue: UiErrorPayload }
+  { rejectValue: UiErrorPayload }
 >(
   'pricingGroup/fetchPaginatedPricingGroups',
-    async (params, { rejectWithValue }) => {
-      try {
-        return await pricingGroupService.fetchPaginatedPricingGroups(params);
-      } catch (error: unknown) {
-        return rejectWithValue(extractUiErrorPayload(error));
-      }
+  async (params, { rejectWithValue }) => {
+    try {
+      return await pricingGroupService.fetchPaginatedPricingGroups(params);
+    } catch (error: unknown) {
+      return rejectWithValue(extractUiErrorPayload(error));
     }
+  }
 );

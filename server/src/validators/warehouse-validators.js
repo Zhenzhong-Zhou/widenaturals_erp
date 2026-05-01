@@ -64,17 +64,17 @@ const warehouseQuerySchema = paginationSchema
   .concat(updatedDateRangeSchema)
   .concat(
     Joi.object({
-      statusId:        validateOptionalUUID('Status ID'),
-      isArchived:      Joi.boolean().optional().messages({
+      statusId: validateOptionalUUID('Status ID'),
+      isArchived: Joi.boolean().optional().messages({
         'boolean.base': 'Is Archived must be a boolean.',
       }),
       warehouseTypeId: validateOptionalUUID('Warehouse Type ID'),
-      locationId:      validateOptionalUUID('Location ID'),
-      name:            validateOptionalString('Warehouse Name'),
-      code:            validateOptionalString('Warehouse Code'),
-      createdBy:       validateOptionalUUID('Created By'),
-      updatedBy:       validateOptionalUUID('Updated By'),
-      keyword:         validateOptionalString('Keyword'),
+      locationId: validateOptionalUUID('Location ID'),
+      name: validateOptionalString('Warehouse Name'),
+      code: validateOptionalString('Warehouse Code'),
+      createdBy: validateOptionalUUID('Created By'),
+      updatedBy: validateOptionalUUID('Updated By'),
+      keyword: validateOptionalString('Keyword'),
     })
   );
 

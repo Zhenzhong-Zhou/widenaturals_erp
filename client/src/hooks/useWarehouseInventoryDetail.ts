@@ -19,16 +19,18 @@ import { resetWarehouseInventoryDetail } from '@features/warehouseInventory/stat
  */
 const useWarehouseInventoryDetail = () => {
   const dispatch = useAppDispatch();
-  
+
   const data = useAppSelector(selectWarehouseInventoryDetailData);
   const loading = useAppSelector(selectWarehouseInventoryDetailLoading);
   const error = useAppSelector(selectWarehouseInventoryDetailError);
   const productInfo = useAppSelector(selectWarehouseInventoryDetailProductInfo);
-  const packagingInfo = useAppSelector(selectWarehouseInventoryDetailPackagingInfo);
+  const packagingInfo = useAppSelector(
+    selectWarehouseInventoryDetailPackagingInfo
+  );
   const zones = useAppSelector(selectWarehouseInventoryDetailZones);
   const movements = useAppSelector(selectWarehouseInventoryDetailMovements);
   const audit = useAppSelector(selectWarehouseInventoryDetailAudit);
-  
+
   /**
    * Dispatches the thunk to fetch a single inventory record's detail.
    * @param warehouseId - Target warehouse UUID.
@@ -36,18 +38,20 @@ const useWarehouseInventoryDetail = () => {
    */
   const fetchDetail = useCallback(
     (warehouseId: string, inventoryId: string) => {
-      dispatch(fetchWarehouseInventoryDetailThunk({ warehouseId, inventoryId }));
+      dispatch(
+        fetchWarehouseInventoryDetailThunk({ warehouseId, inventoryId })
+      );
     },
     [dispatch]
   );
-  
+
   /**
    * Resets the detail state to initial.
    */
   const resetDetail = useCallback(() => {
     dispatch(resetWarehouseInventoryDetail());
   }, [dispatch]);
-  
+
   return {
     data,
     loading,

@@ -402,41 +402,41 @@ const SORTABLE_FIELDS = {
   },
   warehouseSortMap: {
     // Warehouse-level fields
-    warehouseName:        'w.name',
-    warehouseCode:        'w.code',
-    storageCapacity:      'w.storage_capacity',
-    defaultFee:           'w.default_fee',
-    isArchived:           'w.is_archived',
-    
+    warehouseName: 'w.name',
+    warehouseCode: 'w.code',
+    storageCapacity: 'w.storage_capacity',
+    defaultFee: 'w.default_fee',
+    isArchived: 'w.is_archived',
+
     // Warehouse type
-    warehouseTypeName:    'wt.name',
-    
+    warehouseTypeName: 'wt.name',
+
     // Location fields
-    locationName:         'l.name',
-    city:                 'l.city',
-    provinceOrState:      'l.province_or_state',
-    country:              'l.country',
-    
+    locationName: 'l.name',
+    city: 'l.city',
+    provinceOrState: 'l.province_or_state',
+    country: 'l.country',
+
     // Status fields
-    statusName:           'st.name',
-    statusId:             'w.status_id',
-    statusDate:           'w.status_date',
-    
+    statusName: 'st.name',
+    statusId: 'w.status_id',
+    statusDate: 'w.status_date',
+
     // Inventory summary (LATERAL subquery alias)
-    totalQuantity:        'inv.total_quantity',
-    
+    totalQuantity: 'inv.total_quantity',
+
     // Audit timestamps
-    createdAt:            'w.created_at',
-    updatedAt:            'w.updated_at',
-    
+    createdAt: 'w.created_at',
+    updatedAt: 'w.updated_at',
+
     // Audit user fields
-    createdByFirstName:   'cu.firstname',
-    createdByLastName:    'cu.lastname',
-    updatedByFirstName:   'uu.firstname',
-    updatedByLastName:    'uu.lastname',
-    
+    createdByFirstName: 'cu.firstname',
+    createdByLastName: 'cu.lastname',
+    updatedByFirstName: 'uu.firstname',
+    updatedByLastName: 'uu.lastname',
+
     // Default fallback — must be an array
-    defaultNaturalSort:   'w.created_at',
+    defaultNaturalSort: 'w.created_at',
   },
   pricingTypeSortMap: {
     // Pricing type fields (FROM pricing_types pt)

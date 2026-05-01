@@ -41,7 +41,7 @@ export const getPricingTypeTableColumns = (
       sortable: true,
       renderCell: (row) => row.code,
     },
-    
+
     // --------------------------------------------------
     // Status
     // --------------------------------------------------
@@ -58,7 +58,7 @@ export const getPricingTypeTableColumns = (
       renderCell: (row) => formatDateTime(row.status.date),
     },
   ];
-  
+
   // --------------------------------------------------
   // Drill-down
   // --------------------------------------------------
@@ -70,6 +70,6 @@ export const getPricingTypeTableColumns = (
       )
     );
   }
-  
+
   return columns;
 };

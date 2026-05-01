@@ -10,7 +10,7 @@ interface SingleCustomerFormProps {
 
 export const CUSTOMER_TYPE_OPTIONS: { label: string; value: string }[] = [
   { label: 'Individual', value: 'individual' },
-  { label: 'Company',    value: 'company'    },
+  { label: 'Company', value: 'company' },
 ];
 
 const customerFormFields: FieldConfig[] = [

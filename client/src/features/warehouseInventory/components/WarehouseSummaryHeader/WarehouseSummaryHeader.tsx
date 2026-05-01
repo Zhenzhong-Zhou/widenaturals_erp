@@ -1,11 +1,7 @@
 import type { FC } from 'react';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
-import {
-  CustomTypography,
-  StatusChip,
-  SummaryStat
-} from '@components/index';
+import { CustomTypography, StatusChip, SummaryStat } from '@components/index';
 import { formatGeneralStatus } from '@utils/formatters';
 import { formatLabel } from '@utils/textUtils';
 import type {
@@ -30,18 +26,18 @@ interface Props {
  * Renders gracefully when summary data is not yet loaded.
  */
 const WarehouseSummaryHeader: FC<Props> = ({
-                                                   warehouseInfo,
-                                                   totals,
-                                                   byBatchType,
-                                                   byStatus,
-                                                 }) => {
+  warehouseInfo,
+  totals,
+  byBatchType,
+  byStatus,
+}) => {
   const breadcrumb = [
     warehouseInfo?.code,
     warehouseInfo?.typeName && formatLabel(warehouseInfo.typeName),
   ]
     .filter(Boolean)
     .join(' · ');
-  
+
   return (
     <Box mb={3}>
       <Box
@@ -59,13 +55,13 @@ const WarehouseSummaryHeader: FC<Props> = ({
             </CustomTypography>
             {formatGeneralStatus(warehouseInfo?.status?.name)}
           </Box>
-          
+
           {breadcrumb && (
             <CustomTypography variant="body2" color="text.secondary">
               {breadcrumb}
             </CustomTypography>
           )}
-          
+
           {byBatchType && (
             <CustomTypography
               variant="caption"
@@ -77,18 +73,18 @@ const WarehouseSummaryHeader: FC<Props> = ({
             </CustomTypography>
           )}
         </Box>
-        
+
         {totals && (
           <Box display="flex" gap={4} flexWrap="wrap">
             <SummaryStat label="Available" value={totals.available} />
-            <SummaryStat label="Reserved"  value={totals.reserved} />
-            <SummaryStat label="Total"     value={totals.quantity} />
-            <SummaryStat label="Batches"   value={totals.batches} />
-            <SummaryStat label="SKUs"      value={totals.productSkus} />
+            <SummaryStat label="Reserved" value={totals.reserved} />
+            <SummaryStat label="Total" value={totals.quantity} />
+            <SummaryStat label="Batches" value={totals.batches} />
+            <SummaryStat label="SKUs" value={totals.productSkus} />
           </Box>
         )}
       </Box>
-      
+
       {byStatus && byStatus.length > 0 && (
         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
           {byStatus.map((s) => (

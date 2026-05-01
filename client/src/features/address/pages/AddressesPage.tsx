@@ -174,7 +174,10 @@ const AddressesPage: FC = () => {
           <NoDataFound
             message="No addresses found."
             action={
-              <CustomButton onClick={handleResetFilters} sx={{ mt: 1, minWidth: 160 }}>
+              <CustomButton
+                onClick={handleResetFilters}
+                sx={{ mt: 1, minWidth: 160 }}
+              >
                 Reset Filters
               </CustomButton>
             }

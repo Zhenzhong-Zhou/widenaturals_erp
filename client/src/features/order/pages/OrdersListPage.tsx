@@ -235,12 +235,15 @@ const OrdersListPage = () => {
         {!ordersLoading && ordersError && (
           <CustomTypography color="error">{ordersError}</CustomTypography>
         )}
-        
+
         {!ordersLoading && !ordersError && orders.length === 0 && (
           <NoDataFound
             message="No orders found."
             action={
-              <CustomButton onClick={handleResetFilters} sx={{ mt: 1, minWidth: 160 }}>
+              <CustomButton
+                onClick={handleResetFilters}
+                sx={{ mt: 1, minWidth: 160 }}
+              >
                 Reset Filters
               </CustomButton>
             }

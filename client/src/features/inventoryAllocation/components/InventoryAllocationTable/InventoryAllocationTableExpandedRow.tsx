@@ -25,13 +25,13 @@ const InventoryAllocationTableExpandedRow: FC<Props> = ({ row }) => {
     orderCreatedBy,
     orderUpdatedBy,
   } = row;
-  
+
   return (
     <Box sx={{ px: 3, py: 2 }}>
       <CustomTypography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
         Order Allocation Metadata
       </CustomTypography>
-      
+
       <Grid container spacing={2}>
         <Grid size={{ xs: 12 }}>
           <DetailsSection

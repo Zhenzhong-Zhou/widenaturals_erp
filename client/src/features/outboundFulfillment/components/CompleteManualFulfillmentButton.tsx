@@ -35,8 +35,7 @@ const CompleteManualFulfillmentButton: FC<
           fulfillmentStatus: 'FULFILLMENT_COMPLETED',
         },
       });
-    } catch (err) {
-    }
+    } catch (err) {}
   }, [shipmentId, submitManualFulfillment]);
 
   /**
@@ -49,13 +48,13 @@ const CompleteManualFulfillmentButton: FC<
       resetManualFulfillment();
     }
   }, [data, error, refresh, resetManualFulfillment]);
-  
+
   useEffect(() => {
     if (error) {
       resetManualFulfillment();
     }
   }, [error, resetManualFulfillment]);
-  
+
   return (
     <Box>
       <CustomButton

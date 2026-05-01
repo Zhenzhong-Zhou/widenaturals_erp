@@ -58,10 +58,10 @@ const PERMISSION_KEYS = {
     VIEW: 'view_locations',
   },
   WAREHOUSES: {
-    VIEW:         'view_warehouses',
+    VIEW: 'view_warehouses',
     VIEW_DETAILS: 'view_warehouse_details',
-    CREATE:       'create_warehouse',
-    UPDATE:       'update_warehouse',
+    CREATE: 'create_warehouse',
+    UPDATE: 'update_warehouse',
   },
   BATCH_REGISTRY: {
     VIEW_LIST: 'view_batch_registry',

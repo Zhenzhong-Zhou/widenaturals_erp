@@ -93,7 +93,7 @@ const COMPLIANCE_DATE_FIELDS: ComplianceDateField[] = [
   // Issued date
   { name: 'dateRanges.issuedAfter', label: 'Issued Date ≥' },
   { name: 'dateRanges.issuedBefore', label: 'Issued Date <' },
-  
+
   // Expiry date
   { name: 'dateRanges.expiry.expiringAfter', label: 'Expiry Date ≥' },
   { name: 'dateRanges.expiry.expiringBefore', label: 'Expiry Date <' },

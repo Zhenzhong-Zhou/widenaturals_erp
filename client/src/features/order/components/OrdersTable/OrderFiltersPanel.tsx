@@ -8,7 +8,7 @@ import { toISODate } from '@utils/dateTimeUtils';
 import {
   renderDateField,
   renderInputField,
-  renderSelectField
+  renderSelectField,
 } from '@utils/filters/filterUtils';
 import { CUSTOMER_TYPE_OPTIONS } from '@features/customer/components/SingleCustomerForm';
 
@@ -36,11 +36,11 @@ const emptyFilters: OrderListFilters = {
 };
 
 const OrderFiltersPanel: FC<Props> = ({
-                                        filters,
-                                        onChange,
-                                        onApply,
-                                        onReset,
-                                      }) => {
+  filters,
+  onChange,
+  onApply,
+  onReset,
+}) => {
   const { control, handleSubmit, reset } = useForm<OrderListFilters>({
     defaultValues: filters,
   });
@@ -93,8 +93,13 @@ const OrderFiltersPanel: FC<Props> = ({
           {dateFields.map(({ name, label }) =>
             renderDateField(control, name, label)
           )}
-          
-          {renderSelectField(control, 'customerType', 'Customer Type', CUSTOMER_TYPE_OPTIONS)}
+
+          {renderSelectField(
+            control,
+            'customerType',
+            'Customer Type',
+            CUSTOMER_TYPE_OPTIONS
+          )}
         </Grid>
 
         <Box display="flex" flexWrap="wrap" gap={2} mt={3}>

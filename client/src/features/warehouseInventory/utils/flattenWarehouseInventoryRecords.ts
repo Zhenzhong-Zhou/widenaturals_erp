@@ -21,63 +21,63 @@ export const flattenWarehouseInventoryRecords = (
   records: WarehouseInventoryRecord[]
 ): FlattenedWarehouseInventory[] => {
   if (!Array.isArray(records)) return [];
-  
+
   return records.map((record) => {
     const status = record.status ?? { id: '', name: '—', date: null };
     const product = record.productInfo;
     const packaging = record.packagingInfo;
-    
+
     return {
       // ------------------------------
       // Core Inventory
       // ------------------------------
-      id:                record.id                ?? '',
-      batchId:           record.batchId           ?? '',
-      batchType:         record.batchType         ?? '—',
+      id: record.id ?? '',
+      batchId: record.batchId ?? '',
+      batchType: record.batchType ?? '—',
       warehouseQuantity: record.warehouseQuantity ?? 0,
-      reservedQuantity:  record.reservedQuantity  ?? 0,
+      reservedQuantity: record.reservedQuantity ?? 0,
       availableQuantity: record.availableQuantity ?? 0,
-      warehouseFee:      record.warehouseFee      ?? '0.00',
-      inboundDate:       record.inboundDate       ?? '',
-      outboundDate:      record.outboundDate      ?? null,
-      lastMovementAt:    record.lastMovementAt    ?? null,
-      
+      warehouseFee: record.warehouseFee ?? '0.00',
+      inboundDate: record.inboundDate ?? '',
+      outboundDate: record.outboundDate ?? null,
+      lastMovementAt: record.lastMovementAt ?? null,
+
       // ------------------------------
       // Status
       // ------------------------------
-      statusId:   status.id   ?? '',
+      statusId: status.id ?? '',
       statusName: status.name ?? '—',
       statusDate: status.date ?? null,
-      
+
       // ------------------------------
       // Product (null when packaging_material)
       // ------------------------------
-      productBatchId:   product?.batch?.id            ?? null,
-      productLotNumber:        product?.batch?.lotNumber     ?? null,
-      productExpiryDate:        product?.batch?.expiryDate     ?? null,
-      skuId:            product?.sku?.id              ?? null,
-      sku:              product?.sku?.sku             ?? null,
-      barcode:          product?.sku?.barcode         ?? null,
-      sizeLabel:        product?.sku?.sizeLabel       ?? null,
-      countryCode:      product?.sku?.countryCode     ?? null,
-      marketRegion:     product?.sku?.marketRegion    ?? null,
-      productId:        product?.product?.id          ?? null,
-      productName:      product?.product?.name        ?? null,
-      displayName:      product?.product?.displayName ?? null,
-      brand:            product?.product?.brand       ?? null,
-      manufacturerId:   product?.manufacturer?.id     ?? null,
-      manufacturerName: product?.manufacturer?.name   ?? null,
-      
+      productBatchId: product?.batch?.id ?? null,
+      productLotNumber: product?.batch?.lotNumber ?? null,
+      productExpiryDate: product?.batch?.expiryDate ?? null,
+      skuId: product?.sku?.id ?? null,
+      sku: product?.sku?.sku ?? null,
+      barcode: product?.sku?.barcode ?? null,
+      sizeLabel: product?.sku?.sizeLabel ?? null,
+      countryCode: product?.sku?.countryCode ?? null,
+      marketRegion: product?.sku?.marketRegion ?? null,
+      productId: product?.product?.id ?? null,
+      productName: product?.product?.name ?? null,
+      displayName: product?.product?.displayName ?? null,
+      brand: product?.product?.brand ?? null,
+      manufacturerId: product?.manufacturer?.id ?? null,
+      manufacturerName: product?.manufacturer?.name ?? null,
+
       // ------------------------------
       // Packaging (null when product)
       // ------------------------------
-      packagingBatchId:   packaging?.batch?.id         ?? null,
-      packagingLotNumber: packaging?.batch?.lotNumber   ?? null,
-      packagingExpiryDate: packaging?.batch?.expiryDate   ?? null,
-      materialId:         packaging?.material?.id       ?? null,
-      materialCode:       packaging?.material?.code     ?? null,
-      supplierId:         packaging?.supplier?.id       ?? null,
-      supplierName:       packaging?.supplier?.name     ?? null,
+      packagingBatchId: packaging?.batch?.id ?? null,
+      packagingLotNumber: packaging?.batch?.lotNumber ?? null,
+      packagingExpiryDate: packaging?.batch?.expiryDate ?? null,
+      materialId: packaging?.material?.id ?? null,
+      materialCode: packaging?.material?.code ?? null,
+      supplierId: packaging?.supplier?.id ?? null,
+      supplierName: packaging?.supplier?.name ?? null,
     };
   });
 };

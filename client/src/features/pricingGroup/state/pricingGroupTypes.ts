@@ -73,7 +73,8 @@ export type PricingGroupFilters = {
   productId?: string;
   /** When true, returns only groups where today falls within valid_from–valid_to. */
   currentlyValid?: boolean;
-} & CreatedUpdatedByFilter & CreatedUpdatedDateFilter;
+} & CreatedUpdatedByFilter &
+  CreatedUpdatedDateFilter;
 
 /** Full query parameter shape for the pricing group list endpoint. */
 export interface PricingGroupQueryParams extends PaginationParams, SortConfig {

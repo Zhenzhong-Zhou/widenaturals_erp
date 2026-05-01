@@ -20,23 +20,23 @@ import { resetPricingGroupLookup } from '@features/lookup/state/pricingGroupLook
  */
 const usePricingGroupLookup = () => {
   const dispatch = useAppDispatch();
-  
+
   const options = useAppSelector(selectPricingGroupLookupOptions);
   const loading = useAppSelector(selectPricingGroupLookupLoading);
   const error = useAppSelector(selectPricingGroupLookupError);
   const meta = useAppSelector(selectPricingGroupLookupMeta);
-  
+
   const fetch = useCallback(
     (params?: PricingGroupLookupQueryParams) => {
       dispatch(fetchPricingGroupLookupThunk(params));
     },
     [dispatch]
   );
-  
+
   const reset = useCallback(() => {
     dispatch(resetPricingGroupLookup());
   }, [dispatch]);
-  
+
   return useMemo(
     () => ({
       options,

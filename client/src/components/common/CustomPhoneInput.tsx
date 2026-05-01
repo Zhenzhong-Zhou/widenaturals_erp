@@ -18,22 +18,22 @@ const PhoneInput = resolveCjsDefault<any>(PhoneInputLib);
 interface CustomPhoneInputProps {
   /** Current phone value (recommended: E.164 format, e.g. +16041234567) */
   value: string;
-  
+
   /** Change handler returning normalized phone value */
   onChange: (value: string) => void;
-  
+
   /** Default country (ISO2 code, e.g. 'ca', 'us') */
   country?: string;
-  
+
   /** Disable input interaction */
   disabled?: boolean;
-  
+
   /** MUI sx style overrides */
   sx?: SxProps<Theme>;
-  
+
   /** Whether field is required */
   required?: boolean;
-  
+
   /** Optional label displayed above input */
   label?: string;
 }
@@ -53,14 +53,14 @@ interface CustomPhoneInputProps {
  * @component
  */
 const CustomPhoneInput: FC<CustomPhoneInputProps> = ({
-                                                       value,
-                                                       onChange,
-                                                       country = 'ca',
-                                                       disabled = false,
-                                                       sx,
-                                                       required = true,
-                                                       label,
-                                                     }) => {
+  value,
+  onChange,
+  country = 'ca',
+  disabled = false,
+  sx,
+  required = true,
+  label,
+}) => {
   /**
    * Normalize phone number to E.164 format.
    * Ensures consistent backend storage.
@@ -69,10 +69,10 @@ const CustomPhoneInput: FC<CustomPhoneInputProps> = ({
     const normalized = phone.startsWith('+')
       ? phone
       : `+${phone.replace(/\D/g, '')}`;
-    
+
     onChange(normalized);
   };
-  
+
   return (
     <Box
       sx={{
@@ -95,7 +95,7 @@ const CustomPhoneInput: FC<CustomPhoneInputProps> = ({
           {label}
         </InputLabel>
       )}
-      
+
       <PhoneInput
         country={country}
         value={value}

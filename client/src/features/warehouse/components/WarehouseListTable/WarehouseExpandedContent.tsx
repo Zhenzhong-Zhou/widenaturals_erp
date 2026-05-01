@@ -10,28 +10,49 @@ interface WarehouseExpandedContentProps {
   row: WarehouseRecord;
 }
 
-const WarehouseExpandedContent: FC<WarehouseExpandedContentProps> = ({ row }) => {
+const WarehouseExpandedContent: FC<WarehouseExpandedContentProps> = ({
+  row,
+}) => {
   return (
     <Box sx={{ px: 3, py: 2 }}>
       <CustomTypography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
         Warehouse Details
       </CustomTypography>
-      
+
       <DetailsSection
         sectionTitle="Configuration"
         fields={[
-          { label: 'Default Fee',       value: row.defaultFee != null ? `$${row.defaultFee}` : null },
-          { label: 'Code',  value: row.code ?? null },
+          {
+            label: 'Default Fee',
+            value: row.defaultFee != null ? `$${row.defaultFee}` : null,
+          },
+          { label: 'Code', value: row.code ?? null },
         ]}
       />
-      
+
       <DetailsSection
         sectionTitle="Audit"
         fields={[
-          { label: 'Created By', value: row.audit.createdBy?.name, format: formatLabel },
-          { label: 'Created At', value: row.audit.createdAt, format: formatDateTime },
-          { label: 'Updated By', value: row.audit.updatedBy?.name, format: formatLabel },
-          { label: 'Updated At', value: row.audit.updatedAt, format: formatDateTime },
+          {
+            label: 'Created By',
+            value: row.audit.createdBy?.name,
+            format: formatLabel,
+          },
+          {
+            label: 'Created At',
+            value: row.audit.createdAt,
+            format: formatDateTime,
+          },
+          {
+            label: 'Updated By',
+            value: row.audit.updatedBy?.name,
+            format: formatLabel,
+          },
+          {
+            label: 'Updated At',
+            value: row.audit.updatedAt,
+            format: formatDateTime,
+          },
         ]}
       />
     </Box>

@@ -114,7 +114,7 @@ const LocationListPage = () => {
       resetAll: () => {
         lookups.status.reset();
       },
-      
+
       onOpen: {
         status: createOnOpenHandler(lookups.status),
       },

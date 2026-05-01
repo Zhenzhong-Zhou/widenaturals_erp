@@ -18,10 +18,7 @@ import {
 } from '@features/pricing/components/PricingListTable';
 import { usePaginatedPricing } from '@hooks/index';
 import { usePaginationHandlers } from '@utils/hooks';
-import {
-  PricingFilters,
-  PricingSortField,
-} from '@features/pricing';
+import { PricingFilters, PricingSortField } from '@features/pricing';
 import { applyFiltersAndSorting } from '@utils/query';
 import { usePricingLookups } from '@features/pricing/hooks';
 
@@ -35,12 +32,12 @@ const PricingListPage = () => {
   const [sortOrder, setSortOrder] = useState<'' | 'ASC' | 'DESC'>('');
   const [filters, setFilters] = useState<PricingFilters>({});
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
-  
+
   // -------------------------------------------------------------
   // Export state
   // -------------------------------------------------------------
   const [liveFilters, setLiveFilters] = useState<PricingFilters>({});
-  
+
   // -------------------------------------------------------------
   // Pricing list fetch
   // -------------------------------------------------------------
@@ -54,9 +51,9 @@ const PricingListPage = () => {
     fetchPricing: fetchPaginatedPricingList,
     resetPricing: resetPricingList,
   } = usePaginatedPricing();
-  
+
   const lookups = usePricingLookups();
-  
+
   // -------------------------------------------------------------
   // Combined query object
   // -------------------------------------------------------------
@@ -68,16 +65,16 @@ const PricingListPage = () => {
       sortOrder,
       filters,
     }),
-    [page, limit, sortBy, sortOrder, filters],
+    [page, limit, sortBy, sortOrder, filters]
   );
-  
+
   // -------------------------------------------------------------
   // Refresh list
   // -------------------------------------------------------------
   const refreshPricingList = useCallback(() => {
     fetchPaginatedPricingList(fullQuery);
   }, [fullQuery, fetchPaginatedPricingList]);
-  
+
   // -------------------------------------------------------------
   // Debounced query execution payload
   // -------------------------------------------------------------
@@ -86,9 +83,9 @@ const PricingListPage = () => {
       ...fullQuery,
       fetchFn: refreshPricingList,
     }),
-    [fullQuery, refreshPricingList],
+    [fullQuery, refreshPricingList]
   );
-  
+
   // -------------------------------------------------------------
   // Debounced list fetch
   // -------------------------------------------------------------
@@ -96,14 +93,14 @@ const PricingListPage = () => {
     const timeout = setTimeout(() => applyFiltersAndSorting(queryParams), 200);
     return () => clearTimeout(timeout);
   }, [queryParams]);
-  
+
   // Reset on unmount
   useEffect(() => {
     return () => {
       resetPricingList();
     };
   }, [resetPricingList]);
-  
+
   // -------------------------------------------------------------
   // Handlers
   // -------------------------------------------------------------
@@ -112,16 +109,16 @@ const PricingListPage = () => {
     setFilters({});
     setPage(1);
   }, [resetPricingList]);
-  
+
   const { handlePageChange, handleRowsPerPageChange } = usePaginationHandlers(
     setPage,
-    setLimit,
+    setLimit
   );
-  
+
   const handleDrillDownToggle = useCallback((rowId: string) => {
     setExpandedRowId((current) => (current === rowId ? null : rowId));
   }, []);
-  
+
   const lookupHandlers = {
     onOpen: {
       product: () => {
@@ -136,11 +133,11 @@ const PricingListPage = () => {
       },
     },
   };
-  
+
   const handleFilterChange = useCallback((live: PricingFilters) => {
     setLiveFilters(live);
   }, []);
-  
+
   // -------------------------------------------------------------
   // Render
   // -------------------------------------------------------------
@@ -160,13 +157,13 @@ const PricingListPage = () => {
         <CustomTypography variant="h5" fontWeight={700}>
           Pricing
         </CustomTypography>
-        
+
         {/* ---- Export Controls ---- */}
         <PricingExportControls liveFilters={liveFilters} />
       </Box>
-      
+
       <Divider sx={{ mb: 3 }} />
-      
+
       {/* ---------------------------------------- */}
       {/* Filter + Sort Controls */}
       {/* ---------------------------------------- */}
@@ -183,7 +180,7 @@ const PricingListPage = () => {
               onReset={handleResetFilters}
             />
           </Grid>
-          
+
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <PricingSortControls
               sortBy={sortBy}
@@ -194,7 +191,7 @@ const PricingListPage = () => {
           </Grid>
         </Grid>
       </Card>
-      
+
       {/* ---------------------------------------- */}
       {/* Main Table Rendering */}
       {/* ---------------------------------------- */}

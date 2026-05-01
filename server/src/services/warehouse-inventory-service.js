@@ -200,7 +200,7 @@ const createWarehouseInventoryService = async ({
     // 1. Warehouse scope check
     const { assignedWarehouseIds, canViewAll } =
       await assertWarehouseAccess(user);
-    
+
     if (!canViewAll) {
       enforceWarehouseScope(assignedWarehouseIds, warehouseId);
     }
@@ -309,7 +309,7 @@ const adjustWarehouseInventoryQuantityService = async ({
   try {
     const { assignedWarehouseIds, canViewAll, canAdjustReserved } =
       await assertWarehouseAccess(user);
-    
+
     if (!canViewAll) {
       enforceWarehouseScope(assignedWarehouseIds, warehouseId);
     }
@@ -410,7 +410,7 @@ const updateWarehouseInventoryStatusService = async ({
   try {
     const { assignedWarehouseIds, canViewAll } =
       await assertWarehouseAccess(user);
-    
+
     if (!canViewAll) {
       enforceWarehouseScope(assignedWarehouseIds, warehouseId);
     }
@@ -508,7 +508,7 @@ const updateWarehouseInventoryMetadataService = async ({
   try {
     const { assignedWarehouseIds, canViewAll } =
       await assertWarehouseAccess(user);
-    
+
     if (!canViewAll) {
       enforceWarehouseScope(assignedWarehouseIds, warehouseId);
     }
@@ -578,7 +578,7 @@ const recordWarehouseInventoryOutboundService = async ({
   try {
     const { assignedWarehouseIds, canViewAll } =
       await assertWarehouseAccess(user);
-    
+
     if (!canViewAll) {
       enforceWarehouseScope(assignedWarehouseIds, warehouseId);
     }
@@ -658,7 +658,7 @@ const getWarehouseInventoryDetailService = async ({
     // 1. Warehouse scope check
     const { assignedWarehouseIds, canViewAll } =
       await assertWarehouseAccess(user);
-    
+
     if (!canViewAll) {
       enforceWarehouseScope(assignedWarehouseIds, warehouseId);
     }
@@ -711,7 +711,7 @@ const getWarehouseSummaryService = async ({ warehouseId, user }) => {
   try {
     const { assignedWarehouseIds, canViewAll } =
       await assertWarehouseAccess(user);
-    
+
     if (!canViewAll) {
       enforceWarehouseScope(assignedWarehouseIds, warehouseId);
     }
@@ -763,7 +763,7 @@ const getWarehouseItemSummaryService = async ({
   try {
     const { assignedWarehouseIds, canViewAll } =
       await assertWarehouseAccess(user);
-    
+
     if (!canViewAll) {
       enforceWarehouseScope(assignedWarehouseIds, warehouseId);
     }

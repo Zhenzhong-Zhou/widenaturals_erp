@@ -16,9 +16,7 @@ import {
   fetchPaginatedWarehousesThunk,
 } from '@features/warehouse';
 import type { WarehouseQueryParams } from '@features/warehouse/state/warehouseTypes';
-import {
-  resetPaginatedWarehouses,
-} from '@features/warehouse/state/paginatedWarehouseSlice';
+import { resetPaginatedWarehouses } from '@features/warehouse/state/paginatedWarehouseSlice';
 import { normalizePagination } from '@utils/pagination/normalizePagination';
 
 /**
@@ -36,21 +34,21 @@ import { normalizePagination } from '@utils/pagination/normalizePagination';
  */
 const usePaginatedWarehouses = () => {
   const dispatch = useAppDispatch();
-  
+
   // ---------------------------
   // Selectors
   // ---------------------------
-  const data         = useAppSelector(selectPaginatedWarehousesData);
-  const pagination   = useAppSelector(selectPaginatedWarehousesPagination);
-  const loading      = useAppSelector(selectPaginatedWarehousesLoading);
-  const error        = useAppSelector(selectPaginatedWarehousesError);
+  const data = useAppSelector(selectPaginatedWarehousesData);
+  const pagination = useAppSelector(selectPaginatedWarehousesPagination);
+  const loading = useAppSelector(selectPaginatedWarehousesLoading);
+  const error = useAppSelector(selectPaginatedWarehousesError);
   const totalRecords = useAppSelector(selectPaginatedWarehousesTotalRecords);
-  const isEmpty      = useAppSelector(selectPaginatedWarehousesIsEmpty);
-  
+  const isEmpty = useAppSelector(selectPaginatedWarehousesIsEmpty);
+
   // ---------------------------
   // Actions
   // ---------------------------
-  
+
   /**
    * Fetch paginated warehouse records.
    * Accepts pagination, sorting, and filter parameters.
@@ -61,14 +59,14 @@ const usePaginatedWarehouses = () => {
     },
     [dispatch]
   );
-  
+
   /**
    * Reset warehouse list state back to initial empty paginated state.
    */
   const resetWarehouses = useCallback(() => {
     dispatch(resetPaginatedWarehouses());
   }, [dispatch]);
-  
+
   // ---------------------------
   // Derived memoized values
   // ---------------------------
@@ -76,7 +74,7 @@ const usePaginatedWarehouses = () => {
     const { page, limit } = normalizePagination(pagination);
     return { page, limit };
   }, [pagination]);
-  
+
   return {
     data,
     pagination,

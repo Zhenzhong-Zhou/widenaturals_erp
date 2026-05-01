@@ -16,9 +16,7 @@
 import { lazy } from 'react';
 import type { AppRoute, DynamicPermissionResolver } from './routeTypes';
 import { defineRoute } from './routeTypes';
-import {
-  toPermissionValue,
-} from '@utils/constants/orderPermissions';
+import { toPermissionValue } from '@utils/constants/orderPermissions';
 import { isValidOrderCategory } from '@features/order/utils';
 import ROUTE_PERMISSIONS from '@utils/constants/routePermissionConstants';
 
@@ -229,7 +227,7 @@ export const appRoutes: AppRoute[] = [
       requiredPermission: ((params) => {
         const category = params.category;
         if (!category || !isValidOrderCategory(category)) return null;
-        
+
         return {
           any: [toPermissionValue('VIEW', category)],
         };
@@ -245,7 +243,7 @@ export const appRoutes: AppRoute[] = [
       requiredPermission: ((params) => {
         const category = params.category;
         if (!category || !isValidOrderCategory(category)) return null;
-        
+
         return {
           any: [toPermissionValue('VIEW', category)],
         };
@@ -261,7 +259,7 @@ export const appRoutes: AppRoute[] = [
       requiredPermission: ((params) => {
         const category = params.category;
         if (!category || !isValidOrderCategory(category)) return null;
-        
+
         return {
           any: [toPermissionValue('VIEW', category)],
         };
@@ -273,7 +271,9 @@ export const appRoutes: AppRoute[] = [
 
   defineRoute({
     path: '/warehouses',
-    component: lazy(() => import('@features/warehouse/pages/WarehouseListPage')),
+    component: lazy(
+      () => import('@features/warehouse/pages/WarehouseListPage')
+    ),
     meta: {
       requiresAuth: true,
       requiredPermission: {
@@ -288,7 +288,8 @@ export const appRoutes: AppRoute[] = [
   defineRoute({
     path: '/warehouse-inventory/:warehouseId/inventory',
     component: lazy(
-      () => import('@features/warehouseInventory/pages/WarehouseInventoryListPage')
+      () =>
+        import('@features/warehouseInventory/pages/WarehouseInventoryListPage')
     ),
     meta: {
       requiresAuth: true,
@@ -339,7 +340,7 @@ export const appRoutes: AppRoute[] = [
       requiredPermission: ROUTE_PERMISSIONS.PRICING_TYPES.VIEW,
     },
   }),
-  
+
   defineRoute({
     path: '/pricing-types/:slug/:pricingTypeId',
     component: lazy(
@@ -381,7 +382,6 @@ export const appRoutes: AppRoute[] = [
   }),
 
   /* ---------- Reports ---------- */
-  
 
   /* ---------- Customers & CRM ---------- */
 

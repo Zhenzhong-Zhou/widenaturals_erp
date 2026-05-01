@@ -44,44 +44,47 @@ const transformBatchRegistryLookupItem = (row, userAccess) => {
   const productExpiryMeta = row.product_batch_id
     ? getExpiryMeta(row.product_expiry_date)
     : null;
-  
+
   const packagingExpiryMeta = row.packaging_material_batch_id
     ? getExpiryMeta(row.material_expiry_date)
     : null;
-  
+
   const flagSubset = includeFlagsBasedOnAccess(
     row,
     userAccess,
     BATCH_REGISTRY_FLAG_MAP
   );
-  
+
   return cleanObject({
     id: row.batch_registry_id,
     type: row.batch_type,
     product: row.product_batch_id
       ? {
-        id: row.product_batch_id,
-        name: getProductDisplayName(row),
-        lotNumber: row.product_lot_number,
-        expiryDate: row.product_expiry_date,
-        ...productExpiryMeta,
-      }
+          id: row.product_batch_id,
+          name: getProductDisplayName(row),
+          lotNumber: row.product_lot_number,
+          expiryDate: row.product_expiry_date,
+          ...productExpiryMeta,
+        }
       : null,
     packagingMaterial: row.packaging_material_batch_id
       ? {
-        id: row.packaging_material_batch_id,
-        lotNumber: row.material_lot_number,
-        expiryDate: row.material_expiry_date,
-        snapshotName: row.material_snapshot_name,
-        receivedLabel: row.received_label_name,
-        ...packagingExpiryMeta,
-      }
+          id: row.packaging_material_batch_id,
+          lotNumber: row.material_lot_number,
+          expiryDate: row.material_expiry_date,
+          snapshotName: row.material_snapshot_name,
+          receivedLabel: row.received_label_name,
+          ...packagingExpiryMeta,
+        }
       : null,
     ...flagSubset,
   });
 };
 
-const transformBatchRegistryPaginatedLookupResult = (paginatedResult, userAccess) =>
+const transformBatchRegistryPaginatedLookupResult = (
+  paginatedResult,
+  userAccess
+) =>
   transformLoadMoreResult(paginatedResult, (row) =>
     transformBatchRegistryLookupItem(row, userAccess)
   );
@@ -92,7 +95,7 @@ const transformBatchRegistryPaginatedLookupResult = (paginatedResult, userAccess
 
 const transformWarehouseLookupRows = (rows) => {
   if (!Array.isArray(rows)) return [];
-  
+
   return rows.map((row) => ({
     value: row.warehouse_id,
     label: `${row.warehouse_name} (${row.location_name}${row.warehouse_type_name ? ' - ' + row.warehouse_type_name : ''})`,

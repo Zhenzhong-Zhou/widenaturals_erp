@@ -20,10 +20,10 @@ import { createDrillDownColumn } from '@utils/table/createDrillDownColumn';
 export const getPricingGroupTableColumns = (
   showPricingType = true,
   expandedRowId?: string,
-  onDrillDownToggle?: (id: string) => void,
+  onDrillDownToggle?: (id: string) => void
 ): Column<PricingGroupRecord>[] => {
   const columns: Column<PricingGroupRecord>[] = [];
-  
+
   // --------------------------------------------------
   // Identity
   // --------------------------------------------------
@@ -50,7 +50,7 @@ export const getPricingGroupTableColumns = (
       }
     );
   }
-  
+
   columns.push(
     {
       id: 'countryCode',
@@ -58,7 +58,7 @@ export const getPricingGroupTableColumns = (
       sortable: true,
       renderCell: (row) => row.countryCode,
     },
-    
+
     // --------------------------------------------------
     // Pricing
     // --------------------------------------------------
@@ -68,7 +68,7 @@ export const getPricingGroupTableColumns = (
       sortable: true,
       renderCell: (row) => formatCurrency(row.price),
     },
-    
+
     // --------------------------------------------------
     // Validity
     // --------------------------------------------------
@@ -82,9 +82,9 @@ export const getPricingGroupTableColumns = (
       id: 'validTo',
       label: 'Valid To',
       sortable: true,
-      renderCell: (row) => row.validTo ? formatDateTime(row.validTo) : '—',
+      renderCell: (row) => (row.validTo ? formatDateTime(row.validTo) : '—'),
     },
-    
+
     // --------------------------------------------------
     // Status
     // --------------------------------------------------
@@ -100,7 +100,7 @@ export const getPricingGroupTableColumns = (
       sortable: true,
       renderCell: (row) => formatDateTime(row.status.date),
     },
-    
+
     // --------------------------------------------------
     // Counts
     // --------------------------------------------------
@@ -117,7 +117,7 @@ export const getPricingGroupTableColumns = (
       renderCell: (row) => row.productCount,
     }
   );
-  
+
   if (onDrillDownToggle) {
     columns.push(
       createDrillDownColumn<PricingGroupRecord>(
@@ -126,6 +126,6 @@ export const getPricingGroupTableColumns = (
       )
     );
   }
-  
+
   return columns;
 };

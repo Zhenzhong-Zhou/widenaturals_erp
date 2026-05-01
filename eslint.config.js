@@ -157,9 +157,9 @@ export default defineConfig([
       'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
       'no-undef': 'error',
       'no-shadow': 'warn',
-      'eqeqeq': ['error', 'always'],
+      eqeqeq: ['error', 'always'],
       'n/no-missing-require': 'error',
       'n/no-unpublished-require': 'warn',
     },
-  }
+  },
 ]);

@@ -8,9 +8,7 @@ import {
   updateWarehouseInventoryStatusesThunk,
 } from '@features/warehouseInventory/state';
 import type { UpdateWarehouseInventoryStatusRequest } from '@features/warehouseInventory';
-import {
-  resetWarehouseInventoryUpdateStatus
-} from '@features/warehouseInventory/state/warehouseInventoryUpdateStatusSlice';
+import { resetWarehouseInventoryUpdateStatus } from '@features/warehouseInventory/state/warehouseInventoryUpdateStatusSlice';
 
 /**
  * Custom hook to access memoized warehouse inventory status update state.
@@ -18,12 +16,14 @@ import {
  */
 const useWarehouseInventoryUpdateStatus = () => {
   const dispatch = useAppDispatch();
-  
+
   const loading = useAppSelector(selectWarehouseInventoryUpdateStatusLoading);
   const error = useAppSelector(selectWarehouseInventoryUpdateStatusError);
   const success = useAppSelector(selectWarehouseInventoryUpdateStatusSuccess);
-  const updateResponse = useAppSelector(selectWarehouseInventoryUpdateStatusResponse);
-  
+  const updateResponse = useAppSelector(
+    selectWarehouseInventoryUpdateStatusResponse
+  );
+
   /**
    * Dispatches the thunk to update warehouse inventory statuses.
    * @param warehouseId - Target warehouse UUID.
@@ -33,16 +33,18 @@ const useWarehouseInventoryUpdateStatus = () => {
     warehouseId: string,
     payload: UpdateWarehouseInventoryStatusRequest
   ) => {
-    return dispatch(updateWarehouseInventoryStatusesThunk({ warehouseId, payload }));
+    return dispatch(
+      updateWarehouseInventoryStatusesThunk({ warehouseId, payload })
+    );
   };
-  
+
   /**
    * Resets the status update state to initial.
    */
   const resetUpdateStatusState = useCallback(() => {
     dispatch(resetWarehouseInventoryUpdateStatus());
   }, [dispatch]);
-  
+
   return {
     loading,
     error,

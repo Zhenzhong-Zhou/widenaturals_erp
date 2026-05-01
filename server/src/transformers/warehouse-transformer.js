@@ -14,9 +14,9 @@
 
 'use strict';
 
-const { cleanObject }             = require('../utils/object-utils');
+const { cleanObject } = require('../utils/object-utils');
 const { makeAudit, compactAudit } = require('../utils/audit-utils');
-const { transformPageResult }     = require('../utils/transformer-utils');
+const { transformPageResult } = require('../utils/transformer-utils');
 
 // ─── Shared Helpers ───────────────────────────────────────────────────────────
 
@@ -28,11 +28,11 @@ const { transformPageResult }     = require('../utils/transformer-utils');
  * @returns {{ totalBatches: number, totalQuantity: number, totalReserved: number, availableQuantity: number }}
  */
 const _parseSummary = (row) => {
-  const totalBatches      = parseInt(row.total_batches,  10) || 0;
-  const totalQuantity     = parseInt(row.total_quantity, 10) || 0;
-  const totalReserved     = parseInt(row.total_reserved, 10) || 0;
+  const totalBatches = parseInt(row.total_batches, 10) || 0;
+  const totalQuantity = parseInt(row.total_quantity, 10) || 0;
+  const totalReserved = parseInt(row.total_reserved, 10) || 0;
   const availableQuantity = totalQuantity - totalReserved;
-  
+
   return { totalBatches, totalQuantity, totalReserved, availableQuantity };
 };
 
@@ -44,9 +44,9 @@ const _parseSummary = (row) => {
  * @returns {{ lowStock: number, expiringSoon: number, expired: number }}
  */
 const _parseAlerts = (row) => ({
-  lowStock:     parseInt(row.low_stock_count,     10) || 0,
+  lowStock: parseInt(row.low_stock_count, 10) || 0,
   expiringSoon: parseInt(row.expiring_soon_count, 10) || 0,
-  expired:      parseInt(row.expired_count,       10) || 0,
+  expired: parseInt(row.expired_count, 10) || 0,
 });
 
 // ─── Paginated List ───────────────────────────────────────────────────────────
@@ -60,31 +60,31 @@ const _parseAlerts = (row) => ({
  */
 const transformWarehouseRow = (row, acl) =>
   cleanObject({
-    id:              row.id,
-    name:            row.warehouse_name,
-    code:            row.warehouse_code,
+    id: row.id,
+    name: row.warehouse_name,
+    code: row.warehouse_code,
     storageCapacity: row.storage_capacity ?? null,
-    defaultFee:      row.default_fee      ?? null,
-    isArchived:      row.is_archived,
-    
+    defaultFee: row.default_fee ?? null,
+    isArchived: row.is_archived,
+
     location: {
-      id:   row.location_id,
+      id: row.location_id,
       name: row.location_name,
     },
-    
+
     warehouseType: row.warehouse_type_id
       ? { id: row.warehouse_type_id, name: row.warehouse_type_name }
       : null,
-    
+
     status: {
-      id:   row.status_id,
+      id: row.status_id,
       name: row.status_name ?? null,
       date: row.status_date ?? null,
     },
-    
+
     summary: acl.canViewSummary ? _parseSummary(row) : null,
-    alerts:  acl.canViewSummary ? _parseAlerts(row)  : null,
-    
+    alerts: acl.canViewSummary ? _parseAlerts(row) : null,
+
     audit: compactAudit(makeAudit(row)),
   });
 
@@ -98,7 +98,9 @@ const transformWarehouseRow = (row, acl) =>
  * @returns {Promise<PaginatedResult<WarehouseRow>>}
  */
 const transformPaginatedWarehouseResult = (paginatedResult, acl) =>
-  transformPageResult(paginatedResult, (row) => transformWarehouseRow(row, acl));
+  transformPageResult(paginatedResult, (row) =>
+    transformWarehouseRow(row, acl)
+  );
 
 // ─── Detail ───────────────────────────────────────────────────────────────────
 
@@ -112,50 +114,53 @@ const transformPaginatedWarehouseResult = (paginatedResult, acl) =>
  */
 const transformWarehouseDetail = (row) => {
   if (!row) return null;
-  
+
   return cleanObject({
-    id:              row.id,
-    name:            row.warehouse_name,
-    code:            row.warehouse_code,
+    id: row.id,
+    name: row.warehouse_name,
+    code: row.warehouse_code,
     storageCapacity: row.storage_capacity ?? null,
-    defaultFee:      row.default_fee      ?? null,
-    isArchived:      row.is_archived,
-    notes:           row.notes            ?? null,
-    
+    defaultFee: row.default_fee ?? null,
+    isArchived: row.is_archived,
+    notes: row.notes ?? null,
+
     location: cleanObject({
-      id:               row.location_id,
-      name:             row.location_name,
-      addressLine1:     row.address_line1     ?? null,
-      addressLine2:     row.address_line2     ?? null,
-      city:             row.city              ?? null,
-      provinceOrState:  row.province_or_state ?? null,
-      postalCode:       row.postal_code       ?? null,
-      country:          row.country           ?? null,
-      formattedAddress: [
-        row.address_line1,
-        row.address_line2,
-        row.city,
-        row.province_or_state,
-        row.postal_code,
-        row.country,
-      ].filter(Boolean).join(', ') || null,
+      id: row.location_id,
+      name: row.location_name,
+      addressLine1: row.address_line1 ?? null,
+      addressLine2: row.address_line2 ?? null,
+      city: row.city ?? null,
+      provinceOrState: row.province_or_state ?? null,
+      postalCode: row.postal_code ?? null,
+      country: row.country ?? null,
+      formattedAddress:
+        [
+          row.address_line1,
+          row.address_line2,
+          row.city,
+          row.province_or_state,
+          row.postal_code,
+          row.country,
+        ]
+          .filter(Boolean)
+          .join(', ') || null,
       locationType: row.location_type_id
         ? { id: row.location_type_id, name: row.location_type_name }
         : null,
     }),
-    
+
     warehouseType: row.warehouse_type_id
       ? { id: row.warehouse_type_id, name: row.warehouse_type_name }
       : null,
-    
+
     status: {
-      id:   row.status_id,
-      name: row.status_name  ?? null,
-      date: row.status_date  ?? null,
+      id: row.status_id,
+      name: row.status_name ?? null,
+      date: row.status_date ?? null,
     },
-    
+
     summary: _parseSummary(row),
-    
+
     audit: compactAudit(makeAudit(row)),
   });
 };

@@ -117,10 +117,10 @@ export type PaginatedComplianceListResponse =
 export interface ComplianceDateRanges extends CreatedUpdatedDateFilter {
   /** Include records created on or after this ISO timestamp (>= condition) */
   issuedAfter?: string;
-  
+
   /** Include records created on or before this ISO timestamp (<= condition) */
   issuedBefore?: string;
-  
+
   /** Filter by expiry date */
   expiry?: ExpiryDateRanges;
 }

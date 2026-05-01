@@ -189,7 +189,7 @@ const GET_WAREHOUSE_BY_ID_QUERY = `
 // ─── Lookup ───────────────────────────────────────────────────────────────────
 
 const _LOOKUP_SELECT_SQL = SELECT_FIELDS.join(',\n      ');
-const _LOOKUP_JOINS_SQL  = JOINS.join('\n    ');
+const _LOOKUP_JOINS_SQL = JOINS.join('\n    ');
 
 /**
  * @param {string} whereClause - Parameterised WHERE predicate from buildWarehouseFilter.
