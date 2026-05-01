@@ -17,13 +17,15 @@ import { resetWarehouseItemSummary } from '@features/warehouseInventory/state/wa
  */
 const useWarehouseItemSummary = () => {
   const dispatch = useAppDispatch();
-  
+
   const loading = useAppSelector(selectWarehouseItemSummaryLoading);
   const error = useAppSelector(selectWarehouseItemSummaryError);
   const products = useAppSelector(selectWarehouseItemSummaryProducts);
-  const packagingMaterials = useAppSelector(selectWarehouseItemSummaryPackaging);
+  const packagingMaterials = useAppSelector(
+    selectWarehouseItemSummaryPackaging
+  );
   const isEmpty = useAppSelector(selectWarehouseItemSummaryIsEmpty);
-  
+
   /**
    * Fetch the item-level summary for a warehouse.
    * @param params - warehouseId and optional batch type filter.
@@ -34,14 +36,14 @@ const useWarehouseItemSummary = () => {
     },
     [dispatch]
   );
-  
+
   /**
    * Reset the item summary state to initial.
    */
   const resetItemSummary = useCallback(() => {
     dispatch(resetWarehouseItemSummary());
   }, [dispatch]);
-  
+
   return {
     loading,
     error,

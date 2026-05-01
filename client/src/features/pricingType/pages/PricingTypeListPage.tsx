@@ -46,7 +46,7 @@ const PricingTypeListPage = () => {
   const [sortOrder, setSortOrder] = useState<'' | 'ASC' | 'DESC'>('');
   const [filters, setFilters] = useState<PricingTypeFilters>({});
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
-  
+
   const {
     data: pricingTypeData,
     pagination: pricingTypePagination,
@@ -56,9 +56,9 @@ const PricingTypeListPage = () => {
     fetchPricingTypes,
     resetPricingTypes,
   } = usePaginatedPricingTypes();
-  
+
   const lookups = usePricingTypeLookups();
-  
+
   // -----------------------------
   // Query model (shared)
   // -----------------------------
@@ -72,14 +72,14 @@ const PricingTypeListPage = () => {
     }),
     [page, limit, sortBy, sortOrder, filters]
   );
-  
+
   // -----------------------------
   // Refresh action
   // -----------------------------
   const refreshPricingTypeList = useCallback(() => {
     fetchPricingTypes(fullQuery);
   }, [fullQuery, fetchPricingTypes]);
-  
+
   // -----------------------------
   // Params for filtering/sorting engine
   // -----------------------------
@@ -90,7 +90,7 @@ const PricingTypeListPage = () => {
     }),
     [fullQuery, refreshPricingTypeList]
   );
-  
+
   // -----------------------------
   // Debounced fetch
   // -----------------------------
@@ -98,7 +98,7 @@ const PricingTypeListPage = () => {
     const timeout = setTimeout(() => applyFiltersAndSorting(queryParams), 200);
     return () => clearTimeout(timeout);
   }, [queryParams]);
-  
+
   // ----------------------------------------
   // Cleanup on unmount
   // ----------------------------------------
@@ -107,7 +107,7 @@ const PricingTypeListPage = () => {
       resetPricingTypes();
     };
   }, [resetPricingTypes]);
-  
+
   // -----------------------------
   // Lookup handlers (lazy fetch, reset)
   // -----------------------------
@@ -116,37 +116,37 @@ const PricingTypeListPage = () => {
       resetAll: () => {
         lookups.status.reset();
       },
-      
+
       onOpen: {
         status: createOnOpenHandler(lookups.status),
       },
     }),
     [lookups]
   );
-  
+
   // -----------------------------
   // Event handlers
   // -----------------------------
   const handleRefresh = useCallback(() => {
     applyFiltersAndSorting(queryParams);
   }, [queryParams]);
-  
+
   const handleResetFilters = () => {
     resetPricingTypes();
     setFilters({});
     lookupHandlers.resetAll();
     setPage(1);
   };
-  
+
   const { handlePageChange, handleRowsPerPageChange } = usePaginationHandlers(
     setPage,
     setLimit
   );
-  
+
   const handleDrillDownToggle = (rowId: string) => {
     setExpandedRowId((current) => (current === rowId ? null : rowId));
   };
-  
+
   // ----------------------------------------
   // Render
   // ----------------------------------------
@@ -165,9 +165,9 @@ const PricingTypeListPage = () => {
           Pricing Type Management
         </CustomTypography>
       </Box>
-      
+
       <Divider sx={{ mb: 3 }} />
-      
+
       {/* Filter + Sort Controls */}
       <Card sx={{ p: 3, mb: 4, borderRadius: 2, minHeight: 200 }}>
         <Grid container spacing={2}>
@@ -191,7 +191,7 @@ const PricingTypeListPage = () => {
           </Grid>
         </Grid>
       </Card>
-      
+
       {/* Pricing Type Table Section */}
       {pricingTypeLoading || !pricingTypePagination ? (
         <Loading variant="dotted" message="Loading pricing types..." />

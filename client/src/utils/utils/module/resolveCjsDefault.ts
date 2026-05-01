@@ -16,23 +16,21 @@
  */
 export const resolveCjsDefault = <T>(mod: unknown): T => {
   if (mod == null) {
-    throw new Error(
-      'resolveCjsDefault: module is undefined or null'
-    );
+    throw new Error('resolveCjsDefault: module is undefined or null');
   }
-  
+
   // Case 1: module itself is already the export
   if (typeof mod === 'function') {
     return mod as T;
   }
-  
+
   const m = mod as { default?: unknown };
-  
+
   // Case 2: { default: Component }
   if (typeof m.default === 'function') {
     return m.default as T;
   }
-  
+
   // Case 3: { default: { default: Component } }
   if (
     m.default &&
@@ -40,7 +38,7 @@ export const resolveCjsDefault = <T>(mod: unknown): T => {
   ) {
     return (m.default as { default: T }).default;
   }
-  
+
   throw new Error(
     'resolveCjsDefault: unable to resolve a valid default export (expected function)'
   );

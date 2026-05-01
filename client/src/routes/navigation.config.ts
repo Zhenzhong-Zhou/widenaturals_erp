@@ -117,7 +117,7 @@ export const navigationItems: NavigationItem[] = [
         ROUTE_PERMISSIONS.WAREHOUSES.VIEW,
         ROUTE_PERMISSIONS.WAREHOUSE_INVENTORY.VIEW,
       ],
-    }
+    },
   },
 
   // CUSTOMERS

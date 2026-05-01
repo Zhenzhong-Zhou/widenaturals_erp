@@ -9,7 +9,7 @@ import {
 import type { WarehouseRecord } from '@features/warehouse';
 import {
   getWarehouseColumns,
-  WarehouseExpandedContent
+  WarehouseExpandedContent,
 } from '@features/warehouse/components/WarehouseListTable';
 
 interface WarehouseListTableProps {
@@ -23,7 +23,7 @@ interface WarehouseListTableProps {
   onRowsPerPageChange: (rowsPerPage: number) => void;
   onRefresh: () => void;
   canViewSummary?: boolean;
-  canViewDetails?:   boolean;
+  canViewDetails?: boolean;
   canViewInventory?: boolean;
 }
 
@@ -34,42 +34,43 @@ interface WarehouseListTableProps {
  * Inventory summary columns are conditionally rendered based on canViewSummary.
  */
 const WarehouseListTable = ({
-                              data,
-                              loading,
-                              page,
-                              totalPages,
-                              totalRecords,
-                              rowsPerPage,
-                              onPageChange,
-                              onRowsPerPageChange,
-                              onRefresh,
-                              canViewSummary = false,
-                              canViewDetails = false,
-                              canViewInventory = true,
-                            }: WarehouseListTableProps) => {
+  data,
+  loading,
+  page,
+  totalPages,
+  totalRecords,
+  rowsPerPage,
+  onPageChange,
+  onRowsPerPageChange,
+  onRefresh,
+  canViewSummary = false,
+  canViewDetails = false,
+  canViewInventory = true,
+}: WarehouseListTableProps) => {
   // -------------------------------------------------------
   // Drill-down state
   // -------------------------------------------------------
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
-  
+
   const handleDrillDownToggle = (rowId: string) => {
     setExpandedRowId((prev) => (prev === rowId ? null : rowId));
   };
-  
+
   // -------------------------------------------------------
   // Memoize Column Definitions
   // -------------------------------------------------------
   const columns = useMemo(
-    () => getWarehouseColumns({
-      canViewSummary,
-      canViewDetails,
-      canViewInventory,
-      expandedRowId,
-      handleDrillDownToggle,
-    }),
+    () =>
+      getWarehouseColumns({
+        canViewSummary,
+        canViewDetails,
+        canViewInventory,
+        expandedRowId,
+        handleDrillDownToggle,
+      }),
     [canViewSummary, canViewDetails, canViewInventory, expandedRowId]
   );
-  
+
   // -------------------------------------------------------
   // Expanded Row Content
   // -------------------------------------------------------
@@ -90,7 +91,7 @@ const WarehouseListTable = ({
     ),
     []
   );
-  
+
   return (
     <Box>
       {/* ----------------------------------------- */}
@@ -105,7 +106,7 @@ const WarehouseListTable = ({
         <CustomTypography variant="h6" fontWeight={600}>
           Warehouses
         </CustomTypography>
-        
+
         <Box display="flex" gap={2} alignItems="center">
           <CustomButton
             onClick={onRefresh}
@@ -116,7 +117,7 @@ const WarehouseListTable = ({
           </CustomButton>
         </Box>
       </Box>
-      
+
       {/* ----------------------------------------- */}
       {/* MAIN TABLE                                */}
       {/* ----------------------------------------- */}

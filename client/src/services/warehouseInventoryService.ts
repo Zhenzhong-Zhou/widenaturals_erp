@@ -41,7 +41,7 @@ const fetchPaginatedWarehouseInventory = async (
   const flatParams = flattenListQueryParams(queryParams, []);
   const queryString = buildQueryString(flatParams);
   const url = `${API_ENDPOINTS.WAREHOUSE_INVENTORY.ALL_RECORDS(warehouseId)}${queryString}`;
-  
+
   return getRequest<PaginatedWarehouseInventoryApiResponse>(url, {
     policy: 'READ',
   });
@@ -66,10 +66,10 @@ const createWarehouseInventory = async (
   warehouseId: string,
   payload: CreateWarehouseInventoryRequest
 ): Promise<CreateWarehouseInventoryResponse> => {
-  return postRequest<CreateWarehouseInventoryRequest, CreateWarehouseInventoryResponse>(
-    API_ENDPOINTS.WAREHOUSE_INVENTORY.CREATE(warehouseId),
-    payload
-  );
+  return postRequest<
+    CreateWarehouseInventoryRequest,
+    CreateWarehouseInventoryResponse
+  >(API_ENDPOINTS.WAREHOUSE_INVENTORY.CREATE(warehouseId), payload);
 };
 
 /**
@@ -90,10 +90,7 @@ const adjustWarehouseInventoryQuantities = async (
   return patchRequest<
     AdjustWarehouseInventoryQuantityRequest,
     AdjustWarehouseInventoryQuantityResponse
-  >(
-    API_ENDPOINTS.WAREHOUSE_INVENTORY.QUANTITIES(warehouseId),
-      payload
-  );
+  >(API_ENDPOINTS.WAREHOUSE_INVENTORY.QUANTITIES(warehouseId), payload);
 };
 
 /**
@@ -114,10 +111,7 @@ const updateWarehouseInventoryStatuses = async (
   return patchRequest<
     UpdateWarehouseInventoryStatusRequest,
     UpdateWarehouseInventoryStatusResponse
-  >(
-    API_ENDPOINTS.WAREHOUSE_INVENTORY.STATUSES(warehouseId),
-      payload
-  );
+  >(API_ENDPOINTS.WAREHOUSE_INVENTORY.STATUSES(warehouseId), payload);
 };
 
 /**
@@ -142,7 +136,7 @@ const updateWarehouseInventoryMetadata = async (
     UpdateWarehouseInventoryMetadataResponse
   >(
     API_ENDPOINTS.WAREHOUSE_INVENTORY.METADATA(warehouseId, inventoryId),
-      payload
+    payload
   );
 };
 
@@ -164,10 +158,7 @@ const recordWarehouseInventoryOutbound = async (
   return postRequest<
     RecordWarehouseInventoryOutboundRequest,
     RecordWarehouseInventoryOutboundResponse
-  >(
-    API_ENDPOINTS.WAREHOUSE_INVENTORY.OUTBOUND(warehouseId),
-      payload
-  );
+  >(API_ENDPOINTS.WAREHOUSE_INVENTORY.OUTBOUND(warehouseId), payload);
 };
 
 /**
@@ -208,7 +199,7 @@ const fetchInventoryActivityLog = async (
   const flatParams = flattenListQueryParams(queryParams, []);
   const queryString = buildQueryString(flatParams);
   const url = `${API_ENDPOINTS.WAREHOUSE_INVENTORY.ACTIVITY_LOG(warehouseId)}${queryString}`;
-  
+
   return getRequest<PaginatedInventoryActivityLogApiResponse>(url, {
     policy: 'READ',
   });
@@ -250,7 +241,7 @@ const fetchWarehouseItemSummary = async (
   const flatParams = flattenListQueryParams(queryParams, []);
   const queryString = buildQueryString(flatParams);
   const url = `${API_ENDPOINTS.WAREHOUSE_INVENTORY.SUMMARY_ITEMS(warehouseId)}${queryString}`;
-  
+
   return getRequest<WarehouseItemSummaryResponse>(url, {
     policy: 'READ',
   });

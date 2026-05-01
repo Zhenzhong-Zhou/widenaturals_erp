@@ -8,11 +8,11 @@
 
 'use strict';
 
-const express                            = require('express');
-const { authorize }                      = require('../middlewares/authorize');
-const validate                           = require('../middlewares/validate');
+const express = require('express');
+const { authorize } = require('../middlewares/authorize');
+const validate = require('../middlewares/validate');
 const createQueryNormalizationMiddleware = require('../middlewares/normalize-query');
-const PERMISSION_KEYS                    = require('../utils/constants/domain/permission-keys');
+const PERMISSION_KEYS = require('../utils/constants/domain/permission-keys');
 const {
   warehouseIdParamSchema,
   warehouseQuerySchema,
@@ -38,10 +38,10 @@ router.get(
   authorize([PERMISSION_KEYS.WAREHOUSES.VIEW]),
   validate(warehouseQuerySchema, 'query'),
   createQueryNormalizationMiddleware(
-    'warehouseSortMap',      // moduleKey       — drives allowed sortBy fields
-    [],                      // arrayKeys        — none, all single-value filters
-    ['isArchived'],          // booleanKeys      — normalised to true/false
-    warehouseQuerySchema     // filterKeysOrSchema — extracts filter keys from schema
+    'warehouseSortMap', // moduleKey       — drives allowed sortBy fields
+    [], // arrayKeys        — none, all single-value filters
+    ['isArchived'], // booleanKeys      — normalised to true/false
+    warehouseQuerySchema // filterKeysOrSchema — extracts filter keys from schema
   ),
   getPaginatedWarehousesController
 );

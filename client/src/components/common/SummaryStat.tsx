@@ -8,25 +8,25 @@ export type SummaryStatAlign = 'left' | 'right' | 'center';
 export interface SummaryStatProps {
   /** Label shown above the value (e.g. "Available", "Reserved"). */
   label: string;
-  
+
   /** Numeric or pre-formatted value to display. Numbers are locale-formatted automatically. */
   value: number | string | null | undefined;
-  
+
   /** Text alignment for label + value. Defaults to 'right'. */
   align?: SummaryStatAlign;
-  
+
   /** Fallback shown when value is null/undefined. Defaults to '—'. */
   fallback?: string;
-  
+
   /** Optional tooltip shown on hover for longer explanations. */
   tooltip?: string;
-  
+
   /** Optional locale override for number formatting. Defaults to browser locale. */
   locale?: string | string[];
-  
+
   /** Optional Intl.NumberFormat options for value formatting. */
   numberFormatOptions?: Intl.NumberFormatOptions;
-  
+
   /** Optional minimum width for the value column. Useful for aligning stats in rows. */
   minWidth?: number | string;
 }
@@ -43,15 +43,15 @@ export interface SummaryStatProps {
  *   <SummaryStat label="Status" value="Active" />
  */
 const SummaryStat: FC<SummaryStatProps> = ({
-                                             label,
-                                             value,
-                                             align = 'right',
-                                             fallback = '—',
-                                             tooltip,
-                                             locale,
-                                             numberFormatOptions,
-                                             minWidth,
-                                           }) => {
+  label,
+  value,
+  align = 'right',
+  fallback = '—',
+  tooltip,
+  locale,
+  numberFormatOptions,
+  minWidth,
+}) => {
   const displayValue = (() => {
     if (value == null) return fallback;
     if (typeof value === 'number') {
@@ -60,10 +60,14 @@ const SummaryStat: FC<SummaryStatProps> = ({
     }
     return value;
   })();
-  
+
   const content = (
     <Box textAlign={align} minWidth={minWidth}>
-      <CustomTypography variant="caption" color="text.secondary" display="block">
+      <CustomTypography
+        variant="caption"
+        color="text.secondary"
+        display="block"
+      >
         {label}
       </CustomTypography>
       <CustomTypography variant="body1" fontWeight={600}>
@@ -71,7 +75,7 @@ const SummaryStat: FC<SummaryStatProps> = ({
       </CustomTypography>
     </Box>
   );
-  
+
   return tooltip ? <Tooltip title={tooltip}>{content}</Tooltip> : content;
 };
 

@@ -12,7 +12,7 @@ export interface HeroProps {
 const Hero: FC<HeroProps> = ({ onPrimary, onSecondary }) => {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
-  
+
   const heroBackground = isDark
     ? `
         radial-gradient(ellipse 90% 60% at 15% 0%, ${alpha(theme.palette.primary.main, 0.22)}, transparent 60%),
@@ -22,7 +22,7 @@ const Hero: FC<HeroProps> = ({ onPrimary, onSecondary }) => {
         radial-gradient(ellipse 90% 60% at 15% 0%, ${alpha(theme.palette.primary.light, 0.22)}, transparent 60%),
         linear-gradient(180deg, ${alpha(theme.palette.primary.light, 0.06)} 0%, ${theme.palette.background.default} 100%)
       `;
-  
+
   return (
     <Box
       component="section"
@@ -82,8 +82,12 @@ const Hero: FC<HeroProps> = ({ onPrimary, onSecondary }) => {
             products—supported by Canadian cGMP operations and compliance-first
             execution.
           </CustomTypography>
-          
-          <Stack direction="row" spacing={1.5} sx={{ mt: 2.5, flexWrap: 'wrap' }}>
+
+          <Stack
+            direction="row"
+            spacing={1.5}
+            sx={{ mt: 2.5, flexWrap: 'wrap' }}
+          >
             <CustomButton
               variant="contained"
               color="primary"
@@ -93,7 +97,7 @@ const Hero: FC<HeroProps> = ({ onPrimary, onSecondary }) => {
             >
               Contact Us
             </CustomButton>
-            
+
             <CustomButton
               variant="outlined"
               color="primary"
@@ -113,7 +117,7 @@ const Hero: FC<HeroProps> = ({ onPrimary, onSecondary }) => {
             <MetaPill label="Global Distribution" />
           </Stack>
         </Box>
-        
+
         {/* RIGHT */}
         <Box aria-hidden>
           <Paper
@@ -138,12 +142,14 @@ const Hero: FC<HeroProps> = ({ onPrimary, onSecondary }) => {
             >
               Capabilities Snapshot
             </CustomTypography>
-            
+
             <Box component="ul" sx={{ pl: 2, mt: 1, m: 0 }}>
               <HeroListItem>Capsules • Tablets • Gummies</HeroListItem>
               <HeroListItem>Softgels • Tinctures</HeroListItem>
               <HeroListItem>QA/QC and compliance alignment</HeroListItem>
-              <HeroListItem>Online + offline distribution channels</HeroListItem>
+              <HeroListItem>
+                Online + offline distribution channels
+              </HeroListItem>
             </Box>
           </Paper>
         </Box>

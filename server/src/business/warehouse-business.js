@@ -13,11 +13,13 @@
 
 'use strict';
 
-const { resolveUserPermissionContext } = require('../services/permission-service');
-const { logSystemException }           = require('../utils/logging/system-logger');
-const AppError                         = require('../utils/AppError');
-const { WAREHOUSE_CONSTANTS }                  = require('../utils/constants/domain/warehouse');
-const { getStatusId }                  = require('../config/status-cache');
+const {
+  resolveUserPermissionContext,
+} = require('../services/permission-service');
+const { logSystemException } = require('../utils/logging/system-logger');
+const AppError = require('../utils/AppError');
+const { WAREHOUSE_CONSTANTS } = require('../utils/constants/domain/warehouse');
+const { getStatusId } = require('../config/status-cache');
 
 const CONTEXT = 'warehouse-business';
 
@@ -32,26 +34,30 @@ const CONTEXT = 'warehouse-business';
  */
 const evaluateWarehouseVisibility = async (user) => {
   const context = `${CONTEXT}/evaluateWarehouseVisibility`;
-  
+
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     const can = (key) => isRoot || permissions.includes(key);
-    
+
     return {
       isRoot,
-      canViewAll:         can(WAREHOUSE_CONSTANTS.PERMISSIONS.VIEW_ALL),
-      canViewSummary:     can(WAREHOUSE_CONSTANTS.PERMISSIONS.VIEW_SUMMARY),
-      canViewArchived:    can(WAREHOUSE_CONSTANTS.PERMISSIONS.VIEW_ARCHIVED),
-      canViewAllStatuses: can(WAREHOUSE_CONSTANTS.PERMISSIONS.VIEW_ALL_STATUSES),
+      canViewAll: can(WAREHOUSE_CONSTANTS.PERMISSIONS.VIEW_ALL),
+      canViewSummary: can(WAREHOUSE_CONSTANTS.PERMISSIONS.VIEW_SUMMARY),
+      canViewArchived: can(WAREHOUSE_CONSTANTS.PERMISSIONS.VIEW_ARCHIVED),
+      canViewAllStatuses: can(
+        WAREHOUSE_CONSTANTS.PERMISSIONS.VIEW_ALL_STATUSES
+      ),
     };
   } catch (err) {
     logSystemException(err, 'Failed to evaluate warehouse visibility ACL', {
       context,
       userId: user?.id,
     });
-    
-    throw AppError.businessError('Unable to evaluate warehouse access at this time.');
+
+    throw AppError.businessError(
+      'Unable to evaluate warehouse access at this time.'
+    );
   }
 };
 
@@ -69,15 +75,15 @@ const evaluateWarehouseVisibility = async (user) => {
  */
 const applyWarehouseVisibilityRules = (filters, acl) => {
   const adjusted = { ...filters };
-  
+
   if (!acl.canViewAllStatuses) {
     adjusted.statusId = adjusted.statusId ?? getStatusId('warehouse_active');
   }
-  
+
   if (!acl.canViewArchived) {
     adjusted.isArchived = false;
   }
-  
+
   return adjusted;
 };
 
@@ -94,28 +100,30 @@ const applyWarehouseVisibilityRules = (filters, acl) => {
  */
 const resolveWarehouseFiltersByPermission = async (user, rawFilters = {}) => {
   const context = `${CONTEXT}/resolveWarehouseFiltersByPermission`;
-  
+
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     const canViewAllStatuses =
-      isRoot || permissions.includes(WAREHOUSE_CONSTANTS.PERMISSIONS.VIEW_ALL_STATUSES);
+      isRoot ||
+      permissions.includes(WAREHOUSE_CONSTANTS.PERMISSIONS.VIEW_ALL_STATUSES);
     const canViewArchived =
-      isRoot || permissions.includes(WAREHOUSE_CONSTANTS.PERMISSIONS.VIEW_ARCHIVED);
-    
+      isRoot ||
+      permissions.includes(WAREHOUSE_CONSTANTS.PERMISSIONS.VIEW_ARCHIVED);
+
     const resolvedFilters = { ...rawFilters };
-    
+
     if (canViewAllStatuses) {
       delete resolvedFilters.statusId;
     } else if (!resolvedFilters.statusId) {
       resolvedFilters.statusId = getStatusId('warehouse_active');
     }
-    
+
     // Default to excluding archived records for users without archive permission.
     if (!canViewArchived && resolvedFilters.isArchived === undefined) {
       resolvedFilters.isArchived = false;
     }
-    
+
     return resolvedFilters;
   } catch (err) {
     logSystemException(
@@ -123,7 +131,7 @@ const resolveWarehouseFiltersByPermission = async (user, rawFilters = {}) => {
       'Failed to resolve warehouse filters by permission',
       { context, userId: user?.id }
     );
-    
+
     throw AppError.businessError(
       'Failed to resolve warehouse filters by permission.'
     );

@@ -87,9 +87,9 @@ const buildBatchRegistryFilter = (filters = {}) => {
     params.push(normalizedFilters.batchType);
     paramIndexRef.value++;
   }
-  
+
   // ─── Inventory Scope (optional) ─────────────────────────────────────────────
-  
+
   if (normalizedFilters.excludeFromWarehouseId) {
     conditions.push(`
     NOT EXISTS (
@@ -101,7 +101,7 @@ const buildBatchRegistryFilter = (filters = {}) => {
     params.push(normalizedFilters.excludeFromWarehouseId);
     paramIndexRef.value++;
   }
-  
+
   // ─── Status (polymorphic) ───────────────────────────────────────────────────
 
   if (normalizedFilters.statusIds?.length) {

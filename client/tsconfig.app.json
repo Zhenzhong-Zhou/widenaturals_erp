@@ -16,7 +16,7 @@
     "isolatedModules": false,
     "moduleDetection": "force",
     "allowSyntheticDefaultImports": true,
-    
+
     /* === Path Aliases === */
     "paths": {
       "@styles/*": ["./src/styles/*"],
@@ -40,7 +40,7 @@
       "@lib/*": ["./src/lib/*"],
       "@config/*": ["./src/config/*"]
     },
-    
+
     /* === Linting & Strict Mode === */
     "strict": true,
     "noUnusedLocals": true,

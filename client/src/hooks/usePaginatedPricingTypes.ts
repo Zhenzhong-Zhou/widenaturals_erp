@@ -28,7 +28,7 @@ import { normalizePagination } from '@utils/pagination/normalizePagination';
  */
 export const usePaginatedPricingTypes = () => {
   const dispatch = useAppDispatch();
-  
+
   // ---------------------------
   // Selectors (memoized via Reselect)
   // ---------------------------
@@ -37,7 +37,7 @@ export const usePaginatedPricingTypes = () => {
   const loading = useAppSelector(selectPaginatedPricingTypeLoading);
   const error = useAppSelector(selectPaginatedPricingTypeError);
   const isEmpty = useAppSelector(selectPaginatedPricingTypeIsEmpty);
-  
+
   // ---------------------------
   // Actions
   // ---------------------------
@@ -52,7 +52,7 @@ export const usePaginatedPricingTypes = () => {
     },
     [dispatch]
   );
-  
+
   /**
    * Reset paginated pricing type state back to the initial empty form.
    *
@@ -64,21 +64,21 @@ export const usePaginatedPricingTypes = () => {
   const resetPricingTypes = useCallback(() => {
     dispatch(resetPaginatedPricingTypes());
   }, [dispatch]);
-  
+
   // ---------------------------
   // Derived memoized values
   // ---------------------------
   const pageInfo = useMemo(() => normalizePagination(pagination), [pagination]);
-  
+
   return {
     data,
     pagination,
     loading,
     error,
     isEmpty,
-    
+
     pageInfo, // { page, limit }
-    
+
     fetchPricingTypes,
     resetPricingTypes,
   };

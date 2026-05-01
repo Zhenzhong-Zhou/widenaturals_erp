@@ -112,7 +112,7 @@ const ComplianceRecordListPage = () => {
       resetAll: () => {
         lookups.status.reset();
       },
-      
+
       onOpen: {
         status: createOnOpenHandler(lookups.status),
       },

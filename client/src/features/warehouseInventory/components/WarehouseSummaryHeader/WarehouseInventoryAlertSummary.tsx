@@ -57,15 +57,15 @@ interface WarehouseInventoryAlertSummaryProps {
  *
  * Hides itself entirely when no alerts exist, so it is safe to always render.
  */
-const WarehouseInventoryAlertSummary: FC<WarehouseInventoryAlertSummaryProps> = ({
-                                                                                   alerts,
-                                                                                 }) => {
+const WarehouseInventoryAlertSummary: FC<
+  WarehouseInventoryAlertSummaryProps
+> = ({ alerts }) => {
   if (!alerts) return null;
-  
+
   const { lowStock, expiringSoon, expired } = alerts;
-  
+
   if (!lowStock && !expiringSoon && !expired) return null;
-  
+
   return (
     <Box mb={3}>
       <Grid container spacing={2}>

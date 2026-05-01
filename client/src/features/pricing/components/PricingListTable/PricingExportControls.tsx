@@ -25,30 +25,38 @@ interface PricingExportControlsProps {
 
 const PricingExportControls = ({ liveFilters }: PricingExportControlsProps) => {
   const dispatch = useAppDispatch();
-  
-  const [exportFormat, setExportFormat]   = useState<'xlsx' | 'csv' | 'txt'>('xlsx');
+
+  const [exportFormat, setExportFormat] = useState<'xlsx' | 'csv' | 'txt'>(
+    'xlsx'
+  );
   const [exportStatusId, setExportStatusId] = useState<string | undefined>();
-  const [exportStatusFetchParams, setExportStatusFetchParams] = useState<LookupQuery>({
-    offset: 0,
-    limit: 10,
-  });
-  
+  const [exportStatusFetchParams, setExportStatusFetchParams] =
+    useState<LookupQuery>({
+      offset: 0,
+      limit: 10,
+    });
+
   const exportStatus = useStatusLookup();
-  const formattedExportStatusOptions = useFormattedOptions(exportStatus.options, formatLabel);
-  
+  const formattedExportStatusOptions = useFormattedOptions(
+    exportStatus.options,
+    formatLabel
+  );
+
   const handleExport = useCallback(() => {
-    dispatch(exportPricingThunk({
-      filters: {
-        pricingTypeId: liveFilters.pricingTypeId,
-        countryCode:   liveFilters.countryCode,
-        brand:         liveFilters.brand,
-        productId:     liveFilters.productId,
-        statusId:      exportStatusId,
-      },
-      exportFormat,
-    }));
+    dispatch(
+      exportPricingThunk({
+        filters: {
+          pricingTypeId: liveFilters.pricingTypeId,
+          countryCode: liveFilters.countryCode,
+          brand: liveFilters.brand,
+          productId: liveFilters.productId,
+          statusId: exportStatusId,
+        },
+        exportFormat,
+      })
+    );
   }, [dispatch, liveFilters, exportFormat, exportStatusId]);
-  
+
   return (
     <Box display="flex" gap={1} alignItems="center">
       <StatusDropdown
@@ -56,14 +64,15 @@ const PricingExportControls = ({ liveFilters }: PricingExportControlsProps) => {
         value={exportStatusId ?? null}
         onChange={setExportStatusId}
         onOpen={() => {
-          if (!exportStatus.options.length) exportStatus.fetch(exportStatusFetchParams);
+          if (!exportStatus.options.length)
+            exportStatus.fetch(exportStatusFetchParams);
         }}
         loading={exportStatus.loading}
         fetchParams={exportStatusFetchParams}
         setFetchParams={setExportStatusFetchParams}
         onRefresh={exportStatus.fetch}
       />
-      
+
       <Select
         size="small"
         value={exportFormat}
@@ -81,7 +90,7 @@ const PricingExportControls = ({ liveFilters }: PricingExportControlsProps) => {
         <MenuItem value="csv">CSV</MenuItem>
         <MenuItem value="txt">TXT</MenuItem>
       </Select>
-      
+
       <CustomButton
         onClick={handleExport}
         variant="contained"

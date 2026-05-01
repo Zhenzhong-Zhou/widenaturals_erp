@@ -1,10 +1,4 @@
-import {
-  type FC,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { type FC, useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -44,15 +38,17 @@ const INITIAL_FILTERS: WarehouseInventoryFilters = {};
 
 const WarehouseInventoryListPage: FC = () => {
   const { warehouseId } = useParams<{ warehouseId: string }>();
-  const [page, setPage]           = useState(1);
-  const [limit, setLimit]         = useState(25);
-  const [sortBy, setSortBy]       = useState<WarehouseInventorySortField>('defaultNaturalSort');
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(25);
+  const [sortBy, setSortBy] =
+    useState<WarehouseInventorySortField>('defaultNaturalSort');
   const [sortOrder, setSortOrder] = useState<'' | 'ASC' | 'DESC'>('');
-  const [filters, setFilters]     = useState<WarehouseInventoryFilters>(INITIAL_FILTERS);
-  
+  const [filters, setFilters] =
+    useState<WarehouseInventoryFilters>(INITIAL_FILTERS);
+
   // ── Selection state ───────────────────────────────────────────────────────
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  
+
   const {
     warehouseInfo,
     totals,
@@ -64,17 +60,17 @@ const WarehouseInventoryListPage: FC = () => {
     fetchSummary,
     resetSummary,
   } = useWarehouseSummary();
-  
+
   const {
-    data:         inventories,
-    loading:      inventoriesLoading,
-    error:        inventoriesError,
+    data: inventories,
+    loading: inventoriesLoading,
+    error: inventoriesError,
     totalRecords: totalInventoryRecords,
-    pagination:   inventoryPagination,
+    pagination: inventoryPagination,
     fetchWarehouseInventory,
     resetWarehouseInventory,
   } = usePaginatedWarehouseInventory();
-  
+
   const {
     loading: itemSummaryLoading,
     error: itemSummaryError,
@@ -84,19 +80,27 @@ const WarehouseInventoryListPage: FC = () => {
     fetchItemSummary,
     resetItemSummary,
   } = useWarehouseItemSummary();
-  
+
   const { addRecent } = useRecentWarehouses();
-  const lookups       = useWarehouseInventoryLookups();
+  const lookups = useWarehouseInventoryLookups();
   const hasPermission = useHasPermissionBoolean();
-  
-  const canViewInventoryDetail       = hasPermission('view_warehouse_inventory_detail');
-  const canCreateInventory           = hasPermission('create_warehouse_inventory');
-  const canAdjustInventory           = hasPermission('adjust_warehouse_inventory');
-  const canAdjustReserved            = hasPermission('force_adjust_reserved');
-  const canUpdateInventoryStatus     = hasPermission('update_warehouse_inventory_status');
-  const canViewWarehouseSummary      = hasPermission('view_warehouse_inventory_summary');
-  const canViewWarehouseItemsSummary = hasPermission('view_warehouse_inventory_summary_item_details');
-  
+
+  const canViewInventoryDetail = hasPermission(
+    'view_warehouse_inventory_detail'
+  );
+  const canCreateInventory = hasPermission('create_warehouse_inventory');
+  const canAdjustInventory = hasPermission('adjust_warehouse_inventory');
+  const canAdjustReserved = hasPermission('force_adjust_reserved');
+  const canUpdateInventoryStatus = hasPermission(
+    'update_warehouse_inventory_status'
+  );
+  const canViewWarehouseSummary = hasPermission(
+    'view_warehouse_inventory_summary'
+  );
+  const canViewWarehouseItemsSummary = hasPermission(
+    'view_warehouse_inventory_summary_item_details'
+  );
+
   // Warehouse summary
   useEffect(() => {
     if (!warehouseId || !canViewWarehouseSummary) return;
@@ -109,7 +113,7 @@ const WarehouseInventoryListPage: FC = () => {
     if (!warehouseId || !canViewWarehouseItemsSummary) return;
     fetchItemSummary({ warehouseId });
   }, [warehouseId, canViewWarehouseItemsSummary, fetchItemSummary]);
-  
+
   useEffect(
     () => () => {
       resetSummary();
@@ -117,7 +121,7 @@ const WarehouseInventoryListPage: FC = () => {
     },
     [resetSummary, resetItemSummary]
   );
-  
+
   useEffect(() => {
     if (!warehouseInfo) return;
     addRecent({
@@ -126,7 +130,7 @@ const WarehouseInventoryListPage: FC = () => {
       code: warehouseInfo.code,
     });
   }, [warehouseInfo, addRecent]);
-  
+
   const fullQuery = useMemo(
     () => ({
       page,
@@ -137,84 +141,88 @@ const WarehouseInventoryListPage: FC = () => {
     }),
     [page, limit, sortBy, sortOrder, filters]
   );
-  
+
   const refreshWarehouseInventoryList = useCallback(() => {
     if (!warehouseId) return;
     fetchWarehouseInventory({ warehouseId, ...fullQuery });
   }, [warehouseId, fullQuery, fetchWarehouseInventory]);
-  
-  const queryParams = useMemo<WarehouseInventoryQueryParams | null>(
-    () => {
-      if (!warehouseId) return null;
-      return {
-        warehouseId,
-        ...fullQuery,
-        fetchFn: refreshWarehouseInventoryList,
-      };
-    },
-    [warehouseId, fullQuery, refreshWarehouseInventoryList]
-  );
-  
+
+  const queryParams = useMemo<WarehouseInventoryQueryParams | null>(() => {
+    if (!warehouseId) return null;
+    return {
+      warehouseId,
+      ...fullQuery,
+      fetchFn: refreshWarehouseInventoryList,
+    };
+  }, [warehouseId, fullQuery, refreshWarehouseInventoryList]);
+
   // Fetch effect — fires whenever queryParams change
   useEffect(() => {
     if (!warehouseId) return;
-    const t = setTimeout(() => fetchWarehouseInventory({ warehouseId, ...fullQuery }), 200);
+    const t = setTimeout(
+      () => fetchWarehouseInventory({ warehouseId, ...fullQuery }),
+      200
+    );
     return () => clearTimeout(t);
   }, [warehouseId, fullQuery, fetchWarehouseInventory]);
-  
+
   // Reset effect — fires ONLY on unmount
   useEffect(() => {
-    return () => { resetWarehouseInventory(); };
+    return () => {
+      resetWarehouseInventory();
+    };
   }, [resetWarehouseInventory]);
-  
+
   const { handlePageChange, handleRowsPerPageChange } = usePaginationHandlers(
     setPage,
-    setLimit,
+    setLimit
   );
-  
+
   const handleResetFilters = useCallback(() => {
     resetWarehouseInventory();
     setFilters(INITIAL_FILTERS);
     setSelectedIds([]);
   }, [resetWarehouseInventory]);
-  
+
   // Derive full selected item objects from current page data
   const selectedItems = useMemo<FlattenedWarehouseInventory[]>(() => {
     const set = new Set(selectedIds);
     return inventories.filter((row) => set.has(row.id));
   }, [inventories, selectedIds]);
-  
+
   const handleSelectionChange = useCallback((ids: string[]) => {
     setSelectedIds(ids);
   }, []);
-  
+
   const lookupHandlers = useMemo(
     () => ({
       onOpen: {
         // inventoryStatus:   createOnOpenHandler(lookups.inventoryStatus),
-        product:           createOnOpenHandler(lookups.product),
-        sku:               createOnOpenHandler(lookups.sku),
+        product: createOnOpenHandler(lookups.product),
+        sku: createOnOpenHandler(lookups.sku),
         packagingMaterial: createOnOpenHandler(lookups.packagingMaterial),
       },
     }),
-    [lookups],
+    [lookups]
   );
-  
+
   if (!warehouseId) {
     return (
       <Box sx={{ px: 4, py: 3 }}>
-        <CustomTypography color="error">Missing warehouse ID in route.</CustomTypography>
+        <CustomTypography color="error">
+          Missing warehouse ID in route.
+        </CustomTypography>
       </Box>
     );
   }
-  
+
   return (
     <Box sx={{ px: 4, py: 3 }}>
       {/* Back navigation — its own row */}
       <Box mb={2}>
         <GoBackButton variant="outlined" />
       </Box>
-      
+
       {canViewWarehouseSummary && (
         <WarehouseSummarySection
           warehouseInfo={warehouseInfo}
@@ -226,9 +234,9 @@ const WarehouseInventoryListPage: FC = () => {
           error={summaryError}
         />
       )}
-      
+
       <Divider sx={{ mb: 3 }} />
-      
+
       {/* ── Filter + Sort Controls ────────────────────────────────── */}
       <Card sx={{ p: 3, mb: 4, borderRadius: 2, minHeight: 200 }}>
         <Grid container spacing={2}>
@@ -239,7 +247,8 @@ const WarehouseInventoryListPage: FC = () => {
               lookupHandlers={lookupHandlers}
               onChange={setFilters}
               onApply={() => {
-                if (queryParams) fetchWarehouseInventory({ ...queryParams, page: 1 });
+                if (queryParams)
+                  fetchWarehouseInventory({ ...queryParams, page: 1 });
               }}
               onReset={handleResetFilters}
             />
@@ -254,7 +263,7 @@ const WarehouseInventoryListPage: FC = () => {
           </Grid>
         </Grid>
       </Card>
-      
+
       {/* ── Table ─────────────────────────────────────────────────── */}
       {inventoriesError ? (
         <ErrorMessage message={inventoriesError} showNavigation />
@@ -280,7 +289,7 @@ const WarehouseInventoryListPage: FC = () => {
           canUpdateStatus={canUpdateInventoryStatus}
         />
       )}
-      
+
       {/* ── Item Summary Panel ── */}
       {canViewWarehouseItemsSummary && itemSummaryLoading ? (
         <Skeleton variant="rectangular" height={200} sx={{ mt: 4 }} />

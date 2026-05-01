@@ -1,10 +1,4 @@
-import {
-  type FC,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { type FC, useCallback, useEffect, useMemo, useState } from 'react';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Grid from '@mui/material/Grid';
@@ -24,71 +18,81 @@ import { usePaginatedWarehouses } from '@hooks/index';
 import { useHasPermissionBoolean } from '@features/authorize/hooks';
 
 const WarehouseListPage: FC = () => {
-  const [sortBy, setSortBy]       = useState<WarehouseSortField>('defaultNaturalSort');
+  const [sortBy, setSortBy] =
+    useState<WarehouseSortField>('defaultNaturalSort');
   const [sortOrder, setSortOrder] = useState<'' | 'ASC' | 'DESC'>('');
-  const [filters, setFilters]     = useState<WarehouseFilters>({});
-  
+  const [filters, setFilters] = useState<WarehouseFilters>({});
+
   const {
-    data:         warehouses,
-    loading:      warehousesLoading,
-    error:        warehousesError,
+    data: warehouses,
+    loading: warehousesLoading,
+    error: warehousesError,
     totalRecords: totalWarehouseRecords,
-    pagination:   warehousePagination,
-    pageInfo:     warehousePageInfo,
+    pagination: warehousePagination,
+    pageInfo: warehousePageInfo,
     fetchWarehouses,
     resetWarehouses,
   } = usePaginatedWarehouses();
-  
+
   const hasPermission = useHasPermissionBoolean();
-  
+
   const canViewSummary = hasPermission('view_warehouse_summary');
-  const canViewDetails   = hasPermission('view_warehouse_details');
+  const canViewDetails = hasPermission('view_warehouse_details');
   const canViewInventory = hasPermission('view_warehouse_inventory');
-  
+
   const queryParams = useMemo<WarehouseQueryParams>(
     () => ({
-      page:    warehousePageInfo.page,
-      limit:   warehousePageInfo.limit,
+      page: warehousePageInfo.page,
+      limit: warehousePageInfo.limit,
       sortBy,
       sortOrder,
       filters,
     }),
-    [warehousePageInfo.page, warehousePageInfo.limit, sortBy, sortOrder, filters]
+    [
+      warehousePageInfo.page,
+      warehousePageInfo.limit,
+      sortBy,
+      sortOrder,
+      filters,
+    ]
   );
-  
+
   // Fetch on params change
   useEffect(() => {
     fetchWarehouses(queryParams);
   }, [queryParams, fetchWarehouses]);
-  
+
   // Cleanup ONLY on unmount
-  useEffect(() => () => {
-    resetWarehouses();
-  }, [resetWarehouses]);
-  
+  useEffect(
+    () => () => {
+      resetWarehouses();
+    },
+    [resetWarehouses]
+  );
+
   const handlePageChange = useCallback(
     (newPage: number) => {
       fetchWarehouses({ ...queryParams, page: newPage + 1 });
     },
     [queryParams, fetchWarehouses]
   );
-  
+
   const handleRowsPerPageChange = useCallback(
     (newLimit: number) => {
       fetchWarehouses({ ...queryParams, page: 1, limit: newLimit });
     },
     [queryParams, fetchWarehouses]
   );
-  
+
   const handleRefresh = useCallback(() => {
     fetchWarehouses(queryParams);
   }, [queryParams, fetchWarehouses]);
-  
+
   const handleResetFilters = useCallback(() => {
     resetWarehouses();
     setFilters({});
   }, [resetWarehouses]);
-  
+
   return (
     <Box sx={{ px: 4, py: 3 }}>
       {/* ── Header ────────────────────────────────────────────────── */}
@@ -104,9 +108,9 @@ const WarehouseListPage: FC = () => {
           Warehouse Management
         </CustomTypography>
       </Box>
-      
+
       <Divider sx={{ mb: 3 }} />
-      
+
       {/* ── Filter + Sort Controls ────────────────────────────────── */}
       <Card sx={{ p: 3, mb: 4, borderRadius: 2, minHeight: 200 }}>
         <Grid container spacing={2}>
@@ -128,7 +132,7 @@ const WarehouseListPage: FC = () => {
           </Grid>
         </Grid>
       </Card>
-      
+
       {/* ── Table ─────────────────────────────────────────────────── */}
       {warehousesError ? (
         <ErrorMessage message={warehousesError} showNavigation />

@@ -42,12 +42,12 @@ const writeStorage = (list: RecentWarehouse[]): void => {
  */
 const useRecentWarehouses = () => {
   const [recent, setRecent] = useState<RecentWarehouse[]>([]);
-  
+
   // Hydrate from storage on mount
   useEffect(() => {
     setRecent(readStorage());
   }, []);
-  
+
   const addRecent = useCallback(
     (warehouse: Omit<RecentWarehouse, 'visitedAt'>) => {
       setRecent((prev) => {
@@ -62,12 +62,12 @@ const useRecentWarehouses = () => {
     },
     []
   );
-  
+
   const clearRecent = useCallback(() => {
     writeStorage([]);
     setRecent([]);
   }, []);
-  
+
   return { recent, addRecent, clearRecent };
 };
 

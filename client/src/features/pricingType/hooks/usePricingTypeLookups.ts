@@ -5,7 +5,7 @@ import { useStatusLookup } from '@hooks/index';
  */
 const usePricingTypeLookups = () => {
   const status = useStatusLookup();
-  
+
   return {
     status,
   };

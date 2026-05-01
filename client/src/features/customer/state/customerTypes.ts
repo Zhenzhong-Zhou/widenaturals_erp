@@ -109,8 +109,7 @@ export interface CustomerFilters {
 
 /** Parameters for fetching a paginated, sorted, filtered customer list. */
 export interface FetchPaginatedCustomersParams
-  extends PaginationParams,
-    SortConfig {
+  extends PaginationParams, SortConfig {
   filters?: CustomerFilters;
 }
 

@@ -12,15 +12,15 @@ const NavLink: FC<NavLinkProps> = ({ href, onClick, children }) => {
   const [hash, setHash] = useState(
     typeof window !== 'undefined' ? window.location.hash : ''
   );
-  
+
   useEffect(() => {
     const onHashChange = () => setHash(window.location.hash);
     window.addEventListener('hashchange', onHashChange);
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
-  
+
   const isActive = hash === href;
-  
+
   return (
     <Link
       href={href}
@@ -31,7 +31,7 @@ const NavLink: FC<NavLinkProps> = ({ href, onClick, children }) => {
         color: isActive ? 'primary.main' : 'text.secondary',
         position: 'relative',
         transition: 'color 0.15s ease',
-        
+
         '&::after': {
           content: '""',
           position: 'absolute',
@@ -43,7 +43,7 @@ const NavLink: FC<NavLinkProps> = ({ href, onClick, children }) => {
           backgroundColor: isActive ? 'primary.main' : 'transparent',
           transition: 'background-color 0.15s ease',
         },
-        
+
         '&:hover': {
           color: 'primary.main',
         },

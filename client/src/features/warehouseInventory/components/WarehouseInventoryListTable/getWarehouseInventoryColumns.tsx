@@ -1,7 +1,6 @@
 import Box from '@mui/material/Box';
 import { TruncatedText } from '@components/index';
-import { InventoryStatusBadge }
-  from '@features/warehouseInventory/components/WarehouseInventoryListTable';
+import { InventoryStatusBadge } from '@features/warehouseInventory/components/WarehouseInventoryListTable';
 import type { Column } from '@components/common/CustomTable';
 import type { FlattenedWarehouseInventory } from '@features/warehouseInventory/state/warehouseInventoryTypes';
 import { formatDate } from '@utils/dateTimeUtils';
@@ -23,8 +22,12 @@ export const getWarehouseInventoryColumns = (
     handleDrillDownToggle?: (id: string) => void;
   } = {}
 ): Column<FlattenedWarehouseInventory>[] => {
-  const { canViewDetail = false, expandedRowId, handleDrillDownToggle } = options;
-  
+  const {
+    canViewDetail = false,
+    expandedRowId,
+    handleDrillDownToggle,
+  } = options;
+
   return [
     {
       id: 'batchType',
@@ -48,9 +51,7 @@ export const getWarehouseInventoryColumns = (
       renderCell: (row) => (
         <TruncatedText
           text={
-            row.batchType === 'product'
-              ? row.displayName
-              : row.materialCode
+            row.batchType === 'product' ? row.displayName : row.materialCode
           }
           maxLength={30}
         />
@@ -70,9 +71,10 @@ export const getWarehouseInventoryColumns = (
       label: 'Expiry Date',
       sortable: false,
       renderCell: (row) => {
-        const date = row.batchType === 'product'
-          ? row.productExpiryDate
-          : row.packagingExpiryDate;
+        const date =
+          row.batchType === 'product'
+            ? row.productExpiryDate
+            : row.packagingExpiryDate;
         return (
           <Box display="flex" alignItems="center" gap={1}>
             <span>{date ? formatDate(date) : '—'}</span>
@@ -114,13 +116,15 @@ export const getWarehouseInventoryColumns = (
       id: 'inboundDate',
       label: 'Inbound',
       sortable: true,
-      renderCell: (row) => (row.inboundDate ? formatDate(row.inboundDate) : '—'),
+      renderCell: (row) =>
+        row.inboundDate ? formatDate(row.inboundDate) : '—',
     },
     {
       id: 'outboundDate',
       label: 'Outbound',
       sortable: true,
-      renderCell: (row) => (row.outboundDate ? formatDate(row.outboundDate) : '—'),
+      renderCell: (row) =>
+        row.outboundDate ? formatDate(row.outboundDate) : '—',
     },
     {
       id: 'lastMovementAt',
@@ -129,15 +133,15 @@ export const getWarehouseInventoryColumns = (
       renderCell: (row) =>
         row.lastMovementAt ? formatDate(row.lastMovementAt) : '—',
     },
-    
+
     // ── Drill-down toggle — gated by canViewDetail ────────────────────────────
     ...(canViewDetail && handleDrillDownToggle
       ? [
-        createDrillDownColumn<FlattenedWarehouseInventory>(
-          (row) => handleDrillDownToggle(row.id),
-          (row) => expandedRowId === row.id
-        ),
-      ]
+          createDrillDownColumn<FlattenedWarehouseInventory>(
+            (row) => handleDrillDownToggle(row.id),
+            (row) => expandedRowId === row.id
+          ),
+        ]
       : []),
   ];
 };

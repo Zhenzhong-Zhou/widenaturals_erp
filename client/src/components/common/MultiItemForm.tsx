@@ -125,9 +125,9 @@ const MultiItemForm = forwardRef<MultiItemFormRef, MultiItemFormProps>(
       useForm<{ items: Record<string, any>[] }>({
         defaultValues: { items: initialItems },
       });
-    
+
     const { isValid } = useFormState({ control });
-    
+
     // const allFields = useWatch({ control, name: 'items' }) as Record<string, any>[];
 
     useImperativeHandle(ref, () => ({
@@ -157,7 +157,7 @@ const MultiItemForm = forwardRef<MultiItemFormRef, MultiItemFormProps>(
       remove,
       insert,
     } = useFieldArray({ control, name: 'items', keyName: 'fieldKey' });
-    
+
     const handleResetItem = useCallback(
       (index: number) => {
         remove(index);
@@ -165,7 +165,7 @@ const MultiItemForm = forwardRef<MultiItemFormRef, MultiItemFormProps>(
       },
       [remove, insert, makeNewRowInternal]
     );
-    
+
     const handleRemoveItem = useCallback(
       (id: string) => {
         const i = fieldArray.findIndex((item) => item.id === id);
@@ -173,17 +173,17 @@ const MultiItemForm = forwardRef<MultiItemFormRef, MultiItemFormProps>(
       },
       [fieldArray, remove]
     );
-    
+
     const handleAddItem = useCallback(
       () => append(makeNewRowInternal()),
       [append, makeNewRowInternal]
     );
-    
+
     const handleResetForm = useCallback(
       () => reset({ items: [makeNewRowInternal()] }),
       [reset, makeNewRowInternal]
     );
-    
+
     const groupedFields = useMemo(() => {
       const groups: Record<string, MultiItemFieldConfig[]> = {};
       fields.forEach((field) => {
@@ -220,13 +220,20 @@ const MultiItemForm = forwardRef<MultiItemFormRef, MultiItemFormProps>(
     };
 
     const validationRules = validation ? validation(watch) : {};
-    
+
     return (
-      <Box component="form" onSubmit={handleSubmit(handleFormSubmit)} sx={{ maxWidth: '95vw', margin: 'auto' }}>
+      <Box
+        component="form"
+        onSubmit={handleSubmit(handleFormSubmit)}
+        sx={{ maxWidth: '95vw', margin: 'auto' }}
+      >
         {itemsPerRow > 1 ? (
           <Grid container spacing={4}>
             {fieldArray.map((field, index) => (
-              <Grid key={field.fieldKey} size={{ xs: 12, md: 12 / itemsPerRow }}>
+              <Grid
+                key={field.fieldKey}
+                size={{ xs: 12, md: 12 / itemsPerRow }}
+              >
                 <MultiItemRow
                   index={index}
                   fieldArrayItem={field}

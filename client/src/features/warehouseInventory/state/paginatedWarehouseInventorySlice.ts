@@ -19,7 +19,7 @@ const initialState: WarehouseInventoryListState =
 const paginatedWarehouseInventorySlice = createSlice({
   name: 'paginatedWarehouseInventory',
   initialState,
-  
+
   reducers: {
     /**
      * Reset the entire paginated warehouse inventory state back to its
@@ -32,7 +32,7 @@ const paginatedWarehouseInventorySlice = createSlice({
      */
     resetPaginatedWarehouseInventory: () => initialState,
   },
-  
+
   // ---------------------------
   // Extra reducers (async thunk lifecycle)
   // ---------------------------
@@ -43,16 +43,19 @@ const paginatedWarehouseInventorySlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      
+
       // ---- fulfilled ----
       .addCase(
         fetchPaginatedWarehouseInventoryThunk.fulfilled,
-        (state, action: PayloadAction<PaginatedWarehouseInventoryListUiResponse>) => {
+        (
+          state,
+          action: PayloadAction<PaginatedWarehouseInventoryListUiResponse>
+        ) => {
           const payload = action.payload;
-          
+
           state.loading = false;
           state.data = payload.data;
-          
+
           state.pagination = {
             page: payload.pagination.page,
             limit: payload.pagination.limit,
@@ -61,15 +64,18 @@ const paginatedWarehouseInventorySlice = createSlice({
           };
         }
       )
-      
+
       // ---- rejected ----
-      .addCase(fetchPaginatedWarehouseInventoryThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error =
-          (action.payload as any)?.message ??
-          action.error?.message ??
-          'Failed to fetch warehouse inventory records.';
-      });
+      .addCase(
+        fetchPaginatedWarehouseInventoryThunk.rejected,
+        (state, action) => {
+          state.loading = false;
+          state.error =
+            (action.payload as any)?.message ??
+            action.error?.message ??
+            'Failed to fetch warehouse inventory records.';
+        }
+      );
   },
 });
 

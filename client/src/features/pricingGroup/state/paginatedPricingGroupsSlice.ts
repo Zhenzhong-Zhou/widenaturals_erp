@@ -19,7 +19,7 @@ const initialState: PricingGroupState =
 const paginatedPricingGroupsSlice = createSlice({
   name: 'paginatedPricingGroups',
   initialState,
-  
+
   reducers: {
     /**
      * Reset the entire paginated pricing group state back to its
@@ -32,7 +32,7 @@ const paginatedPricingGroupsSlice = createSlice({
      */
     resetPaginatedPricingGroups: () => initialState,
   },
-  
+
   // ---------------------------
   // Extra reducers (async thunk lifecycle)
   // ---------------------------
@@ -43,16 +43,16 @@ const paginatedPricingGroupsSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      
+
       // ---- fulfilled ----
       .addCase(
         fetchPaginatedPricingGroupsThunk.fulfilled,
         (state, action: PayloadAction<PaginatedPricingGroupApiResponse>) => {
           const payload = action.payload;
-          
+
           state.loading = false;
           state.data = payload.data;
-          
+
           state.pagination = {
             page: payload.pagination.page,
             limit: payload.pagination.limit,
@@ -61,7 +61,7 @@ const paginatedPricingGroupsSlice = createSlice({
           };
         }
       )
-      
+
       // ---- rejected ----
       .addCase(fetchPaginatedPricingGroupsThunk.rejected, (state, action) => {
         state.loading = false;

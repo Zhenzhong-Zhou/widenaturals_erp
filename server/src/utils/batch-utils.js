@@ -46,9 +46,9 @@ const getExpiryMeta = (expiryDate, nearExpiryDays = 90) => {
       expirySeverity: 'none',
     };
   }
-  
+
   const expiry = new Date(expiryDate);
-  
+
   // Malformed input — fail closed rather than propagating NaN.
   if (Number.isNaN(expiry.getTime())) {
     return {
@@ -58,23 +58,23 @@ const getExpiryMeta = (expiryDate, nearExpiryDays = 90) => {
       expirySeverity: 'none',
     };
   }
-  
+
   const today = new Date();
-  
+
   const todayUtc = Date.UTC(
     today.getUTCFullYear(),
     today.getUTCMonth(),
     today.getUTCDate()
   );
-  
+
   const expiryUtc = Date.UTC(
     expiry.getUTCFullYear(),
     expiry.getUTCMonth(),
     expiry.getUTCDate()
   );
-  
+
   const daysUntilExpiry = Math.round((expiryUtc - todayUtc) / MS_PER_DAY);
-  
+
   return {
     hasExpiryDate: true,
     daysUntilExpiry,

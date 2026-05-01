@@ -25,20 +25,31 @@ const warehouseInventoryUpdateStatusSlice = createSlice({
         state.error = null;
         state.data = null;
       })
-      .addCase(updateWarehouseInventoryStatusesThunk.fulfilled, (state, action) => {
-        state.loading = false;
-        state.error = null;
-        
-        const result = action.payload as UpdateWarehouseInventoryStatusResponse;
-        
-        state.data = result.data;
-        state.success = result.success;
-        state.message = result.message;
-      })
-      .addCase(updateWarehouseInventoryStatusesThunk.rejected, (state, action) => {
-        state.data = null;
-        applyRejected(state, action, 'Failed to update warehouse inventory statuses.');
-      });
+      .addCase(
+        updateWarehouseInventoryStatusesThunk.fulfilled,
+        (state, action) => {
+          state.loading = false;
+          state.error = null;
+
+          const result =
+            action.payload as UpdateWarehouseInventoryStatusResponse;
+
+          state.data = result.data;
+          state.success = result.success;
+          state.message = result.message;
+        }
+      )
+      .addCase(
+        updateWarehouseInventoryStatusesThunk.rejected,
+        (state, action) => {
+          state.data = null;
+          applyRejected(
+            state,
+            action,
+            'Failed to update warehouse inventory statuses.'
+          );
+        }
+      );
   },
 });
 

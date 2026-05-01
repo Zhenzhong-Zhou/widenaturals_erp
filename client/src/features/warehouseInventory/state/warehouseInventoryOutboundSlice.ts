@@ -25,20 +25,31 @@ const warehouseInventoryOutboundSlice = createSlice({
         state.error = null;
         state.data = null;
       })
-      .addCase(recordWarehouseInventoryOutboundThunk.fulfilled, (state, action) => {
-        state.loading = false;
-        state.error = null;
-        
-        const result = action.payload as RecordWarehouseInventoryOutboundResponse;
-        
-        state.data = result.data;
-        state.success = result.success;
-        state.message = result.message;
-      })
-      .addCase(recordWarehouseInventoryOutboundThunk.rejected, (state, action) => {
-        state.data = null;
-        applyRejected(state, action, 'Failed to record warehouse inventory outbound.');
-      });
+      .addCase(
+        recordWarehouseInventoryOutboundThunk.fulfilled,
+        (state, action) => {
+          state.loading = false;
+          state.error = null;
+
+          const result =
+            action.payload as RecordWarehouseInventoryOutboundResponse;
+
+          state.data = result.data;
+          state.success = result.success;
+          state.message = result.message;
+        }
+      )
+      .addCase(
+        recordWarehouseInventoryOutboundThunk.rejected,
+        (state, action) => {
+          state.data = null;
+          applyRejected(
+            state,
+            action,
+            'Failed to record warehouse inventory outbound.'
+          );
+        }
+      );
   },
 });
 

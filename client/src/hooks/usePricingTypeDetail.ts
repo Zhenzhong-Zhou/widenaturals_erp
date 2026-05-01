@@ -20,20 +20,20 @@ import { resetPricingTypeDetail } from '@features/pricingType/state/pricingTypeD
  */
 const usePricingTypeDetail = () => {
   const dispatch = useAppDispatch();
-  
+
   // ----------------------------
   // Selectors
   // ----------------------------
-  
+
   const pricingType = useAppSelector(selectPricingTypeDetailData);
   const loading = useAppSelector(selectPricingTypeDetailLoading);
   const error = useAppSelector(selectPricingTypeDetailError);
   const isEmpty = useAppSelector(selectPricingTypeDetailIsEmpty);
-  
+
   // ----------------------------
   // Actions
   // ----------------------------
-  
+
   /**
    * Fetch pricing type detail by ID (dispatch thunk).
    */
@@ -44,18 +44,18 @@ const usePricingTypeDetail = () => {
     },
     [dispatch]
   );
-  
+
   /**
    * Reset pricing type detail slice state (useful on unmount).
    */
   const resetPricingTypeDetailState = useCallback(() => {
     dispatch(resetPricingTypeDetail());
   }, [dispatch]);
-  
+
   // ----------------------------
   // Memoized combined result
   // ----------------------------
-  
+
   const combined = useMemo(
     () => ({
       pricingType,
@@ -63,19 +63,19 @@ const usePricingTypeDetail = () => {
     }),
     [pricingType, isEmpty]
   );
-  
+
   // ----------------------------
   // Hook Return API
   // ----------------------------
-  
+
   return {
     // combined state
     ...combined,
-    
+
     // simple state flags
     loading,
     error,
-    
+
     // actions
     fetchPricingTypeDetail,
     resetPricingTypeDetailState,

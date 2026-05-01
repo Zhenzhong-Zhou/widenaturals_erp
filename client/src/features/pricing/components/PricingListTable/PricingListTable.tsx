@@ -8,11 +8,9 @@ import {
 } from '@components/index';
 import {
   getPricingListTableColumns,
-  PricingExpandedContent
+  PricingExpandedContent,
 } from '@features/pricing/components/PricingListTable';
-import type {
-  FlattenedPricingJoinRecord,
-} from '@features/pricing';
+import type { FlattenedPricingJoinRecord } from '@features/pricing';
 
 /**
  * Props for the Pricing list table.
@@ -38,25 +36,28 @@ interface PricingListTableProps {
  * Includes export action with format selection.
  */
 const PricingListTable = ({
-                            data,
-                            loading,
-                            page,
-                            totalPages,
-                            totalRecords,
-                            rowsPerPage,
-                            onPageChange,
-                            onRowsPerPageChange,
-                            expandedRowId,
-                            onDrillDownToggle,
-                            onRefresh,
-                          }: PricingListTableProps) => {
+  data,
+  loading,
+  page,
+  totalPages,
+  totalRecords,
+  rowsPerPage,
+  onPageChange,
+  onRowsPerPageChange,
+  expandedRowId,
+  onDrillDownToggle,
+  onRefresh,
+}: PricingListTableProps) => {
   // -------------------------------------------------------
   // Memoize Column Definitions
   // -------------------------------------------------------
   const columns = useMemo(() => {
-    return getPricingListTableColumns(expandedRowId ?? undefined, onDrillDownToggle);
+    return getPricingListTableColumns(
+      expandedRowId ?? undefined,
+      onDrillDownToggle
+    );
   }, [expandedRowId, onDrillDownToggle]);
-  
+
   // -------------------------------------------------------
   // Expanded Row Content (Lazy Loaded)
   // -------------------------------------------------------
@@ -77,7 +78,7 @@ const PricingListTable = ({
     ),
     []
   );
-  
+
   return (
     <Box>
       {/* ----------------------------------------- */}
@@ -92,7 +93,7 @@ const PricingListTable = ({
         <CustomTypography variant="h6" fontWeight={600}>
           Pricing List
         </CustomTypography>
-        
+
         <Box display="flex" gap={2} alignItems="center">
           <CustomButton
             onClick={onRefresh}
@@ -103,7 +104,7 @@ const PricingListTable = ({
           </CustomButton>
         </Box>
       </Box>
-      
+
       {/* ----------------------------------------- */}
       {/* MAIN TABLE */}
       {/* ----------------------------------------- */}

@@ -19,7 +19,7 @@ import { resetWarehouseSummary } from '@features/warehouseInventory/state/wareho
  */
 const useWarehouseSummary = () => {
   const dispatch = useAppDispatch();
-  
+
   const data = useAppSelector(selectWarehouseSummaryData);
   const loading = useAppSelector(selectWarehouseSummaryLoading);
   const error = useAppSelector(selectWarehouseSummaryError);
@@ -28,7 +28,7 @@ const useWarehouseSummary = () => {
   const byBatchType = useAppSelector(selectWarehouseSummaryByBatchType);
   const byStatus = useAppSelector(selectWarehouseSummaryByStatus);
   const alerts = useAppSelector(selectWarehouseSummaryAlerts);
-  
+
   /**
    * Fetch the aggregate summary for a warehouse.
    * @param warehouseId - Target warehouse UUID.
@@ -39,14 +39,14 @@ const useWarehouseSummary = () => {
     },
     [dispatch]
   );
-  
+
   /**
    * Reset the summary state to initial.
    */
   const resetSummary = useCallback(() => {
     dispatch(resetWarehouseSummary());
   }, [dispatch]);
-  
+
   return {
     data,
     loading,

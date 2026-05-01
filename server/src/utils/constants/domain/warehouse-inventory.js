@@ -18,11 +18,11 @@ const WAREHOUSE_INVENTORY_CONSTANTS = {
      * listed in their assignment record.
      */
     VIEW_ALL_WAREHOUSES: 'view_all_warehouses',
-    
+
     // -------------------------------------------------
     // Warehouse inventory
     // -------------------------------------------------
-    
+
     /**
      * Allows manual adjustment of reserved quantity on inventory records.
      *

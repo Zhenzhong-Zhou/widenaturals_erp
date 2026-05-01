@@ -24,12 +24,15 @@ const paginatedInventoryAllocationSlice = createSlice({
       })
       .addCase(
         fetchPaginatedInventoryAllocationsThunk.fulfilled,
-        (state, action: PayloadAction<PaginatedInventoryAllocationListUiResponse>) => {
+        (
+          state,
+          action: PayloadAction<PaginatedInventoryAllocationListUiResponse>
+        ) => {
           const payload = action.payload;
-          
+
           state.loading = false;
           state.data = payload.data;
-          
+
           state.pagination = {
             page: payload.pagination.page,
             limit: payload.pagination.limit,
@@ -38,13 +41,16 @@ const paginatedInventoryAllocationSlice = createSlice({
           };
         }
       )
-      .addCase(fetchPaginatedInventoryAllocationsThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error =
-          (action.payload as any)?.message ??
-          action.error?.message ??
-          'Failed to fetch inventory allocations.';
-      });
+      .addCase(
+        fetchPaginatedInventoryAllocationsThunk.rejected,
+        (state, action) => {
+          state.loading = false;
+          state.error =
+            (action.payload as any)?.message ??
+            action.error?.message ??
+            'Failed to fetch inventory allocations.';
+        }
+      );
   },
 });
 

@@ -8,14 +8,14 @@ import {
 const useWarehouseLookups = () => {
   // const warehouseType = useWarehouseTypeLookup();
   // const location      = useLocationLookup();
-  const user      = useUserLookup();
-  const status        = useStatusLookup();
-  
+  const user = useUserLookup();
+  const status = useStatusLookup();
+
   return {
     // warehouseType,
     // location,
     user,
-    status
+    status,
   };
 };
 

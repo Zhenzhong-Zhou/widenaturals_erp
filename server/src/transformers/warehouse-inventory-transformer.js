@@ -54,7 +54,7 @@ const buildProductInfo = (row) =>
       id: row.product_id,
       name: row.product_name,
       brand: row.brand,
-      displayName: getProductDisplayName(row)
+      displayName: getProductDisplayName(row),
     },
     manufacturer: {
       id: row.manufacturer_id,
@@ -165,31 +165,31 @@ const buildProductInfoDetail = (row) => {
   if (row.batch_type !== 'product') return null;
   return {
     batch: {
-      id:               row.product_batch_id,
-      lotNumber:        row.product_lot_number,
-      expiryDate:       row.product_expiry_date,
-      manufactureDate:  row.product_manufacture_date,
-      initialQuantity:  row.product_initial_quantity,
-      batchNotes:       row.product_batch_notes,
+      id: row.product_batch_id,
+      lotNumber: row.product_lot_number,
+      expiryDate: row.product_expiry_date,
+      manufactureDate: row.product_manufacture_date,
+      initialQuantity: row.product_initial_quantity,
+      batchNotes: row.product_batch_notes,
     },
     sku: {
-      id:           row.sku_id,
-      sku:          row.sku,
-      barcode:      row.barcode,
-      sizeLabel:    row.size_label,
-      countryCode:  row.country_code,
+      id: row.sku_id,
+      sku: row.sku,
+      barcode: row.barcode,
+      sizeLabel: row.size_label,
+      countryCode: row.country_code,
       marketRegion: row.market_region,
     },
     product: {
-      id:          row.product_id,
-      name:        row.product_name,
-      brand:       row.brand,
-      category:    row.category,
-      series:      row.series,
+      id: row.product_id,
+      name: row.product_name,
+      brand: row.brand,
+      category: row.category,
+      series: row.series,
       displayName: getProductDisplayName(row),
     },
     manufacturer: {
-      id:   row.manufacturer_id,
+      id: row.manufacturer_id,
       name: row.manufacturer_name,
     },
   };
@@ -206,21 +206,21 @@ const buildPackagingInfoDetail = (row) => {
   if (row.batch_type !== 'packaging_material') return null;
   return {
     batch: {
-      id:              row.packaging_batch_id,
-      lotNumber:       row.packaging_lot_number,
-      displayName:     row.packaging_display_name,
-      expiryDate:      row.packaging_expiry_date,
+      id: row.packaging_batch_id,
+      lotNumber: row.packaging_lot_number,
+      displayName: row.packaging_display_name,
+      expiryDate: row.packaging_expiry_date,
       initialQuantity: row.packaging_initial_quantity,
-      unit:            row.packaging_unit,
+      unit: row.packaging_unit,
     },
     material: {
-      id:       row.packaging_material_id,
-      code:     row.packaging_material_code,
-      name:     row.packaging_material_name,
+      id: row.packaging_material_id,
+      code: row.packaging_material_code,
+      name: row.packaging_material_name,
       category: row.packaging_material_category,
     },
     supplier: {
-      id:   row.supplier_id,
+      id: row.supplier_id,
       name: row.supplier_name,
     },
   };
@@ -236,31 +236,31 @@ const transformWarehouseInventoryDetailRecord = (row) => {
   const base = {
     ...mapWarehouseInventoryBase(row),
     registeredAt: row.registered_at,
-    batchNote:    row.batch_note,
-    audit:        compactAudit(makeAudit(row)),
+    batchNote: row.batch_note,
+    audit: compactAudit(makeAudit(row)),
   };
-  
+
   if (row.batch_type === 'product') {
     return {
       ...base,
-      batchType:     'product',
-      productInfo:   buildProductInfoDetail(row),
+      batchType: 'product',
+      productInfo: buildProductInfoDetail(row),
       packagingInfo: null,
     };
   }
-  
+
   if (row.batch_type === 'packaging_material') {
     return {
       ...base,
-      batchType:     'packaging_material',
-      productInfo:   null,
+      batchType: 'packaging_material',
+      productInfo: null,
       packagingInfo: buildPackagingInfoDetail(row),
     };
   }
-  
+
   return {
     ...base,
-    productInfo:   null,
+    productInfo: null,
     packagingInfo: null,
   };
 };
@@ -285,7 +285,7 @@ const transformWarehouseSummary = (row, statusRows) => ({
     isArchived: row.is_archived,
     status: makeStatus(row),
   },
-  
+
   totals: {
     batches: parseInt(row.total_batches, 10),
     productSkus: parseInt(row.total_product_skus, 10),
@@ -294,7 +294,7 @@ const transformWarehouseSummary = (row, statusRows) => ({
     reserved: parseInt(row.total_reserved, 10),
     available: parseInt(row.total_available, 10),
   },
-  
+
   byBatchType: {
     product: {
       batchCount: parseInt(row.product_batch_count, 10),
@@ -305,7 +305,7 @@ const transformWarehouseSummary = (row, statusRows) => ({
       quantity: parseInt(row.packaging_quantity, 10),
     },
   },
-  
+
   byStatus: statusRows.map((s) => ({
     statusId: s.status_id,
     statusName: s.status_name,
@@ -314,7 +314,7 @@ const transformWarehouseSummary = (row, statusRows) => ({
     reserved: parseInt(s.total_reserved, 10),
     available: parseInt(s.total_available, 10),
   })),
-  
+
   alerts: {
     lowStock: parseInt(row.low_stock_count, 10),
     expiringSoon: parseInt(row.expiring_soon_count, 10),

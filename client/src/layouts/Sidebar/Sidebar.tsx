@@ -46,25 +46,25 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
   const menuItems = useMemo(() => {
     return navigationItems.filter((item) => {
       const { requiredPermission } = item;
-      
+
       if (!requiredPermission) return true;
-      
+
       if (typeof requiredPermission === 'string') {
         return hasPermission(requiredPermission);
       }
-      
+
       if (requiredPermission.any?.length) {
         return requiredPermission.any.some((permission) =>
           hasPermission(permission)
         );
       }
-      
+
       if (requiredPermission.all?.length) {
         return requiredPermission.all.every((permission) =>
           hasPermission(permission)
         );
       }
-      
+
       return true;
     });
   }, [hasPermission]);
@@ -102,7 +102,10 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
               alignItems: 'center',
             }}
           >
-            <Link to="/dashboard" style={{ display: 'flex', alignItems: 'center' }}>
+            <Link
+              to="/dashboard"
+              style={{ display: 'flex', alignItems: 'center' }}
+            >
               <img
                 src={logo}
                 alt="Wide Naturals"

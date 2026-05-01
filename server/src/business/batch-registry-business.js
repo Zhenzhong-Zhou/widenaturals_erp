@@ -18,7 +18,10 @@ const {
   BATCH_CONSTANTS,
 } = require('../utils/constants/domain/batch-constants');
 const { applyBatchTypeVisibility } = require('./apply-batch-type-visibility');
-const { assertWarehouseAccess, enforceWarehouseScope } = require('./warehouse-inventory-business');
+const {
+  assertWarehouseAccess,
+  enforceWarehouseScope,
+} = require('./warehouse-inventory-business');
 const { getStatusId } = require('../config/status-cache');
 
 const CONTEXT = 'batch-registry-business';
@@ -78,12 +81,10 @@ const evaluateBatchRegistryVisibility = async (user) => {
       permissions.includes(
         BATCH_CONSTANTS.PERMISSIONS.VIEW_BATCH_ALL_VISIBILITY
       );
-    
+
     const canViewAllBatchStatus =
       isRoot ||
-      permissions.includes(
-        BATCH_CONSTANTS.PERMISSIONS.VIEW_BATCH_STATUSES
-      );
+      permissions.includes(BATCH_CONSTANTS.PERMISSIONS.VIEW_BATCH_STATUSES);
 
     const canViewProductBatches =
       canViewAllBatches ||
@@ -219,7 +220,7 @@ const sliceBatchRegistryRow = (row, access) => {
  */
 const fetchBatchRegistryForInventoryLookup = async (filters, user) => {
   const acl = await evaluateBatchRegistryVisibility(user);
-  
+
   // ─── Validate warehouseId requirement ────────────────────────────────────
   // Privileged users may omit warehouseId entirely; standard users cannot.
   if (!filters.warehouseId && !acl.canViewAllWarehouses) {
@@ -227,19 +228,19 @@ const fetchBatchRegistryForInventoryLookup = async (filters, user) => {
       'warehouseId is required for inventory lookup.'
     );
   }
-  
+
   // ─── Resolve released status ────────────────────────────────────────────
   // Synchronous cache lookup — used to constrain non-privileged users to
   // released batches only.
   const batchReleasedStatusId = getStatusId('batch_released');
-  
+
   // ─── Enforce warehouse scope for non-privileged users ───────────────────
   // Privileged users skip the warehouse round-trip entirely. Everyone else
   // must have the requested warehouse in their assigned set, unless they
   // hold canViewAll at the warehouse-access level.
   if (!acl.canViewAllWarehouses) {
     const warehouseAccess = await assertWarehouseAccess(user);
-    
+
     if (!warehouseAccess.canViewAll && filters.warehouseId) {
       enforceWarehouseScope(
         warehouseAccess.assignedWarehouseIds,
@@ -247,7 +248,7 @@ const fetchBatchRegistryForInventoryLookup = async (filters, user) => {
       );
     }
   }
-  
+
   // ─── Build adjusted filter object with default restrictions ─────────────
   // Default-restrictive: every request gets warehouse-scope exclusion and
   // released-only status. Privileged users have these stripped below.
@@ -256,7 +257,7 @@ const fetchBatchRegistryForInventoryLookup = async (filters, user) => {
     ...(filters.warehouseId && { excludeFromWarehouseId: filters.warehouseId }),
     statusIds: [batchReleasedStatusId],
   };
-  
+
   // ─── Strip restrictions for privileged users ────────────────────────────
   // canViewAllWarehouses removes the warehouse-scope exclusion, allowing the
   // user to see batches already placed in the target warehouse. canViewAllBatchStatuses
@@ -264,19 +265,19 @@ const fetchBatchRegistryForInventoryLookup = async (filters, user) => {
   if (acl.canViewAllWarehouses) {
     delete adjustedFilters.excludeFromWarehouseId;
   }
-  
+
   if (acl.canViewAllBatchStatus) {
     delete adjustedFilters.statusIds;
   }
-  
+
   // ─── Apply batch-type visibility rules from the ACL ──────────────────────
   // Injects keywordCapabilities and may set forceEmptyResult / batchType
   // narrowing based on the user's product/packaging visibility.
   const adjusted = applyBatchRegistryVisibilityRules(adjustedFilters, acl);
-  
+
   // warehouseId is business-layer-only — repo expects excludeFromWarehouseId.
   delete adjusted.warehouseId;
-  
+
   return adjusted;
 };
 

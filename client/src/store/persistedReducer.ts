@@ -34,9 +34,12 @@ import { themeReducers } from '@features/theme/state';
 // `.default` depending on bundler and moduleResolution settings.
 // This unwraps it safely and falls back to the raw import if not nested.
 // ---------------------------------------------------------------------------
-const storage = (storageImport as typeof storageImport & {
-  default?: typeof storageImport;
-}).default ?? storageImport;
+const storage =
+  (
+    storageImport as typeof storageImport & {
+      default?: typeof storageImport;
+    }
+  ).default ?? storageImport;
 
 // ---------------------------------------------------------------------------
 // UX reducer

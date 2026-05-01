@@ -11,7 +11,11 @@ import type {
   LookupPaginationMeta,
 } from '@features/lookup/state';
 import { toISODate } from '@utils/dateTimeUtils';
-import { renderDateField, renderInputField, renderSelectField } from '@utils/filters/filterUtils';
+import {
+  renderDateField,
+  renderInputField,
+  renderSelectField,
+} from '@utils/filters/filterUtils';
 import { CUSTOMER_TYPE_OPTIONS } from '@features/customer/components/SingleCustomerForm';
 
 interface Props {
@@ -44,18 +48,18 @@ const emptyFilters: AddressFilterConditions = {
 };
 
 const AddressFiltersPanel: FC<Props> = ({
-                                          filters,
-                                          onChange,
-                                          onApply,
-                                          onReset,
-                                          customerDropdownOptions,
-                                          fetchCustomerDropdownOptions,
-                                          customerLookupLoading,
-                                          customerLookupError,
-                                          customerLookupMeta,
-                                          fetchParams,
-                                          setFetchParams,
-                                        }) => {
+  filters,
+  onChange,
+  onApply,
+  onReset,
+  customerDropdownOptions,
+  fetchCustomerDropdownOptions,
+  customerLookupLoading,
+  customerLookupError,
+  customerLookupMeta,
+  fetchParams,
+  setFetchParams,
+}) => {
   const textFields: {
     name: keyof AddressFilterConditions;
     label: string;
@@ -136,9 +140,14 @@ const AddressFiltersPanel: FC<Props> = ({
               )}
             />
           </Grid>
-          
-          {renderSelectField(control, 'customerType', 'Customer Type', CUSTOMER_TYPE_OPTIONS)}
-          
+
+          {renderSelectField(
+            control,
+            'customerType',
+            'Customer Type',
+            CUSTOMER_TYPE_OPTIONS
+          )}
+
           {textFields.map(({ name, label, placeholder }) =>
             renderInputField(control, name, label, placeholder)
           )}

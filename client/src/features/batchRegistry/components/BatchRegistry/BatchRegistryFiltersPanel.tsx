@@ -160,7 +160,7 @@ const BatchRegistryFiltersPanel: FC<Props> = ({
       registeredBefore: toISODate(data.registeredBefore),
       keyword: data.keyword || undefined,
     };
-    
+
     onChange(adjusted);
     onApply();
   };

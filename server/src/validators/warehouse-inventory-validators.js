@@ -70,7 +70,9 @@ const warehouseInventoryQuerySchema = paginationSchema
     // --------------------------------------------------
     // Packaging batch filter
     // --------------------------------------------------
-    packagingMaterialIds: validateUUIDOrUUIDArrayOptional('Packaging Material IDs'),
+    packagingMaterialIds: validateUUIDOrUUIDArrayOptional(
+      'Packaging Material IDs'
+    ),
 
     // --------------------------------------------------
     // Low stock and expiry alerts

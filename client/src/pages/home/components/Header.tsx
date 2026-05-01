@@ -12,7 +12,7 @@ export interface HeaderProps {
 const Header: FC<HeaderProps> = ({ onStaffLogin }) => {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
-  
+
   return (
     <AppBar
       position="sticky"
@@ -56,7 +56,7 @@ const Header: FC<HeaderProps> = ({ onStaffLogin }) => {
               style={{ height: 44, objectFit: 'contain', display: 'block' }}
             />
           </Box>
-          
+
           {/* Text block */}
           <Box
             sx={{
@@ -89,7 +89,7 @@ const Header: FC<HeaderProps> = ({ onStaffLogin }) => {
             </CustomTypography>
           </Box>
         </Stack>
-        
+
         {/* Navigation */}
         <Stack
           direction="row"
@@ -103,7 +103,7 @@ const Header: FC<HeaderProps> = ({ onStaffLogin }) => {
           <NavLink href="#capabilities">Capabilities</NavLink>
           <NavLink href="#brands">Brands</NavLink>
           <NavLink href="#contact">Contact</NavLink>
-          
+
           {onStaffLogin ? (
             <CustomButton
               variant="contained"

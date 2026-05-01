@@ -1,7 +1,12 @@
 import { type FC } from 'react';
 import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
-import { CustomButton, CustomTypography, DetailsSection, GoBackButton } from '@components/index';
+import {
+  CustomButton,
+  CustomTypography,
+  DetailsSection,
+  GoBackButton,
+} from '@components/index';
 import { formatLabel } from '@utils/textUtils';
 import { formatDateTime } from '@utils/dateTimeUtils';
 import type { PricingTypeDetailRecord } from '@features/pricingType';
@@ -18,9 +23,9 @@ interface PricingTypeDetailPanelProps {
  * Intentionally presentational — no data fetching.
  */
 const PricingTypeDetailPanel: FC<PricingTypeDetailPanelProps> = ({
-                                                                   pricingType,
-                                                                   onEdit,
-                                                                 }) => {
+  pricingType,
+  onEdit,
+}) => {
   return (
     <>
       {/* --------------------------------------------------
@@ -39,10 +44,11 @@ const PricingTypeDetailPanel: FC<PricingTypeDetailPanelProps> = ({
             {pricingType.name}
           </CustomTypography>
           <CustomTypography variant="body2" color="text.secondary">
-            {pricingType.code} · {pricingType.slug} · {formatLabel(pricingType.status.name)}
+            {pricingType.code} · {pricingType.slug} ·{' '}
+            {formatLabel(pricingType.status.name)}
           </CustomTypography>
         </Box>
-        
+
         <Box display="flex" gap={2} alignItems="center">
           <GoBackButton />
           <CustomButton
@@ -54,9 +60,9 @@ const PricingTypeDetailPanel: FC<PricingTypeDetailPanelProps> = ({
           </CustomButton>
         </Box>
       </Box>
-      
+
       <Divider sx={{ mb: 3 }} />
-      
+
       {/* --------------------------------------------------
        * Description
        * -------------------------------------------------- */}
@@ -67,7 +73,7 @@ const PricingTypeDetailPanel: FC<PricingTypeDetailPanelProps> = ({
           </CustomTypography>
         </Box>
       )}
-      
+
       {/* --------------------------------------------------
        * Status
        * -------------------------------------------------- */}
@@ -86,7 +92,7 @@ const PricingTypeDetailPanel: FC<PricingTypeDetailPanelProps> = ({
           },
         ]}
       />
-      
+
       {/* --------------------------------------------------
        * Audit
        * -------------------------------------------------- */}

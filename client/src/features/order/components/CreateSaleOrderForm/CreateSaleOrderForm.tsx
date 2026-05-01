@@ -130,10 +130,11 @@ const CreateSaleOrderForm: FC = () => {
   const skuDropdown = createDropdownBundle<SkuLookupQueryParams>({
     includeBarcode: true,
   });
-  const pricingGroupDropdown = createDropdownBundle<PricingGroupLookupQueryParams>({
-    skuId: selectedSkuId ?? null,
-    labelOnly: false,
-  });
+  const pricingGroupDropdown =
+    createDropdownBundle<PricingGroupLookupQueryParams>({
+      skuId: selectedSkuId ?? null,
+      labelOnly: false,
+    });
   // packaging dropdown state (default to salesDropdown mode so server enforces visible-only/active/unarchived)
   const packagingMaterialDropdown =
     createDropdownBundle<PackagingMaterialLookupQueryParams>({
@@ -373,11 +374,7 @@ const CreateSaleOrderForm: FC = () => {
         '& .MuiAlert-root': { mb: 2 },
       }}
     >
-      {orderError && (
-        <Alert severity="error">
-          {orderError}
-        </Alert>
-      )}
+      {orderError && <Alert severity="error">{orderError}</Alert>}
 
       {orderId && (
         <Alert severity="success">

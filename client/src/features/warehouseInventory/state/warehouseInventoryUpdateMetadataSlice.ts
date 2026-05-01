@@ -25,20 +25,31 @@ const warehouseInventoryUpdateMetadataSlice = createSlice({
         state.error = null;
         state.data = null;
       })
-      .addCase(updateWarehouseInventoryMetadataThunk.fulfilled, (state, action) => {
-        state.loading = false;
-        state.error = null;
-        
-        const result = action.payload as UpdateWarehouseInventoryMetadataResponse;
-        
-        state.data = result.data;
-        state.success = result.success;
-        state.message = result.message;
-      })
-      .addCase(updateWarehouseInventoryMetadataThunk.rejected, (state, action) => {
-        state.data = null;
-        applyRejected(state, action, 'Failed to update warehouse inventory metadata.');
-      });
+      .addCase(
+        updateWarehouseInventoryMetadataThunk.fulfilled,
+        (state, action) => {
+          state.loading = false;
+          state.error = null;
+
+          const result =
+            action.payload as UpdateWarehouseInventoryMetadataResponse;
+
+          state.data = result.data;
+          state.success = result.success;
+          state.message = result.message;
+        }
+      )
+      .addCase(
+        updateWarehouseInventoryMetadataThunk.rejected,
+        (state, action) => {
+          state.data = null;
+          applyRejected(
+            state,
+            action,
+            'Failed to update warehouse inventory metadata.'
+          );
+        }
+      );
   },
 });
 

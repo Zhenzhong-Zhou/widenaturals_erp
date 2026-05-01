@@ -137,7 +137,7 @@ const allocateInventoryForOrderService = async (
   // Enforce warehouse access before entering the transaction.
   const { assignedWarehouseIds, canViewAll } =
     await assertWarehouseAccess(user);
-  
+
   if (!canViewAll) {
     enforceWarehouseScope(assignedWarehouseIds, warehouseId);
   }

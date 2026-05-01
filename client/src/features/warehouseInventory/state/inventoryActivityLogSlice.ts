@@ -24,12 +24,15 @@ const inventoryActivityLogSlice = createSlice({
       })
       .addCase(
         fetchInventoryActivityLogThunk.fulfilled,
-        (state, action: PayloadAction<PaginatedInventoryActivityLogListUiResponse>) => {
+        (
+          state,
+          action: PayloadAction<PaginatedInventoryActivityLogListUiResponse>
+        ) => {
           const payload = action.payload;
-          
+
           state.loading = false;
           state.data = payload.data;
-          
+
           state.pagination = {
             page: payload.pagination.page,
             limit: payload.pagination.limit,
@@ -48,7 +51,6 @@ const inventoryActivityLogSlice = createSlice({
   },
 });
 
-export const { resetInventoryActivityLog } =
-  inventoryActivityLogSlice.actions;
+export const { resetInventoryActivityLog } = inventoryActivityLogSlice.actions;
 
 export default inventoryActivityLogSlice.reducer;

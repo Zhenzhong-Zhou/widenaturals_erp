@@ -38,7 +38,7 @@ const InventoryAllocationReviewPage = () => {
     allocationIds = [],
     category,
   }: LocationState = location.state || {};
-  
+
   // === Hooks ===
   const {
     loading: isReviewLoading,
@@ -196,7 +196,7 @@ const InventoryAllocationReviewPage = () => {
             <CustomTypography variant="h4" sx={{ fontWeight: 'bold' }}>
               Inventory Allocation Review
             </CustomTypography>
-            
+
             {reviewError ? (
               <ErrorMessage message={reviewError} />
             ) : (

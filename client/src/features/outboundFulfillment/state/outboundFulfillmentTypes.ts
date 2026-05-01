@@ -185,7 +185,7 @@ export interface OutboundShipmentRecord {
   };
   notes: NullableString;
   shipmentDetails: Record<string, any> | null;
-  audit: GenericAudit
+  audit: GenericAudit;
 }
 
 /**
@@ -239,13 +239,13 @@ export interface FlattenedOutboundShipmentRow {
   /** Audit */
   /** ISO timestamp when the SKU was created. */
   createdAt: string;
-  
+
   /** Display name of the user/system who created the SKU. */
   createdBy: string;
-  
+
   /** ISO timestamp when the SKU was last updated. */
   updatedAt: string;
-  
+
   /** Display name of the user/system who last updated the SKU. */
   updatedBy: string;
 }

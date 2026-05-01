@@ -10,42 +10,42 @@
 
 'use strict';
 
-const express                        = require('express');
-const { createApiRateLimiter }       = require('../middlewares/rate-limiter');
-const authenticate                   = require('../middlewares/authenticate');
-const publicRoute                    = require('./public');
-const csrfRoute                      = require('./csrf');
-const sessionRoute                   = require('./session');
-const authRoutes                     = require('./auth');
-const internalRoute                  = require('./internal');
-const systemRoute                    = require('./system');
-const userRoutes                     = require('./users');
-const productRoutes                  = require('./products');
-const skuRoutes                      = require('./skus');
-const skuImageRoutes                 = require('./sku-images');
-const bomRoutes                      = require('./boms');
-const bomItemRoutes                  = require('./bom-items');
-const complianceRecordRoutes         = require('./compliance-records');
-const batchRegistryRoutes            = require('./batch-registry');
-const productBatchRoutes             = require('./product-batches');
-const packagingMaterialBatchRoutes   = require('./packaging-material-batches');
-const pricingTypeRoutes              = require('./pricing-types');
-const pricingGroupRoutes             = require('./pricing-groups');
-const pricingRoutes                  = require('./pricings');
-const locationTypeRoutes             = require('./locations-types');
-const locationRoutes                 = require('./locations');
-const warehouseRoutes                = require('./warehouses');
-const warehouseInventoryRoutes       = require('./warehouse-inventory');
-const customerRoutes                 = require('./customers');
-const addressRoutes                  = require('./addresses');
-const discountRoutes                 = require('./discounts');
-const deliveryMethodRoutes           = require('./delivery-methods');
-const orderTypeRoutes                = require('./order-types');
-const orderRoutes                    = require('./orders');
-const taxRateRoutes                  = require('./tax-rates');
-const inventoryAllocationRoutes      = require('./inventory-allocations');
-const outboundFulfillmentRoutes      = require('./outbound-fulfillments');
-const lookupRoutes                   = require('./lookups');
+const express = require('express');
+const { createApiRateLimiter } = require('../middlewares/rate-limiter');
+const authenticate = require('../middlewares/authenticate');
+const publicRoute = require('./public');
+const csrfRoute = require('./csrf');
+const sessionRoute = require('./session');
+const authRoutes = require('./auth');
+const internalRoute = require('./internal');
+const systemRoute = require('./system');
+const userRoutes = require('./users');
+const productRoutes = require('./products');
+const skuRoutes = require('./skus');
+const skuImageRoutes = require('./sku-images');
+const bomRoutes = require('./boms');
+const bomItemRoutes = require('./bom-items');
+const complianceRecordRoutes = require('./compliance-records');
+const batchRegistryRoutes = require('./batch-registry');
+const productBatchRoutes = require('./product-batches');
+const packagingMaterialBatchRoutes = require('./packaging-material-batches');
+const pricingTypeRoutes = require('./pricing-types');
+const pricingGroupRoutes = require('./pricing-groups');
+const pricingRoutes = require('./pricings');
+const locationTypeRoutes = require('./locations-types');
+const locationRoutes = require('./locations');
+const warehouseRoutes = require('./warehouses');
+const warehouseInventoryRoutes = require('./warehouse-inventory');
+const customerRoutes = require('./customers');
+const addressRoutes = require('./addresses');
+const discountRoutes = require('./discounts');
+const deliveryMethodRoutes = require('./delivery-methods');
+const orderTypeRoutes = require('./order-types');
+const orderRoutes = require('./orders');
+const taxRateRoutes = require('./tax-rates');
+const inventoryAllocationRoutes = require('./inventory-allocations');
+const outboundFulfillmentRoutes = require('./outbound-fulfillments');
+const lookupRoutes = require('./lookups');
 
 const router = express.Router();
 
@@ -68,27 +68,31 @@ router.use('/session', sessionRoute);
 
 // ─── Authenticated ────────────────────────────────────────────────────────────
 
-router.use('/auth',     authenticate(), authRoutes);
+router.use('/auth', authenticate(), authRoutes);
 router.use('/internal', authenticate(), internalRoute);
-router.use('/system',   authenticate(), systemRoute);
+router.use('/system', authenticate(), systemRoute);
 
 // Users
 router.use('/users', authenticate(), userRoutes);
 
 // Product catalog
-router.use('/products',    authenticate(), productRoutes);
-router.use('/skus',        authenticate(), skuRoutes);
-router.use('/sku-images',  authenticate(), skuImageRoutes);
+router.use('/products', authenticate(), productRoutes);
+router.use('/skus', authenticate(), skuRoutes);
+router.use('/sku-images', authenticate(), skuImageRoutes);
 
 // BOMs
-router.use('/boms',      authenticate(), bomRoutes);
+router.use('/boms', authenticate(), bomRoutes);
 router.use('/bom-items', authenticate(), bomItemRoutes);
 
 // Compliance and batches
-router.use('/compliance-records',          authenticate(), complianceRecordRoutes);
-router.use('/batch-registry',              authenticate(), batchRegistryRoutes);
-router.use('/product-batches',             authenticate(), productBatchRoutes);
-router.use('/packaging-material-batches',  authenticate(), packagingMaterialBatchRoutes);
+router.use('/compliance-records', authenticate(), complianceRecordRoutes);
+router.use('/batch-registry', authenticate(), batchRegistryRoutes);
+router.use('/product-batches', authenticate(), productBatchRoutes);
+router.use(
+  '/packaging-material-batches',
+  authenticate(),
+  packagingMaterialBatchRoutes
+);
 
 // Pricing
 router.use('/pricing-types', authenticate(), pricingTypeRoutes);

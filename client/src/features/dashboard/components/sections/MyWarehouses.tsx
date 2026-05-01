@@ -41,7 +41,7 @@ interface WarehouseEntry {
 const MyWarehouses: FC = () => {
   const hasPermission = useHasPermission();
   const canView = hasPermission(ROUTE_PERMISSIONS.WAREHOUSES.VIEW) === true;
-  
+
   const {
     items: warehouses,
     loading,
@@ -49,25 +49,28 @@ const MyWarehouses: FC = () => {
     fetchLookup,
     resetLookup,
   } = useWarehouseLookup();
-  
+
   const { recent, clearRecent } = useRecentWarehouses();
-  
+
   useEffect(() => {
     if (canView) {
       fetchLookup();
     }
   }, [canView, fetchLookup]);
-  
-  useEffect(() => () => {
-    resetLookup();
-  }, [resetLookup]);
-  
+
+  useEffect(
+    () => () => {
+      resetLookup();
+    },
+    [resetLookup]
+  );
+
   const ordered = useMemo<WarehouseEntry[]>(() => {
     if (!warehouses) return [];
-    
+
     const accessibleIds = new Set(warehouses.map((w) => w.value));
     const recentIds = new Set(recent.map((r) => r.id));
-    
+
     const recentEntries: WarehouseEntry[] = recent
       .filter((r) => accessibleIds.has(r.id))
       .map((r) => {
@@ -81,7 +84,7 @@ const MyWarehouses: FC = () => {
           isRecent: true,
         };
       });
-    
+
     const otherEntries: WarehouseEntry[] = warehouses
       .filter((w) => !recentIds.has(w.value))
       .sort((a, b) => a.metadata.name.localeCompare(b.metadata.name))
@@ -93,13 +96,13 @@ const MyWarehouses: FC = () => {
         warehouseType: w.metadata.warehouseType ?? null,
         isRecent: false,
       }));
-    
+
     return [...recentEntries, ...otherEntries];
   }, [warehouses, recent]);
-  
+
   if (!canView) return null;
   if (error) return null;
-  
+
   if (loading) {
     return (
       <Box>
@@ -109,21 +112,30 @@ const MyWarehouses: FC = () => {
         <Grid container spacing={2}>
           {[0, 1, 2].map((i) => (
             <Grid key={i} size={{ xs: 12, sm: 6, md: 4 }}>
-              <Skeleton variant="rectangular" height={72} sx={{ borderRadius: 2 }} />
+              <Skeleton
+                variant="rectangular"
+                height={72}
+                sx={{ borderRadius: 2 }}
+              />
             </Grid>
           ))}
         </Grid>
       </Box>
     );
   }
-  
+
   if (ordered.length === 0) return null;
-  
+
   const hasRecent = recent.length > 0;
-  
+
   return (
     <Box>
-      <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+      <Box
+        display="flex"
+        alignItems="center"
+        justifyContent="space-between"
+        mb={2}
+      >
         <CustomTypography variant="subtitle1" fontWeight={700}>
           My Warehouses
         </CustomTypography>
@@ -135,7 +147,7 @@ const MyWarehouses: FC = () => {
           </Tooltip>
         )}
       </Box>
-      
+
       <Grid container spacing={2}>
         {ordered.map((w) => (
           <Grid key={w.id} size={{ xs: 12, sm: 6, md: 4 }}>
@@ -172,10 +184,15 @@ const MyWarehouses: FC = () => {
                   >
                     <WarehouseIcon fontSize="large" />
                   </Box>
-                  
+
                   <Box flex={1} minWidth={0}>
                     {/* Top row: name + recent indicator */}
-                    <Box display="flex" alignItems="center" gap={0.75} mb={0.25}>
+                    <Box
+                      display="flex"
+                      alignItems="center"
+                      gap={0.75}
+                      mb={0.25}
+                    >
                       <CustomTypography
                         variant="subtitle2"
                         fontWeight={700}
@@ -193,7 +210,7 @@ const MyWarehouses: FC = () => {
                         </Tooltip>
                       )}
                     </Box>
-                    
+
                     {/* Bottom row: code + location + type chip */}
                     <Box
                       display="flex"

@@ -115,7 +115,7 @@ const BatchRegistryListPage = () => {
       resetAll: () => {
         lookups.status.reset();
       },
-      
+
       onOpen: {
         status: createOnOpenHandler(lookups.status),
       },

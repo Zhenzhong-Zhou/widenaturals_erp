@@ -28,17 +28,17 @@ import { normalizePagination } from '@utils/pagination/normalizePagination';
  */
 const usePaginatedPricing = () => {
   const dispatch = useAppDispatch();
-  
+
   // ---------------------------
   // Selectors
   // ---------------------------
-  const data       = useAppSelector(selectPaginatedPricingData);
+  const data = useAppSelector(selectPaginatedPricingData);
   const pagination = useAppSelector(selectPaginatedPricingPagination);
-  const loading    = useAppSelector(selectPaginatedPricingLoading);
-  const error      = useAppSelector(selectPaginatedPricingError);
+  const loading = useAppSelector(selectPaginatedPricingLoading);
+  const error = useAppSelector(selectPaginatedPricingError);
   const totalRecords = useAppSelector(selectPaginatedPricingTotalRecords);
-  const isEmpty    = useAppSelector(selectPaginatedPricingIsEmpty);
-  
+  const isEmpty = useAppSelector(selectPaginatedPricingIsEmpty);
+
   // ---------------------------
   // Actions
   // ---------------------------
@@ -52,14 +52,14 @@ const usePaginatedPricing = () => {
     },
     [dispatch]
   );
-  
+
   /**
    * Reset pricing list state back to initial empty paginated state.
    */
   const resetPricing = useCallback(() => {
     dispatch(resetPaginatedPricing());
   }, [dispatch]);
-  
+
   // ---------------------------
   // Derived memoized values
   // ---------------------------
@@ -67,7 +67,7 @@ const usePaginatedPricing = () => {
     const { page, limit } = normalizePagination(pagination);
     return { page, limit };
   }, [pagination]);
-  
+
   return {
     data,
     pagination,
@@ -75,9 +75,9 @@ const usePaginatedPricing = () => {
     error,
     totalRecords,
     isEmpty,
-    
+
     pageInfo,
-    
+
     fetchPricing,
     resetPricing,
   };

@@ -20,16 +20,16 @@ import type { UiErrorPayload } from '@utils/error/uiErrorUtils';
 export const fetchPaginatedPricingTypesThunk = createAsyncThunk<
   PaginatedPricingTypeApiResponse,
   PricingTypeQueryParams,
-{ rejectValue: UiErrorPayload }
+  { rejectValue: UiErrorPayload }
 >(
   'pricingType/fetchPaginatedPricingTypes',
-    async (params, { rejectWithValue }) => {
-      try {
-        return await pricingTypeService.fetchPaginatedPricingTypes(params);
-      } catch (error: unknown) {
-        return rejectWithValue(extractUiErrorPayload(error));
-      }
+  async (params, { rejectWithValue }) => {
+    try {
+      return await pricingTypeService.fetchPaginatedPricingTypes(params);
+    } catch (error: unknown) {
+      return rejectWithValue(extractUiErrorPayload(error));
     }
+  }
 );
 
 /**
@@ -38,14 +38,16 @@ export const fetchPaginatedPricingTypesThunk = createAsyncThunk<
 export const fetchPricingTypeByIdThunk = createAsyncThunk<
   PricingTypeDetailApiResponse,
   string,
-{ rejectValue: UiErrorPayload }
+  { rejectValue: UiErrorPayload }
 >(
   'pricingType/fetchPricingTypeById',
-    async (pricingTypeId, { rejectWithValue }) => {
-      try {
-        return await pricingTypeService.fetchPricingTypeDetailsById(pricingTypeId);
-      } catch (error: unknown) {
-        return rejectWithValue(extractUiErrorPayload(error));
-      }
+  async (pricingTypeId, { rejectWithValue }) => {
+    try {
+      return await pricingTypeService.fetchPricingTypeDetailsById(
+        pricingTypeId
+      );
+    } catch (error: unknown) {
+      return rejectWithValue(extractUiErrorPayload(error));
     }
+  }
 );

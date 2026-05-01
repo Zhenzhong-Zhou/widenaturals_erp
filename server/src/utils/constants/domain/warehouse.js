@@ -8,7 +8,7 @@
 const WAREHOUSE_CONSTANTS = {
   PERMISSIONS: {
     // ── Scope ─────────────────────────────────────────────────────────────────
-    
+
     /**
      * Grants visibility across all warehouses.
      *
@@ -16,7 +16,7 @@ const WAREHOUSE_CONSTANTS = {
      * listed in their assignment record.
      */
     VIEW_ALL: 'view_all_warehouses',
-    
+
     // ── Visibility overrides ──────────────────────────────────────────────────
     /**
      * Grants visibility of inventory summary stats on warehouse records.
@@ -26,15 +26,15 @@ const WAREHOUSE_CONSTANTS = {
      * see warehouse identity and status but not stock levels.
      */
     VIEW_SUMMARY: 'view_warehouse_summary',
-    
+
     /** Allows viewing archived warehouses. */
     VIEW_ARCHIVED: 'view_archived_warehouses',
-    
+
     /** Allows viewing warehouses in any status, not just active. */
     VIEW_ALL_STATUSES: 'view_all_warehouse_statuses',
-    
+
     // ── Mutations ─────────────────────────────────────────────────────────────
-    
+
     /** Allows archiving a warehouse record. */
     ARCHIVE: 'archive_warehouse',
   },

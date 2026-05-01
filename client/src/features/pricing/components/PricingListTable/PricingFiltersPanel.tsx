@@ -6,7 +6,10 @@ import { renderInputField } from '@utils/filters/filterUtils';
 import { useProductLookup, useSkuLookup } from '@hooks/index';
 import type { PricingFilters } from '@features/pricing';
 import { ProductDropdown, SkuDropdown } from '@features/lookup/components';
-import type { ProductLookupParams, SkuLookupQueryParams } from '@features/lookup';
+import type {
+  ProductLookupParams,
+  SkuLookupQueryParams,
+} from '@features/lookup';
 import { useFilterFormSync } from '@utils/filters/useFilterFormSync';
 
 // =========================================================
@@ -65,44 +68,46 @@ const emptyFilters: PricingFilters = {
  * - status
  */
 const PricingFiltersPanel: FC<Props> = ({
-                                          filters,
-                                          lookups,
-                                          lookupHandlers,
-                                          onChange,
-                                          onFilterChange,
-                                          onApply,
-                                          onReset,
-                                        }) => {
+  filters,
+  lookups,
+  lookupHandlers,
+  onChange,
+  onFilterChange,
+  onApply,
+  onReset,
+}) => {
   const { control, handleSubmit, reset, watch, setValue } =
     useForm<PricingFilters>({ defaultValues: filters });
-  
+
   const watchedValues = watch();
-  
-  const {
-    product,
-    sku,
-  } = lookups;
-  
-  const [productFetchParams, setProductFetchParams] = useState<ProductLookupParams>({
-    offset: 0,
-    limit: 10,
-  });
-  
+
+  const { product, sku } = lookups;
+
+  const [productFetchParams, setProductFetchParams] =
+    useState<ProductLookupParams>({
+      offset: 0,
+      limit: 10,
+    });
+
   const handleProductInputChange = useCallback(
     (_: unknown, newValue: string, reason: string) => {
       if (reason !== 'input') return;
-      const nextParams = { ...productFetchParams, keyword: newValue, offset: 0 };
+      const nextParams = {
+        ...productFetchParams,
+        keyword: newValue,
+        offset: 0,
+      };
       setProductFetchParams(nextParams);
       product.fetch(nextParams);
     },
     [productFetchParams, product.fetch]
   );
-  
+
   const [skuFetchParams, setSkuFetchParams] = useState<SkuLookupQueryParams>({
     offset: 0,
     limit: 10,
   });
-  
+
   const handleSkuInputChange = useCallback(
     (_: unknown, newValue: string, reason: string) => {
       if (reason !== 'input') return;
@@ -112,9 +117,9 @@ const PricingFiltersPanel: FC<Props> = ({
     },
     [skuFetchParams, sku.fetch]
   );
-  
+
   useFilterFormSync(watchedValues, filters, reset, onFilterChange);
-  
+
   // -------------------------
   // Submit / Reset
   // -------------------------
@@ -128,12 +133,12 @@ const PricingFiltersPanel: FC<Props> = ({
     });
     onApply();
   };
-  
+
   const resetFilters = () => {
     reset(emptyFilters);
     onReset();
   };
-  
+
   // -------------------------
   // Render
   // -------------------------
@@ -145,7 +150,9 @@ const PricingFiltersPanel: FC<Props> = ({
             <ProductDropdown
               options={product.options}
               value={watch('productId') ?? null}
-              onChange={(val) => setValue('productId', val, { shouldDirty: true })}
+              onChange={(val) =>
+                setValue('productId', val, { shouldDirty: true })
+              }
               onOpen={lookupHandlers.onOpen.product}
               loading={product.loading}
               paginationMeta={product.meta}
@@ -155,7 +162,7 @@ const PricingFiltersPanel: FC<Props> = ({
               onInputChange={handleProductInputChange}
             />
           </Grid>
-          
+
           <Grid size={{ xs: 12, md: 6 }}>
             <SkuDropdown
               options={sku.options}
@@ -170,10 +177,20 @@ const PricingFiltersPanel: FC<Props> = ({
               onInputChange={handleSkuInputChange}
             />
           </Grid>
-          {renderInputField(control, 'search',      'Search',       'Product, SKU, brand…')}
-          {renderInputField(control, 'brand',        'Brand')}
-          {renderInputField(control, 'category',     'Category')}
-          {renderInputField(control, 'countryCode',  'Country Code', 'e.g. CA, CN, GLOBAL')}
+          {renderInputField(
+            control,
+            'search',
+            'Search',
+            'Product, SKU, brand…'
+          )}
+          {renderInputField(control, 'brand', 'Brand')}
+          {renderInputField(control, 'category', 'Category')}
+          {renderInputField(
+            control,
+            'countryCode',
+            'Country Code',
+            'e.g. CA, CN, GLOBAL'
+          )}
         </Grid>
       </FilterPanelLayout>
     </form>

@@ -44,7 +44,7 @@ export const getPricingListTableColumns = (
       sortable: true,
       renderCell: (row) => row.brand ?? '—',
     },
-    
+
     // ------------------------------
     // SKU Info
     // ------------------------------
@@ -54,7 +54,7 @@ export const getPricingListTableColumns = (
       sortable: true,
       renderCell: (row) => row.barcode ?? '—',
     },
-    
+
     // ------------------------------
     // Pricing Type
     // ------------------------------
@@ -64,7 +64,7 @@ export const getPricingListTableColumns = (
       sortable: true,
       renderCell: (row) => row.pricingTypeName ?? '—',
     },
-    
+
     // ------------------------------
     // Geography & Price
     // ------------------------------
@@ -81,7 +81,7 @@ export const getPricingListTableColumns = (
       renderCell: (row) =>
         row.price != null ? `$${row.price.toFixed(2)}` : '—',
     },
-    
+
     // ------------------------------
     // Validity
     // ------------------------------
@@ -97,7 +97,7 @@ export const getPricingListTableColumns = (
       sortable: true,
       renderCell: (row) => formatDate(row.validTo) ?? 'N/A',
     },
-    
+
     // ------------------------------
     // Status
     // ------------------------------
@@ -108,7 +108,7 @@ export const getPricingListTableColumns = (
       renderCell: (row) => formatLabel(row.statusName) ?? '—',
     },
   ];
-  
+
   if (onDrillDownToggle) {
     columns.push(
       createDrillDownColumn<FlattenedPricingJoinRecord>(
@@ -117,6 +117,6 @@ export const getPricingListTableColumns = (
       )
     );
   }
-  
+
   return columns;
 };

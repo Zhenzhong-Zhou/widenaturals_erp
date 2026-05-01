@@ -28,16 +28,20 @@ const warehouseInventoryCreateSlice = createSlice({
       .addCase(createWarehouseInventoryThunk.fulfilled, (state, action) => {
         state.loading = false;
         state.error = null;
-        
+
         const result = action.payload as CreateWarehouseInventoryResponse;
-        
+
         state.data = result.data;
         state.success = result.success;
         state.message = result.message;
       })
       .addCase(createWarehouseInventoryThunk.rejected, (state, action) => {
         state.data = null;
-        applyRejected(state, action, 'Failed to create warehouse inventory record(s).');
+        applyRejected(
+          state,
+          action,
+          'Failed to create warehouse inventory record(s).'
+        );
       });
   },
 });

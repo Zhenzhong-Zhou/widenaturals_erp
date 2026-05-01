@@ -33,22 +33,22 @@ interface Props {
  * error state so the parent page only needs to gate by permission.
  */
 const WarehouseSummarySection: FC<Props> = ({
-                                              warehouseInfo,
-                                              totals,
-                                              byBatchType,
-                                              byStatus,
-                                              alerts,
-                                              loading = false,
-                                              error = null,
-                                            }) => {
+  warehouseInfo,
+  totals,
+  byBatchType,
+  byStatus,
+  alerts,
+  loading = false,
+  error = null,
+}) => {
   if (error) {
     return <ErrorMessage message={error} showNavigation />;
   }
-  
+
   if (loading) {
     return <Skeleton variant="rectangular" height={120} sx={{ mb: 3 }} />;
   }
-  
+
   return (
     <>
       {warehouseInfo?.isArchived && (
@@ -56,14 +56,14 @@ const WarehouseSummarySection: FC<Props> = ({
           This warehouse is archived. Inventory data is read-only.
         </Alert>
       )}
-      
+
       <WarehouseSummaryHeader
         warehouseInfo={warehouseInfo}
         totals={totals}
         byBatchType={byBatchType}
         byStatus={byStatus}
       />
-      
+
       <WarehouseInventoryAlertSummary alerts={alerts} />
     </>
   );

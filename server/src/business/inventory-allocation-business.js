@@ -114,7 +114,7 @@ const applyInventoryAllocationVisibilityRules = (filters, acl) => {
     adjusted.forceEmptyResult = true;
     return adjusted;
   }
-  
+
   if (adjusted.warehouseIds?.length) {
     // Intersect requested warehouses with user's assigned ones.
     const allowed = adjusted.warehouseIds.filter((id) =>

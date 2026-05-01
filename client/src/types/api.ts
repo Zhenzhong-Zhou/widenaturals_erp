@@ -262,7 +262,7 @@ export interface CreatedUpdatedDateFilter {
 export interface ExpiryDateRanges {
   /** Include records expiring on or after this date (ISO 8601, e.g. `'2026-01-01'`). */
   expiringAfter?: string;
-  
+
   /** Include records expiring on or before this date (ISO 8601, e.g. `'2026-12-31'`). */
   expiringBefore?: string;
 }

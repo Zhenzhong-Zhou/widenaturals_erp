@@ -23,10 +23,7 @@ import {
 import { usePricingGroupLookups } from '@features/pricingGroup/hook';
 import { PricingTypeDetailPanel } from '@features/pricingType/components/PricingTypeDetail';
 import { createOnOpenHandler } from '@features/lookup/utils/lookupUtils';
-import {
-  usePaginatedPricingGroups,
-  usePricingTypeDetail,
-} from '@hooks/index';
+import { usePaginatedPricingGroups, usePricingTypeDetail } from '@hooks/index';
 import { applyFiltersAndSorting } from '@utils/query';
 import { usePaginationHandlers } from '@utils/hooks';
 
@@ -47,7 +44,7 @@ const PricingTypeDetailsPage: FC = () => {
   const [sortOrder, setSortOrder] = useState<'' | 'ASC' | 'DESC'>('');
   const [filters, setFilters] = useState<PricingGroupFilters>({});
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
-  
+
   const {
     pricingType,
     loading,
@@ -65,9 +62,9 @@ const PricingTypeDetailsPage: FC = () => {
     fetchPricingGroups,
     resetPricingGroups,
   } = usePaginatedPricingGroups();
-  
+
   const lookups = usePricingGroupLookups();
-  
+
   // -----------------------------
   // Fetch on mount
   // -----------------------------
@@ -75,12 +72,12 @@ const PricingTypeDetailsPage: FC = () => {
     if (pricingTypeId) {
       fetchPricingTypeDetail(pricingTypeId);
     }
-    
+
     return () => {
       resetPricingTypeDetailState();
     };
   }, [pricingTypeId]);
-  
+
   // -----------------------------
   // Query model (shared)
   // -----------------------------
@@ -141,7 +138,7 @@ const PricingTypeDetailsPage: FC = () => {
       resetAll: () => {
         lookups.status.reset();
       },
-      
+
       onOpen: {
         status: createOnOpenHandler(lookups.status),
       },
@@ -155,7 +152,7 @@ const PricingTypeDetailsPage: FC = () => {
   const handleRefresh = useCallback(() => {
     applyFiltersAndSorting(queryParams);
   }, [queryParams]);
-  
+
   const handleResetFilters = () => {
     resetPricingGroups();
     setFilters({});
@@ -164,47 +161,48 @@ const PricingTypeDetailsPage: FC = () => {
     lookupHandlers.resetAll();
     setPage(1);
   };
-  
+
   const { handlePageChange, handleRowsPerPageChange } = usePaginationHandlers(
     setPage,
     setLimit
   );
-  
+
   const handleDrillDownToggle = (rowId: string) => {
     setExpandedRowId((current) => (current === rowId ? null : rowId));
   };
-  
+
   // -----------------------------
   // Loading / error states
   // -----------------------------
   if (loading) {
     return <Loading variant="dotted" message="Loading pricing type..." />;
   }
-  
+
   if (error) {
     return <ErrorMessage message={error} showNavigation />;
   }
-  
+
   if (!pricingType) {
     return <NoDataFound message="Pricing type not found." />;
   }
-  
+
   // -----------------------------
   // Render
   // -----------------------------
   return (
     <Box sx={{ px: 4, py: 3 }}>
-      
       {/* --------------------------------------------------
        * Page Header
        * -------------------------------------------------- */}
       <PricingTypeDetailPanel
         pricingType={pricingType}
-        onEdit={() => {/* TODO */}}
+        onEdit={() => {
+          /* TODO */
+        }}
       />
-      
+
       <Divider sx={{ my: 3 }} />
-      
+
       {/* --------------------------------------------------
        * Pricing Groups Section
        * -------------------------------------------------- */}
@@ -217,12 +215,10 @@ const PricingTypeDetailsPage: FC = () => {
         <CustomTypography variant="h6" fontWeight={600}>
           Pricing Groups
         </CustomTypography>
-        
-        <CustomButton variant="contained">
-          + New Price Group
-        </CustomButton>
+
+        <CustomButton variant="contained">+ New Price Group</CustomButton>
       </Box>
-      
+
       {/* Filter + Sort Controls */}
       <Card sx={{ p: 3, mb: 4, borderRadius: 2, minHeight: 200 }}>
         <Grid container spacing={2}>
@@ -247,7 +243,7 @@ const PricingTypeDetailsPage: FC = () => {
           </Grid>
         </Grid>
       </Card>
-      
+
       {/* Pricing Group Table Section */}
       {pricingGroupLoading || !pricingGroupPagination ? (
         <Loading variant="dotted" message="Loading pricing groups..." />

@@ -18,10 +18,10 @@ import {
  */
 const useWarehouseInventoryLookups = () => {
   // const inventoryStatus    = useInventoryStatusLookup();
-  const product            = useProductLookup();
-  const sku                = useSkuLookup();
-  const packagingMaterial  = usePackagingMaterialLookup();
-  
+  const product = useProductLookup();
+  const sku = useSkuLookup();
+  const packagingMaterial = usePackagingMaterialLookup();
+
   return {
     // inventoryStatus,
     product,

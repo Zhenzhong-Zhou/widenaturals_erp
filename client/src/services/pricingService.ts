@@ -24,7 +24,7 @@ const fetchPaginatedPricing = async (
   const flatParams = flattenListQueryParams(params, []);
   const queryString = buildQueryString(flatParams);
   const url = `${API_ENDPOINTS.PRICING.ALL_RECORDS}${queryString}`;
-  
+
   return getRequest<PaginatedPricingApiResponse>(url, {
     policy: 'READ',
   });
@@ -41,7 +41,7 @@ const exportPricing = async (
   const flatParams = flattenListQueryParams(params, []);
   const queryString = buildQueryString(flatParams);
   const url = `${API_ENDPOINTS.PRICING.EXPORT_DATA}${queryString}`;
-  
+
   return getRequest<Blob>(url, {
     policy: 'READ',
     config: { responseType: 'blob' },
