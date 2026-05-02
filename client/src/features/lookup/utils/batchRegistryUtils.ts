@@ -1,40 +1,172 @@
-import type { BatchRegistryLookupItem } from '@features/lookup/state';
-import { formatDate } from '@utils/dateTimeUtils';
+/**
+ * @file batch-registry-label.ts
+ * @description Pure transformers for batch-registry lookup items: dropdown
+ * option mapping, label composition, and expiry-severity styling helpers.
+ *
+ * No side effects, no logging, no error throwing — these helpers are safe to
+ * call inside render paths and memoized selectors.
+ */
 
+import type {
+  BatchRegistryLookupItem,
+  BatchRegistryPackagingMaterialLookupItem,
+  BatchRegistryProductLookupItem,
+  ExpiryMeta,
+} from '@features/lookup/state';
+import { formatDate } from '@utils/dateTimeUtils';
+import type { ExpirySeverity } from '@shared-types/batch';
+
+/**
+ * Dropdown-friendly option shape produced by {@link mapBatchLookupToOptions}.
+ */
+export interface BatchLookupOption {
+  value: string;
+  label: string;
+  type: string;
+}
+
+/**
+ * Maps batch-registry lookup items into dropdown options with deduplication.
+ *
+ * Each item is rendered as `"Name - LOT (Exp: formatted-date)"`. When
+ * `useCompositeValue` is true the value embeds the type as `id::type`,
+ * letting consumers parse the type back without a second lookup. When false
+ * the value is the bare id, which is sufficient as long as ids are unique
+ * across product and packaging-material batches (UUIDs guarantee this).
+ *
+ * Duplicate values are silently dropped — first occurrence wins.
+ *
+ * @param batchOptions      Lookup items returned by the batch-registry endpoint.
+ * @param useCompositeValue When true, value is `${id}::${type}`; otherwise just id.
+ * @returns Deduplicated dropdown options.
+ */
 export const mapBatchLookupToOptions = (
   batchOptions: BatchRegistryLookupItem[],
-  useCompositeValue: boolean = false // control ID vs. ID::type
-): { value: string; label: string; type: string }[] => {
-  const seenValues = new Set<string>();
+  useCompositeValue = false
+): BatchLookupOption[] => {
+  const seen = new Set<string>();
+  
+  return batchOptions.reduce<BatchLookupOption[]>((acc, item) => {
+    const value = useCompositeValue ? `${item.id}::${item.type}` : item.id;
+    if (seen.has(value)) return acc;
+    seen.add(value);
+    
+    let label = 'Unknown Type';
+    if (item.type === 'product') {
+      const name = item.product?.name ?? 'Unknown Product';
+      const lot = item.product?.lotNumber ?? 'N/A';
+      const exp = formatDate(item.product?.expiryDate);
+      label = `${name} - ${lot} (Exp: ${exp})`;
+    } else if (item.type === 'packaging_material') {
+      const name = item.packagingMaterial?.snapshotName ?? 'Unknown Material';
+      const lot = item.packagingMaterial?.lotNumber ?? 'N/A';
+      const exp = formatDate(item.packagingMaterial?.expiryDate);
+      label = `${name} - ${lot} (Exp: ${exp})`;
+    }
+    
+    acc.push({ value, label, type: item.type });
+    return acc;
+  }, []);
+};
 
-  return batchOptions.reduce(
-    (acc, item) => {
-      const optionValue = useCompositeValue
-        ? `${item.id}::${item.type}`
-        : `${item.id}`;
+/**
+ * Builds a compact bullet-separated label for a batch-registry lookup item.
+ *
+ * Composes from the appropriate sub-record based on `type`:
+ * - product → `"Product Name • LOT123 • 2026-12-31"`
+ * - packaging_material → `"Snapshot Name • LOT456 • 2026-06-30"`
+ *
+ * Falls back to `id` when sub-records are missing — shouldn't happen since
+ * the backend transformer guarantees one branch is populated, but keeps the
+ * function total.
+ *
+ * Unlike {@link mapBatchLookupToOptions}, dates are emitted raw (ISO) rather
+ * than formatted; this label is intended for compact inline rendering where
+ * formatting happens at the call site.
+ */
+export const composeBatchLabel = (opt: BatchRegistryLookupItem): string => {
+  if (opt.type === 'product' && opt.product) {
+    const { name, lotNumber, expiryDate } = opt.product;
+    return [name, lotNumber, expiryDate].filter(Boolean).join(' • ');
+  }
+  if (opt.type === 'packaging_material' && opt.packagingMaterial) {
+    const { snapshotName, receivedLabel, lotNumber, expiryDate } =
+      opt.packagingMaterial;
+    return [snapshotName ?? receivedLabel, lotNumber, expiryDate]
+      .filter(Boolean)
+      .join(' • ');
+  }
+  return opt.id;
+};
 
-      if (seenValues.has(optionValue)) {
-        return acc;
-      }
+/**
+ * Extracts expiry metadata from a product or packaging-material sub-record.
+ *
+ * Returns `{ hasExpiryDate: false }` when the sub-record is absent or has no
+ * expiry date; otherwise narrows to the populated metadata shape.
+ */
+const pickExpiryMeta = (
+  sub:
+    | BatchRegistryProductLookupItem
+    | BatchRegistryPackagingMaterialLookupItem
+    | undefined
+): ExpiryMeta => {
+  if (!sub || !sub.hasExpiryDate) return { hasExpiryDate: false };
+  const { daysUntilExpiry, isExpired, isNearExpiry, expirySeverity } = sub;
+  return {
+    hasExpiryDate: true,
+    daysUntilExpiry,
+    isExpired,
+    isNearExpiry,
+    expirySeverity,
+  };
+};
 
-      seenValues.add(optionValue);
+/**
+ * Extracts expiry metadata from a batch-registry lookup item by branching on
+ * its `type` discriminator. Used to drive expiry chips, sort priority, and
+ * filter presets in batch and inventory views.
+ */
+export const getBatchExpiryMeta = (opt: BatchRegistryLookupItem): ExpiryMeta => {
+  if (opt.type === 'product') return pickExpiryMeta(opt.product);
+  if (opt.type === 'packaging_material') return pickExpiryMeta(opt.packagingMaterial);
+  return { hasExpiryDate: false };
+};
 
-      let label = 'Unknown Type';
-      if (item.type === 'product') {
-        const name = item.product?.name ?? 'Unknown Product';
-        const lot = item.product?.lotNumber ?? 'N/A';
-        const exp = formatDate(item.product?.expiryDate);
-        label = `${name} - ${lot} (Exp: ${exp})`;
-      } else if (item.type === 'packaging_material') {
-        const name = item.packagingMaterial?.snapshotName ?? 'Unknown Material';
-        const lot = item.packagingMaterial?.lotNumber ?? 'N/A';
-        const exp = formatDate(item.packagingMaterial?.expiryDate);
-        label = `${name} - ${lot} (Exp: ${exp})`;
-      }
+/**
+ * Maps batch expiry severity to a raw CSS color string for use with custom
+ * styling (icon fills, inline `style` props, etc.). For MUI components, use
+ * {@link expirySeverityToChipColor} instead.
+ *
+ * Note: `'yellow'` is poorly visible on light backgrounds — prefer the chip
+ * variant unless rendering on a dark surface.
+ */
+export const expirySeverityToColor = (severity: ExpirySeverity): string => {
+  switch (severity) {
+    case 'expired':  return 'red';
+    case 'critical': return 'orange';
+    case 'warning':  return 'yellow';
+    case 'normal':   return 'green';
+    default: {
+      return severity;
+    }
+  }
+};
 
-      acc.push({ value: optionValue, label, type: item.type });
-      return acc;
-    },
-    [] as { value: string; label: string; type: string }[]
-  );
+/**
+ * Maps batch expiry severity to a MUI palette color key for use with
+ * StatusChip / Chip / Alert components.
+ */
+export const expirySeverityToChipColor = (
+  severity: ExpirySeverity
+): 'default' | 'success' | 'warning' | 'error' => {
+  switch (severity) {
+    case 'expired':  return 'error';
+    case 'critical': return 'error';
+    case 'warning':  return 'warning';
+    case 'normal':   return 'success';
+    default: {
+      return severity;
+    }
+  }
 };

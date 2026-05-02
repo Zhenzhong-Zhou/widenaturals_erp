@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+import type { IconDefinition } from '@fortawesome/free-regular-svg-icons';
 import type {
   AsyncState,
   LookupSuccessResponse,
@@ -7,6 +9,8 @@ import type {
   LookupPagination,
   PaginationLookupInfo,
 } from '@shared-types/pagination';
+import type { BatchEntityType, ExpirySeverity } from '@shared-types/batch';
+import type { OptionType } from '@components/common/Dropdown';
 
 /**
  * Represents a generic option item used in lookup components.
@@ -89,23 +93,12 @@ export type LookupItemWithSubLabelAndStatus = LookupItemWithSubLabel &
   ActiveValidFilter;
 
 /**
- * Query parameters for fetching batch registry lookup data.
+ * Query params for GET /lookups/batch-registry.
+ * camelCase here — buildQueryString converts to snake_case before the wire.
  */
-export interface GetBatchRegistryLookupParams extends LookupPagination {
-  /**
-   * Filter by batch type (e.g., 'product', 'packaging_material').
-   */
-  batchType?: 'product' | 'packaging_material' | string;
-
-  /**
-   * Optional warehouse ID to exclude batches already present in this warehouse.
-   */
+export interface BatchRegistryLookupQuery extends LookupQuery {
+  batchType?: BatchEntityType;
   warehouseId?: string;
-
-  /**
-   * Optional location ID to exclude batches already present in this location.
-   */
-  locationId?: string;
 }
 
 /**
@@ -128,38 +121,114 @@ export interface LotAdjustmentLookupQueryParams {
   restrictToQtyAdjustment?: boolean;
 }
 
-export interface ProductBatchLookupItem {
+/**
+ * Expiry metadata discriminated union.
+ *
+ * Mirrors the two branches of the backend `getExpiryMeta` helper:
+ * - When the source row has an expiry date, all derived fields are populated.
+ * - When it does not, only `hasExpiryDate: false` is present and the other
+ *   fields are absent (not `null`/`undefined`), so consumers must narrow on
+ *   `hasExpiryDate` before reading `daysUntilExpiry`, `expirySeverity`, etc.
+ */
+export type ExpiryMeta =
+  | {
+  hasExpiryDate: true;
+  daysUntilExpiry: number;
+  isExpired: boolean;
+  isNearExpiry: boolean;
+  expirySeverity: ExpirySeverity;
+}
+  | { hasExpiryDate: false };
+
+/**
+ * Product-batch sub-record returned inside a batch-registry lookup item.
+ *
+ * Present only when the underlying row is a product batch
+ * (`row.product_batch_id != null`). `name` is composed server-side via
+ * `getProductDisplayName` and is always a string; lot/expiry fields may be
+ * null when not recorded on the batch.
+ *
+ * Intersected with {@link ExpiryMeta} to expose expiry-derived flags.
+ */
+export type BatchRegistryProductLookupItem = {
   id: string;
-  type: 'product';
-  product: {
-    id: string;
-    name: string;
-    lotNumber: string;
-    expiryDate: string;
-  };
+  name: string;
+  lotNumber: string | null;
+  expiryDate: string | null;
+} & ExpiryMeta;
+
+/**
+ * Packaging-material-batch sub-record returned inside a batch-registry lookup
+ * item.
+ *
+ * Present only when the underlying row is a packaging-material batch
+ * (`row.packaging_material_batch_id != null`). `snapshotName` and
+ * `receivedLabel` come from the material snapshot captured at receipt time.
+ *
+ * Intersected with {@link ExpiryMeta} to expose expiry-derived flags.
+ */
+export type BatchRegistryPackagingMaterialLookupItem = {
+  id: string;
+  lotNumber: string | null;
+  expiryDate: string | null;
+  snapshotName: string | null;
+  receivedLabel: string | null;
+} & ExpiryMeta;
+
+/**
+ * Permission-gated flags merged onto each lookup item by
+ * `includeFlagsBasedOnAccess` against `BATCH_REGISTRY_FLAG_MAP`.
+ *
+ * Index signature is a deliberate placeholder — replace with a concrete
+ * `Partial<{ canViewInternalLot: boolean; ... }>` once the flag map keys are
+ * finalized so the union becomes exhaustive on the frontend.
+ */
+export interface BatchRegistryLookupFlags {
+  [flag: string]: unknown;
 }
 
-export interface PackagingMaterialLookupItem {
+/**
+ * Single row in a batch-registry lookup response.
+ *
+ * `product` and `packagingMaterial` are optional rather than nullable: the
+ * backend transformer pipes through `cleanObject`, which strips null entries
+ * before serialization, so exactly one of the two will be present per row
+ * (matching the `type` discriminator).
+ *
+ * Permission-gated fields are spread in via {@link BatchRegistryLookupFlags}.
+ */
+export interface BatchRegistryLookupItem extends BatchRegistryLookupFlags {
   id: string;
-  type: 'packaging_material';
-  packagingMaterial: {
-    id: string;
-    lotNumber: string;
-    expiryDate: string;
-    snapshotName: string;
-    receivedLabel: string;
-  };
+  type: BatchEntityType;
+  product?: BatchRegistryProductLookupItem;
+  packagingMaterial?: BatchRegistryPackagingMaterialLookupItem;
 }
 
-export type BatchRegistryLookupItem =
-  | ProductBatchLookupItem
-  | PackagingMaterialLookupItem;
-
-export type GetBatchRegistryLookupResponse =
+/**
+ * Full HTTP envelope for `GET /lookups/batch-registry`.
+ *
+ * Wraps a load-more paginated payload of {@link BatchRegistryLookupItem}.
+ */
+export type BatchRegistryLookupResponse =
   LookupSuccessResponse<BatchRegistryLookupItem>;
 
+/**
+ * Redux slice state shape for the batch-registry lookup feature.
+ *
+ * Built on the shared `PaginatedLookupState<T>` so it inherits the standard
+ * `items` / `pagination` / `loading` / `error` fields used across all
+ * load-more lookup slices.
+ */
 export type BatchRegistryLookupState =
   PaginatedLookupState<BatchRegistryLookupItem>;
+
+export type BatchRegistryOption = OptionType & {
+  type: BatchEntityType;
+  displayLabel: ReactNode;
+  icon: IconDefinition;
+  tooltip: string;
+  iconColor: string;
+} & ExpiryMeta;
 
 /**
  * Lookup option representing a selectable warehouse.
@@ -204,9 +273,8 @@ export interface LotAdjustmentTypeLookupItem extends LookupOption {
 /**
  * Typed API response for fetching lot adjustment lookup options.
  */
-export type LotAdjustmentTypeLookupResponse = LookupSuccessResponse<
-  LotAdjustmentTypeLookupItem
->;
+export type LotAdjustmentTypeLookupResponse =
+  LookupSuccessResponse<LotAdjustmentTypeLookupItem>;
 
 export type LotAdjustmentTypeLookupState = AsyncState<
   LotAdjustmentTypeLookupItem[]
@@ -344,7 +412,8 @@ export interface OrderTypeLookupItem extends LookupItemWithStatus {
  *   hasMore: boolean;
  * }
  */
-export type OrderTypeLookupResponse = LookupSuccessResponse<OrderTypeLookupItem>;
+export type OrderTypeLookupResponse =
+  LookupSuccessResponse<OrderTypeLookupItem>;
 
 /**
  * Redux state shape for the order type lookup slice.
@@ -554,12 +623,12 @@ export interface PricingGroupLookupFullItem extends LookupItemWithStatus {
    * ISO country code where the price is applicable (e.g., "CA", "US").
    */
   countryCode: string;
-  
+
   /**
    * Price value for the SKU or product.
    */
   price: number;
-  
+
   /**
    * Pricing type name (e.g., "Wholesale", "Retail").
    */
@@ -627,7 +696,8 @@ export type PricingGroupLookupItem =
  *   ]
  * }
  */
-export type PricingGroupLookupResponse = LookupSuccessResponse<PricingGroupLookupItem>;
+export type PricingGroupLookupResponse =
+  LookupSuccessResponse<PricingGroupLookupItem>;
 
 /**
  * Redux slice state for pricing group lookup dropdowns or autocomplete inputs.
@@ -641,7 +711,8 @@ export type PricingGroupLookupResponse = LookupSuccessResponse<PricingGroupLooku
  * discount selectors, or inventory pricing filters. Supports both
  * full and label-only pricing entries depending on access level and display mode.
  */
-export type PricingGroupLookupState = PaginatedLookupState<PricingGroupLookupItem>;
+export type PricingGroupLookupState =
+  PaginatedLookupState<PricingGroupLookupItem>;
 
 /**
  * Represents a full lookup bundle with results, loading/error states, pagination metadata,

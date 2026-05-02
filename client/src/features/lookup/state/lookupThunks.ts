@@ -25,14 +25,14 @@ import { extractUiErrorPayload } from '@utils/error';
 import type { UiErrorPayload } from '@utils/error/uiErrorUtils';
 import type {
   AddressByCustomerLookupResponse,
+  BatchRegistryLookupQuery,
+  BatchRegistryLookupResponse,
   CustomerLookupQuery,
   CustomerLookupResponse,
   DeliveryMethodLookupQueryParams,
   DeliveryMethodLookupResponse,
   DiscountLookupQueryParams,
   DiscountLookupResponse,
-  GetBatchRegistryLookupParams,
-  GetBatchRegistryLookupResponse,
   GetWarehouseLookupResponse,
   LocationTypeLookupParams,
   LocationTypeLookupResponse,
@@ -69,8 +69,8 @@ import type {
 /* ------------------------- Core Lookups ------------------------- */
 
 export const fetchBatchRegistryLookupThunk = createAsyncThunk<
-  GetBatchRegistryLookupResponse,
-  GetBatchRegistryLookupParams,
+  BatchRegistryLookupResponse,
+  BatchRegistryLookupQuery,
   { rejectValue: UiErrorPayload }
 >('lookup/fetchBatchRegistryLookup', async (params, { rejectWithValue }) => {
   try {
