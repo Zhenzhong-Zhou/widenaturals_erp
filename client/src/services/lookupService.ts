@@ -1,16 +1,16 @@
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 import { getRequest } from '@utils/http';
 import { buildQueryString } from '@utils/query';
-import type {
+import {
   AddressByCustomerLookupResponse,
+  BatchRegistryLookupQuery,
+  BatchRegistryLookupResponse,
   CustomerLookupQuery,
   CustomerLookupResponse,
   DeliveryMethodLookupQueryParams,
   DeliveryMethodLookupResponse,
   DiscountLookupQueryParams,
   DiscountLookupResponse,
-  GetBatchRegistryLookupParams,
-  GetBatchRegistryLookupResponse,
   GetWarehouseLookupResponse,
   LocationTypeLookupParams,
   LocationTypeLookupResponse,
@@ -70,8 +70,8 @@ const getLookup = <T>(endpoint: string, params?: object): Promise<T> => {
 
 /** Fetch batch registry lookup items. */
 const fetchBatchRegistryLookup = (
-  params: GetBatchRegistryLookupParams = {}
-): Promise<GetBatchRegistryLookupResponse> =>
+  params: BatchRegistryLookupQuery = {}
+): Promise<BatchRegistryLookupResponse> =>
   getLookup(API_ENDPOINTS.LOOKUPS.BATCH_REGISTRY, params);
 
 /** Fetch warehouse lookup items, optionally filtered by type. */

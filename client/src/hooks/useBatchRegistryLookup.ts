@@ -7,7 +7,7 @@ import {
   selectBatchRegistryLookupLoading,
   selectBatchRegistryLookupMeta,
 } from '@features/lookup/state';
-import type { GetBatchRegistryLookupParams } from '@features/lookup/state';
+import type { BatchRegistryLookupQuery } from '@features/lookup/state';
 import { resetBatchRegistryLookup } from '@features/lookup/state/batchRegistryLookupSlice';
 
 /**
@@ -26,7 +26,7 @@ const useBatchRegistryLookup = () => {
   const meta = useAppSelector(selectBatchRegistryLookupMeta);
 
   const fetchLookup = useCallback(
-    (params: GetBatchRegistryLookupParams = {}) =>
+    (params: BatchRegistryLookupQuery = {}) =>
       dispatch(fetchBatchRegistryLookupThunk(params)),
     [dispatch]
   );
