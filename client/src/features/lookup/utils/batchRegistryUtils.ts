@@ -87,14 +87,51 @@ export const mapBatchLookupToOptions = (
 export const composeBatchLabel = (opt: BatchRegistryLookupItem): string => {
   if (opt.type === 'product' && opt.product) {
     const { name, lotNumber, expiryDate } = opt.product;
-    return [name, lotNumber, expiryDate].filter(Boolean).join(' • ');
+    return [name, lotNumber, expiryDate ? formatDate(expiryDate) : null]
+      .filter(Boolean)
+      .join(' • ');
   }
   if (opt.type === 'packaging_material' && opt.packagingMaterial) {
     const { snapshotName, receivedLabel, lotNumber, expiryDate } =
       opt.packagingMaterial;
-    return [snapshotName ?? receivedLabel, lotNumber, expiryDate]
+    return [
+      snapshotName ?? receivedLabel,
+      lotNumber,
+      expiryDate ? formatDate(expiryDate) : null,
+    ]
       .filter(Boolean)
       .join(' • ');
+  }
+  return opt.id;
+};
+
+/**
+ * Resolves the short, human-readable title for a batch-registry lookup item —
+ * intended for row headers, chips, and other compact contexts where the
+ * identifier matters more than the full descriptor.
+ *
+ * Returns the most user-recognizable name available for the batch's type:
+ * - product → `product.name`
+ * - packaging_material → `packagingMaterial.snapshotName`, falling back to
+ *   `receivedLabel` (older batches recorded before snapshots were captured).
+ *
+ * Falls back to `id` whenever the expected sub-record or its name field is
+ * absent — keeps the function total and prevents `undefined` from leaking
+ * into the UI.
+ *
+ * For the long-form descriptor with lot number and expiry, see
+ * {@link composeBatchLabel}.
+ */
+export const composeBatchTitle = (opt: BatchRegistryLookupItem): string => {
+  if (opt.type === 'product' && opt.product) {
+    return opt.product.name ?? opt.id;
+  }
+  if (opt.type === 'packaging_material' && opt.packagingMaterial) {
+    return (
+      opt.packagingMaterial.snapshotName ??
+      opt.packagingMaterial.receivedLabel ??
+      opt.id
+    );
   }
   return opt.id;
 };
