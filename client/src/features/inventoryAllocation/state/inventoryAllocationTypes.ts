@@ -6,6 +6,7 @@ import type {
   SortConfig,
 } from '@shared-types/api';
 import type { ReduxPaginatedState } from '@shared-types/pagination';
+import { BatchTypeFilter } from '@shared-types/batch';
 
 /**
  * Parameters extracted from the URL path for allocation requests.
@@ -404,7 +405,7 @@ export interface FlattenedAllocationReviewItem {
   batchLotNumber: string | null;
   batchExpiryDate: string | null;
   manufactureDate: string | null;
-  batchType: 'product' | 'packaging_material' | 'unknown';
+  batchType: BatchTypeFilter;
 
   createdByName: string;
   updatedByName: string;
