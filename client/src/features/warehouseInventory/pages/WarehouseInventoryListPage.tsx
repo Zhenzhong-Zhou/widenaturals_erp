@@ -193,7 +193,7 @@ const WarehouseInventoryListPage: FC = () => {
   const handleSelectionChange = useCallback((ids: string[]) => {
     setSelectedIds(ids);
   }, []);
-
+  
   const lookupHandlers = useMemo(
     () => ({
       onOpen: {
@@ -203,7 +203,7 @@ const WarehouseInventoryListPage: FC = () => {
         packagingMaterial: createOnOpenHandler(lookups.packagingMaterial),
       },
     }),
-    [lookups]
+    [lookups.product, lookups.sku, lookups.packagingMaterial]
   );
 
   if (!warehouseId) {
