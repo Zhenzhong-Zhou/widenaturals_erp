@@ -16,6 +16,26 @@
 export type BatchEntityType = 'product' | 'packaging_material';
 
 /**
+ * UI-side widening of {@link BatchEntityType} that adds a sentinel `'all'`
+ * value for "no filter applied".
+ *
+ * Used by batch-picker controls and lookup query state where the user can
+ * choose to scope results to a specific entity type or view every type at
+ * once. Distinct from `BatchEntityType` — which represents an actual batch
+ * record's type and is never `'all'` — so the two should not be used
+ * interchangeably:
+ *
+ * - A row in the database has a `BatchEntityType`.
+ * - A filter control's selected value has a `BatchTypeFilter`.
+ *
+ * The `'all'` value is a UI concept only. It is dropped at the
+ * service-layer boundary: when building a lookup query, callers omit
+ * `batchType` from the request entirely rather than sending `'all'`,
+ * matching the backend's contract that a missing filter means no filter.
+ */
+export type BatchTypeFilter = BatchEntityType | 'all';
+
+/**
  * Severity classification for a batch's proximity to its expiry date.
  *
  * Derived from `daysUntilExpiry` against a configurable `nearExpiryDays`
