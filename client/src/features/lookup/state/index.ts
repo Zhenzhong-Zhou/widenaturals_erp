@@ -7,6 +7,7 @@ export { lookupReducers } from './lookupReducers';
 // Selectors
 // --------------------------------------------------
 export * from './batchRegistryLookupSelectors';
+export * from './batchRegistryForInventoryLookupSelectors';
 export * from './warehouseLookupSelectors';
 export * from './lotAdjustmentTypeLookupSelectors';
 export * from './customerLookupSelectors';
