@@ -14,14 +14,8 @@ const batchRegistryLookupSlice = createSlice({
   name: 'batchRegistryLookup',
   initialState,
   reducers: {
-    resetBatchRegistryLookup: (state) => {
-      state.loading = false;
-      state.error = null;
-      state.data = [];
-      state.hasMore = false;
-      state.limit = 50;
-      state.offset = 0;
-    },
+    resetBatchRegistryLookup:() =>
+      createInitialOffsetPaginatedState<BatchRegistryLookupItem>(),
   },
   extraReducers: (builder) => {
     builder
