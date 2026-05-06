@@ -1,7 +1,7 @@
 import { createContext, type Dispatch, type SetStateAction } from 'react';
 import type {
+  BatchRegistryForInventoryLookupQuery,
   BatchRegistryLookupItem,
-  BatchRegistryLookupQuery,
 } from '@features/lookup';
 import type { PaginationLookupInfo } from '@shared-types/pagination';
 import type { BatchTypeFilter } from '@shared-types/batch';
@@ -14,14 +14,14 @@ import type { BatchTypeFilter } from '@shared-types/batch';
 export interface BatchLookupBundle {
   inputValues: string[];
   setInputValues: Dispatch<SetStateAction<string[]>>;
-  fetchParamsArray: BatchRegistryLookupQuery[];
-  setFetchParamsArray: Dispatch<SetStateAction<BatchRegistryLookupQuery[]>>;
+  fetchParamsArray: BatchRegistryForInventoryLookupQuery[];
+  setFetchParamsArray: Dispatch<SetStateAction<BatchRegistryForInventoryLookupQuery[]>>;
   options: BatchRegistryLookupItem[];
   loading: boolean;
   error: string | null;
   paginationMeta: PaginationLookupInfo;
-  fetchOptions: (params: BatchRegistryLookupQuery) => void;
-  defaultQuery: BatchRegistryLookupQuery;
+  fetchOptions: (params: BatchRegistryForInventoryLookupQuery) => void;
+  defaultQuery: BatchRegistryForInventoryLookupQuery;
   globalBatchType: BatchTypeFilter;
   pickedBatches: Record<string, BatchRegistryLookupItem>;
   cachePickedBatch: (item: BatchRegistryLookupItem) => void;
