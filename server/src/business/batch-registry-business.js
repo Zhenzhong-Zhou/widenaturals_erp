@@ -185,100 +185,62 @@ const sliceBatchRegistryRow = (row, access) => {
 };
 
 /**
- * Prepares the filter object for the batch registry inventory lookup.
- *
- * Two independent privilege flags relax the default restrictions:
- * - `canViewAllWarehouses` — may omit `warehouseId`, accesses batches across
- *   all warehouses, and sees batches already placed in the target warehouse
- *   (the `excludeFromWarehouseId` exclusion is dropped).
- * - `canViewAllBatchStatus` — sees batches in any status, including
- *   archived and pending. Without this, all users are constrained to
- *   released batches only.
- *
- * Standard users (neither flag) must supply `warehouseId`, which is verified
- * against their assigned warehouses, and only see released batches not yet
- * placed in the target warehouse — the inventory-insert use case.
- *
- * The request's `warehouseId` is rewritten to `excludeFromWarehouseId` so the
- * underlying query surfaces batches *not yet placed* in the target warehouse.
- * The original `warehouseId` is stripped from the returned filter to keep the
- * repository contract clean.
- *
- * @param {object}   filters                - Filters from the request.
- * @param {string}   [filters.warehouseId]  - Target warehouse for inventory placement.
- * @param {string}   [filters.batchType]    - Optional batch type filter.
- * @param {string}   [filters.keyword]      - Optional keyword search term.
- * @param {AuthUser} user                   - Authenticated user making the request.
- *
- * @returns {Promise<object>} Prepared filter object for the service layer.
- *
- * @throws {AppError} validationError if `warehouseId` is missing for a user
- *   without `canViewAllWarehouses`.
- * @throws {AppError} authorizationError if the user lacks access to the
- *   requested warehouse.
- * @throws {AppError} businessError if visibility evaluation fails.
+ * Warehouse-inventory batch-add flow only. warehouseId is required and drives
+ * the exclusion join. Privileged users can opt out of the exclusion and the
+ * released-only status filter; the warehouseId itself is still mandatory.
  */
 const fetchBatchRegistryForInventoryLookup = async (filters, user) => {
-  const acl = await evaluateBatchRegistryVisibility(user);
-
-  // ─── Validate warehouseId requirement ────────────────────────────────────
-  // Privileged users may omit warehouseId entirely; standard users cannot.
-  if (!filters.warehouseId && !acl.canViewAllWarehouses) {
+  if (!filters.warehouseId) {
     throw AppError.validationError(
       'warehouseId is required for inventory lookup.'
     );
   }
-
-  // ─── Resolve released status ────────────────────────────────────────────
-  // Synchronous cache lookup — used to constrain non-privileged users to
-  // released batches only.
-  const batchReleasedStatusId = getStatusId('batch_released');
-
-  // ─── Enforce warehouse scope for non-privileged users ───────────────────
-  // Privileged users skip the warehouse round-trip entirely. Everyone else
-  // must have the requested warehouse in their assigned set, unless they
-  // hold canViewAll at the warehouse-access level.
-  if (!acl.canViewAllWarehouses) {
-    const warehouseAccess = await assertWarehouseAccess(user);
-
-    if (!warehouseAccess.canViewAll && filters.warehouseId) {
-      enforceWarehouseScope(
-        warehouseAccess.assignedWarehouseIds,
-        filters.warehouseId
-      );
-    }
+  
+  const acl = await evaluateBatchRegistryVisibility(user);
+  const warehouseAccess = await assertWarehouseAccess(user);
+  
+  if (!warehouseAccess.canViewAll) {
+    enforceWarehouseScope(
+      warehouseAccess.assignedWarehouseIds,
+      filters.warehouseId
+    );
   }
-
-  // ─── Build adjusted filter object with default restrictions ─────────────
-  // Default-restrictive: every request gets warehouse-scope exclusion and
-  // released-only status. Privileged users have these stripped below.
+  
+  const batchReleasedStatusId = getStatusId('batch_released');
+  
   const adjustedFilters = {
     ...filters,
-    ...(filters.warehouseId && { excludeFromWarehouseId: filters.warehouseId }),
+    excludeFromWarehouseId: filters.warehouseId,
     statusIds: [batchReleasedStatusId],
   };
-
-  // ─── Strip restrictions for privileged users ────────────────────────────
-  // canViewAllWarehouses removes the warehouse-scope exclusion, allowing the
-  // user to see batches already placed in the target warehouse. canViewAllBatchStatuses
-  // removes the released-only constraint, exposing archived and pending batches.
-  if (acl.canViewAllWarehouses) {
-    delete adjustedFilters.excludeFromWarehouseId;
-  }
-
-  if (acl.canViewAllBatchStatus) {
-    delete adjustedFilters.statusIds;
-  }
-
-  // ─── Apply batch-type visibility rules from the ACL ──────────────────────
-  // Injects keywordCapabilities and may set forceEmptyResult / batchType
-  // narrowing based on the user's product/packaging visibility.
+  
+  if (acl.canViewAllWarehouses) delete adjustedFilters.excludeFromWarehouseId;
+  if (acl.canViewAllBatchStatus) delete adjustedFilters.statusIds;
+  
   const adjusted = applyBatchRegistryVisibilityRules(adjustedFilters, acl);
-
-  // warehouseId is business-layer-only — repo expects excludeFromWarehouseId.
+  
+  // Repo expects excludeFromWarehouseId; warehouseId is business-layer only.
   delete adjusted.warehouseId;
-
   return adjusted;
+};
+
+/**
+ * General batch registry lookup for filters, dropdowns, and allocation
+ * pickers. Not coupled to a warehouse. ACL still narrows batch status and
+ * product/packaging visibility.
+ */
+const fetchBatchRegistryLookup = async (filters, user) => {
+  const acl = await evaluateBatchRegistryVisibility(user);
+  const batchReleasedStatusId = getStatusId('batch_released');
+  
+  const adjustedFilters = {
+    ...filters,
+    statusIds: [batchReleasedStatusId],
+  };
+  
+  if (acl.canViewAllBatchStatus) delete adjustedFilters.statusIds;
+  
+  return applyBatchRegistryVisibilityRules(adjustedFilters, acl);
 };
 
 module.exports = {
@@ -287,4 +249,5 @@ module.exports = {
   applyBatchRegistryVisibilityRules,
   sliceBatchRegistryRow,
   fetchBatchRegistryForInventoryLookup,
+  fetchBatchRegistryLookup,
 };

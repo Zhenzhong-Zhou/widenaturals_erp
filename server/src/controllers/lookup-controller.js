@@ -41,6 +41,7 @@ const {
   fetchLocationTypeLookupService,
   fetchBatchStatusLookupService,
   fetchPackagingMaterialSupplierLookupService,
+  fetchBatchRegistryForInventoryLookupService,
 } = require('../services/lookup-service');
 const {
   createLookupController,
@@ -51,15 +52,34 @@ const {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Batch registry lookup.
- * Supports batchType, warehouseId, locationId, limit, offset query params.
+ * General batch registry lookup controller.
+ * Returns paginated batches for filter dropdowns, allocation pickers, and
+ * any caller that doesn't need warehouse-coupled exclusion semantics.
+ * The business layer's ACL narrows by batch status and product/packaging
+ * visibility.
  *
- * @route      GET /api/v1/lookups/batch-registry
- * @permission view_batch_registry_lookup
+ * @route      GET /lookups/batch-registry
+ * @permission LOOKUP.PERMISSIONS.VIEW_BATCH_REGISTRY
  */
 const getBatchRegistryLookupController = createLookupController({
   service: fetchBatchRegistryLookupService,
   successMessage: 'Batch registry lookup retrieved successfully.',
+  passUser: true,
+});
+
+/**
+ * Warehouse-inventory batch-add lookup controller.
+ * Returns paginated batches scoped to a target warehouse: by default
+ * excludes batches already placed there and restricts to released status.
+ * Privileged users (canViewAllWarehouses / canViewAllBatchStatus) can opt
+ * out of those constraints. warehouseId is required.
+ *
+ * @route      GET /lookups/batch-registry/for-inventory
+ * @permission LOOKUP.PERMISSIONS.VIEW_BATCH_REGISTRY
+ */
+const getBatchRegistryForInventoryLookupController = createLookupController({
+  service: fetchBatchRegistryForInventoryLookupService,
+  successMessage: 'Batch registry lookup for inventory retrieved successfully.',
   passUser: true,
 });
 
@@ -394,6 +414,7 @@ const getPackagingMaterialSupplierLookupController = createLookupController({
 
 module.exports = {
   getBatchRegistryLookupController,
+  getBatchRegistryForInventoryLookupController,
   getWarehouseLookupController,
   getLotAdjustmentLookupController,
   getCustomerLookupController,
