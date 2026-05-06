@@ -25,6 +25,7 @@ export { default as DetailPage } from './common/DetailPage';
 export { default as DetailHeader } from './common/DetailHeader';
 export { default as MetadataSection } from './common/MetadataSection';
 export { default as Dropdown } from './common/Dropdown';
+export { default as PaginatedDropdown } from './common/PaginatedDropdown';
 export { default as CustomDatePicker } from './common/CustomDatePicker';
 export { default as CustomDialog } from './common/CustomDialog';
 export { default as NoDataFound } from './common/NoDataFound';
