@@ -12,7 +12,7 @@ import { toISODate } from '@utils/dateTimeUtils';
 import useBatchRegistryLookup from '@hooks/useBatchRegistryLookup';
 import type {
   BatchLookupOption,
-  GetBatchRegistryLookupParams,
+  BatchRegistryLookupQuery,
 } from '@features/lookup/state';
 import { mapBatchLookupToOptions } from '@features/lookup/utils/batchRegistryUtils';
 import useOrderTypeLookup from '@hooks/useOrderTypeLookup';
@@ -80,8 +80,8 @@ const InventoryAllocationFiltersPanel: FC<Props> = ({
     defaultValues: filters,
   });
   const [batchLookupParams, setBatchLookupParams] =
-    useState<GetBatchRegistryLookupParams>({
-      batchType: '',
+    useState<BatchRegistryLookupQuery>({
+      batchType: undefined,
       limit: 50,
       offset: 0,
     });
