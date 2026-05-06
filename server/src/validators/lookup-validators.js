@@ -7,6 +7,7 @@ const {
   validateOptionalString,
 } = require('./general-validators');
 const { CODE_RULES } = require('../utils/validation/code-rules');
+const { batchTypeField } = require('./batch-registry-validators');
 
 /**
  * Base Joi schema for validating common lookup query parameters.
@@ -29,21 +30,40 @@ const baseLookupQuerySchema = {
 };
 
 /**
- * Joi schema for validating batch registry lookup query parameters.
+ * General-purpose batch registry lookup query schema.
+ * Used by filter dropdowns, allocation pickers, and any caller that just
+ * wants a paginated list of batches. Not coupled to a warehouse — the
+ * business layer's ACL narrows by batch status and product/packaging
+ * visibility.
  *
- * Inherits base lookup options and adds:
- * - batchType:   'product' | 'packaging_material' (optional)
- * - warehouseId: UUID (optional; required at the business layer for non-privileged users)
+ * Fields:
+ * - batchType:                'product' | 'packaging_material' (optional)
+ * - ...baseLookupQuerySchema  limit, offset
  */
 const batchRegistryLookupQuerySchema = Joi.object({
-  batchType: Joi.string()
-    .valid('product', 'packaging_material')
-    .optional()
-    .allow('', null)
-    .label('Batch Type'),
+  batchType: batchTypeField().optional().allow('', null),
+  
+  ...baseLookupQuerySchema,
+});
 
-  warehouseId: validateUUID('Warehouse ID').optional().allow('', null),
-
+/**
+ * Warehouse-inventory batch-add lookup query schema.
+ * warehouseId is required at the schema level so requests fail fast before
+ * business logic. The business layer additionally enforces warehouse-scope
+ * access against the user's assigned warehouses and applies
+ * excludeFromWarehouseId / released-only filtering by default (privileged
+ * users may opt out of both).
+ *
+ * Fields:
+ * - batchType:                'product' | 'packaging_material' (optional)
+ * - warehouseId:              UUID (required)
+ * - ...baseLookupQuerySchema  limit, offset
+ */
+const batchRegistryForInventoryLookupQuerySchema = Joi.object({
+  batchType: batchTypeField().optional().allow('', null),
+  
+  warehouseId: validateUUID('Warehouse ID').required(),
+  
   ...baseLookupQuerySchema,
 });
 
@@ -540,6 +560,7 @@ const packagingMaterialSupplierLookupQuerySchema = Joi.object({
 
 module.exports = {
   batchRegistryLookupQuerySchema,
+  batchRegistryForInventoryLookupQuerySchema,
   warehouseLookupQuerySchema,
   lotAdjustmentTypeLookupSchema,
   customerLookupQuerySchema,
