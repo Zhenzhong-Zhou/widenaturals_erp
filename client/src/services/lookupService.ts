@@ -1,8 +1,9 @@
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 import { getRequest } from '@utils/http';
 import { buildQueryString } from '@utils/query';
-import {
+import type {
   AddressByCustomerLookupResponse,
+  BatchRegistryForInventoryLookupQuery,
   BatchRegistryLookupQuery,
   BatchRegistryLookupResponse,
   CustomerLookupQuery,
@@ -68,11 +69,31 @@ const getLookup = <T>(endpoint: string, params?: object): Promise<T> => {
  * Batch / Warehouse
  * ======================================================= */
 
-/** Fetch batch registry lookup items. */
+/**
+ * Fetch general batch registry lookup items.
+ *
+ * Calls GET /lookups/batch-registry. Not coupled to a warehouse — the
+ * caller's ACL narrows results by batch status and product/packaging
+ * visibility on the server. Used for filter dropdowns and allocation pickers.
+ */
 const fetchBatchRegistryLookup = (
   params: BatchRegistryLookupQuery = {}
 ): Promise<BatchRegistryLookupResponse> =>
   getLookup(API_ENDPOINTS.LOOKUPS.BATCH_REGISTRY, params);
+
+/**
+ * Fetch batch registry lookup items scoped to a target warehouse.
+ *
+ * Calls GET /lookups/batch-registry/for-inventory. Used by the warehouse-
+ * inventory batch-add flow. Default behavior excludes batches already placed
+ * in the warehouse and restricts to released batches; canViewAllWarehouses /
+ * canViewAllBatchStatus privileges strip those constraints server-side.
+ * warehouseId is required at the type level, so there is no default params.
+ */
+const fetchBatchRegistryForInventoryLookup = (
+  params: BatchRegistryForInventoryLookupQuery
+): Promise<BatchRegistryLookupResponse> =>
+  getLookup(API_ENDPOINTS.LOOKUPS.BATCH_REGISTRY_FOR_INVENTORY, params);
 
 /** Fetch warehouse lookup items, optionally filtered by type. */
 const fetchWarehouseLookup = (
@@ -218,6 +239,7 @@ export const fetchLocationTypeLookup = (
 
 export const lookupService = {
   fetchBatchRegistryLookup,
+  fetchBatchRegistryForInventoryLookup,
   fetchWarehouseLookup,
   fetchLotAdjustmentTypeLookup,
   fetchCustomerLookup,

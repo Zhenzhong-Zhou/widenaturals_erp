@@ -93,12 +93,27 @@ export type LookupItemWithSubLabelAndStatus = LookupItemWithSubLabel &
   ActiveValidFilter;
 
 /**
- * Query params for GET /lookups/batch-registry.
+ * Query params for GET /lookups/batch-registry — the general batch registry lookup.
+ * Used by filter dropdowns, allocation pickers, and any caller that just needs a
+ * paginated list of batches without warehouse coupling.
+ *
  * camelCase here — buildQueryString converts to snake_case before the wire.
  */
 export interface BatchRegistryLookupQuery extends LookupQuery {
   batchType?: BatchEntityType;
-  warehouseId?: string;
+}
+
+/**
+ * Query params for GET /lookups/batch-registry/for-inventory — the warehouse-
+ * inventory batch-add variant. warehouseId is required (the type enforces this);
+ * the backend uses it to exclude batches already placed in that warehouse and to
+ * enforce warehouse-scope access for non-privileged users.
+ *
+ * camelCase here — buildQueryString converts to snake_case before the wire.
+ */
+export interface BatchRegistryForInventoryLookupQuery
+  extends BatchRegistryLookupQuery {
+  warehouseId: string;
 }
 
 /**

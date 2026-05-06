@@ -1,4 +1,5 @@
 import batchRegistryLookupReducer from './batchRegistryLookupSlice';
+import batchRegistryForInventoryLookupReducer from './batchRegistryForInventoryLookupSlice';
 import warehouseLookupReducer from './warehouseLookupSlice';
 import lotAdjustmentTypeLookupReducer from './lotAdjustmentTypeLookupSlice';
 import customerLookupReducer from './customerLookupSlice';
@@ -42,6 +43,7 @@ import locationTypeLookupReducer from './locationTypeLookupSlice';
  */
 export const lookupReducers = {
   batchRegistryLookup: batchRegistryLookupReducer,
+  batchRegistryForInventoryLookup: batchRegistryForInventoryLookupReducer,
   warehouseLookup: warehouseLookupReducer,
   lotAdjustmentTypeLookup: lotAdjustmentTypeLookupReducer,
   customerLookup: customerLookupReducer,

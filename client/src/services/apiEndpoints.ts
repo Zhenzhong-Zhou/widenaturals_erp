@@ -116,6 +116,7 @@ export const API_ENDPOINTS = {
   },
   LOOKUPS: {
     BATCH_REGISTRY: '/lookups/batch-registry',
+    BATCH_REGISTRY_FOR_INVENTORY: '/lookups/batch-registry/for-inventory',
     WAREHOUSES: '/lookups/warehouses',
     LOT_ADJUSTMENT_TYPES: '/lookups/lot-adjustment-types',
     CUSTOMERS: '/lookups/customers',
