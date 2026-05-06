@@ -6,10 +6,10 @@ import {
   useRef,
   useState,
 } from 'react';
-import { useBatchRegistryLookup } from '@hooks/index';
+import { useBatchRegistryForInventoryLookup } from '@hooks/index';
 import type {
+  BatchRegistryForInventoryLookupQuery,
   BatchRegistryLookupItem,
-  BatchRegistryLookupQuery,
 } from '@features/lookup';
 import type { BatchTypeFilter } from '@shared-types/batch';
 import type { BatchLookupBundle } from './BatchLookupContext';
@@ -49,13 +49,13 @@ export const useCreateInventoryBatchLookup = ({
     meta: batchLookupMeta,
     fetchLookup: fetchBatchRegistryLookup,
     resetLookup: resetBatchRegistryLookup,
-  } = useBatchRegistryLookup();
+  } = useBatchRegistryForInventoryLookup();
   
   const [globalBatchType, setGlobalBatchType] =
     useState<BatchTypeFilter>('all');
   const [inputValues, setInputValues] = useState<string[]>([]);
   const [fetchParamsArray, setFetchParamsArray] = useState<
-    BatchRegistryLookupQuery[]
+    BatchRegistryForInventoryLookupQuery[]
   >([]);
   const [pickedBatches, setPickedBatches] = useState<
     Record<string, BatchRegistryLookupItem>
@@ -67,7 +67,7 @@ export const useCreateInventoryBatchLookup = ({
     );
   }, []);
   
-  const defaultLookupQuery = useMemo<BatchRegistryLookupQuery>(
+  const defaultLookupQuery = useMemo<BatchRegistryForInventoryLookupQuery>(
     () => ({
       keyword: '',
       limit: 10,
@@ -109,7 +109,7 @@ export const useCreateInventoryBatchLookup = ({
   );
   
   const fetchOptions = useCallback(
-    (params: BatchRegistryLookupQuery) => fetchRef.current(params),
+    (params: BatchRegistryForInventoryLookupQuery) => fetchRef.current(params),
     []
   );
   
