@@ -44,6 +44,7 @@ const {
   paymentMethodLookupQuerySchema,
   discountLookupQuerySchema,
   taxRateLookupQuerySchema,
+  batchRegistryForInventoryLookupQuerySchema,
 } = require('../validators/lookup-validators');
 const {
   getBatchRegistryLookupController,
@@ -68,7 +69,7 @@ const {
   getSupplierLookupController,
   getLocationTypeLookupController,
   getBatchStatusLookupController,
-  getPackagingMaterialSupplierLookupController,
+  getPackagingMaterialSupplierLookupController, getBatchRegistryForInventoryLookupController,
 } = require('../controllers/lookup-controller');
 
 const router = express.Router();
@@ -78,21 +79,42 @@ const router = express.Router();
 //=========================================================
 
 /**
- * @route GET /lookups/batch-registry
- * @description Paginated batch registry records for inventory placement dropdowns.
- *   Privileged users (`canViewAllBatches`) see all batches across all warehouses
- *   and statuses. Standard users must supply `warehouseId` (verified against their
- *   assigned warehouses) and only released batches are returned.
- *   Filters: batchType, warehouseId. No sorting.
- *   Pagination: offset-based — navigates by raw offset, not page number.
- * @access protected
- * @permission LOOKUP.PERMISSIONS.VIEW_BATCH_REGISTRY
+ * @route       GET /lookups/batch-registry
+ * @description Paginated batch registry for general-purpose dropdowns —
+ *   allocation filter pickers, etc. Not coupled to a warehouse. ACL narrows
+ *   batch-status and product/packaging visibility.
+ *   Filters: batchType. No sorting. Offset-based pagination.
+ * @access      protected
+ * @permission  LOOKUP.PERMISSIONS.VIEW_BATCH_REGISTRY
  */
 registerLookupRoute(router, {
   path: '/batch-registry',
   permission: [LOOKUP.PERMISSIONS.VIEW_BATCH_REGISTRY],
   schema: batchRegistryLookupQuerySchema,
   controller: getBatchRegistryLookupController,
+  config: {
+    filterKeysOrSchema: ['batchType'],
+    passUser: true,
+  },
+});
+
+/**
+ * @route       GET /lookups/batch-registry/for-inventory
+ * @description Paginated batch registry for the warehouse-inventory batch-add
+ *   flow. warehouseId is required (validated at schema level, enforced against
+ *   assigned warehouses for non-privileged users). Excludes batches already
+ *   placed in the target warehouse and restricts to released batches by
+ *   default; canViewAllWarehouses / canViewAllBatchStatus strip these
+ *   constraints for privileged users.
+ *   Filters: batchType, warehouseId (required). No sorting. Offset-based.
+ * @access      protected
+ * @permission  LOOKUP.PERMISSIONS.VIEW_BATCH_REGISTRY
+ */
+registerLookupRoute(router, {
+  path: '/batch-registry/for-inventory',
+  permission: [LOOKUP.PERMISSIONS.VIEW_BATCH_REGISTRY],
+  schema: batchRegistryForInventoryLookupQuerySchema,
+  controller: getBatchRegistryForInventoryLookupController,
   config: {
     filterKeysOrSchema: ['batchType', 'warehouseId'],
     passUser: true,

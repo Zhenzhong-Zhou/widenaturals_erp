@@ -8,6 +8,7 @@ const {
   validateUUID,
   validateOptionalText,
 } = require('./general-validators');
+const { BATCH_TYPE_VALUES } = require('../utils/constants/domain/batch-constants');
 
 /**
  * Batch Registry query schema
@@ -115,7 +116,7 @@ const batchRegistryIdParamSchema = Joi.object({
  * Used for routes like:
  *   PATCH /api/v1/batch-registries/:batchRegistryId/note
  *
- * Ensures the note field is a valid trimmed string within allowed
+ * Ensures the note field is a valid-trimmed string within allowed
  * length constraints. The note may be cleared by sending an empty
  * string or null.
  *
@@ -131,8 +132,16 @@ const updateBatchRegistryNoteSchema = Joi.object({
   note: validateOptionalText('Batch registry note'),
 });
 
+/**
+ * Joi fragment for the batchType field.
+ * Returns the base schema; callers compose .required()/.optional()/.allow().
+ */
+const batchTypeField = () =>
+  Joi.string().valid(...BATCH_TYPE_VALUES).label('Batch Type');
+
 module.exports = {
   batchRegistryQuerySchema,
   batchRegistryIdParamSchema,
   updateBatchRegistryNoteSchema,
+  batchTypeField,
 };
