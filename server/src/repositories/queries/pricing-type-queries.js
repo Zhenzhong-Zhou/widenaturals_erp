@@ -3,13 +3,18 @@
  * @description SQL query constants and factory functions for pricing-type-repository.js.
  *
  * Exports:
- *  - PRICING_TYPE_TABLE             — aliased table name for paginated query
- *  - PRICING_TYPE_JOINS             — join array for paginated query
- *  - PRICING_TYPE_SORT_WHITELIST    — valid sort columns for paginated query
- *  - buildPricingTypePaginatedQuery — factory for paginated list query
- *  - PRICING_TYPE_GET_BY_ID_QUERY   — full detail fetch by id
- *  - PRICING_TYPE_EXISTS_QUERY      — existence check by id
- *  - PRICING_TYPE_DROPDOWN_QUERY    — dropdown fetch scoped to a product
+ *  - PRICING_TYPE_TABLE                  — aliased table name for paginated query
+ *  - PRICING_TYPE_JOINS                  — join array for paginated query
+ *  - PRICING_TYPE_SORT_WHITELIST         — valid sort columns for paginated query
+ *  - buildPricingTypePaginatedQuery      — factory for paginated list query
+ *  - PRICING_TYPE_GET_BY_ID_QUERY        — full detail fetch by id
+ *  - PRICING_TYPE_EXISTS_QUERY           — existence check by id
+ *  - PRICING_TYPE_DROPDOWN_QUERY         — dropdown fetch scoped to a product
+ *  - PRICING_TYPE_LOOKUP_TABLE           — aliased table name for lookup query
+ *  - PRICING_TYPE_LOOKUP_JOINS           — join array for lookup query
+ *  - PRICING_TYPE_LOOKUP_SORT_WHITELIST  — valid sort columns for lookup query
+ *  - PRICING_TYPE_LOOKUP_ADDITIONAL_SORTS — tiebreaker sorts for lookup query
+ *  - buildPricingTypeLookupQuery         — factory for lookup query
  */
 
 'use strict';
@@ -90,10 +95,42 @@ const PRICING_TYPE_GET_BY_ID_QUERY = `
   WHERE pt.id = $1
 `;
 
+// ─── Lookup ───────────────────────────────────────────────────────────────────
+
+const PRICING_TYPE_LOOKUP_JOINS = [];
+
+const PRICING_TYPE_LOOKUP_SORT_WHITELIST = new Set([
+  'pt.name',
+  'pt.code',
+  'pt.id',
+]);
+
+const PRICING_TYPE_LOOKUP_ADDITIONAL_SORTS = [
+  { column: 'pt.id', direction: 'ASC' },
+];
+
+/**
+ * @param {string} whereClause
+ * @returns {string}
+ */
+const buildPricingTypeLookupQuery = (whereClause) => `
+  SELECT
+    pt.id,
+    pt.name,
+    pt.code,
+    pt.status_id
+  FROM ${PRICING_TYPE_TABLE}
+  WHERE ${whereClause}
+`;
+
 module.exports = {
   PRICING_TYPE_TABLE,
   PRICING_TYPE_JOINS,
   PRICING_TYPE_SORT_WHITELIST,
   buildPricingTypePaginatedQuery,
   PRICING_TYPE_GET_BY_ID_QUERY,
+  PRICING_TYPE_LOOKUP_JOINS,
+  PRICING_TYPE_LOOKUP_SORT_WHITELIST,
+  PRICING_TYPE_LOOKUP_ADDITIONAL_SORTS,
+  buildPricingTypeLookupQuery,
 };

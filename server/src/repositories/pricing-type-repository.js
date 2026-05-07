@@ -14,7 +14,7 @@
 
 'use strict';
 
-const { paginateQuery } = require('../utils/db/pagination/pagination-helpers');
+const { paginateQuery, paginateQueryByOffset } = require('../utils/db/pagination/pagination-helpers');
 const { query } = require('../database/db');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { logDbQueryError } = require('../utils/db-logger');
@@ -29,6 +29,10 @@ const {
   PRICING_TYPE_SORT_WHITELIST,
   buildPricingTypePaginatedQuery,
   PRICING_TYPE_GET_BY_ID_QUERY,
+  buildPricingTypeLookupQuery,
+  PRICING_TYPE_LOOKUP_JOINS,
+  PRICING_TYPE_LOOKUP_ADDITIONAL_SORTS,
+  PRICING_TYPE_LOOKUP_SORT_WHITELIST,
 } = require('./queries/pricing-type-queries');
 
 const CONTEXT = 'pricing-type-repository';
@@ -131,7 +135,57 @@ const getPricingTypeById = async (pricingTypeId) => {
   }
 };
 
+/**
+ * Fetches a paginated lookup of pricing types (id, name, code, slug).
+ *
+ * @param {PricingTypeFilters} [filters={}] - Filter input passed to buildPricingTypeFilters.
+ * @param {number}             [limit=50]   - Page size.
+ * @param {number}             [offset=0]   - Zero-based row offset.
+ * @returns {Promise<PaginatedOffsetResult<PricingTypeLookupRow>>}
+ */
+const getPaginatedPricingTypeLookup = async ({
+                                               filters = {},
+                                               limit = 50,
+                                               offset = 0,
+                                             }) => {
+  const context = `${CONTEXT}/getPaginatedPricingTypeLookup`;
+  const { whereClause, params } = buildPricingTypeFilter(filters);
+  const queryText = buildPricingTypeLookupQuery(whereClause);
+  
+  try {
+    return /** @type {PaginatedOffsetResult<PricingTypeLookupRow>} */ (
+      await paginateQueryByOffset({
+        tableName: PRICING_TYPE_TABLE,
+        joins: PRICING_TYPE_LOOKUP_JOINS,
+        whereClause,
+        queryText,
+        params,
+        offset,
+        limit,
+        sortBy: 'pt.name',
+        sortOrder: 'ASC',
+        additionalSorts: PRICING_TYPE_LOOKUP_ADDITIONAL_SORTS,
+        whitelistSet: PRICING_TYPE_LOOKUP_SORT_WHITELIST,
+      })
+    );
+  } catch (error) {
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to fetch pricing type lookup.',
+      meta: { filters, limit, offset },
+      logFn: (err) =>
+        logDbQueryError(queryText, params, err, {
+          context,
+          filters,
+          limit,
+          offset,
+        }),
+    });
+  }
+};
+
 module.exports = {
   getPaginatedPricingTypes,
   getPricingTypeById,
+  getPaginatedPricingTypeLookup,
 };
