@@ -45,6 +45,7 @@ const {
   discountLookupQuerySchema,
   taxRateLookupQuerySchema,
   batchRegistryForInventoryLookupQuerySchema,
+  inventoryStatusLookupQuerySchema,
 } = require('../validators/lookup-validators');
 const {
   getBatchRegistryLookupController,
@@ -69,7 +70,9 @@ const {
   getSupplierLookupController,
   getLocationTypeLookupController,
   getBatchStatusLookupController,
-  getPackagingMaterialSupplierLookupController, getBatchRegistryForInventoryLookupController,
+  getPackagingMaterialSupplierLookupController,
+  getBatchRegistryForInventoryLookupController,
+  getInventoryStatusLookupController,
 } = require('../controllers/lookup-controller');
 
 const router = express.Router();
@@ -466,6 +469,19 @@ registerLookupRoute(router, {
   permission: [LOOKUP.PERMISSIONS.VIEW_TAX_RATE],
   schema: taxRateLookupQuerySchema,
   controller: getTaxRateLookupController,
+});
+
+/**
+ * @route GET /lookups/inventory-status
+ * @description Inventory status options for stock state dropdowns. Keyword search + pagination.
+ * @access protected
+ * @permission LOOKUP.PERMISSIONS.VIEW_INVENTORY_STATUS
+ */
+registerLookupRoute(router, {
+  path: '/inventory-status',
+  permission: [LOOKUP.PERMISSIONS.VIEW_INVENTORY_STATUS],
+  schema: inventoryStatusLookupQuerySchema,
+  controller: getInventoryStatusLookupController,
 });
 
 module.exports = router;

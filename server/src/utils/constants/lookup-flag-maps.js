@@ -69,9 +69,25 @@ const BATCH_REGISTRY_FLAG_MAP = {
   canViewAllBatchStatus: 'isReleased',
 };
 
+/**
+ * Flag map for inventory status lookup row visibility.
+ *
+ * Maps ACL keys from InventoryStatusLookupAcl to row fields surfaced by
+ * the inventory status lookup query. Each field is only included in the
+ * transformed output when the corresponding ACL key is true.
+ *
+ * Used with includeFlagsBasedOnAccess in transformInventoryStatusLookup.
+ *
+ * @type {FlagMap}
+ */
+const INVENTORY_STATUS_FLAG_MAP = {
+  canViewInactive: 'isActive',
+};
+
 module.exports = {
   STANDARD_FLAG_MAP,
   STATUS_ONLY_FLAG_MAP,
   PRICING_GROUP_FLAG_MAP,
   BATCH_REGISTRY_FLAG_MAP,
+  INVENTORY_STATUS_FLAG_MAP,
 };
