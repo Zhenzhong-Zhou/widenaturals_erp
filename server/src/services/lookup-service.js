@@ -46,6 +46,7 @@ const {
   transformBatchStatusPaginatedLookupResult,
   transformPackagingMaterialSupplierPaginatedLookupResult,
   transformInventoryStatusPaginatedLookupResult,
+  transformPricingTypePaginatedLookupResult,
 } = require('../transformers/lookup-transformer');
 const {
   getLotAdjustmentTypeLookup,
@@ -209,6 +210,12 @@ const {
   resolveInventoryStatusLookupFilters
 } = require('../business/inventory-status-business');
 const { getPaginatedInventoryStatusLookup } = require('../repositories/inventory-status-repository');
+const { getPaginatedPricingTypeLookup } = require('../repositories/pricing-type-repository');
+const {
+  evaluatePricingTypeLookupVisibility,
+  resolvePricingTypeLookupFilters,
+  enrichPricingTypeLookupWithActiveFlag
+} = require('../business/pricing-type-business');
 
 const CONTEXT = 'lookup-service';
 
@@ -1211,6 +1218,30 @@ const fetchInventoryStatusLookupService = async (
 
 // ---------------------------------------------------------------------------
 
+const fetchPricingTypeLookupService = async (
+  user,
+  { filters = {}, limit = 50, offset = 0 }
+) => {
+  const activeStatusId = getStatusId('general_active');
+  
+  return executeLookupWorkflow({
+    user,
+    filters,
+    limit,
+    offset,
+    repository: getPaginatedPricingTypeLookup,
+    aclEvaluator: evaluatePricingTypeLookupVisibility,
+    aclFilterApplier: (filters, acl) =>
+      resolvePricingTypeLookupFilters(filters, acl, activeStatusId),
+    transformer: transformPricingTypePaginatedLookupResult,
+    rowEnricher: (row) =>
+      enrichPricingTypeLookupWithActiveFlag(row, activeStatusId),
+    enrichmentCondition: (acl) => acl.canViewInactive,
+  });
+};
+
+// ---------------------------------------------------------------------------
+
 module.exports = {
   fetchBatchRegistryLookupService,
   fetchBatchRegistryForInventoryLookupService,
@@ -1237,4 +1268,5 @@ module.exports = {
   fetchBatchStatusLookupService,
   fetchPackagingMaterialSupplierLookupService,
   fetchInventoryStatusLookupService,
+  fetchPricingTypeLookupService,
 };
