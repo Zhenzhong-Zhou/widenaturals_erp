@@ -46,6 +46,7 @@ const {
   taxRateLookupQuerySchema,
   batchRegistryForInventoryLookupQuerySchema,
   inventoryStatusLookupQuerySchema,
+  pricingTypeLookupQuerySchema,
 } = require('../validators/lookup-validators');
 const {
   getBatchRegistryLookupController,
@@ -73,6 +74,7 @@ const {
   getPackagingMaterialSupplierLookupController,
   getBatchRegistryForInventoryLookupController,
   getInventoryStatusLookupController,
+  getPricingTypeLookupController,
 } = require('../controllers/lookup-controller');
 
 const router = express.Router();
@@ -482,6 +484,19 @@ registerLookupRoute(router, {
   permission: [LOOKUP.PERMISSIONS.VIEW_INVENTORY_STATUS],
   schema: inventoryStatusLookupQuerySchema,
   controller: getInventoryStatusLookupController,
+});
+
+/**
+ * @route GET /lookups/pricing-types
+ * @description Pricing type options for price-tier dropdowns. Keyword search + pagination.
+ * @access protected
+ * @permission LOOKUP.PERMISSIONS.VIEW_PRICING_TYPE
+ */
+registerLookupRoute(router, {
+  path: '/pricing-types',
+  permission: [LOOKUP.PERMISSIONS.VIEW_PRICING_TYPE],
+  schema: pricingTypeLookupQuerySchema,
+  controller: getPricingTypeLookupController,
 });
 
 module.exports = router;

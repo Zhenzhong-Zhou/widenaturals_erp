@@ -43,6 +43,7 @@ const {
   fetchPackagingMaterialSupplierLookupService,
   fetchBatchRegistryForInventoryLookupService,
   fetchInventoryStatusLookupService,
+  fetchPricingTypeLookupService,
 } = require('../services/lookup-service');
 const {
   createLookupController,
@@ -423,6 +424,19 @@ const getInventoryStatusLookupController = createLookupController({
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Pricing Type
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * @route      GET /api/v1/lookups/pricing-types
+ * @permission view_pricing_type_lookup
+ */
+const getPricingTypeLookupController = createLookupController({
+  service: fetchPricingTypeLookupService,
+  successMessage: 'Pricing type lookup retrieved successfully.',
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Exports
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -452,4 +466,5 @@ module.exports = {
   getBatchStatusLookupController,
   getPackagingMaterialSupplierLookupController,
   getInventoryStatusLookupController,
+  getPricingTypeLookupController,
 };
