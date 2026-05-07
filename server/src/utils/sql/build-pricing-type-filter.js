@@ -21,55 +21,49 @@ const { applyAuditConditions } = require('./build-audit-filter');
  *
  * Column anchor: pt. — pricing_types
  *
- * `canViewAllStatuses` controls whether the status filter is enforced:
- *  - false (default) → statusId is always applied
- *  - true + no statusId → no status condition applied
- *  - true + statusId → statusId is still applied
+ * Status handling:
+ *  - statusId present → applied as a WHERE condition
+ *  - statusId absent  → no status filter (privileged caller seeing all)
  *
- * @param {Object}  [filters={}]
- * @param {string}  [filters.statusId]           - Filter by status UUID.
- * @param {boolean} [filters.canViewAllStatuses] - If true, status filter is optional.
- * @param {string}  [filters.search]             - ILIKE search across name and code.
- * @param {string}  [filters.createdAfter]       - Lower bound for created_at (inclusive, UTC).
- * @param {string}  [filters.createdBefore]      - Upper bound for created_at (exclusive, UTC).
- * @param {string}  [filters.createdBy]          - Filter by creator UUID.
- * @param {string}  [filters.updatedBy]          - Filter by updater UUID.
+ * The decision of which statusId to pin (or whether to omit it) lives in
+ * the business-layer resolver, not here.
+ *
+ * @param {PricingTypeFilters} [filters={}]
  * @returns {{ whereClause: string, params: Array }}
  */
 const buildPricingTypeFilter = (filters = {}) => {
   const normalizedFilters = normalizeDateRangeFilters(
-    filters,
-    'createdAfter',
-    'createdBefore'
+    normalizeDateRangeFilters(filters, 'createdAfter', 'createdBefore'),
+    'updatedAfter',
+    'updatedBefore'
   );
-
+  
   const conditions = ['1=1'];
   const params = [];
   const paramIndexRef = { value: 1 };
-
-  const { statusId, canViewAllStatuses = false, search } = normalizedFilters;
-
+  
+  const { statusId, keyword } = normalizedFilters;
+  
   // ─── Status ────────────────────────────────────────────────────────────────
-
-  if (!canViewAllStatuses || (canViewAllStatuses && statusId)) {
+  
+  if (statusId) {
     conditions.push(`pt.status_id = $${paramIndexRef.value++}`);
     params.push(statusId);
   }
-
-  // ─── Search ────────────────────────────────────────────────────────────────
-
-  // Same $N referenced twice — single param covers both columns.
-  if (search) {
+  
+  // ─── Keyword ────────────────────────────────────────────────────────────────
+  
+  if (keyword) {
+    const idx = paramIndexRef.value++;
     conditions.push(`(
-      pt.name ILIKE $${paramIndexRef.value} OR
-      pt.code ILIKE $${paramIndexRef.value}
+      pt.name ILIKE $${idx} OR
+      pt.code ILIKE $${idx}
     )`);
-    params.push(`%${String(search).trim()}%`);
-    paramIndexRef.value++;
+    params.push(`%${String(keyword).trim()}%`);
   }
-
+  
   // ─── Audit ─────────────────────────────────────────────────────────────────
-
+  
   applyDateRangeConditions({
     conditions,
     params,
@@ -78,7 +72,7 @@ const buildPricingTypeFilter = (filters = {}) => {
     before: normalizedFilters.createdBefore,
     paramIndexRef,
   });
-
+  
   applyAuditConditions(
     conditions,
     params,
@@ -86,7 +80,7 @@ const buildPricingTypeFilter = (filters = {}) => {
     normalizedFilters,
     'pt'
   );
-
+  
   return {
     whereClause: conditions.join(' AND '),
     params,

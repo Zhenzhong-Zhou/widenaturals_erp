@@ -84,10 +84,26 @@ const INVENTORY_STATUS_FLAG_MAP = {
   canViewInactive: 'isActive',
 };
 
+/**
+ * Flag map for pricing type lookup row visibility.
+ *
+ * Maps ACL keys from PricingTypeLookupAcl to row fields surfaced by the
+ * pricing type lookup query. Each field is only included in the
+ * transformed output when the corresponding ACL key is true.
+ *
+ * Used with includeFlagsBasedOnAccess in transformPricingTypeLookup.
+ *
+ * @type {FlagMap}
+ */
+const PRICING_TYPE_FLAG_MAP = {
+  canViewInactive: 'isActive',
+};
+
 module.exports = {
   STANDARD_FLAG_MAP,
   STATUS_ONLY_FLAG_MAP,
   PRICING_GROUP_FLAG_MAP,
   BATCH_REGISTRY_FLAG_MAP,
   INVENTORY_STATUS_FLAG_MAP,
+  PRICING_TYPE_FLAG_MAP,
 };
