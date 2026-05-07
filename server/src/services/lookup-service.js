@@ -45,6 +45,7 @@ const {
   transformLocationTypePaginatedLookupResult,
   transformBatchStatusPaginatedLookupResult,
   transformPackagingMaterialSupplierPaginatedLookupResult,
+  transformInventoryStatusPaginatedLookupResult,
 } = require('../transformers/lookup-transformer');
 const {
   getLotAdjustmentTypeLookup,
@@ -203,6 +204,11 @@ const {
   fetchBatchRegistryForInventoryLookup,
   fetchBatchRegistryLookup,
 } = require('../business/batch-registry-business');
+const {
+  evaluateInventoryStatusLookupVisibility,
+  resolveInventoryStatusLookupFilters
+} = require('../business/inventory-status-business');
+const { getPaginatedInventoryStatusLookup } = require('../repositories/inventory-status-repository');
 
 const CONTEXT = 'lookup-service';
 
@@ -1173,6 +1179,38 @@ const fetchPackagingMaterialSupplierLookupService = async (
 
 // ---------------------------------------------------------------------------
 
+const fetchInventoryStatusLookupService = async (
+  user,
+  { filters = {}, limit = 50, offset = 0 }
+) => {
+  const context = `${CONTEXT}/fetchInventoryStatusLookupService`;
+  
+  try {
+    return await executeLookupWorkflow({
+      user,
+      filters,
+      limit,
+      offset,
+      repository: getPaginatedInventoryStatusLookup,
+      aclEvaluator: evaluateInventoryStatusLookupVisibility,
+      aclFilterApplier: resolveInventoryStatusLookupFilters,
+      transformer: transformInventoryStatusPaginatedLookupResult,
+      rowEnricher: (row) =>
+        enrichStatusLookupOption(row),
+      enrichmentCondition: (acl) => acl.canViewInactive,
+    });
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    
+    throw AppError.serviceError('Unable to fetch inventory status lookup.', {
+      context,
+      meta: { error: error.message },
+    });
+  }
+};
+
+// ---------------------------------------------------------------------------
+
 module.exports = {
   fetchBatchRegistryLookupService,
   fetchBatchRegistryForInventoryLookupService,
@@ -1198,4 +1236,5 @@ module.exports = {
   fetchLocationTypeLookupService,
   fetchBatchStatusLookupService,
   fetchPackagingMaterialSupplierLookupService,
+  fetchInventoryStatusLookupService,
 };

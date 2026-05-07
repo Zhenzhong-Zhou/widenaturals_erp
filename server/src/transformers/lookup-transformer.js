@@ -33,6 +33,7 @@ const {
   STATUS_ONLY_FLAG_MAP,
   PRICING_GROUP_FLAG_MAP,
   BATCH_REGISTRY_FLAG_MAP,
+  INVENTORY_STATUS_FLAG_MAP,
 } = require('../utils/constants/lookup-flag-maps');
 const { getExpiryMeta } = require('../utils/batch-utils');
 
@@ -658,6 +659,20 @@ const transformPackagingMaterialSupplierPaginatedLookupResult = (
   );
 
 // ---------------------------------------------------------------------------
+// Inventory status
+// ---------------------------------------------------------------------------
+
+const transformInventoryStatusLookup = createEntityLookupTransformer({
+  labelKey: 'name',
+  flagMap: INVENTORY_STATUS_FLAG_MAP,
+});
+
+const transformInventoryStatusPaginatedLookupResult = (paginatedResult, acl) =>
+  transformLoadMoreResult(paginatedResult, (row) =>
+    transformInventoryStatusLookup(row, acl)
+  );
+
+// ---------------------------------------------------------------------------
 
 module.exports = {
   transformBatchRegistryPaginatedLookupResult,
@@ -684,4 +699,5 @@ module.exports = {
   transformLocationTypePaginatedLookupResult,
   transformBatchStatusPaginatedLookupResult,
   transformPackagingMaterialSupplierPaginatedLookupResult,
+  transformInventoryStatusPaginatedLookupResult,
 };

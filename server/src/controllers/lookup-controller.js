@@ -42,6 +42,7 @@ const {
   fetchBatchStatusLookupService,
   fetchPackagingMaterialSupplierLookupService,
   fetchBatchRegistryForInventoryLookupService,
+  fetchInventoryStatusLookupService,
 } = require('../services/lookup-service');
 const {
   createLookupController,
@@ -409,6 +410,19 @@ const getPackagingMaterialSupplierLookupController = createLookupController({
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Inventory Status
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * @route      GET /api/v1/lookups/inventory-statuses
+ * @permission view_inventory_status_lookup
+ */
+const getInventoryStatusLookupController = createLookupController({
+  service: fetchInventoryStatusLookupService,
+  successMessage: 'Inventory status lookup retrieved successfully.',
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Exports
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -437,4 +451,5 @@ module.exports = {
   getLocationTypeLookupController,
   getBatchStatusLookupController,
   getPackagingMaterialSupplierLookupController,
+  getInventoryStatusLookupController,
 };
