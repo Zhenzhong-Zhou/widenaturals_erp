@@ -79,15 +79,7 @@ const { validateSortingConfig } = require('../../query/sort-validator');
  * @param {boolean} [options.skipCount=false] - Skip COUNT query entirely
  * @param {string} [options.countQuery] - Optional custom COUNT query; overrides generated count query
  *
- * @returns {Promise<{
- *   data: any[],
- *   pagination: {
- *     page: number,
- *     limit: number,
- *     totalRecords: number | null,
- *     totalPages: number | null
- *   }
- * }>}
+ * @returns {Promise<PaginatedPageResult<T>>}
  *
  * @throws {AppError} validationError
  * @throws {AppError} databaseError
@@ -327,15 +319,7 @@ const paginateQuery = async ({
  *
  * @param {boolean} [options.skipCount=false] - Skip COUNT query for performance
  *
- * @returns {Promise<{
- *   data: any[],
- *   pagination: {
- *     offset: number,
- *     limit: number,
- *     totalRecords: number | null,
- *     hasMore: boolean
- *   }
- * }>}
+ * @returns {Promise<PaginatedOffsetResult<T>>}
  *
  * @throws {AppError} validationError - Invalid inputs or configuration
  * @throws {AppError} databaseError - Query execution failure
