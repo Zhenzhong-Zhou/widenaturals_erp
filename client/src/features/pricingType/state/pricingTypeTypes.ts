@@ -35,7 +35,7 @@ export type PaginatedPricingTypeApiResponse =
 /** Filters available for querying the pricing type list. */
 export type PricingTypeFilters = {
   /** Full-text search across name, code, and slug. */
-  search?: string;
+  keyword?: string;
   /** Filter by status ID (UUID). */
   statusId?: string;
 } & CreatedUpdatedByFilter &

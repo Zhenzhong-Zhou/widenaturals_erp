@@ -39,7 +39,7 @@ interface Props {
  * ======================================================= */
 
 const emptyFilters: PricingTypeFilters = {
-  search: '',
+  keyword: '',
   statusId: undefined,
   createdAfter: '',
   createdBefore: '',
@@ -97,7 +97,7 @@ const PricingTypeFiltersPanel: FC<Props> = ({
   const submitFilters = (data: PricingTypeFilters) => {
     const adjusted: PricingTypeFilters = {
       ...data,
-      search: data.search || undefined,
+      keyword: data.keyword || undefined,
       createdAfter: toISODate(data.createdAfter),
       createdBefore: toISODate(data.createdBefore),
     };
@@ -138,8 +138,8 @@ const PricingTypeFiltersPanel: FC<Props> = ({
     <form onSubmit={handleSubmit(submitFilters)}>
       <FilterPanelLayout onReset={resetFilters}>
         <Grid container spacing={2}>
-          {/* --- Search --- */}
-          {renderInputField(control, 'search', 'Search', 'Name, code, or slug')}
+          {/* --- Keyword --- */}
+          {renderInputField(control, 'keyword', 'Keyword', 'Name or code')}
 
           {/* --- Status --- */}
           <Grid size={{ xs: 12, md: 3 }}>

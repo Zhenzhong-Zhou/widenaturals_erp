@@ -31,7 +31,7 @@ const pricingTypeParamsSchema = Joi.object({
  * specific filters.
  *
  * @type {Joi.ObjectSchema}
- * @property {string}  [search]    - Partial name search string (max 100 chars).
+ * @property {string}  [keyword]    - Partial name search string (max 100 chars).
  * @property {string}  [statusId]  - Filter by status UUID.
  * @property {string}  [createdBy] - Filter by creator user UUID.
  * @property {string}  [updatedBy] - Filter by last-updater user UUID.
@@ -41,7 +41,7 @@ const pricingTypeQuerySchema = paginationSchema
   .concat(createdDateRangeSchema)
   .concat(
     Joi.object({
-      search: Joi.string().max(100).optional(),
+      keyword: Joi.string().max(100).optional(),
       statusId: validateOptionalUUID('Status ID'),
       createdBy: validateOptionalUUID('Created By'),
       updatedBy: validateOptionalUUID('Updated By'),
