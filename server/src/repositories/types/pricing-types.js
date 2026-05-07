@@ -169,3 +169,44 @@
  * @property {NormalizedStatus} status
  * @property {AuditMeta}  audit
  */
+
+/**
+ * Raw pricing_types row (snake_case as returned by pg).
+ *
+ * @typedef {Object} PricingTypeRow
+ * @property {string}      id
+ * @property {string}      name
+ * @property {string}      code
+ * @property {string|null} slug
+ * @property {string|null} description
+ * @property {string}      status_id
+ * @property {string}      status_date
+ * @property {string}      created_at
+ * @property {string}      updated_at
+ * @property {string|null} created_by
+ * @property {string|null} updated_by
+ */
+
+/**
+ * Raw row returned by getPaginatedPricingTypeLookup.
+ *
+ * @typedef {Object} PricingTypeLookupRow
+ * @property {string}      id
+ * @property {string}      name
+ * @property {string}      code
+ * @property {string|null} slug
+ */
+
+/**
+ * Filter input for pricing_types queries.
+ *
+ * @typedef {Object} PricingTypeFilters
+ * @property {string} [statusId]      - Filter by status UUID. Pinned to the active status by the business resolver for restricted callers; absent for privileged callers seeing all statuses.
+ * @property {string} [keyword]        - ILIKE search across name and code.
+ * @property {string} [createdAfter]  - Lower bound for created_at (inclusive, UTC).
+ * @property {string} [createdBefore] - Upper bound for created_at (exclusive, UTC).
+ * @property {string} [updatedAfter]  - Lower bound for updated_at (inclusive, UTC).
+ * @property {string} [updatedBefore] - Upper bound for updated_at (exclusive, UTC).
+ * @property {string} [createdBy]     - Filter by creator UUID.
+ * @property {string} [updatedBy]     - Filter by updater UUID.
+ */

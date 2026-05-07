@@ -14,3 +14,8 @@
  * @property {boolean} canViewHistory          - Can view expired/historical pricing records.
  * @property {boolean} canExportPricing        - Can export full pricing dataset.
  */
+
+/**
+ * @typedef {Object} PricingTypeLookupAcl
+ * @property {boolean} canViewInactive
+ */
