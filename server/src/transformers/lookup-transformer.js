@@ -34,6 +34,7 @@ const {
   PRICING_GROUP_FLAG_MAP,
   BATCH_REGISTRY_FLAG_MAP,
   INVENTORY_STATUS_FLAG_MAP,
+  PRICING_TYPE_FLAG_MAP,
 } = require('../utils/constants/lookup-flag-maps');
 const { getExpiryMeta } = require('../utils/batch-utils');
 
@@ -673,6 +674,21 @@ const transformInventoryStatusPaginatedLookupResult = (paginatedResult, acl) =>
   );
 
 // ---------------------------------------------------------------------------
+// Pricing type
+// ---------------------------------------------------------------------------
+
+const transformPricingTypeLookup = createEntityLookupTransformer({
+  labelKey: 'name',
+  subLabelKey: 'code',
+  flagMap: PRICING_TYPE_FLAG_MAP,
+});
+
+const transformPricingTypePaginatedLookupResult = (paginatedResult, acl) =>
+  transformLoadMoreResult(paginatedResult, (row) =>
+    transformPricingTypeLookup(row, acl)
+  );
+
+// ---------------------------------------------------------------------------
 
 module.exports = {
   transformBatchRegistryPaginatedLookupResult,
@@ -700,4 +716,5 @@ module.exports = {
   transformBatchStatusPaginatedLookupResult,
   transformPackagingMaterialSupplierPaginatedLookupResult,
   transformInventoryStatusPaginatedLookupResult,
+  transformPricingTypePaginatedLookupResult,
 };
