@@ -1183,3 +1183,119 @@ export type LocationTypeLookupParams = LookupQuery;
  */
 export type LocationTypeLookupState =
   PaginatedLookupState<LocationTypeLookupItem>;
+
+// ---------------------------------------------------------------------------
+// Inventory Status lookup
+// ---------------------------------------------------------------------------
+
+/**
+ * Inventory Status lookup item.
+ *
+ * Represents an inventory status classification
+ * (e.g. In Stock, Out of Stock, Reserved, Damaged).
+ * Contains only label and status metadata.
+ */
+export type InventoryStatusLookupItem = LookupItemWithStatus;
+
+/**
+ * Successful API response for Inventory Status lookup requests.
+ */
+export type InventoryStatusLookupResponse =
+  LookupSuccessResponse<InventoryStatusLookupItem>;
+
+/**
+ * Query parameters for fetching Inventory Status lookup data.
+ */
+export type InventoryStatusLookupParams = LookupQuery;
+
+/**
+ * Redux state shape for the Inventory Status lookup slice.
+ */
+export type InventoryStatusLookupState =
+  PaginatedLookupState<InventoryStatusLookupItem>;
+
+// ---------------------------------------------------------------------------
+// Pricing Type lookup
+// ---------------------------------------------------------------------------
+
+/**
+ * Pricing Type lookup item.
+ *
+ * Represents a pricing classification (e.g. Wholesale, Retail, MSRP),
+ * with the pricing type code surfaced as a secondary label.
+ */
+export type PricingTypeLookupItem = LookupItemWithSubLabelAndStatus;
+
+/**
+ * Successful API response for Pricing Type lookup requests.
+ */
+export type PricingTypeLookupResponse =
+  LookupSuccessResponse<PricingTypeLookupItem>;
+
+/**
+ * Query parameters for fetching Pricing Type lookup data.
+ */
+export type PricingTypeLookupParams = LookupQuery;
+
+/**
+ * Redux state shape for the Pricing Type lookup slice.
+ */
+export type PricingTypeLookupState =
+  PaginatedLookupState<PricingTypeLookupItem>;
+
+// ---------------------------------------------------------------------------
+// Warehouse Type lookup
+// ---------------------------------------------------------------------------
+
+/**
+ * Warehouse Type lookup item.
+ *
+ * Represents a warehouse classification
+ * (e.g. Cold Storage, Dry Goods, Hazardous, Bonded).
+ * Contains only label and status metadata.
+ */
+export type WarehouseTypeLookupItem = LookupItemWithStatus;
+
+/**
+ * Successful API response for Warehouse Type lookup requests.
+ */
+export type WarehouseTypeLookupResponse =
+  LookupSuccessResponse<WarehouseTypeLookupItem>;
+
+/**
+ * Query parameters for fetching Warehouse Type lookup data.
+ */
+export type WarehouseTypeLookupParams = LookupQuery;
+
+/**
+ * Redux state shape for the Warehouse Type lookup slice.
+ */
+export type WarehouseTypeLookupState =
+  PaginatedLookupState<WarehouseTypeLookupItem>;
+
+// ---------------------------------------------------------------------------
+// Location lookup
+// ---------------------------------------------------------------------------
+
+/**
+ * Location lookup item.
+ *
+ * Represents a physical location (warehouse, office, retail site),
+ * with the city surfaced as a secondary label.
+ */
+export type LocationLookupItem = LookupItemWithSubLabelAndStatus;
+
+/**
+ * Successful API response for Location lookup requests.
+ */
+export type LocationLookupResponse = LookupSuccessResponse<LocationLookupItem>;
+
+/**
+ * Query parameters for fetching Location lookup data.
+ */
+export type LocationLookupParams = LookupQuery;
+
+/**
+ * Redux state shape for the Location lookup slice.
+ */
+export type LocationLookupState = PaginatedLookupState<LocationLookupItem>;

@@ -137,6 +137,10 @@ export const API_ENDPOINTS = {
     MANUFACTURERS: '/lookups/manufacturers',
     SUPPLIERS: '/lookups/suppliers',
     LOCATION_TYPES: '/lookups/location-types',
+    INVENTORY_STATUS: '/lookups/inventory-status',
+    PRICING_TYPES: '/lookups/pricing-types',
+    WAREHOUSES_TYPES: '/lookups/warehouse-types',
+    LOCATIONS: '/lookups/locations',
   },
   REPORTS: {
     INVENTORY_ACTIVITY_LOGS: 'reports/inventory-activity-logs',
