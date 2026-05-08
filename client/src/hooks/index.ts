@@ -187,6 +187,10 @@ export { default as useRoleLookup } from './useRoleLookup';
 export { default as useManufacturerLookup } from './useManufacturerLookup';
 export { default as useSupplierLookup } from './useSupplierLookup';
 export { default as useLocationTypeLookup } from './useLocationTypeLookup';
+export { default as useInventoryStatusLookup } from './useInventoryStatusLookup';
+export { default as usePricingTypeLookup } from './usePricingTypeLookup';
+export { default as useWarehouseTypeLookup } from './useWarehouseTypeLookup';
+export { default as useLocationLookup } from './useLocationLookup';
 
 /* =====================================================
  * Misc
