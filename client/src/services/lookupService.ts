@@ -12,7 +12,8 @@ import type {
   DeliveryMethodLookupResponse,
   DiscountLookupQueryParams,
   DiscountLookupResponse,
-  GetWarehouseLookupResponse,
+  GetWarehouseLookupResponse, InventoryStatusLookupParams, InventoryStatusLookupResponse, LocationLookupParams,
+  LocationLookupResponse,
   LocationTypeLookupParams,
   LocationTypeLookupResponse,
   LotAdjustmentLookupQueryParams,
@@ -26,7 +27,7 @@ import type {
   PaymentMethodLookupQueryParams,
   PaymentMethodLookupResponse,
   PricingGroupLookupQueryParams,
-  PricingGroupLookupResponse,
+  PricingGroupLookupResponse, PricingTypeLookupParams, PricingTypeLookupResponse,
   ProductLookupParams,
   ProductLookupResponse,
   RoleLookupParams,
@@ -42,7 +43,7 @@ import type {
   TaxRateLookupQueryParams,
   TaxRateLookupResponse,
   UserLookupParams,
-  UserLookupResponse,
+  UserLookupResponse, WarehouseTypeLookupParams, WarehouseTypeLookupResponse,
 } from '@features/lookup/state/lookupTypes';
 
 /* =========================================================
@@ -233,6 +234,30 @@ export const fetchLocationTypeLookup = (
 ): Promise<LocationTypeLookupResponse> =>
   getLookup(API_ENDPOINTS.LOOKUPS.LOCATION_TYPES, params);
 
+/** Fetch inventory status lookup items. */
+export const fetchInventoryStatusLookup = (
+  params?: InventoryStatusLookupParams
+): Promise<InventoryStatusLookupResponse> =>
+  getLookup(API_ENDPOINTS.LOOKUPS.INVENTORY_STATUS, params);
+
+/** Fetch pricing type lookup items. */
+export const fetchPricingTypeLookup = (
+  params?: PricingTypeLookupParams
+): Promise<PricingTypeLookupResponse> =>
+  getLookup(API_ENDPOINTS.LOOKUPS.PRICING_TYPES, params);
+
+/** Fetch warehouse type lookup items. */
+export const fetchWarehouseTypeLookup = (
+  params?: WarehouseTypeLookupParams
+): Promise<WarehouseTypeLookupResponse> =>
+  getLookup(API_ENDPOINTS.LOOKUPS.WAREHOUSES_TYPES, params);
+
+/** Fetch location lookup items. */
+export const fetchLocationLookup = (
+  params?: LocationLookupParams
+): Promise<LocationLookupResponse> =>
+  getLookup(API_ENDPOINTS.LOOKUPS.LOCATIONS, params);
+
 /* =========================================================
  * Public API
  * ======================================================= */
@@ -260,4 +285,8 @@ export const lookupService = {
   fetchManufacturerLookup,
   fetchSupplierLookup,
   fetchLocationTypeLookup,
+  fetchInventoryStatusLookup,
+  fetchPricingTypeLookup,
+  fetchWarehouseTypeLookup,
+  fetchLocationLookup,
 };
