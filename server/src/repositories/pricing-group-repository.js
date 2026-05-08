@@ -152,7 +152,7 @@ const getPricingGroupById = async (pricingGroupId) => {
  * @returns {Promise<Object>} Paginated result with rows and pagination metadata.
  * @throws  {AppError} Normalized database error if the query fails.
  */
-const getPaginatedPricingGroupLookup = async ({
+const getPricingGroupLookup = async ({
   filters = {},
   limit = 50,
   offset = 0,
@@ -195,5 +195,5 @@ const getPaginatedPricingGroupLookup = async ({
 module.exports = {
   getPaginatedPricingGroups,
   getPricingGroupById,
-  getPaginatedPricingGroupLookup,
+  getPricingGroupLookup,
 };

@@ -104,7 +104,7 @@ const getInventoryStatusById = async (statusId, client) => {
  *  - sort: name ASC, with id ASC as a stable tie-breaker
  *  - limit: 50, offset: 0
  *
- * @param {GetPaginatedInventoryStatusLookupOptions} options
+ * @param {GetInventoryStatusLookupOptions} options
  * @returns {Promise<PaginatedOffsetResult<InventoryStatusLookupRow>>}
  * @throws  {AppError} Normalized database error if the query fails.
  */

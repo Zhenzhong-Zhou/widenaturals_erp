@@ -121,7 +121,7 @@ const {
   enrichPricingGroupRow,
 } = require('../business/pricing-group-business');
 const {
-  getPaginatedPricingGroupLookup,
+  getPricingGroupLookup,
 } = require('../repositories/pricing-group-repository');
 const {
   evaluatePackagingMaterialLookupAccessControl,
@@ -722,7 +722,7 @@ const fetchPricingGroupLookupService = async (
       activeStatusId
     );
 
-    const { data = [], pagination = {} } = await getPaginatedPricingGroupLookup(
+    const { data = [], pagination = {} } = await getPricingGroupLookup(
       {
         filters: queryFilters,
         limit,
