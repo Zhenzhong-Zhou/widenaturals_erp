@@ -46,7 +46,9 @@ const {
   transformBatchStatusPaginatedLookupResult,
   transformPackagingMaterialSupplierPaginatedLookupResult,
   transformInventoryStatusPaginatedLookupResult,
-  transformPricingTypePaginatedLookupResult, transformWarehouseTypePaginatedLookupResult,
+  transformPricingTypePaginatedLookupResult,
+  transformWarehouseTypePaginatedLookupResult,
+  transformLocationPaginatedLookupResult,
 } = require('../transformers/lookup-transformer');
 const {
   getLotAdjustmentTypeLookup,
@@ -217,7 +219,16 @@ const {
   enrichPricingTypeLookupWithActiveFlag
 } = require('../business/pricing-type-business');
 const { getPaginatedWarehouseTypeLookup } = require('../repositories/warehouse-type-repository');
-const { evaluateWarehouseTypeLookupVisibility, resolveWarehouseTypeLookupFilters } = require('../business/warehouse-type-business');
+const {
+  evaluateWarehouseTypeLookupVisibility,
+  resolveWarehouseTypeLookupFilters
+} = require('../business/warehouse-type-business');
+const { getLocationLookup } = require('../repositories/location-repository');
+const {
+  evaluateLocationLookupVisibility,
+  resolveLocationLookupFilters,
+  enrichLocationLookupRow
+} = require('../business/location-business');
 
 const CONTEXT = 'lookup-service';
 
@@ -1268,6 +1279,29 @@ const fetchWarehouseTypeLookupService = async (
 
 // ---------------------------------------------------------------------------
 
+const fetchLocationLookupService = async (
+  user,
+  { filters = {}, limit = 50, offset = 0 }
+) => {
+  const activeStatusId = getStatusId('general_active');
+  
+  return executeLookupWorkflow({
+    user,
+    filters,
+    limit,
+    offset,
+    repository: getLocationLookup,
+    aclEvaluator: evaluateLocationLookupVisibility,
+    aclFilterApplier: (filters, acl) =>
+      resolveLocationLookupFilters(filters, acl, activeStatusId),
+    transformer: transformLocationPaginatedLookupResult,
+    rowEnricher: (row) => enrichLocationLookupRow(row, activeStatusId),
+    enrichmentCondition: (acl) => acl.canViewInactive || acl.canViewArchived,
+  });
+};
+
+// ---------------------------------------------------------------------------
+
 module.exports = {
   fetchBatchRegistryLookupService,
   fetchBatchRegistryForInventoryLookupService,
@@ -1296,4 +1330,5 @@ module.exports = {
   fetchInventoryStatusLookupService,
   fetchPricingTypeLookupService,
   fetchWarehouseTypeLookupService,
+  fetchLocationLookupService,
 };

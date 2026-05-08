@@ -47,7 +47,7 @@ const {
   batchRegistryForInventoryLookupQuerySchema,
   inventoryStatusLookupQuerySchema,
   pricingTypeLookupQuerySchema,
-  warehouseTypeLookupQuerySchema,
+  warehouseTypeLookupQuerySchema, locationLookupQuerySchema,
 } = require('../validators/lookup-validators');
 const {
   getBatchRegistryLookupController,
@@ -77,6 +77,7 @@ const {
   getInventoryStatusLookupController,
   getPricingTypeLookupController,
   getWarehouseTypeLookupController,
+  getLocationLookupController,
 } = require('../controllers/lookup-controller');
 
 const router = express.Router();
@@ -512,6 +513,19 @@ registerLookupRoute(router, {
   permission: [LOOKUP.PERMISSIONS.VIEW_WAREHOUSE_TYPE],
   schema: warehouseTypeLookupQuerySchema,
   controller: getWarehouseTypeLookupController,
+});
+
+/**
+ * @route GET /lookups/locations
+ * @description Location options for site-selection dropdowns. Keyword search + pagination.
+ * @access protected
+ * @permission LOOKUP.PERMISSIONS.VIEW_LOCATION
+ */
+registerLookupRoute(router, {
+  path: '/locations',
+  permission: [LOOKUP.PERMISSIONS.VIEW_LOCATION],
+  schema: locationLookupQuerySchema,
+  controller: getLocationLookupController,
 });
 
 module.exports = router;
