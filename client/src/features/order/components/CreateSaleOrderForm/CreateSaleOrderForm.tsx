@@ -12,7 +12,6 @@ import type {
   CreateSalesOrderForm,
   CreateSalesOrderInput,
 } from '@features/order/state';
-import useSalesOrderLookups from '@features/order/hooks/useSalesOrderLookups';
 import type {
   AddressByCustomerLookup,
   CustomerLookupQuery,
@@ -29,9 +28,12 @@ import {
   OrderDetailsSection,
   OrderItemSection,
 } from '@features/order/components/CreateSaleOrderForm/index';
-import useSalesOrderSubmission from '@features/order/hooks/useSalesOrderSubmission';
-import useAllSalesOrderSearchHandlers from '@features/order/hooks/useAllSalesOrderSearchHandlers';
-import useSkuPricingEffects from '@features/order/hooks/useSkuPricingEffects';
+import {
+  useAllSalesOrderSearchHandlers,
+  useSalesOrderLookups,
+  useSalesOrderSubmission,
+  useSkuPricingEffects,
+} from '@features/order/hooks';
 import {
   createDropdownBundle,
   fetchLookups,
