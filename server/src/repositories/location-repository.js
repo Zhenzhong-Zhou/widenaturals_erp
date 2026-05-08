@@ -114,7 +114,7 @@ const getLocationLookup = async ({
                                             limit = 50,
                                             offset = 0,
                                           }) => {
-  const context = `${CONTEXT}/getPaginatedLocationLookup`;
+  const context = `${CONTEXT}/getLocationLookup`;
   const { whereClause, params } = buildLocationFilter(filters);
   const queryText = buildLocationLookupQuery(whereClause);
   

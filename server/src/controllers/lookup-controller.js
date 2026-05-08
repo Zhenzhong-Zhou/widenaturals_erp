@@ -24,13 +24,13 @@ const {
   fetchCustomerLookupService,
   fetchCustomerAddressLookupService,
   fetchOrderTypeLookupService,
-  fetchPaginatedPaymentMethodLookupService,
-  fetchPaginatedDiscountLookupService,
-  fetchPaginatedTaxRateLookupService,
-  fetchPaginatedDeliveryMethodLookupService,
-  fetchPaginatedSkuLookupService,
-  fetchPaginatedPricingGroupLookupService,
-  fetchPaginatedPackagingMaterialLookupService,
+  fetchPaymentMethodLookupService,
+  fetchDiscountLookupService,
+  fetchTaxRateLookupService,
+  fetchDeliveryMethodLookupService,
+  fetchSkuLookupService,
+  fetchPricingGroupLookupService,
+  fetchPackagingMaterialLookupService,
   fetchSkuCodeBaseLookupService,
   fetchProductLookupService,
   fetchStatusLookupService,
@@ -174,7 +174,7 @@ const getOrderTypeLookupController = createLookupController({
  * @permission view_payment_method_lookup
  */
 const getPaymentMethodLookupController = createLookupController({
-  service: fetchPaginatedPaymentMethodLookupService,
+  service: fetchPaymentMethodLookupService,
   successMessage: 'Payment method lookup retrieved successfully.',
 });
 
@@ -187,7 +187,7 @@ const getPaymentMethodLookupController = createLookupController({
  * @permission view_discount_lookup
  */
 const getDiscountLookupController = createLookupController({
-  service: fetchPaginatedDiscountLookupService,
+  service: fetchDiscountLookupService,
   successMessage: 'Discount lookup retrieved successfully.',
 });
 
@@ -200,7 +200,7 @@ const getDiscountLookupController = createLookupController({
  * @permission view_tax_rate_lookup
  */
 const getTaxRateLookupController = createLookupController({
-  service: fetchPaginatedTaxRateLookupService,
+  service: fetchTaxRateLookupService,
   successMessage: 'Tax rate lookup retrieved successfully.',
 });
 
@@ -213,7 +213,7 @@ const getTaxRateLookupController = createLookupController({
  * @permission view_delivery_method_lookup
  */
 const getDeliveryMethodLookupController = createLookupController({
-  service: fetchPaginatedDeliveryMethodLookupService,
+  service: fetchDeliveryMethodLookupService,
   successMessage: 'Delivery method lookup retrieved successfully.',
 });
 
@@ -226,7 +226,7 @@ const getDeliveryMethodLookupController = createLookupController({
  * @permission view_sku_lookup
  */
 const getSkuLookupController = createLookupController({
-  service: fetchPaginatedSkuLookupService,
+  service: fetchSkuLookupService,
   successMessage: 'SKU lookup retrieved successfully.',
 });
 
@@ -246,7 +246,7 @@ const getSkuLookupController = createLookupController({
  */
 const getPricingGroupLookupController = createLookupController({
   service: async (user, { filters, options, limit, offset }) => {
-    return fetchPaginatedPricingGroupLookupService(user, {
+    return fetchPricingGroupLookupService(user, {
       filters,
       limit,
       offset,
@@ -272,7 +272,7 @@ const getPricingGroupLookupController = createLookupController({
  */
 const getPackagingMaterialLookupController = createLookupController({
   service: async (user, { filters, options, limit, offset }) => {
-    return fetchPaginatedPackagingMaterialLookupService(user, {
+    return fetchPackagingMaterialLookupService(user, {
       filters,
       limit,
       offset,
