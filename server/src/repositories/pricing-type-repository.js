@@ -143,12 +143,12 @@ const getPricingTypeById = async (pricingTypeId) => {
  * @param {number}             [offset=0]   - Zero-based row offset.
  * @returns {Promise<PaginatedOffsetResult<PricingTypeLookupRow>>}
  */
-const getPaginatedPricingTypeLookup = async ({
+const getPricingTypeLookup = async ({
                                                filters = {},
                                                limit = 50,
                                                offset = 0,
                                              }) => {
-  const context = `${CONTEXT}/getPaginatedPricingTypeLookup`;
+  const context = `${CONTEXT}/getPricingTypeLookup`;
   const { whereClause, params } = buildPricingTypeFilter(filters);
   const queryText = buildPricingTypeLookupQuery(whereClause);
   
@@ -187,5 +187,5 @@ const getPaginatedPricingTypeLookup = async ({
 module.exports = {
   getPaginatedPricingTypes,
   getPricingTypeById,
-  getPaginatedPricingTypeLookup,
+  getPricingTypeLookup,
 };

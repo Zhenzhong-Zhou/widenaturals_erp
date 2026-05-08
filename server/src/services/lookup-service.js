@@ -211,14 +211,14 @@ const {
   evaluateInventoryStatusLookupVisibility,
   resolveInventoryStatusLookupFilters
 } = require('../business/inventory-status-business');
-const { getPaginatedInventoryStatusLookup } = require('../repositories/inventory-status-repository');
-const { getPaginatedPricingTypeLookup } = require('../repositories/pricing-type-repository');
+const { getInventoryStatusLookup } = require('../repositories/inventory-status-repository');
+const { getPricingTypeLookup } = require('../repositories/pricing-type-repository');
 const {
   evaluatePricingTypeLookupVisibility,
   resolvePricingTypeLookupFilters,
   enrichPricingTypeLookupWithActiveFlag
 } = require('../business/pricing-type-business');
-const { getPaginatedWarehouseTypeLookup } = require('../repositories/warehouse-type-repository');
+const { getWarehouseTypeLookup } = require('../repositories/warehouse-type-repository');
 const {
   evaluateWarehouseTypeLookupVisibility,
   resolveWarehouseTypeLookupFilters
@@ -463,11 +463,11 @@ const fetchOrderTypeLookupService = async (
 
 // ---------------------------------------------------------------------------
 
-const fetchPaginatedPaymentMethodLookupService = async (
+const fetchPaymentMethodLookupService = async (
   user,
   { filters = {}, limit = 50, offset = 0 }
 ) => {
-  const context = `${CONTEXT}/fetchPaginatedPaymentMethodLookupService`;
+  const context = `${CONTEXT}/fetchPaymentMethodLookupService`;
 
   try {
     const userAccess = await evaluatePaymentMethodLookupAccessControl(user);
@@ -503,11 +503,11 @@ const fetchPaginatedPaymentMethodLookupService = async (
 
 // ---------------------------------------------------------------------------
 
-const fetchPaginatedDiscountLookupService = async (
+const fetchDiscountLookupService = async (
   user,
   { filters = {}, limit = 50, offset = 0 }
 ) => {
-  const context = `${CONTEXT}/fetchPaginatedDiscountLookupService`;
+  const context = `${CONTEXT}/fetchDiscountLookupService`;
 
   try {
     const userAccess = await evaluateDiscountLookupAccessControl(user);
@@ -549,11 +549,11 @@ const fetchPaginatedDiscountLookupService = async (
 
 // ---------------------------------------------------------------------------
 
-const fetchPaginatedTaxRateLookupService = async (
+const fetchTaxRateLookupService = async (
   user,
   { filters = {}, limit = 50, offset = 0 }
 ) => {
-  const context = `${CONTEXT}/fetchPaginatedTaxRateLookupService`;
+  const context = `${CONTEXT}/fetchTaxRateLookupService`;
 
   try {
     const userAccess = await evaluateTaxRateLookupAccessControl(user);
@@ -590,11 +590,11 @@ const fetchPaginatedTaxRateLookupService = async (
 
 // ---------------------------------------------------------------------------
 
-const fetchPaginatedDeliveryMethodLookupService = async (
+const fetchDeliveryMethodLookupService = async (
   user,
   { filters = {}, limit = 50, offset = 0 }
 ) => {
-  const context = `${CONTEXT}/fetchPaginatedDeliveryMethodLookupService`;
+  const context = `${CONTEXT}/fetchDeliveryMethodLookupService`;
 
   try {
     const userAccess = await evaluateDeliveryMethodLookupAccessControl(user);
@@ -634,11 +634,11 @@ const fetchPaginatedDeliveryMethodLookupService = async (
 
 // ---------------------------------------------------------------------------
 
-const fetchPaginatedSkuLookupService = async (
+const fetchSkuLookupService = async (
   user,
   { filters = {}, options = {}, limit = 50, offset = 0 }
 ) => {
-  const context = `${CONTEXT}/fetchPaginatedSkuLookupService`;
+  const context = `${CONTEXT}/fetchSkuLookupService`;
 
   try {
     const { includeBarcode = false } = options || {};
@@ -702,11 +702,11 @@ const fetchPaginatedSkuLookupService = async (
 
 // ---------------------------------------------------------------------------
 
-const fetchPaginatedPricingGroupLookupService = async (
+const fetchPricingGroupLookupService = async (
   user,
   { filters = {}, limit = 50, offset = 0, displayOptions = {} }
 ) => {
-  const context = `${CONTEXT}/fetchPaginatedPricingGroupLookupService`;
+  const context = `${CONTEXT}/fetchPricingGroupLookupService`;
 
   try {
     const activeStatusId = getStatusId('pricing_active');
@@ -754,11 +754,11 @@ const fetchPaginatedPricingGroupLookupService = async (
 
 // ---------------------------------------------------------------------------
 
-const fetchPaginatedPackagingMaterialLookupService = async (
+const fetchPackagingMaterialLookupService = async (
   user,
   { filters = {}, limit = 50, offset = 0, mode = 'generic' } = {}
 ) => {
-  const context = `${CONTEXT}/fetchPaginatedPackagingMaterialLookupService`;
+  const context = `${CONTEXT}/fetchPackagingMaterialLookupService`;
 
   try {
     const isSales = mode === 'salesDropdown';
@@ -1211,7 +1211,7 @@ const fetchInventoryStatusLookupService = async (
       filters,
       limit,
       offset,
-      repository: getPaginatedInventoryStatusLookup,
+      repository: getInventoryStatusLookup,
       aclEvaluator: evaluateInventoryStatusLookupVisibility,
       aclFilterApplier: resolveInventoryStatusLookupFilters,
       transformer: transformInventoryStatusPaginatedLookupResult,
@@ -1242,7 +1242,7 @@ const fetchPricingTypeLookupService = async (
     filters,
     limit,
     offset,
-    repository: getPaginatedPricingTypeLookup,
+    repository: getPricingTypeLookup,
     aclEvaluator: evaluatePricingTypeLookupVisibility,
     aclFilterApplier: (filters, acl) =>
       resolvePricingTypeLookupFilters(filters, acl, activeStatusId),
@@ -1267,7 +1267,7 @@ const fetchWarehouseTypeLookupService = async (
     filters,
     limit,
     offset,
-    repository: getPaginatedWarehouseTypeLookup,
+    repository: getWarehouseTypeLookup,
     aclEvaluator: evaluateWarehouseTypeLookupVisibility,
     aclFilterApplier: resolveWarehouseTypeLookupFilters,
     transformer: transformWarehouseTypePaginatedLookupResult,
@@ -1310,13 +1310,13 @@ module.exports = {
   fetchCustomerLookupService,
   fetchCustomerAddressLookupService,
   fetchOrderTypeLookupService,
-  fetchPaginatedPaymentMethodLookupService,
-  fetchPaginatedDiscountLookupService,
-  fetchPaginatedTaxRateLookupService,
-  fetchPaginatedDeliveryMethodLookupService,
-  fetchPaginatedSkuLookupService,
-  fetchPaginatedPricingGroupLookupService,
-  fetchPaginatedPackagingMaterialLookupService,
+  fetchPaymentMethodLookupService,
+  fetchDiscountLookupService,
+  fetchTaxRateLookupService,
+  fetchDeliveryMethodLookupService,
+  fetchSkuLookupService,
+  fetchPricingGroupLookupService,
+  fetchPackagingMaterialLookupService,
   fetchSkuCodeBaseLookupService,
   fetchProductLookupService,
   fetchStatusLookupService,

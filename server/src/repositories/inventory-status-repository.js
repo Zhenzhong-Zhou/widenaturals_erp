@@ -108,12 +108,12 @@ const getInventoryStatusById = async (statusId, client) => {
  * @returns {Promise<PaginatedOffsetResult<InventoryStatusLookupRow>>}
  * @throws  {AppError} Normalized database error if the query fails.
  */
-const getPaginatedInventoryStatusLookup = async ({
+const getInventoryStatusLookup = async ({
                                                    filters = {},
                                                    limit = 50,
                                                    offset = 0,
                                                  }) => {
-  const context = `${CONTEXT}/getPaginatedInventoryStatusLookup`;
+  const context = `${CONTEXT}/getInventoryStatusLookup`;
   const { whereClause, params } = buildInventoryStatusFilters(filters);
   const queryText = buildInventoryStatusLookupQuery(whereClause);
   
@@ -152,5 +152,5 @@ const getPaginatedInventoryStatusLookup = async ({
 module.exports = {
   validateInventoryStatusIds,
   getInventoryStatusById,
-  getPaginatedInventoryStatusLookup,
+  getInventoryStatusLookup,
 };
