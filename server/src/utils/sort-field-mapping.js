@@ -505,7 +505,6 @@ const SORTABLE_FIELDS = {
     inboundDate: 'wi.inbound_date',
     warehouseQuantity: 'wi.warehouse_quantity',
     reservedQuantity: 'wi.reserved_quantity',
-    availableQuantity: '(wi.warehouse_quantity - wi.reserved_quantity)',
     productName: 'p.name',
     packagingDisplayName: 'pmb.received_label_name',
     expiryDate: 'COALESCE(pb.expiry_date, pmb.expiry_date)',
