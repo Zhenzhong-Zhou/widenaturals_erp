@@ -148,7 +148,6 @@ const { getProductLookup } = require('../repositories/product-repository');
 const {
   evaluateStatusLookupAccessControl,
   enforceStatusLookupVisibilityRules,
-  enrichStatusLookupOption,
 } = require('../business/status-business');
 const { getStatusLookup } = require('../repositories/status-repository');
 const {
@@ -229,6 +228,7 @@ const {
   resolveLocationLookupFilters,
   enrichLocationLookupRow
 } = require('../business/location-business');
+const { enrichStatusLookupOption } = require('../utils/lookup/enrich-status-lookup-option');
 
 const CONTEXT = 'lookup-service';
 
@@ -1160,18 +1160,29 @@ const fetchBatchStatusLookupService = async (
   user,
   { filters = {}, limit = 50, offset = 0 }
 ) => {
-  return executeLookupWorkflow({
-    user,
-    filters,
-    limit,
-    offset,
-    repository: getBatchStatusLookup,
-    aclEvaluator: evaluateBatchStatusVisibilityAccessControl,
-    aclFilterApplier: applyBatchStatusLookupVisibilityRules,
-    transformer: transformBatchStatusPaginatedLookupResult,
-    rowEnricher: enrichBatchStatusLookupWithActiveFlag,
-    enrichmentCondition: (acl) => acl.canViewAllStatuses,
-  });
+  const context = `${CONTEXT}/fetchBatchStatusLookupService`;
+  
+  try {
+    return await executeLookupWorkflow({
+      user,
+      filters,
+      limit,
+      offset,
+      repository: getBatchStatusLookup,
+      aclEvaluator: evaluateBatchStatusVisibilityAccessControl,
+      aclFilterApplier: applyBatchStatusLookupVisibilityRules,
+      transformer: transformBatchStatusPaginatedLookupResult,
+      rowEnricher: enrichBatchStatusLookupWithActiveFlag,
+      enrichmentCondition: (acl) => acl.canViewAllStatuses,
+    });
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    
+    throw AppError.serviceError('Unable to fetch batch status lookup.', {
+      context,
+      meta: { error: error.message },
+    });
+  }
 };
 
 // ---------------------------------------------------------------------------
@@ -1180,21 +1191,31 @@ const fetchPackagingMaterialSupplierLookupService = async (
   user,
   { filters = {}, limit = 50, offset = 0 }
 ) => {
+  const context = `${CONTEXT}/fetchPackagingMaterialSupplierLookupService`;
   const activeStatusId = getStatusId('general_active');
-
-  return executeLookupWorkflow({
-    user,
-    filters,
-    limit,
-    offset,
-    repository: getPackagingMaterialSupplierLookup,
-    aclEvaluator: evaluatePackagingMaterialSupplierLookupAccessControl,
-    aclFilterApplier: enforcePackagingMaterialSupplierLookupVisibilityRules,
-    transformer: transformPackagingMaterialSupplierPaginatedLookupResult,
-    rowEnricher: (row) =>
-      enrichPackagingMaterialSupplierLookupWithActiveFlag(row, activeStatusId),
-    enrichmentCondition: (acl) => acl.canViewAllStatuses,
-  });
+  
+  try {
+    return await executeLookupWorkflow({
+      user,
+      filters,
+      limit,
+      offset,
+      repository: getPackagingMaterialSupplierLookup,
+      aclEvaluator: evaluatePackagingMaterialSupplierLookupAccessControl,
+      aclFilterApplier: enforcePackagingMaterialSupplierLookupVisibilityRules,
+      transformer: transformPackagingMaterialSupplierPaginatedLookupResult,
+      rowEnricher: (row) =>
+        enrichPackagingMaterialSupplierLookupWithActiveFlag(row, activeStatusId),
+      enrichmentCondition: (acl) => acl.canViewAllStatuses,
+    });
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    
+    throw AppError.serviceError(
+      'Unable to fetch packaging material supplier lookup.',
+      { context, meta: { error: error.message } }
+    );
+  }
 };
 
 // ---------------------------------------------------------------------------
@@ -1235,26 +1256,33 @@ const fetchPricingTypeLookupService = async (
   user,
   { filters = {}, limit = 50, offset = 0 }
 ) => {
+  const context = `${CONTEXT}/fetchPricingTypeLookupService`;
   const activeStatusId = getStatusId('general_active');
   
-  return executeLookupWorkflow({
-    user,
-    filters,
-    limit,
-    offset,
-    repository: getPricingTypeLookup,
-    aclEvaluator: evaluatePricingTypeLookupVisibility,
-    aclFilterApplier: (filters, acl) =>
-      resolvePricingTypeLookupFilters(filters, acl, activeStatusId),
-    transformer: transformPricingTypePaginatedLookupResult,
-    rowEnricher: (row) =>
-      enrichPricingTypeLookupWithActiveFlag(row, activeStatusId),
-    enrichmentCondition: (acl) => acl.canViewInactive,
-  });
+  try {
+    return await executeLookupWorkflow({
+      user,
+      filters,
+      limit,
+      offset,
+      repository: getPricingTypeLookup,
+      aclEvaluator: evaluatePricingTypeLookupVisibility,
+      aclFilterApplier: (filters, acl) =>
+        resolvePricingTypeLookupFilters(filters, acl, activeStatusId),
+      transformer: transformPricingTypePaginatedLookupResult,
+      rowEnricher: (row) =>
+        enrichPricingTypeLookupWithActiveFlag(row, activeStatusId),
+      enrichmentCondition: (acl) => acl.canViewInactive,
+    });
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    
+    throw AppError.serviceError('Unable to fetch pricing type lookup.', {
+      context,
+      meta: { error: error.message },
+    });
+  }
 };
-
-// todo: extras enrichStatusLookupOption to be shared function
-// todo: remove try catch?
 
 // ---------------------------------------------------------------------------
 
@@ -1262,19 +1290,29 @@ const fetchWarehouseTypeLookupService = async (
   user,
   { filters = {}, limit = 50, offset = 0 }
 ) => {
-  return executeLookupWorkflow({
-    user,
-    filters,
-    limit,
-    offset,
-    repository: getWarehouseTypeLookup,
-    aclEvaluator: evaluateWarehouseTypeLookupVisibility,
-    aclFilterApplier: resolveWarehouseTypeLookupFilters,
-    transformer: transformWarehouseTypePaginatedLookupResult,
-    rowEnricher: (row) =>
-      enrichStatusLookupOption(row),
-    enrichmentCondition: (acl) => acl.canViewInactive,
-  });
+  const context = `${CONTEXT}/fetchWarehouseTypeLookupService`;
+  
+  try {
+    return await executeLookupWorkflow({
+      user,
+      filters,
+      limit,
+      offset,
+      repository: getWarehouseTypeLookup,
+      aclEvaluator: evaluateWarehouseTypeLookupVisibility,
+      aclFilterApplier: resolveWarehouseTypeLookupFilters,
+      transformer: transformWarehouseTypePaginatedLookupResult,
+      rowEnricher: enrichStatusLookupOption,
+      enrichmentCondition: (acl) => acl.canViewInactive,
+    });
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    
+    throw AppError.serviceError('Unable to fetch warehouse type lookup.', {
+      context,
+      meta: { error: error.message },
+    });
+  }
 };
 
 // ---------------------------------------------------------------------------
@@ -1283,21 +1321,31 @@ const fetchLocationLookupService = async (
   user,
   { filters = {}, limit = 50, offset = 0 }
 ) => {
+  const context = `${CONTEXT}/fetchLocationLookupService`;
   const activeStatusId = getStatusId('general_active');
   
-  return executeLookupWorkflow({
-    user,
-    filters,
-    limit,
-    offset,
-    repository: getLocationLookup,
-    aclEvaluator: evaluateLocationLookupVisibility,
-    aclFilterApplier: (filters, acl) =>
-      resolveLocationLookupFilters(filters, acl, activeStatusId),
-    transformer: transformLocationPaginatedLookupResult,
-    rowEnricher: (row) => enrichLocationLookupRow(row, activeStatusId),
-    enrichmentCondition: (acl) => acl.canViewInactive || acl.canViewArchived,
-  });
+  try {
+    return await executeLookupWorkflow({
+      user,
+      filters,
+      limit,
+      offset,
+      repository: getLocationLookup,
+      aclEvaluator: evaluateLocationLookupVisibility,
+      aclFilterApplier: (filters, acl) =>
+        resolveLocationLookupFilters(filters, acl, activeStatusId),
+      transformer: transformLocationPaginatedLookupResult,
+      rowEnricher: (row) => enrichLocationLookupRow(row, activeStatusId),
+      enrichmentCondition: (acl) => acl.canViewInactive || acl.canViewArchived,
+    });
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    
+    throw AppError.serviceError('Unable to fetch location lookup.', {
+      context,
+      meta: { error: error.message },
+    });
+  }
 };
 
 // ---------------------------------------------------------------------------
