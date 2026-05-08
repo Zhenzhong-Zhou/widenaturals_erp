@@ -18,7 +18,7 @@ const {
 } = require('../services/permission-service');
 const { logSystemException } = require('../utils/logging/system-logger');
 const AppError = require('../utils/AppError');
-const { WAREHOUSE_CONSTANTS } = require('../utils/constants/domain/warehouse');
+const { WAREHOUSE_CONSTANTS } = require('../utils/constants/domain/warehouse-constants');
 const { getStatusId } = require('../config/status-cache');
 
 const CONTEXT = 'warehouse-business';
