@@ -36,6 +36,7 @@ const {
   INVENTORY_STATUS_FLAG_MAP,
   PRICING_TYPE_FLAG_MAP,
   WAREHOUSE_TYPE_FLAG_MAP,
+  LOCATION_FLAG_MAP,
 } = require('../utils/constants/lookup-flag-maps');
 const { getExpiryMeta } = require('../utils/batch-utils');
 
@@ -704,6 +705,21 @@ const transformWarehouseTypePaginatedLookupResult = (paginatedResult, acl) =>
   );
 
 // ---------------------------------------------------------------------------
+// Location
+// ---------------------------------------------------------------------------
+
+const transformLocationLookup = createEntityLookupTransformer({
+  labelKey: 'name',
+  subLabelKey: 'city',
+  flagMap: LOCATION_FLAG_MAP,
+});
+
+const transformLocationPaginatedLookupResult = (paginatedResult, acl) =>
+  transformLoadMoreResult(paginatedResult, (row) =>
+    transformLocationLookup(row, acl)
+  );
+
+// ---------------------------------------------------------------------------
 
 module.exports = {
   transformBatchRegistryPaginatedLookupResult,
@@ -733,4 +749,5 @@ module.exports = {
   transformInventoryStatusPaginatedLookupResult,
   transformPricingTypePaginatedLookupResult,
   transformWarehouseTypePaginatedLookupResult,
+  transformLocationPaginatedLookupResult,
 };

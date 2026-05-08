@@ -3,15 +3,22 @@
  * @description SQL query constants and factory functions for location-repository.js.
  *
  * Exports:
- *  - LOCATION_TABLE          — aliased table name passed to paginateQuery
- *  - LOCATION_JOINS          — join array for paginated query
- *  - LOCATION_SORT_WHITELIST — valid sort fields for paginated query
- *  - buildLocationQuery      — factory for paginated list query
+ *  - LOCATION_TABLE                   — aliased table name for paginated query
+ *  - LOCATION_JOINS                   — join array for paginated query
+ *  - LOCATION_SORT_WHITELIST          — valid sort fields for paginated query
+ *  - buildLocationQuery               — factory for paginated list query
+ *  - LOCATION_LOOKUP_TABLE            — aliased table name for lookup query
+ *  - LOCATION_LOOKUP_JOINS            — join array for lookup query
+ *  - LOCATION_LOOKUP_SORT_WHITELIST   — valid sort columns for lookup query
+ *  - LOCATION_LOOKUP_ADDITIONAL_SORTS — tiebreaker sorts for lookup query
+ *  - buildLocationLookupQuery         — factory for lookup query
  */
 
 'use strict';
 
 const { SORTABLE_FIELDS } = require('../../utils/sort-field-mapping');
+
+// ─── Paginated List ───────────────────────────────────────────────────────────
 
 const LOCATION_TABLE = 'locations l';
 
@@ -57,9 +64,46 @@ const buildLocationQuery = (whereClause) => `
   WHERE ${whereClause}
 `;
 
+// ─── Lookup ───────────────────────────────────────────────────────────────────
+
+const LOCATION_LOOKUP_TABLE = 'locations l';
+
+const LOCATION_LOOKUP_JOINS = [];
+
+const LOCATION_LOOKUP_SORT_WHITELIST = new Set([
+  'l.name',
+  'l.city',
+  'l.id',
+]);
+
+const LOCATION_LOOKUP_ADDITIONAL_SORTS = [
+  { column: 'l.id', direction: 'ASC' },
+];
+
+/**
+ * @param {string} whereClause
+ * @returns {string}
+ */
+const buildLocationLookupQuery = (whereClause) => `
+  SELECT
+    l.id,
+    l.name,
+    l.city,
+    l.country,
+    l.is_archived,
+    l.status_id
+  FROM ${LOCATION_LOOKUP_TABLE}
+  WHERE ${whereClause}
+`;
+
 module.exports = {
   LOCATION_TABLE,
   LOCATION_JOINS,
   LOCATION_SORT_WHITELIST,
   buildLocationQuery,
+  LOCATION_LOOKUP_TABLE,
+  LOCATION_LOOKUP_JOINS,
+  LOCATION_LOOKUP_SORT_WHITELIST,
+  LOCATION_LOOKUP_ADDITIONAL_SORTS,
+  buildLocationLookupQuery,
 };
