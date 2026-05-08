@@ -1,19 +1,22 @@
 /**
  * @file location-repository.js
- * @description Database access layer for location records.
+ * @description Repository functions for the locations table.
  *
- * Follows the established repo pattern:
- *  - Query constants and factories imported from location-queries.js
- *  - All errors normalized through handleDbError before bubbling up
- *  - No success logging — middleware and globalErrorHandler own that layer
+ * Pattern notes:
+ *  - All SQL lives in queries/location-queries.js — never inline here.
+ *  - Filter builders are imported from utils/sql/build-location-filter.
+ *  - DB errors are wrapped via handleDbError + logDbQueryError; AppErrors
+ *    propagate unchanged. No success logging — globalErrorHandler owns
+ *    error formatting.
  *
  * Exports:
- *  - getPaginatedLocations — paginated list with filtering and sorting
+ *  - getPaginatedLocations       — paginated list with filtering and sorting
+ *  - getPaginatedLocationLookup  — paginated lookup query for dropdowns
  */
 
 'use strict';
 
-const { paginateQuery } = require('../utils/db/pagination/pagination-helpers');
+const { paginateQuery, paginateQueryByOffset } = require('../utils/db/pagination/pagination-helpers');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { logDbQueryError } = require('../utils/db-logger');
 const { buildLocationFilter } = require('../utils/sql/build-location-filter');
@@ -23,8 +26,11 @@ const {
   LOCATION_TABLE,
   LOCATION_JOINS,
   LOCATION_SORT_WHITELIST,
-  buildLocationQuery,
+  buildLocationQuery, buildLocationLookupQuery, LOCATION_LOOKUP_TABLE, LOCATION_LOOKUP_JOINS,
+  LOCATION_LOOKUP_ADDITIONAL_SORTS, LOCATION_LOOKUP_SORT_WHITELIST,
 } = require('./queries/location-queries');
+
+const CONTEXT = 'location-repository';
 
 // ─── Paginated List ───────────────────────────────────────────────────────────
 
@@ -52,7 +58,7 @@ const getPaginatedLocations = async ({
   sortBy = 'created_at',
   sortOrder = 'DESC',
 }) => {
-  const context = 'location-repository/getPaginatedLocations';
+  const context = `${CONTEXT}/getPaginatedLocations`;
 
   const { whereClause, params } = buildLocationFilter(filters);
 
@@ -95,6 +101,53 @@ const getPaginatedLocations = async ({
   }
 };
 
+/**
+ * Fetches a paginated lookup of locations.
+ *
+ * @param {LocationFilters} [filters={}]
+ * @param {number}          [limit=50]
+ * @param {number}          [offset=0]
+ * @returns {Promise<PaginatedOffsetResult<LocationLookupRow>>}
+ */
+const getLocationLookup = async ({
+                                            filters = {},
+                                            limit = 50,
+                                            offset = 0,
+                                          }) => {
+  const context = `${CONTEXT}/getPaginatedLocationLookup`;
+  const { whereClause, params } = buildLocationFilter(filters);
+  const queryText = buildLocationLookupQuery(whereClause);
+  
+  try {
+    return /** @type {PaginatedOffsetResult<LocationLookupRow>} */ (
+      await paginateQueryByOffset({
+        tableName: LOCATION_LOOKUP_TABLE,
+        joins: LOCATION_LOOKUP_JOINS,
+        whereClause,
+        queryText,
+        params,
+        offset,
+        limit,
+        sortBy: 'l.name',
+        sortOrder: 'ASC',
+        additionalSorts: LOCATION_LOOKUP_ADDITIONAL_SORTS,
+        whitelistSet: LOCATION_LOOKUP_SORT_WHITELIST,
+      })
+    );
+  } catch (error) {
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to fetch location lookup.',
+      meta: { filters, limit, offset },
+      logFn: (err) =>
+        logDbQueryError(queryText, params, err, {
+          context, filters, limit, offset,
+        }),
+    });
+  }
+};
+
 module.exports = {
   getPaginatedLocations,
+  getLocationLookup,
 };
