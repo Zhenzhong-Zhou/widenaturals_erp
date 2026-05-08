@@ -53,3 +53,37 @@
  * @property {{ id: string|null, name: string|null, date: string|null }} status
  * @property {Object}       audit
  */
+
+/**
+ * Filter input for locations queries.
+ *
+ * @typedef {Object} LocationFilters
+ * @property {boolean}  [includeArchived]  - Opt-in to include archived rows. Pinned to false by the business resolver for restricted callers.
+ * @property {string}   [statusId]         - Single status UUID. Pinned to the active status by the resolver for restricted callers.
+ * @property {string[]} [statusIds]        - Multi-status filter; takes precedence over statusId when both are set.
+ * @property {string}   [locationTypeId]   - Single location_type UUID.
+ * @property {string[]} [locationTypeIds]  - Multi-type filter; takes precedence over locationTypeId.
+ * @property {string}   [city]
+ * @property {string}   [provinceOrState]
+ * @property {string}   [country]
+ * @property {string}   [keyword]          - ILIKE search across name + address fields.
+ * @property {string}   [createdAfter]
+ * @property {string}   [createdBefore]
+ * @property {string}   [updatedAfter]
+ * @property {string}   [updatedBefore]
+ * @property {string}   [createdBy]
+ * @property {string}   [updatedBy]
+ */
+
+/**
+ * Raw row returned by getPaginatedLocationLookup.
+ *
+ * @typedef {Object} LocationLookupRow
+ * @property {string}  id
+ * @property {string}  name
+ * @property {string}  city
+ * @property {string}  country
+ * @property {boolean} is_archived
+ * @property {string}  status_id
+ */
+

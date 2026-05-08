@@ -114,6 +114,22 @@ const WAREHOUSE_TYPE_FLAG_MAP = {
   canViewInactive: 'isActive',
 };
 
+/**
+ * Flag map for location lookup row visibility.
+ *
+ * Maps ACL keys from LocationLookupAcl to row fields surfaced by the
+ * location lookup query. Each field is only included in the
+ * transformed output when the corresponding ACL key is true.
+ *
+ * Used with includeFlagsBasedOnAccess in transformLocationLookup.
+ *
+ * @type {FlagMap}
+ */
+const LOCATION_FLAG_MAP = {
+  canViewInactive: 'isActive',
+  canViewArchived: 'isArchived',
+};
+
 module.exports = {
   STANDARD_FLAG_MAP,
   STATUS_ONLY_FLAG_MAP,
@@ -122,4 +138,5 @@ module.exports = {
   INVENTORY_STATUS_FLAG_MAP,
   PRICING_TYPE_FLAG_MAP,
   WAREHOUSE_TYPE_FLAG_MAP,
+  LOCATION_FLAG_MAP,
 };

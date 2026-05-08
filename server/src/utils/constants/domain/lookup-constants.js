@@ -29,6 +29,7 @@ const LOOKUPS = {
     VIEW_INVENTORY_STATUS: 'view_inventory_status_lookup',
     VIEW_PRICING_TYPE: 'view_pricing_type_lookup',
     VIEW_WAREHOUSE_TYPE: 'view_warehouse_type_lookup',
+    VIEW_LOCATION: 'view_location_lookup',
   },
 };
 
