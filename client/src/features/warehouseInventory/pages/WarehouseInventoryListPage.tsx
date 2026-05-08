@@ -141,30 +141,23 @@ const WarehouseInventoryListPage: FC = () => {
     }),
     [page, limit, sortBy, sortOrder, filters]
   );
-
-  const refreshWarehouseInventoryList = useCallback(() => {
-    if (!warehouseId) return;
-    fetchWarehouseInventory({ warehouseId, ...fullQuery });
-  }, [warehouseId, fullQuery, fetchWarehouseInventory]);
-
+  
   const queryParams = useMemo<WarehouseInventoryQueryParams | null>(() => {
     if (!warehouseId) return null;
-    return {
-      warehouseId,
-      ...fullQuery,
-      fetchFn: refreshWarehouseInventoryList,
-    };
-  }, [warehouseId, fullQuery, refreshWarehouseInventoryList]);
-
+    return { warehouseId, ...fullQuery };
+  }, [warehouseId, fullQuery]);
+  
+  const refreshWarehouseInventoryList = useCallback(() => {
+    if (!queryParams) return;
+    fetchWarehouseInventory(queryParams);
+  }, [queryParams, fetchWarehouseInventory]);
+  
   // Fetch effect — fires whenever queryParams change
   useEffect(() => {
-    if (!warehouseId) return;
-    const t = setTimeout(
-      () => fetchWarehouseInventory({ warehouseId, ...fullQuery }),
-      200
-    );
+    if (!queryParams) return;
+    const t = setTimeout(() => fetchWarehouseInventory(queryParams), 200);
     return () => clearTimeout(t);
-  }, [warehouseId, fullQuery, fetchWarehouseInventory]);
+  }, [queryParams, fetchWarehouseInventory]);
 
   // Reset effect — fires ONLY on unmount
   useEffect(() => {
@@ -197,13 +190,13 @@ const WarehouseInventoryListPage: FC = () => {
   const lookupHandlers = useMemo(
     () => ({
       onOpen: {
-        // inventoryStatus:   createOnOpenHandler(lookups.inventoryStatus),
+        inventoryStatus:   createOnOpenHandler(lookups.inventoryStatus),
         product: createOnOpenHandler(lookups.product),
         sku: createOnOpenHandler(lookups.sku),
         packagingMaterial: createOnOpenHandler(lookups.packagingMaterial),
       },
     }),
-    [lookups.product, lookups.sku, lookups.packagingMaterial]
+    [lookups.inventoryStatus, lookups.product, lookups.sku, lookups.packagingMaterial]
   );
 
   if (!warehouseId) {
@@ -246,9 +239,13 @@ const WarehouseInventoryListPage: FC = () => {
               lookups={lookups}
               lookupHandlers={lookupHandlers}
               onChange={setFilters}
-              onApply={() => {
-                if (queryParams)
-                  fetchWarehouseInventory({ ...queryParams, page: 1 });
+              onApply={(next) => {
+                if (!warehouseId) return;
+                fetchWarehouseInventory({
+                  warehouseId,
+                  ...next,
+                  page: 1,
+                });
               }}
               onReset={handleResetFilters}
             />
