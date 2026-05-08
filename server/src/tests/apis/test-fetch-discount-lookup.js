@@ -1,7 +1,7 @@
 const { pool } = require('../../database/db');
 const { initStatusCache } = require('../../config/status-cache');
 const {
-  fetchPaginatedDiscountLookupService,
+  fetchDiscountLookupService,
 } = require('../../services/lookup-service');
 
 (async () => {
@@ -30,7 +30,7 @@ const {
       offset: 0,
     };
 
-    const result = await fetchPaginatedDiscountLookupService(
+    const result = await fetchDiscountLookupService(
       enrichedUser,
       options
     );

@@ -31,7 +31,7 @@ const { wrapAsyncHandler } = require('../../middlewares/async-handler');
  *
  * @example
  * const getSkuLookupController = createLookupController({
- *   service:        fetchPaginatedSkuLookupService,
+ *   service:        fetchSkuLookupService,
  *   successMessage: 'Successfully retrieved SKU lookup',
  * });
  */

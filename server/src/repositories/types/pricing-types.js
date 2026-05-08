@@ -188,7 +188,7 @@
  */
 
 /**
- * Raw row returned by getPaginatedPricingTypeLookup.
+ * Raw row returned by getPricingTypeLookup.
  *
  * @typedef {Object} PricingTypeLookupRow
  * @property {string}      id
