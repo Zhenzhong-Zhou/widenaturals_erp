@@ -1,11 +1,8 @@
 import { useEffect, useMemo, type SyntheticEvent } from 'react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
-import Box from '@mui/material/Box';
-import Tabs from '@mui/material/Tabs';
-import Tab from '@mui/material/Tab';
-import Card from '@mui/material/Card';
-import CustomTypography from '@components/common/CustomTypography';
-import useVisibleOrderModes from '@features/order/hooks/useVisibleOrderModes';
+import { Box, Card, Tab, Tabs } from '@mui/material';
+import { CustomTypography } from '@components/index';
+import { useVisibleOrderModes } from '@features/order/hooks';
 
 const OrdersLayout = () => {
   const navigate = useNavigate();
