@@ -264,7 +264,6 @@ export type WarehouseInventorySortField =
   | 'statusDate'
   | 'warehouseQuantity'
   | 'reservedQuantity'
-  | 'availableQuantity'
   | 'warehouseFee'
   | 'statusName'
   | 'batchType'

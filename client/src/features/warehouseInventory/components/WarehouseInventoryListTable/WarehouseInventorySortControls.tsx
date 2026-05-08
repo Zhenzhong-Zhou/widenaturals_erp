@@ -21,7 +21,6 @@ const warehouseInventorySortOptions: {
   // ---- Quantity fields ----
   { label: 'On-Hand Qty', value: 'warehouseQuantity' },
   { label: 'Reserved Qty', value: 'reservedQuantity' },
-  { label: 'Available Qty', value: 'availableQuantity' },
 
   // ---- Fee ----
   { label: 'Warehouse Fee', value: 'warehouseFee' },

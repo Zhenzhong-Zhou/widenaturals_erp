@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import Grid from '@mui/material/Grid';
 import { FilterPanelLayout } from '@components/index';
 import {
+  InventoryStatusMultiSelectDropdown,
   PackagingMaterialMultiSelectDropdown,
   ProductMultiSelectDropdown,
   SkuMultiSelectDropdown,
@@ -17,6 +18,7 @@ import {
 import { toISODate } from '@utils/dateTimeUtils';
 import type { WarehouseInventoryFilters } from '@features/warehouseInventory';
 import {
+  useInventoryStatusLookup,
   usePackagingMaterialLookup,
   useProductLookup,
   useSkuLookup,
@@ -28,22 +30,23 @@ import {
   useSkuSearchHandlers,
 } from '@features/lookup/hooks';
 import type { OptionType } from '@components/common/Dropdown';
+import type { MultiSelectOption } from '@components/common/MultiSelectDropdown';
+import { formatLabel } from '@utils/textUtils';
 
 // =========================================================
 // Types
 // =========================================================
 
 interface WarehouseInventoryFiltersPanelLookups {
-  // inventoryStatus: ReturnType<typeof useInventoryStatusLookup>;
+  inventoryStatus: ReturnType<typeof useInventoryStatusLookup>;
   product: ReturnType<typeof useProductLookup>;
   sku: ReturnType<typeof useSkuLookup>;
   packagingMaterial: ReturnType<typeof usePackagingMaterialLookup>;
 }
 
 interface WarehouseInventoryLookupHandlers {
-  // todo:
   onOpen: {
-    // inventoryStatus: () => void;
+    inventoryStatus: () => void;
     product: () => void;
     sku: () => void;
     packagingMaterial: () => void;
@@ -55,7 +58,7 @@ interface Props {
   lookups: WarehouseInventoryFiltersPanelLookups;
   lookupHandlers: WarehouseInventoryLookupHandlers;
   onChange: (filters: WarehouseInventoryFilters) => void;
-  onApply: () => void;
+  onApply: (filters: WarehouseInventoryFilters) => void;
   onReset: () => void;
 }
 
@@ -108,8 +111,17 @@ const WarehouseInventoryFiltersPanel: FC<Props> = ({
       defaultValues: filters,
     });
 
-  const { product, sku, packagingMaterial } = lookups;
-
+  const {
+    product,
+    sku,
+    packagingMaterial,
+    inventoryStatus
+  } = lookups;
+  
+  const formatInventoryStatusOption = (
+    opt: MultiSelectOption
+  ): MultiSelectOption => ({ ...opt, label: formatLabel(opt.label) });
+  
   // -------------------------
   // Lookup bindings (with debounced keyword search)
   // -------------------------
@@ -136,20 +148,30 @@ const WarehouseInventoryFiltersPanel: FC<Props> = ({
     setValue,
     useSearchHandlers: usePackagingMaterialSearchHandlers,
   });
-
+  
+  const inventoryStatusLookup = useFilterLookup({
+    fieldName: 'statusIds',
+    lookup: inventoryStatus,
+    watch,
+    setValue,
+    useSearchHandlers: usePackagingMaterialSearchHandlers,
+    formatOption: formatInventoryStatusOption,
+  });
+  
   // -------------------------
   // Submit / Reset
   // -------------------------
   const submitFilters = (data: WarehouseInventoryFilters) => {
-    onChange({
+    const next: WarehouseInventoryFilters = {
       ...data,
       search: data.search || undefined,
       lowStockThreshold: data.lowStockThreshold || undefined,
       expiringWithinDays: data.expiringWithinDays || undefined,
       inboundDateAfter: toISODate(data.inboundDateAfter || undefined),
       inboundDateBefore: toISODate(data.inboundDateBefore || undefined),
-    });
-    onApply();
+    };
+    onChange(next);
+    onApply(next);
   };
 
   const resetFilters = () => {
@@ -157,6 +179,7 @@ const WarehouseInventoryFiltersPanel: FC<Props> = ({
     productLookup.reset();
     skuLookup.reset();
     packagingLookup.reset();
+    inventoryStatus.reset();
     onReset();
   };
 
@@ -183,17 +206,6 @@ const WarehouseInventoryFiltersPanel: FC<Props> = ({
             'Search',
             'Lot, product, SKU, material code…'
           )}
-
-          {/* Inventory status */}
-          {/*<Grid size={{ xs: 12, md: 6 }}>*/}
-          {/*  <InventoryStatusDropdown*/}
-          {/*    options={inventoryStatus.options}*/}
-          {/*    value={watch('statusId') ?? null}*/}
-          {/*    onChange={(val) => setValue('statusId', val ?? undefined, { shouldDirty: true })}*/}
-          {/*    onOpen={lookupHandlers.onOpen.inventoryStatus}*/}
-          {/*    loading={inventoryStatus.loading}*/}
-          {/*  />*/}
-          {/*</Grid>*/}
 
           {/* Product */}
           <Grid size={{ xs: 12, md: 6 }}>
@@ -242,6 +254,23 @@ const WarehouseInventoryFiltersPanel: FC<Props> = ({
               paginationMeta={{
                 ...packagingMaterial.meta,
                 onFetchMore: packagingLookup.onFetchMore,
+              }}
+            />
+          </Grid>
+          
+          {/* Inventory status */}
+          <Grid size={{ xs: 12, md: 6 }}>
+            <InventoryStatusMultiSelectDropdown
+              options={inventoryStatusLookup.options}
+              selectedOptions={inventoryStatusLookup.selectedOptions}
+              onChange={inventoryStatusLookup.handleSelect}
+              onOpen={lookupHandlers.onOpen.inventoryStatus}
+              loading={inventoryStatus.loading}
+              onInputChange={inventoryStatusLookup.onInputChange}
+              inputValue={inventoryStatusLookup.keyword}
+              paginationMeta={{
+                ...packagingMaterial.meta,
+                onFetchMore: inventoryStatusLookup.onFetchMore,
               }}
             />
           </Grid>
