@@ -99,6 +99,21 @@ const PRICING_TYPE_FLAG_MAP = {
   canViewInactive: 'isActive',
 };
 
+/**
+ * Flag map for warehouse type lookup row visibility.
+ *
+ * Maps ACL keys from WarehouseTypeLookupAcl to row fields surfaced by the
+ * warehouse type lookup query. Each field is only included in the
+ * transformed output when the corresponding ACL key is true.
+ *
+ * Used with includeFlagsBasedOnAccess in transformWarehouseTypeLookup.
+ *
+ * @type {FlagMap}
+ */
+const WAREHOUSE_TYPE_FLAG_MAP = {
+  canViewInactive: 'isActive',
+};
+
 module.exports = {
   STANDARD_FLAG_MAP,
   STATUS_ONLY_FLAG_MAP,
@@ -106,4 +121,5 @@ module.exports = {
   BATCH_REGISTRY_FLAG_MAP,
   INVENTORY_STATUS_FLAG_MAP,
   PRICING_TYPE_FLAG_MAP,
+  WAREHOUSE_TYPE_FLAG_MAP,
 };
