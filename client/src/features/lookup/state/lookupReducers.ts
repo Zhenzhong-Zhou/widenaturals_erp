@@ -20,6 +20,10 @@ import roleLookupReducer from './roleLookupSlice';
 import manufacturerLookupReducer from './manufacturerLookupSlice';
 import supplierLookupReducer from './supplierLookupSlice';
 import locationTypeLookupReducer from './locationTypeLookupSlice';
+import inventoryStatusLookupReducer from './inventoryStatusLookupSlice';
+import pricingTypeLookupReducer from './pricingTypeLookupSlice';
+import warehouseTypeLookupReducer from './warehouseTypeLookupSlice';
+import locationLookupReducer from './locationLookupSlice';
 
 /**
  * Reducer map for Lookup / Dropdown reference data.
@@ -64,4 +68,8 @@ export const lookupReducers = {
   manufacturerLookup: manufacturerLookupReducer,
   supplierLookup: supplierLookupReducer,
   locationTypeLookup: locationTypeLookupReducer,
+  inventoryStatusLookup: inventoryStatusLookupReducer,
+  pricingTypeLookup: pricingTypeLookupReducer,
+  warehouseTypeLookup: warehouseTypeLookupReducer,
+  locationLookup: locationLookupReducer,
 };
