@@ -16,9 +16,10 @@
 
 'use strict';
 
+const { SORTABLE_FIELDS } = require('../../utils/sort-field-mapping');
+
 // ─── Paginated List ───────────────────────────────────────────────────────────
 
-const { SORTABLE_FIELDS } = require('../../utils/sort-field-mapping');
 const LOCATION_TYPE_TABLE = 'location_types lt';
 
 const LOCATION_TYPE_JOINS = [
