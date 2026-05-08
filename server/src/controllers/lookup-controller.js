@@ -45,6 +45,7 @@ const {
   fetchInventoryStatusLookupService,
   fetchPricingTypeLookupService,
   fetchWarehouseTypeLookupService,
+  fetchLocationLookupService,
 } = require('../services/lookup-service');
 const {
   createLookupController,
@@ -451,6 +452,20 @@ const getWarehouseTypeLookupController = createLookupController({
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Location
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * @route      GET /api/v1/lookups/locations
+ * @permission view_location_lookup
+ */
+const getLocationLookupController = createLookupController({
+  service: fetchLocationLookupService,
+  successMessage: 'Location lookup retrieved successfully.',
+});
+
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Exports
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -482,4 +497,5 @@ module.exports = {
   getInventoryStatusLookupController,
   getPricingTypeLookupController,
   getWarehouseTypeLookupController,
+  getLocationLookupController,
 };
