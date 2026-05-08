@@ -9,7 +9,7 @@
  *    propagate unchanged from this layer.
  *
  * Exports:
- *  - getPaginatedWarehouseTypeLookup — paginated lookup query
+ *  - getWarehouseTypeLookup — paginated lookup query
  */
 
 'use strict';

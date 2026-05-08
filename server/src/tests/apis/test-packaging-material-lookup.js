@@ -1,7 +1,7 @@
 const { pool } = require('../../database/db');
 const { initStatusCache } = require('../../config/status-cache');
 const {
-  fetchPaginatedPackagingMaterialLookupService,
+  fetchPackagingMaterialLookupService,
 } = require('../../services/lookup-service');
 
 (async () => {
@@ -31,7 +31,7 @@ const {
       offset: 0,
     };
 
-    const result = await fetchPaginatedPackagingMaterialLookupService(
+    const result = await fetchPackagingMaterialLookupService(
       enrichedUser,
       options
     );

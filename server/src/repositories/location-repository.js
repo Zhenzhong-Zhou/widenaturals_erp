@@ -11,7 +11,7 @@
  *
  * Exports:
  *  - getPaginatedLocations       — paginated list with filtering and sorting
- *  - getPaginatedLocationLookup  — paginated lookup query for dropdowns
+ *  - getLocationLookup           — paginated lookup query for dropdowns
  */
 
 'use strict';

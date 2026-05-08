@@ -76,7 +76,7 @@
  */
 
 /**
- * Raw row returned by getPaginatedLocationLookup.
+ * Raw row returned by getLocationLookup.
  *
  * @typedef {Object} LocationLookupRow
  * @property {string}  id

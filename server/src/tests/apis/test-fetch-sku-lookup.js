@@ -2,7 +2,7 @@ const { pool } = require('../../database/db');
 const { getSkuLookup } = require('../../repositories/sku-repository');
 const { initStatusCache, getStatusId } = require('../../config/status-cache');
 const {
-  fetchPaginatedSkuLookupService,
+  fetchSkuLookupService,
 } = require('../../services/lookup-service');
 
 (async () => {
@@ -44,7 +44,7 @@ const {
     });
     console.log('SKU lookup result:', result);
 
-    const serviceResult = await fetchPaginatedSkuLookupService(enrichedUser, {
+    const serviceResult = await fetchSkuLookupService(enrichedUser, {
       filters: {
         // keyword: 'nmn', // your test keyword
         // keyword: 'Algal Oil',

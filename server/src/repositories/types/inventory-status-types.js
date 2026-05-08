@@ -37,7 +37,7 @@
  */
 
 /**
- * Input options for getPaginatedInventoryStatusLookup.
+ * Input options for getInventoryStatusLookup.
  *
  * @typedef {Object} GetPaginatedInventoryStatusLookupOptions
  * @property {InventoryStatusFilters} [filters={}]
