@@ -14,10 +14,9 @@
  */
 
 import { lazy } from 'react';
-import type { AppRoute, DynamicPermissionResolver } from './routeTypes';
+import type { AppRoute } from './routeTypes';
 import { defineRoute } from './routeTypes';
-import { toPermissionValue } from '@utils/constants/orderPermissions';
-import { isValidOrderCategory } from '@features/order/utils';
+import { buildOrderPermissionResolver } from '@features/order/utils';
 import ROUTE_PERMISSIONS from '@utils/constants/routePermissionConstants';
 
 /* ==================== ROUTES ==================== */
@@ -218,53 +217,23 @@ export const appRoutes: AppRoute[] = [
       requiredPermission: ROUTE_PERMISSIONS.ORDERS.VIEW,
     },
   }),
-
+  
   defineRoute({
-    path: '/orders/:mode/all',
+    path: '/orders/:category/all',
     component: lazy(() => import('@features/order/pages/OrdersListPage')),
-    meta: {
-      requiresAuth: true,
-      requiredPermission: ((params) => {
-        const category = params.category;
-        if (!category || !isValidOrderCategory(category)) return null;
-
-        return {
-          any: [toPermissionValue('VIEW', category)],
-        };
-      }) satisfies DynamicPermissionResolver,
-    },
+    meta: { requiresAuth: true, requiredPermission: buildOrderPermissionResolver('VIEW') },
   }),
-
+  
   defineRoute({
     path: '/orders/:category/new',
     component: lazy(() => import('@features/order/pages/OrderBasePage')),
-    meta: {
-      requiresAuth: true,
-      requiredPermission: ((params) => {
-        const category = params.category;
-        if (!category || !isValidOrderCategory(category)) return null;
-
-        return {
-          any: [toPermissionValue('VIEW', category)],
-        };
-      }) satisfies DynamicPermissionResolver,
-    },
+    meta: { requiresAuth: true, requiredPermission: buildOrderPermissionResolver('CREATE') },
   }),
-
+  
   defineRoute({
-    path: ':mode/:category/details/:orderId',
+    path: '/orders/:category/details/:orderId',
     component: lazy(() => import('@features/order/pages/OrderDetailsPage')),
-    meta: {
-      requiresAuth: true,
-      requiredPermission: ((params) => {
-        const category = params.category;
-        if (!category || !isValidOrderCategory(category)) return null;
-
-        return {
-          any: [toPermissionValue('VIEW', category)],
-        };
-      }) satisfies DynamicPermissionResolver,
-    },
+    meta: { requiresAuth: true, requiredPermission: buildOrderPermissionResolver('VIEW') },
   }),
 
   /* ---------- Inventory & Warehousing ---------- */
