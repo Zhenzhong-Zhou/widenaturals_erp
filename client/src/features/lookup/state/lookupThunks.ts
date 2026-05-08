@@ -24,7 +24,8 @@ import { lookupService } from '@services/lookupService';
 import { extractUiErrorPayload } from '@utils/error';
 import type { UiErrorPayload } from '@utils/error/uiErrorUtils';
 import type {
-  AddressByCustomerLookupResponse, BatchRegistryForInventoryLookupQuery,
+  AddressByCustomerLookupResponse,
+  BatchRegistryForInventoryLookupQuery,
   BatchRegistryLookupQuery,
   BatchRegistryLookupResponse,
   CustomerLookupQuery,
@@ -34,6 +35,8 @@ import type {
   DiscountLookupQueryParams,
   DiscountLookupResponse,
   GetWarehouseLookupResponse,
+  InventoryStatusLookupParams,
+  InventoryStatusLookupResponse, LocationLookupParams, LocationLookupResponse,
   LocationTypeLookupParams,
   LocationTypeLookupResponse,
   LotAdjustmentLookupQueryParams,
@@ -47,7 +50,7 @@ import type {
   PaymentMethodLookupQueryParams,
   PaymentMethodLookupResponse,
   PricingGroupLookupQueryParams,
-  PricingGroupLookupResponse,
+  PricingGroupLookupResponse, PricingTypeLookupParams, PricingTypeLookupResponse,
   ProductLookupParams,
   ProductLookupResponse,
   RoleLookupParams,
@@ -63,7 +66,7 @@ import type {
   TaxRateLookupQueryParams,
   TaxRateLookupResponse,
   UserLookupParams,
-  UserLookupResponse,
+  UserLookupResponse, WarehouseTypeLookupParams, WarehouseTypeLookupResponse,
 } from '@features/lookup/state/lookupTypes';
 
 /* ------------------------- Core Lookups ------------------------- */
@@ -347,6 +350,70 @@ export const fetchLocationTypeLookupThunk = createAsyncThunk<
 >('lookup/fetchLocationTypeLookup', async (params, { rejectWithValue }) => {
   try {
     return await lookupService.fetchLocationTypeLookup(params);
+  } catch (error) {
+    return rejectWithValue(extractUiErrorPayload(error));
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Inventory Status
+// ---------------------------------------------------------------------------
+
+export const fetchInventoryStatusLookupThunk = createAsyncThunk<
+  InventoryStatusLookupResponse,
+  InventoryStatusLookupParams | undefined,
+  { rejectValue: UiErrorPayload }
+>('lookup/fetchInventoryStatusLookup', async (params, { rejectWithValue }) => {
+  try {
+    return await lookupService.fetchInventoryStatusLookup(params);
+  } catch (error) {
+    return rejectWithValue(extractUiErrorPayload(error));
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Pricing Type
+// ---------------------------------------------------------------------------
+
+export const fetchPricingTypeLookupThunk = createAsyncThunk<
+  PricingTypeLookupResponse,
+  PricingTypeLookupParams | undefined,
+  { rejectValue: UiErrorPayload }
+>('lookup/fetchPricingTypeLookup', async (params, { rejectWithValue }) => {
+  try {
+    return await lookupService.fetchPricingTypeLookup(params);
+  } catch (error) {
+    return rejectWithValue(extractUiErrorPayload(error));
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Warehouse Type
+// ---------------------------------------------------------------------------
+
+export const fetchWarehouseTypeLookupThunk = createAsyncThunk<
+  WarehouseTypeLookupResponse,
+  WarehouseTypeLookupParams | undefined,
+  { rejectValue: UiErrorPayload }
+>('lookup/fetchWarehouseTypeLookup', async (params, { rejectWithValue }) => {
+  try {
+    return await lookupService.fetchWarehouseTypeLookup(params);
+  } catch (error) {
+    return rejectWithValue(extractUiErrorPayload(error));
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Location
+// ---------------------------------------------------------------------------
+
+export const fetchLocationLookupThunk = createAsyncThunk<
+  LocationLookupResponse,
+  LocationLookupParams | undefined,
+  { rejectValue: UiErrorPayload }
+>('lookup/fetchLocationLookup', async (params, { rejectWithValue }) => {
+  try {
+    return await lookupService.fetchLocationLookup(params);
   } catch (error) {
     return rejectWithValue(extractUiErrorPayload(error));
   }
