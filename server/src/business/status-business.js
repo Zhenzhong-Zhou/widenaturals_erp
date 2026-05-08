@@ -74,27 +74,7 @@ const enforceStatusLookupVisibilityRules = (filters = {}, userAccess) => {
   return adjusted;
 };
 
-/**
- * Enriches a status lookup row with a normalised `isActive` boolean flag.
- *
- * Accepts either `is_active` (snake_case from DB) or `isActive` (camelCase
- * from transformer) to handle both raw and transformed row shapes.
- *
- * @param {object} row - Raw or transformed status row.
- * @returns {object & { isActive: boolean }}
- */
-const enrichStatusLookupOption = (row) => {
-  const isActive =
-    typeof row.is_active === 'boolean' ? row.is_active : Boolean(row.isActive);
-
-  return {
-    ...row,
-    isActive,
-  };
-};
-
 module.exports = {
   evaluateStatusLookupAccessControl,
   enforceStatusLookupVisibilityRules,
-  enrichStatusLookupOption,
 };
