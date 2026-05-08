@@ -37,6 +37,12 @@ const WAREHOUSE_CONSTANTS = {
 
     /** Allows archiving a warehouse record. */
     ARCHIVE: 'archive_warehouse',
+
+
+    // ── Warehouse types ───────────────────────────────────────────────────────
+    
+    /** Allows viewing inactive warehouse types in the warehouse types lookup. */
+    VIEW_ALL_WAREHOUSE_TYPES: 'view_all_warehouse_types',
   },
 };
 
