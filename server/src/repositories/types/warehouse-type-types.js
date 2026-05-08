@@ -13,7 +13,7 @@
  */
 
 /**
- * Raw row returned by getPaginatedWarehouseTypeLookup.
+ * Raw row returned by getWarehouseTypeLookup.
  *
  * @typedef {Object} WarehouseTypeLookupRow
  * @property {string}  id

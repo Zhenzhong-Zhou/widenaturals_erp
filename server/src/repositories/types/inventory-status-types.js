@@ -7,7 +7,7 @@
  * Typedefs:
  *  - InventoryStatusFilters
  *  - InventoryStatusLookupRow
- *  - GetPaginatedInventoryStatusLookupOptions
+ *  - GetInventoryStatusLookupOptions
  *  - InventoryStatusLookupItem
  */
 
@@ -39,7 +39,7 @@
 /**
  * Input options for getInventoryStatusLookup.
  *
- * @typedef {Object} GetPaginatedInventoryStatusLookupOptions
+ * @typedef {Object} GetInventoryStatusLookupOptions
  * @property {InventoryStatusFilters} [filters={}]
  * @property {number}                 [limit=50]
  * @property {number}                 [offset=0]
