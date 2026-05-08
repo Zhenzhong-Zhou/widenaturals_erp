@@ -598,6 +598,26 @@ const pricingTypeLookupQuerySchema = Joi.object({
   ...baseLookupQuerySchema,
 });
 
+/**
+ * Joi schema for validating warehouse type lookup query parameters.
+ *
+ * This schema extends the shared `baseLookupQuerySchema`, which
+ * defines the standard lookup query structure used across the API.
+ *
+ * Typical fields inherited from the base schema include:
+ * - keyword
+ * - limit
+ * - offset
+ *
+ * Defining a dedicated schema per lookup endpoint keeps validation
+ * modular and allows endpoint-specific filters to be added later
+ * without modifying the shared base schema.
+ */
+const warehouseTypeLookupQuerySchema = Joi.object({
+  // Reuse common lookup validation rules
+  ...baseLookupQuerySchema,
+});
+
 module.exports = {
   batchRegistryLookupQuerySchema,
   batchRegistryForInventoryLookupQuerySchema,
@@ -625,4 +645,5 @@ module.exports = {
   packagingMaterialSupplierLookupQuerySchema,
   inventoryStatusLookupQuerySchema,
   pricingTypeLookupQuerySchema,
+  warehouseTypeLookupQuerySchema,
 };

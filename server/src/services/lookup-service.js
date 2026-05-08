@@ -46,7 +46,7 @@ const {
   transformBatchStatusPaginatedLookupResult,
   transformPackagingMaterialSupplierPaginatedLookupResult,
   transformInventoryStatusPaginatedLookupResult,
-  transformPricingTypePaginatedLookupResult,
+  transformPricingTypePaginatedLookupResult, transformWarehouseTypePaginatedLookupResult,
 } = require('../transformers/lookup-transformer');
 const {
   getLotAdjustmentTypeLookup,
@@ -216,6 +216,8 @@ const {
   resolvePricingTypeLookupFilters,
   enrichPricingTypeLookupWithActiveFlag
 } = require('../business/pricing-type-business');
+const { getPaginatedWarehouseTypeLookup } = require('../repositories/warehouse-type-repository');
+const { evaluateWarehouseTypeLookupVisibility, resolveWarehouseTypeLookupFilters } = require('../business/warehouse-type-business');
 
 const CONTEXT = 'lookup-service';
 
@@ -1240,6 +1242,30 @@ const fetchPricingTypeLookupService = async (
   });
 };
 
+// todo: extras enrichStatusLookupOption to be shared function
+// todo: remove try catch?
+
+// ---------------------------------------------------------------------------
+
+const fetchWarehouseTypeLookupService = async (
+  user,
+  { filters = {}, limit = 50, offset = 0 }
+) => {
+  return executeLookupWorkflow({
+    user,
+    filters,
+    limit,
+    offset,
+    repository: getPaginatedWarehouseTypeLookup,
+    aclEvaluator: evaluateWarehouseTypeLookupVisibility,
+    aclFilterApplier: resolveWarehouseTypeLookupFilters,
+    transformer: transformWarehouseTypePaginatedLookupResult,
+    rowEnricher: (row) =>
+      enrichStatusLookupOption(row),
+    enrichmentCondition: (acl) => acl.canViewInactive,
+  });
+};
+
 // ---------------------------------------------------------------------------
 
 module.exports = {
@@ -1269,4 +1295,5 @@ module.exports = {
   fetchPackagingMaterialSupplierLookupService,
   fetchInventoryStatusLookupService,
   fetchPricingTypeLookupService,
+  fetchWarehouseTypeLookupService,
 };

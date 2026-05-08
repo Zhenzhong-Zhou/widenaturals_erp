@@ -44,6 +44,7 @@ const {
   fetchBatchRegistryForInventoryLookupService,
   fetchInventoryStatusLookupService,
   fetchPricingTypeLookupService,
+  fetchWarehouseTypeLookupService,
 } = require('../services/lookup-service');
 const {
   createLookupController,
@@ -437,6 +438,19 @@ const getPricingTypeLookupController = createLookupController({
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Warehouse Type
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * @route      GET /api/v1/lookups/warehouse-types
+ * @permission view_warehouse_type_lookup
+ */
+const getWarehouseTypeLookupController = createLookupController({
+  service: fetchWarehouseTypeLookupService,
+  successMessage: 'Warehouse type lookup retrieved successfully.',
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Exports
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -467,4 +481,5 @@ module.exports = {
   getPackagingMaterialSupplierLookupController,
   getInventoryStatusLookupController,
   getPricingTypeLookupController,
+  getWarehouseTypeLookupController,
 };
