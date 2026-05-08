@@ -1,5 +1,5 @@
 /**
- * @file warehouse-inventory.js
+ * @file warehouse-inventory-constants.js
  * @description Constants for the warehouse inventory domain.
  */
 

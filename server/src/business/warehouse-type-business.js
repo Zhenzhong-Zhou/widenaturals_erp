@@ -25,7 +25,7 @@ const {
 } = require('../services/permission-service');
 const {
   WAREHOUSE_CONSTANTS,
-} = require('../utils/constants/domain/warehouse');
+} = require('../utils/constants/domain/warehouse-constants');
 const { logSystemException } = require('../utils/logging/system-logger');
 const AppError = require('../utils/AppError');
 

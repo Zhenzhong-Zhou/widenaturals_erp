@@ -50,7 +50,7 @@ const {
 const { applyBatchTypeVisibility } = require('./apply-batch-type-visibility');
 const {
   PERMISSIONS,
-} = require('../utils/constants/domain/warehouse-inventory');
+} = require('../utils/constants/domain/warehouse-inventory-constants');
 const {
   validateBatchRegistryIds,
 } = require('../repositories/batch-registry-repository');

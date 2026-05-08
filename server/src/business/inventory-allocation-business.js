@@ -24,7 +24,7 @@ const {
 } = require('../services/permission-service');
 const {
   WAREHOUSE_INVENTORY_CONSTANTS,
-} = require('../utils/constants/domain/warehouse-inventory');
+} = require('../utils/constants/domain/warehouse-inventory-constants');
 const {
   INVENTORY_ALLOCATION_CONSTANTS,
 } = require('../utils/constants/domain/inventory-allocation');
