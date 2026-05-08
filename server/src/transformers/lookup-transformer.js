@@ -35,6 +35,7 @@ const {
   BATCH_REGISTRY_FLAG_MAP,
   INVENTORY_STATUS_FLAG_MAP,
   PRICING_TYPE_FLAG_MAP,
+  WAREHOUSE_TYPE_FLAG_MAP,
 } = require('../utils/constants/lookup-flag-maps');
 const { getExpiryMeta } = require('../utils/batch-utils');
 
@@ -689,6 +690,20 @@ const transformPricingTypePaginatedLookupResult = (paginatedResult, acl) =>
   );
 
 // ---------------------------------------------------------------------------
+// Warehouse type
+// ---------------------------------------------------------------------------
+
+const transformWarehouseTypeLookup = createEntityLookupTransformer({
+  labelKey: 'name',
+  flagMap: WAREHOUSE_TYPE_FLAG_MAP,
+});
+
+const transformWarehouseTypePaginatedLookupResult = (paginatedResult, acl) =>
+  transformLoadMoreResult(paginatedResult, (row) =>
+    transformWarehouseTypeLookup(row, acl)
+  );
+
+// ---------------------------------------------------------------------------
 
 module.exports = {
   transformBatchRegistryPaginatedLookupResult,
@@ -717,4 +732,5 @@ module.exports = {
   transformPackagingMaterialSupplierPaginatedLookupResult,
   transformInventoryStatusPaginatedLookupResult,
   transformPricingTypePaginatedLookupResult,
+  transformWarehouseTypePaginatedLookupResult,
 };
