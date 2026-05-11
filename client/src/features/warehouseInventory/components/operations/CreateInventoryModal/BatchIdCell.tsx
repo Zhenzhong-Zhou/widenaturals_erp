@@ -6,7 +6,7 @@ import {
   useMemo,
 } from 'react';
 import { BatchRegistryDropdown } from '@features/lookup/components';
-import type { BatchRegistryLookupQuery } from '@features/lookup';
+import type { BatchRegistryForInventoryLookupQuery } from '@features/lookup';
 import type { RowAwareComponentProps } from '@components/common/MultiItemForm';
 import { BatchLookupContext } from './BatchLookupContext';
 
@@ -44,23 +44,26 @@ const BatchIdCell = ({
   const inputValue = inputValues[rowIndex] ?? '';
   const fetchParams = fetchParamsArray[rowIndex] ?? defaultQuery;
   
-  const setRowFetchParams: Dispatch<SetStateAction<BatchRegistryLookupQuery>> =
-    useCallback(
-      (newOrUpdater) => {
-        setFetchParamsArray((prev) => {
-          const copy = [...prev];
-          const current = prev[rowIndex] ?? defaultQuery;
-          copy[rowIndex] =
-            typeof newOrUpdater === 'function'
-              ? (newOrUpdater as (
-                p: BatchRegistryLookupQuery
-              ) => BatchRegistryLookupQuery)(current)
-              : newOrUpdater;
-          return copy;
-        });
-      },
-      [rowIndex, setFetchParamsArray, defaultQuery]
-    );
+  const setRowFetchParams: Dispatch<
+    SetStateAction<BatchRegistryForInventoryLookupQuery>
+  > = useCallback(
+    (newOrUpdater) => {
+      setFetchParamsArray((prev) => {
+        const copy = [...prev];
+        const current = prev[rowIndex] ?? defaultQuery;
+        
+        copy[rowIndex] =
+          typeof newOrUpdater === 'function'
+            ? (newOrUpdater as (
+              p: BatchRegistryForInventoryLookupQuery
+            ) => BatchRegistryForInventoryLookupQuery)(current)
+            : newOrUpdater;
+        
+        return copy;
+      });
+    },
+    [rowIndex, setFetchParamsArray, defaultQuery]
+  );
   
   const stickyOptions = useMemo(() => {
     if (!value) return options;

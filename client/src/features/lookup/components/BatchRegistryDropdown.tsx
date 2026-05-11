@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import type {
   BatchRegistryLookupItem,
   BatchRegistryLookupQuery,
-  BatchRegistryOption
+  BatchRegistryOption,
 } from '@features/lookup';
 import type { PaginatedDropdownProps } from '@components/common/PaginatedDropdown';
 import {
@@ -11,17 +11,17 @@ import {
   faQuestionCircle,
 } from '@fortawesome/free-solid-svg-icons';
 import {
-  composeBatchLabel, expirySeverityToChipColor,
+  composeBatchLabel,
+  expirySeverityToChipColor,
   expirySeverityToColor,
   getBatchExpiryMeta,
 } from '@features/lookup/utils/batchRegistryUtils';
 import { CustomTypography, PaginatedDropdown, StatusChip } from '@components/index';
 import Box from '@mui/material/Box';
 
-export type BatchRegistryDropdownProps = Omit<
-  PaginatedDropdownProps<BatchRegistryLookupQuery>,
-  'options'
-> & {
+export type BatchRegistryDropdownProps<
+  TQuery extends BatchRegistryLookupQuery = BatchRegistryLookupQuery,
+> = Omit<PaginatedDropdownProps<TQuery>, 'options'> & {
   options: BatchRegistryLookupItem[];
 };
 
@@ -41,10 +41,12 @@ export type BatchRegistryDropdownProps = Omit<
  * @component
  * @param {BatchRegistryDropdownProps} props - Props controlling dropdown behavior.
  */
-const BatchRegistryDropdown = ({
-  options = [],
-  ...rest
-}: BatchRegistryDropdownProps) => {
+const BatchRegistryDropdown = <
+  TQuery extends BatchRegistryLookupQuery = BatchRegistryLookupQuery,
+>({
+    options = [],
+    ...rest
+  }: BatchRegistryDropdownProps<TQuery>) => {
   const enrichedBatchRegistryOptions: BatchRegistryOption[] = useMemo(() => {
     return Array.from(
       new Map(
@@ -69,6 +71,7 @@ const BatchRegistryDropdown = ({
               <CustomTypography color={isProduct ? 'inherit' : 'primary'}>
                 {rawLabel}
               </CustomTypography>
+              
               {expiryMeta.hasExpiryDate && expiryMeta.expirySeverity !== 'normal' && (
                 <StatusChip
                   label={
@@ -97,16 +100,16 @@ const BatchRegistryDropdown = ({
                   ? 'Packaging Material Batch'
                   : 'Unknown Batch Type',
               iconColor,
-              ...expiryMeta, // ← discriminated union spread; consumers narrow on hasExpiryDate
+              ...expiryMeta,
             } satisfies BatchRegistryOption,
           ];
         })
       ).values()
     );
   }, [options]);
-
+  
   return (
-    <PaginatedDropdown
+    <PaginatedDropdown<TQuery>
       label="Select Batch"
       options={enrichedBatchRegistryOptions}
       {...rest}
