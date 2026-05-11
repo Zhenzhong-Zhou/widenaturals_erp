@@ -1,9 +1,16 @@
-import type { MultiItemFieldConfig } from '@components/common/MultiItemForm';
+import type {
+  MultiItemFieldConfig,
+  RowAwareComponentProps
+} from '@components/common/MultiItemForm';
 import BatchIdCell from './BatchIdCell';
+import type {
+  LookupOption,
+} from '@features/lookup';
+import { StatusCell } from '@features/warehouseInventory/components/shared';
 
-interface StatusOption {
-  value: string;
-  label: string;
+interface BuildCreateInventoryFieldsArgs {
+  statusOptions: LookupOption[];
+  statusLoading: boolean;
 }
 
 /**
@@ -12,9 +19,10 @@ interface StatusOption {
  * full field list. Field rendering for the batch picker is delegated
  * to BatchIdCell, which reads its state from BatchLookupContext.
  */
-export const buildCreateInventoryFields = (
-  statusOptions: StatusOption[]
-): MultiItemFieldConfig[] => [
+export const buildCreateInventoryFields = ({
+                                             statusOptions,
+                                             statusLoading,
+                                           }: BuildCreateInventoryFieldsArgs): MultiItemFieldConfig[] => [
   {
     id: 'batchId',
     label: 'Batch ID',
@@ -51,10 +59,16 @@ export const buildCreateInventoryFields = (
   {
     id: 'statusId',
     label: 'Status',
-    type: 'select',
+    type: 'custom',
     required: false,
-    options: statusOptions,
     group: 'date-status',
     grid: { xs: 6 },
+    component: (props: RowAwareComponentProps) => (
+      <StatusCell
+        {...props}
+        options={statusOptions}
+        loading={statusLoading}
+      />
+    ),
   },
 ];

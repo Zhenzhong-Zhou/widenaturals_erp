@@ -236,7 +236,6 @@ const WarehouseInventoryListTable = ({
           open={createOpen}
           onClose={() => setCreateOpen(false)}
           warehouseId={warehouseId}
-          statusOptions={[]} // TODO: wire status lookup
           onSuccess={handleSuccess}
         />
       )}
@@ -258,7 +257,6 @@ const WarehouseInventoryListTable = ({
           onClose={() => setUpdateStatusOpen(false)}
           warehouseId={warehouseId}
           selectedItems={selectedItems}
-          statusOptions={[]} // TODO: wire status lookup
           onSuccess={handleSuccess}
         />
       )}
