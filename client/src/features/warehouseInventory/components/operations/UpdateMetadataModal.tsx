@@ -27,11 +27,14 @@ interface UpdateMetadataModalProps {
 
 const buildPayload = (
   values: Record<string, any>,
-  original: WarehouseInventoryDetailRecord,
+  original: WarehouseInventoryDetailRecord
 ): UpdateWarehouseInventoryMetadataRequest => {
   const payload: UpdateWarehouseInventoryMetadataRequest = {};
   if (values.inboundDate) payload.inboundDate = values.inboundDate;
-  if (values.warehouseFee !== '' && values.warehouseFee !== original.warehouseFee) {
+  if (
+    values.warehouseFee !== '' &&
+    values.warehouseFee !== original.warehouseFee
+  ) {
     payload.warehouseFee = Number(values.warehouseFee);
   }
   return payload;
@@ -65,16 +68,20 @@ const buildFields = (record: WarehouseInventoryDetailRecord) => [
     placeholder: '0.00',
   },
 ];
+// todo: installHook.js:1 [handleSuccess] called
+// {message: undefined}
+// overrideMethod	@	installHook.js:1
+// todo: need to use reset to fix
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const UpdateMetadataModal: FC<UpdateMetadataModalProps> = ({
-                                                                   open,
-                                                                   onClose,
-                                                                   warehouseId,
-                                                                   record,
-                                                                   onSuccess,
-                                                                 }) => {
+  open,
+  onClose,
+  warehouseId,
+  record,
+  onSuccess,
+}) => {
   const {
     loading,
     error,
@@ -83,9 +90,9 @@ const UpdateMetadataModal: FC<UpdateMetadataModalProps> = ({
     updateMetadata,
     resetUpdateMetadataState,
   } = useWarehouseInventoryUpdateMetadata();
-  
+
   const formRef = useRef<CustomFormRef>(null);
-  
+
   useEffect(() => {
     if (updateResponse) {
       formRef.current?.resetForm();
@@ -93,12 +100,12 @@ const UpdateMetadataModal: FC<UpdateMetadataModalProps> = ({
       onSuccess?.();
     }
   }, [updateResponse]);
-  
+
   const handleClose = () => {
     formRef.current?.resetForm();
     onClose();
   };
-  
+
   const onSubmit = (values: Record<string, any>) => {
     const payload = buildPayload(values, record);
     // Nothing changed — no-op.
@@ -108,11 +115,11 @@ const UpdateMetadataModal: FC<UpdateMetadataModalProps> = ({
     }
     void updateMetadata(warehouseId, record.id, payload);
   };
-  
+
   return (
     <CustomModal open={open} onClose={handleClose} title="Edit Metadata">
       {error && <ErrorMessage message={error} />}
-      
+
       <CustomForm
         ref={formRef}
         fields={buildFields(record)}
