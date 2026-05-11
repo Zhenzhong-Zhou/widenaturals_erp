@@ -170,7 +170,9 @@ const WarehouseInventoryListTable = ({
               variant="outlined"
               onClick={() => startTransition(() => setUpdateStatusOpen(true))}
             >
-              Update Status
+              {selectedRowIds.length === 1
+                ? 'Update Status'
+                : 'Update Statuses'}
             </CustomButton>
           )}
           {hasSelection &&
