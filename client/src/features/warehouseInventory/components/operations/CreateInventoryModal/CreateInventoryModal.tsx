@@ -1,4 +1,11 @@
-import { type FC, useCallback, useEffect, useMemo, useRef } from 'react';
+import {
+  type FC,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from 'react';
 import { Box, ToggleButton, ToggleButtonGroup } from '@mui/material';
 import {
   CustomButton,
@@ -9,29 +16,30 @@ import {
 import MultiItemForm, {
   type MultiItemFormRef,
 } from '@components/common/MultiItemForm';
-import { useWarehouseInventoryCreate } from '@hooks/index';
+import {
+  useInventoryStatusLookup,
+  useWarehouseInventoryCreate
+} from '@hooks/index';
 import { composeBatchTitle } from '@features/lookup/utils/batchRegistryUtils';
 import {
   useCreateInventoryBatchLookup
 } from '@features/warehouseInventory/components/operations/CreateInventoryModal/useCreateInventoryBatchLookup';
 import {
   buildCreateInventoryFields
-} from '@features/warehouseInventory/components/operations/CreateInventoryModal/createInventoryFields';
+} from './createInventoryFields';
 import {
   buildCreateInventoryPayload
 } from '@features/warehouseInventory/components/operations/CreateInventoryModal/createInventoryPayload';
 import { BatchLookupContext } from './BatchLookupContext';
-
-interface StatusOption {
-  value: string;
-  label: string;
-}
+import type {
+  InventoryStatusLookupParams,
+} from '@features/lookup';
+import { formatLabel } from '@utils/textUtils';
 
 interface CreateInventoryModalProps {
   open: boolean;
   onClose: () => void;
   warehouseId: string;
-  statusOptions: StatusOption[];
   onSuccess?: (message?: string) => void;
 }
 
@@ -39,7 +47,6 @@ const CreateInventoryModal: FC<CreateInventoryModalProps> = ({
                                                                open,
                                                                onClose,
                                                                warehouseId,
-                                                               statusOptions,
                                                                onSuccess,
                                                              }) => {
   const {
@@ -50,6 +57,22 @@ const CreateInventoryModal: FC<CreateInventoryModalProps> = ({
     createWarehouseInventory,
     resetCreateState,
   } = useWarehouseInventoryCreate();
+  
+  const statusLookup = useInventoryStatusLookup();
+  
+  const {
+    options: statusOptions,
+    loading: statusLoading,
+    fetch: fetchStatusLookup,
+    reset: resetStatusLookup,
+  } = statusLookup;
+  
+  const [statusFetchParams, setStatusFetchParams] =
+    useState<InventoryStatusLookupParams>({
+      keyword: '',
+      limit: 100,
+      offset: 0,
+    });
   
   const { bundle, globalBatchType, pickedBatches, handleBatchTypeChange } =
     useCreateInventoryBatchLookup({ open, warehouseId });
@@ -77,9 +100,41 @@ const CreateInventoryModal: FC<CreateInventoryModalProps> = ({
     handleClose();
   }, [createResponse, createdCount, globalBatchType, handleClose]);
   
-  const fields = useMemo(
-    () => buildCreateInventoryFields(statusOptions),
+  // Initial fetch on open. Search uses handleStatusSearch (debounced);
+  // pagination uses PaginatedDropdown.onFetchMore (calls onRefresh directly).
+  // No statusFetchParams in deps — neither path needs an effect to fire fetch.
+  useEffect(() => {
+    if (!open) return;
+    fetchStatusLookup(statusFetchParams);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, fetchStatusLookup]);
+  
+  // Reset on close only
+  useEffect(() => {
+    if (open) return;
+    resetStatusLookup();
+    setStatusFetchParams({ keyword: '', limit: 100, offset: 0 });
+  }, [open, resetStatusLookup]);
+  
+  const formattedStatusOptions = useMemo(
+    () =>
+      statusOptions.map((opt) => ({
+        ...opt,
+        label: formatLabel(opt.label),
+      })),
     [statusOptions]
+  );
+  
+  const fields = useMemo(
+    () =>
+      buildCreateInventoryFields({
+        statusOptions: formattedStatusOptions,
+        statusLoading,
+      }),
+    [
+      formattedStatusOptions,
+      statusLoading,
+    ]
   );
   
   const onSubmit = useCallback(
