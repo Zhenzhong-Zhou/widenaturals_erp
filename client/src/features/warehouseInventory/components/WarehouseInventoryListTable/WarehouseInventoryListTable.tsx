@@ -91,7 +91,37 @@ const WarehouseInventoryListTable = ({
     message: string;
     severity: 'success' | 'error';
   } | null>(null);
-
+  const [singleActionRow, setSingleActionRow] =
+    useState<FlattenedWarehouseInventory | null>(null);
+  
+  const handleRowAdjust = useCallback((row: FlattenedWarehouseInventory) => {
+    setSingleActionRow(row);
+    startTransition(() => setAdjustOpen(true));
+  }, []);
+  
+  const handleRowUpdateStatus = useCallback(
+    (row: FlattenedWarehouseInventory) => {
+      setSingleActionRow(row);
+      startTransition(() => setUpdateStatusOpen(true));
+    },
+    []
+  );
+  
+  const modalItems = useMemo<FlattenedWarehouseInventory[]>(
+    () => (singleActionRow ? [singleActionRow] : selectedItems),
+    [singleActionRow, selectedItems]
+  );
+  
+  const handleAdjustClose = useCallback(() => {
+    setAdjustOpen(false);
+    setSingleActionRow(null);
+  }, []);
+  
+  const handleUpdateStatusClose = useCallback(() => {
+    setUpdateStatusOpen(false);
+    setSingleActionRow(null);
+  }, [])
+  
   const handleSuccess = useCallback(
     (message?: string) => {
       setSnackbar({
@@ -99,6 +129,7 @@ const WarehouseInventoryListTable = ({
         message: message || 'Operation completed',
         severity: 'success',
       });
+      setSingleActionRow(null);
       onSelectionChange([]);
       onRefresh();
     },
@@ -133,10 +164,12 @@ const WarehouseInventoryListTable = ({
           row={row}
           canAdjust={canAdjust}
           canUpdateStatus={canUpdateStatus}
+          onAdjustQuantity={handleRowAdjust}
+          onUpdateStatus={handleRowUpdateStatus}
         />
       </Suspense>
     ),
-    [canAdjust, canUpdateStatus]
+    [canAdjust, canUpdateStatus, handleRowAdjust, handleRowUpdateStatus]
   );
 
   const hasSelection = selectedRowIds.length > 0;
@@ -241,24 +274,24 @@ const WarehouseInventoryListTable = ({
           onSuccess={handleSuccess}
         />
       )}
-
+      
       {canAdjust && (
         <AdjustQuantitiesModal
           open={adjustOpen}
-          onClose={() => setAdjustOpen(false)}
+          onClose={handleAdjustClose}
           warehouseId={warehouseId}
-          selectedItems={selectedItems}
+          selectedItems={modalItems}
           canAdjustReserved={canAdjustReserved}
           onSuccess={handleSuccess}
         />
       )}
-
+      
       {canUpdateStatus && (
         <UpdateStatusModal
           open={updateStatusOpen}
-          onClose={() => setUpdateStatusOpen(false)}
+          onClose={handleUpdateStatusClose}
           warehouseId={warehouseId}
-          selectedItems={selectedItems}
+          selectedItems={modalItems}
           onSuccess={handleSuccess}
         />
       )}
