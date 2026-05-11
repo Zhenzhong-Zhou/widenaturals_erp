@@ -55,7 +55,7 @@ const LocationDropdown = ({
       label="Select Location"
       options={enrichedOptions}
       onOpen={() => {
-        if (!options.length) {
+        if (!options.length && fetchParams) {
           onRefresh?.(fetchParams);
         }
       }}
