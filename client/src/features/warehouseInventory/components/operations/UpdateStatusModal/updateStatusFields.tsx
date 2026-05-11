@@ -80,6 +80,7 @@ export const buildSingleUpdateStatusFields = ({
     label: 'New Status',
     type: 'custom',
     required: true,
+    grid: { xs: 12 },
     customRender: ({ value, onChange }: CustomRenderParams) => (
       <InventoryStatusDropdown
         value={value ?? null}
