@@ -60,7 +60,7 @@ const ManufacturerDropdown = ({
       label="Select Manufacturer"
       options={enrichedOptions}
       onOpen={() => {
-        if (!options.length) {
+        if (!options.length && fetchParams) {
           onRefresh?.(fetchParams);
         }
       }}

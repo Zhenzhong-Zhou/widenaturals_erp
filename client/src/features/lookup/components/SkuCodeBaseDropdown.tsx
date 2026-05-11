@@ -73,7 +73,7 @@ const SkuCodeBaseDropdown = ({
       label="Select SKU Code Base"
       options={enrichedOptions}
       onOpen={() => {
-        if (!options.length) {
+        if (!options.length && fetchParams) {
           onRefresh?.(fetchParams);
         }
       }}
