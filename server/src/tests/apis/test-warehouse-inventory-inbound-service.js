@@ -113,7 +113,7 @@ const info = (label, value) => console.log(`     ${label}:`, value);
       // Verify activity log was created
       const { rows: logRows } = await pool.query(
         `SELECT id, previous_quantity, quantity_change, new_quantity, checksum
-         FROM inventory_activity_log
+         FROM inventory_activity_logs
          WHERE warehouse_inventory_id = ANY($1::uuid[])`,
         [result.ids]
       );
@@ -160,7 +160,7 @@ const info = (label, value) => console.log(`     ${label}:`, value);
       info('IDs', result.ids);
 
       const { rows: logRows } = await pool.query(
-        `SELECT id FROM inventory_activity_log
+        `SELECT id FROM inventory_activity_logs
          WHERE warehouse_inventory_id = ANY($1::uuid[])`,
         [result.ids]
       );
