@@ -1,5 +1,5 @@
 export { default as DetailField } from './DetailField';
-export { default as WarehouseInventoryActivityLogPanel } from './WarehouseInventoryActivityLogPanel';
+export { default as WarehouseInventoryActivityLogPanel } from './WarehouseInventoryActivityLogPanel/WarehouseInventoryActivityLogPanel';
 export { default as WarehouseInventoryKpiRow } from './WarehouseInventoryKpiRow';
 export { default as WarehouseInventoryMetaPanel } from './WarehouseInventoryMetaPanel';
 export { default as WarehouseInventoryMovementsTable } from './WarehouseInventoryMovementsTable';
