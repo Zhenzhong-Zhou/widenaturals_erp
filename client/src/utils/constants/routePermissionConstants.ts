@@ -74,6 +74,7 @@ const ROUTE_PERMISSIONS = {
   },
   WAREHOUSE_INVENTORY: {
     VIEW: 'view_warehouse_inventory',
+    VIEW_DETAILS: 'view_warehouse_inventory_details',
     VIEW_SUMMARY: 'view_warehouse_inventory_summary',
     VIEW_SUMMARY_ITEM_DETAILS: 'view_warehouse_inventory_summary_item_details',
   },
