@@ -3,7 +3,7 @@
  * @returns {Promise<void>}
  */
 exports.up = async function (knex) {
-  await knex.schema.createTable('inventory_activity_log', (table) => {
+  await knex.schema.createTable('inventory_activity_logs', (table) => {
     table.uuid('id').primary().defaultTo(knex.raw('uuid_generate_v4()'));
     table
       .uuid('warehouse_inventory_id')
@@ -51,35 +51,36 @@ exports.up = async function (knex) {
   });
 
   await knex.raw(`
-    ALTER TABLE inventory_activity_log
-    ADD CONSTRAINT inventory_activity_log_quantity_integrity_check
+    ALTER TABLE inventory_activity_logs
+    ADD CONSTRAINT inventory_activity_logs_quantity_integrity_check
       CHECK (new_quantity = previous_quantity + quantity_change),
-    ADD CONSTRAINT inventory_activity_log_reference_check
+    ADD CONSTRAINT inventory_activity_logs_reference_check
       CHECK (
         (reference_type IS NULL AND reference_id IS NULL) OR
         (reference_type IS NOT NULL AND reference_id IS NOT NULL)
       ),
-    ADD CONSTRAINT inventory_activity_log_reference_type_check
+    ADD CONSTRAINT inventory_activity_logs_reference_type_check
       CHECK (reference_type IS NULL OR reference_type IN (
         'order', 'transfer', 'audit', 'return', 'manual', 'fulfillment', 'adjustment'
       ));
   `);
   
   await knex.raw(`
-    CREATE INDEX idx_inventory_activity_log_inventory_performed
-      ON inventory_activity_log (warehouse_inventory_id, performed_at DESC);
+    CREATE INDEX idx_inventory_activity_logs_inventory_performed
+      ON inventory_activity_logs (warehouse_inventory_id, performed_at DESC);
   
-    CREATE INDEX idx_inventory_activity_log_action_performed
-      ON inventory_activity_log (inventory_action_type_id, performed_at DESC);
+    CREATE INDEX idx_inventory_activity_logs_action_performed
+      ON inventory_activity_logs (inventory_action_type_id, performed_at DESC);
   
-    CREATE INDEX idx_inventory_activity_log_user_performed
-      ON inventory_activity_log (performed_by, performed_at DESC);
+    CREATE INDEX idx_inventory_activity_logs_user_performed
+      ON inventory_activity_logs (performed_by, performed_at DESC);
   
-    CREATE INDEX idx_inventory_activity_log_performed_at
-      ON inventory_activity_log (performed_at DESC);
+    CREATE INDEX idx_inventory_activity_logs_performed_at
+      ON inventory_activity_logs (performed_at DESC);
   
-    CREATE INDEX idx_inventory_activity_log_reference_performed
-      ON inventory_activity_log (reference_type, reference_id, performed_at DESC);
+    CREATE INDEX idx_inventory_activity_logs_reference_performed
+      ON inventory_activity_logs (reference_type, reference_id, performed_at DESC)
+      WHERE reference_type IS NOT NULL;
   `);
 };
 
@@ -88,5 +89,5 @@ exports.up = async function (knex) {
  * @returns {Promise<void>}
  */
 exports.down = async function (knex) {
-  await knex.schema.dropTableIfExists('inventory_activity_log');
+  await knex.schema.dropTableIfExists('inventory_activity_logs');
 };

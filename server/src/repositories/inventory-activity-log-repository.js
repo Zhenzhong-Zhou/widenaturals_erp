@@ -77,7 +77,7 @@ const insertInventoryActivityLogBulk = async (
 
   try {
     return await bulkInsert(
-      'inventory_activity_log',
+      INVENTORY_ACTIVITY_LOG_TABLE,
       INVENTORY_ACTIVITY_LOG_INSERT_COLUMNS,
       rows,
       [], // no conflict — logs are append-only
@@ -92,7 +92,7 @@ const insertInventoryActivityLogBulk = async (
       message: 'Failed to insert inventory activity log records.',
       meta: { entryCount: logEntries.length },
       logFn: (err) =>
-        logBulkInsertError(err, 'inventory_activity_log', rows, rows.length, {
+        logBulkInsertError(err, INVENTORY_ACTIVITY_LOG_TABLE, rows, rows.length, {
           context,
         }),
     });

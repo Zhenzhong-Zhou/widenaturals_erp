@@ -650,9 +650,9 @@ exports.seed = async function (knex) {
   });
 
   if (activityLogEntries.length > 0) {
-    await knex('inventory_activity_log').insert(activityLogEntries);
+    await knex('inventory_activity_logs').insert(activityLogEntries);
     console.log(
-      `Inserted ${activityLogEntries.length} inventory_activity_log records.`
+      `Inserted ${activityLogEntries.length} inventory_activity_logs records.`
     );
   }
 };

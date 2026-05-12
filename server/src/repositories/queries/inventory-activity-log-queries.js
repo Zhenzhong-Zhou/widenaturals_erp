@@ -33,8 +33,7 @@ const INVENTORY_ACTIVITY_LOG_INSERT_COLUMNS = [
 ];
 
 // ── Paginated list ──────────────────────────────────────────────────
-
-const INVENTORY_ACTIVITY_LOG_TABLE = 'inventory_activity_log ial';
+const INVENTORY_ACTIVITY_LOG_TABLE = 'inventory_activity_logs ial';
 
 const INVENTORY_ACTIVITY_LOG_JOINS = [
   'JOIN warehouse_inventory wi             ON wi.id  = ial.warehouse_inventory_id',
