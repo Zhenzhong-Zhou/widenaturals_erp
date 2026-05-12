@@ -133,18 +133,20 @@ const getPaginatedInventoryActivityLog = async ({
   const queryText = buildInventoryActivityLogPaginatedQuery(whereClause);
 
   try {
-    return await paginateQuery({
-      tableName: INVENTORY_ACTIVITY_LOG_TABLE,
-      joins: INVENTORY_ACTIVITY_LOG_JOINS,
-      whereClause,
-      queryText,
-      params,
-      page,
-      limit,
-      sortBy: sortConfig.sortBy,
-      sortOrder: sortConfig.sortOrder,
-      whitelistSet: INVENTORY_ACTIVITY_LOG_SORT_WHITELIST,
-    });
+    return /** @type {PaginatedResult<InventoryActivityLogRow>} */ (
+      await paginateQuery({
+        tableName: INVENTORY_ACTIVITY_LOG_TABLE,
+        joins: INVENTORY_ACTIVITY_LOG_JOINS,
+        whereClause,
+        queryText,
+        params,
+        page,
+        limit,
+        sortBy: sortConfig.sortBy,
+        sortOrder: sortConfig.sortOrder,
+        whitelistSet: INVENTORY_ACTIVITY_LOG_SORT_WHITELIST,
+      })
+    );
   } catch (error) {
     throw handleDbError(error, {
       context,

@@ -64,16 +64,22 @@ exports.up = async function (knex) {
         'order', 'transfer', 'audit', 'return', 'manual', 'fulfillment', 'adjustment'
       ));
   `);
-
+  
   await knex.raw(`
-    CREATE INDEX idx_inventory_activity_log_inventory_id
-      ON inventory_activity_log (warehouse_inventory_id);
-    CREATE INDEX idx_inventory_activity_log_action_type
-      ON inventory_activity_log (inventory_action_type_id);
+    CREATE INDEX idx_inventory_activity_log_inventory_performed
+      ON inventory_activity_log (warehouse_inventory_id, performed_at DESC);
+  
+    CREATE INDEX idx_inventory_activity_log_action_performed
+      ON inventory_activity_log (inventory_action_type_id, performed_at DESC);
+  
+    CREATE INDEX idx_inventory_activity_log_user_performed
+      ON inventory_activity_log (performed_by, performed_at DESC);
+  
     CREATE INDEX idx_inventory_activity_log_performed_at
-      ON inventory_activity_log (performed_at);
-    CREATE INDEX idx_inventory_activity_log_reference
-      ON inventory_activity_log (reference_type, reference_id);
+      ON inventory_activity_log (performed_at DESC);
+  
+    CREATE INDEX idx_inventory_activity_log_reference_performed
+      ON inventory_activity_log (reference_type, reference_id, performed_at DESC);
   `);
 };
 
