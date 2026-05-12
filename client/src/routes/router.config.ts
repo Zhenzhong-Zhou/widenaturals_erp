@@ -265,6 +265,18 @@ export const appRoutes: AppRoute[] = [
       requiredPermission: ROUTE_PERMISSIONS.WAREHOUSES.VIEW,
     },
   }),
+  
+  defineRoute({
+    path: '/warehouse-inventory/:warehouseId/inventory/:inventoryId',
+    component: lazy(
+      () =>
+        import('@features/warehouseInventory/pages/WarehouseInventoryDetailPage')
+    ),
+    meta: {
+      requiresAuth: true,
+      requiredPermission: ROUTE_PERMISSIONS.WAREHOUSE_INVENTORY.VIEW_DETAILS,
+    },
+  }),
 
   defineRoute({
     path: '/inventory-allocations',
