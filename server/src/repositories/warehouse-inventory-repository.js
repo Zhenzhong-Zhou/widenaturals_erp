@@ -104,18 +104,20 @@ const getPaginatedWarehouseInventory = async ({
   const queryText = buildWarehouseInventoryPaginatedQuery(whereClause);
 
   try {
-    return await paginateQuery({
-      tableName: WAREHOUSE_INVENTORY_TABLE,
-      joins: WAREHOUSE_INVENTORY_JOINS,
-      whereClause,
-      queryText,
-      params,
-      page,
-      limit,
-      sortBy: sortConfig.sortBy,
-      sortOrder: sortConfig.sortOrder,
-      whitelistSet: WAREHOUSE_INVENTORY_SORT_WHITELIST,
-    });
+    return /** @type {PaginatedResult<WarehouseInventoryRow>} */ (
+      await paginateQuery({
+        tableName: WAREHOUSE_INVENTORY_TABLE,
+        joins: WAREHOUSE_INVENTORY_JOINS,
+        whereClause,
+        queryText,
+        params,
+        page,
+        limit,
+        sortBy: sortConfig.sortBy,
+        sortOrder: sortConfig.sortOrder,
+        whitelistSet: WAREHOUSE_INVENTORY_SORT_WHITELIST,
+      })
+    );
   } catch (error) {
     throw handleDbError(error, {
       context,
