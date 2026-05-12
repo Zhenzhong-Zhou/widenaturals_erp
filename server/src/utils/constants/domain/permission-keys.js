@@ -88,6 +88,7 @@ const PERMISSION_KEYS = {
   },
   WAREHOUSE_INVENTORY: {
     VIEW: 'view_warehouse_inventory',
+    VIEW_DETAILS: 'view_warehouse_inventory_details',
     CREATE_INBOUND: 'create_warehouse_inbound',
     CREATE_OUTBOUND: 'create_warehouse_outbound',
     ADJUST_INVENTORY: 'adjust_warehouse_inventory',

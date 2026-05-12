@@ -170,11 +170,11 @@ router.get(
  * @description Full detail view for a single warehouse inventory record,
  *   including zone assignments and recent movement history.
  * @access protected
- * @permission PERMISSION_KEYS.WAREHOUSE_INVENTORY.VIEW
+ * @permission PERMISSION_KEYS.WAREHOUSE_INVENTORY.VIEW_DETAILS
  */
 router.get(
   '/:warehouseId/inventory/:inventoryId',
-  authorize([PERMISSION_KEYS.WAREHOUSE_INVENTORY.VIEW]),
+  authorize([PERMISSION_KEYS.WAREHOUSE_INVENTORY.VIEW_DETAILS]),
   validate(inventoryIdParamSchema, 'params'),
   getWarehouseInventoryDetailController
 );
