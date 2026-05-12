@@ -438,7 +438,7 @@ export type WarehouseInventoryOutboundState =
 // =============================================================================
 
 /** Product batch details for detail view (extended from list shape). */
-interface ProductBatchDetail {
+export interface ProductBatchDetail {
   id: string;
   lotNumber: string;
   expiryDate: NullableString;
@@ -448,7 +448,7 @@ interface ProductBatchDetail {
 }
 
 /** SKU details for detail view. */
-interface ProductSkuDetail {
+export interface ProductSkuDetail {
   id: string;
   sku: string;
   barcode: string;
@@ -458,7 +458,7 @@ interface ProductSkuDetail {
 }
 
 /** Product details for detail view (extended from list shape). */
-interface ProductDetail {
+export interface ProductDetail {
   id: string;
   name: string;
   brand: string;
@@ -468,13 +468,13 @@ interface ProductDetail {
 }
 
 /** Manufacturer details for detail view. */
-interface ProductManufacturerDetail {
+export interface ProductManufacturerDetail {
   id: string;
   name: string;
 }
 
 /** Nested product info for detail view. */
-interface ProductInfoDetail {
+export interface ProductInfoDetail {
   batch: ProductBatchDetail;
   sku: ProductSkuDetail;
   product: ProductDetail;
@@ -506,7 +506,7 @@ interface PackagingSupplierDetail {
 }
 
 /** Nested packaging info for detail view. */
-interface PackagingInfoDetail {
+export interface PackagingInfoDetail {
   batch: PackagingBatchDetail;
   material: PackagingMaterialDetail;
   supplier: PackagingSupplierDetail;
