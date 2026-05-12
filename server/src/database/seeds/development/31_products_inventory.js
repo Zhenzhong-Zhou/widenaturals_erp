@@ -1,5 +1,5 @@
 const { fetchDynamicValue } = require('../03_utils');
-const { generateChecksum } = require('../../../utils/hash-utils');
+const { computeLogChecksum } = require('../../../utils/hash-utils');
 
 /**
  * @param { import("knex").Knex } knex
@@ -645,7 +645,16 @@ exports.seed = async function (knex) {
     return {
       id: knex.raw('uuid_generate_v4()'),
       ...logData,
-      checksum: generateChecksum(logData),
+      checksum: computeLogChecksum({
+        warehouseInventoryId: logData.warehouse_inventory_id,
+        actionTypeId: logData.inventory_action_type_id,
+        previousQuantity: logData.previous_quantity,
+        quantityChange: logData.quantity_change,
+        newQuantity: logData.new_quantity,
+        performedBy: logData.performed_by,
+        performedAt: logData.performed_at,
+        referenceId: logData.reference_id,
+      }),
     };
   });
 
