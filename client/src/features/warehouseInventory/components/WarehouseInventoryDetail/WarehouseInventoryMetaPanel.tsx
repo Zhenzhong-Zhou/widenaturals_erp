@@ -1,7 +1,9 @@
 import { type FC } from 'react';
 import { Card, Divider, Stack } from '@mui/material';
 import { CustomTypography } from '@components/index';
-import DetailField from './DetailField';
+import {
+  DetailField
+} from '@features/warehouseInventory/components/WarehouseInventoryDetail';
 import type { GenericAudit } from '@shared-types/api';
 import { formatDateTime } from '@utils/dateTimeUtils';
 import { formatLabel } from '@utils/textUtils';
