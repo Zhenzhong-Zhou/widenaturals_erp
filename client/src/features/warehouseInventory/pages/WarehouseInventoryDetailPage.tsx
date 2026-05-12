@@ -20,6 +20,7 @@ import {
   CustomButton,
   CustomTypography,
   ErrorMessage,
+  GoBackButton,
   Loading,
   NoDataFound,
 } from '@components/index';
@@ -33,6 +34,7 @@ import {
   WarehouseInventoryZonesTable,
 } from '@features/warehouseInventory/components/WarehouseInventoryDetail';
 import { useWarehouseInventoryDetail } from '@hooks/index';
+import { formatInventoryStatus } from '@utils/formatters';
 import { formatLabel } from '@utils/textUtils';
 
 type DetailTab = 'zones' | 'movements' | 'activity';
@@ -136,7 +138,7 @@ const WarehouseInventoryDetailPage: FC = () => {
             size="small"
             color={data.batchType === 'product' ? 'primary' : 'secondary'}
           />
-          <Chip label={formatLabel(data.status.name)} size="small" variant="outlined" />
+          {formatInventoryStatus(data.status.name, formatLabel(data.status.name))}
         </Stack>
         
         <Box
@@ -148,9 +150,32 @@ const WarehouseInventoryDetailPage: FC = () => {
           <CustomTypography variant="h5" fontWeight={600}>
             {headerTitle}
           </CustomTypography>
-          <CustomButton variant="outlined" onClick={handleRefresh}>
-            Refresh
-          </CustomButton>
+          
+          <Stack direction="row" spacing={1.5} alignItems="center">
+            <GoBackButton
+              variant="outlined"
+              sx={{
+                width: 128,
+                height: 44,
+                px: 2.5,
+                borderRadius: 999,
+                flexShrink: 0,
+              }}
+            />
+            <CustomButton
+              variant="outlined"
+              sx={{
+                width: 128,
+                height: 44,
+                px: 2.5,
+                borderRadius: 999,
+                flexShrink: 0,
+              }}
+              onClick={handleRefresh}
+            >
+              Refresh
+            </CustomButton>
+          </Stack>
         </Box>
       </Box>
       
