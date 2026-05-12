@@ -29,8 +29,13 @@ const TruncatedText: FC<TruncatedTextProps> = ({
         component="span"
         className={className}
         sx={{
-          display: 'inline-block',
+          display: 'inline-flex',
+          alignItems: 'center',
           maxWidth: '100%',
+          verticalAlign: 'middle',
+          lineHeight: 'inherit',
+          fontSize: 'inherit',
+          fontFamily: 'inherit',
           cursor: isTruncated ? 'help' : 'default',
           ...rest.sx,
         }}
