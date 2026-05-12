@@ -139,7 +139,7 @@ const WarehouseInventoryListTable = ({
   // ── Columns ───────────────────────────────────────────────────────────────
   const columns = useMemo(
     () =>
-      getWarehouseInventoryColumns({
+      getWarehouseInventoryColumns(warehouseId, {
         canViewDetail,
         expandedRowId,
         handleDrillDownToggle,

@@ -1,4 +1,5 @@
-import Box from '@mui/material/Box';
+import { Box, Link } from '@mui/material';
+import { Link as RouterLink } from 'react-router-dom';
 import { TruncatedText } from '@components/index';
 import { InventoryStatusBadge } from '@features/warehouseInventory/components/WarehouseInventoryListTable';
 import type { Column } from '@components/common/CustomTable';
@@ -16,6 +17,7 @@ import { formatInventoryStatus } from '@utils/formatters';
  * - Drill-down toggle is gated by canViewDetail
  */
 export const getWarehouseInventoryColumns = (
+  warehouseId: string,
   options: {
     canViewDetail?: boolean;
     expandedRowId?: string | null;
@@ -61,10 +63,25 @@ export const getWarehouseInventoryColumns = (
       id: 'lotNumber',
       label: 'Lot #',
       sortable: true,
-      renderCell: (row) =>
-        row.batchType === 'product'
-          ? (row.productLotNumber ?? '—')
-          : (row.packagingLotNumber ?? '—'),
+      renderCell: (row) => {
+        const lotNumber =
+          row.batchType === 'product'
+            ? row.productLotNumber
+            : row.packagingLotNumber;
+        
+        if (!lotNumber) return '—';
+        
+        return (
+          <Link
+            component={RouterLink}
+            to={`/warehouse-inventory/${warehouseId}/inventory/${row.id}`}
+            underline="hover"
+            sx={{ fontWeight: 500 }}
+          >
+            {lotNumber}
+          </Link>
+        );
+      },
     },
     {
       id: 'expiryDate',
