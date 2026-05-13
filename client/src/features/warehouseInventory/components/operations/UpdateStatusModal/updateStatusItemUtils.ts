@@ -1,12 +1,18 @@
-import type { FlattenedWarehouseInventory } from '@features/warehouseInventory';
+import type {
+  FlattenedWarehouseInventory,
+  WarehouseInventoryDetailRecord
+} from '@features/warehouseInventory';
 
 /**
- * Builds a human-readable inventory record label for single-record display.
+ * Builds a human-readable inventory record label from a flattened list row.
  *
  * Product records use lot number, SKU, and product name.
  * Packaging records use lot number and material code.
+ *
+ * Output format mirrors getDetailRecordInventoryLabel so the two adapters
+ * produce visually identical labels regardless of the source shape.
  */
-export const getWarehouseInventoryItemLabel = (
+export const getFlattenedInventoryLabel = (
   item: FlattenedWarehouseInventory
 ): string => {
   if (item.batchType === 'product') {
@@ -14,8 +20,36 @@ export const getWarehouseInventoryItemLabel = (
       .filter(Boolean)
       .join(' · ');
   }
-  
   return [item.packagingLotNumber, item.materialCode]
+    .filter(Boolean)
+    .join(' · ');
+};
+
+/**
+ * Builds a human-readable inventory record label from a detail record.
+ *
+ * Product records use lot number, SKU, and product name.
+ * Packaging records use lot number and material code.
+ *
+ * Output format mirrors getFlattenedInventoryLabel so the two adapters
+ * produce visually identical labels regardless of the source shape.
+ */
+export const getDetailRecordInventoryLabel = (
+  r: WarehouseInventoryDetailRecord
+): string => {
+  if (r.batchType === 'product') {
+    return [
+      r.productInfo?.batch.lotNumber,
+      r.productInfo?.sku?.sku,
+      r.productInfo?.product?.name,
+    ]
+      .filter(Boolean)
+      .join(' · ');
+  }
+  return [
+    r.packagingInfo?.batch.lotNumber,
+    r.packagingInfo?.material?.code,
+  ]
     .filter(Boolean)
     .join(' · ');
 };
