@@ -7,15 +7,13 @@ import {
   ErrorMessage,
   Section,
   SummaryStat,
-  CustomDatePicker,
 } from '@components/index';
 import type { CustomFormRef } from '@components/common/CustomForm';
 import { useWarehouseInventoryOutbound } from '@hooks/index';
-import type { WarehouseInventoryDetailRecord } from '@features/warehouseInventory';
-import { toISODate } from '@utils/dateTimeUtils';
 import { useModalSuccessLifecycle } from '@features/warehouseInventory/hooks';
-
-// ─── Props ────────────────────────────────────────────────────────────────────
+import type { WarehouseInventoryDetailRecord } from '@features/warehouseInventory';
+import { buildRecordOutboundFields } from './recordOutboundFields';
+import { buildRecordOutboundPayload } from './recordOutboundPayload';
 
 interface RecordOutboundModalProps {
   open: boolean;
@@ -25,46 +23,12 @@ interface RecordOutboundModalProps {
   onSuccess?: (message: string) => void;
 }
 
-// ─── Zone table columns ───────────────────────────────────────────────────────
-
 const ZONE_COLUMNS = [
   { id: 'zoneCode', label: 'Zone' },
   { id: 'quantity', label: 'Qty' },
   { id: 'reservedQuantity', label: 'Reserved' },
   { id: 'availableQuantity', label: 'Available' },
 ];
-
-// ─── Fields ───────────────────────────────────────────────────────────────────
-
-const buildFields = (record: WarehouseInventoryDetailRecord) => [
-  {
-    id: 'outboundDate',
-    label: 'Outbound Date',
-    type: 'custom' as const,
-    required: true,
-    defaultValue: toISODate(new Date()),
-    customRender: ({ value, onChange }: any) => (
-      <CustomDatePicker
-        label="Outbound Date"
-        required
-        value={value ?? null}
-        onChange={(date) => onChange?.(toISODate(date))}
-      />
-    ),
-  },
-  {
-    id: 'warehouseQuantity',
-    label: 'Remaining Quantity After Outbound',
-    type: 'number' as const,
-    required: true,
-    min: 0,
-    max: record.warehouseQuantity,
-    defaultHelperText: `Cannot exceed current qty (${record.warehouseQuantity})`,
-    placeholder: '0',
-  },
-];
-
-// ─── Component ────────────────────────────────────────────────────────────────
 
 const RecordOutboundModal = ({
                                open,
@@ -96,15 +60,10 @@ const RecordOutboundModal = ({
   });
   
   const onSubmit = (values: Record<string, any>) => {
-    void recordOutbound(warehouseId, {
-      updates: [
-        {
-          id: record.id,
-          outboundDate: values.outboundDate,
-          warehouseQuantity: Number(values.warehouseQuantity),
-        },
-      ],
-    });
+    void recordOutbound(
+      warehouseId,
+      buildRecordOutboundPayload(record, values)
+    );
   };
   
   return (
@@ -126,7 +85,7 @@ const RecordOutboundModal = ({
       
       <CustomForm
         ref={formRef}
-        fields={buildFields(record)}
+        fields={buildRecordOutboundFields(record)}
         onSubmit={onSubmit}
         submitButtonLabel="Record Outbound"
         disabled={loading}
