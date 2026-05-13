@@ -281,8 +281,12 @@ const createWarehouseInventoryService = async ({
  *  2. Enforces warehouse scope for non-global users.
  *  3. Validates quantity adjustment inputs (reserved quantity
  *     requires `FORCE_ADJUST_RESERVED` permission).
- *  4. Fetches pre-mutation inventory state for activity log generation.
- *  5. Resolves new inventory status per row based on resulting warehouse quantity.
+ *  4. Fetches pre-mutation inventory state for activity log generation
+ *     and current-status lookup.
+ *  5. Resolves new inventory status per row: only rows whose current status
+ *     is `inventory_in_stock` or `inventory_out_of_stock` are auto-toggled
+ *     based on the resulting warehouse quantity. All other statuses
+ *     (e.g. suspended, damaged, expired) are preserved as-is.
  *  6. Applies bulk quantity updates scoped to the warehouse (atomic ACL guard).
  *  7. Builds and inserts inventory activity log entries.
  *
@@ -337,18 +341,35 @@ const adjustWarehouseInventoryQuantityService = async ({
           { context }
         );
       }
+      
+      // Index previous records by id so we can read the current status per row.
+      const previousById = new Map(previousRecords.map((r) => [r.id, r]));
 
-      // Resolve new status per row based on resulting warehouse quantity.
-      const updateInputs = updates.map((u) => ({
-        id: u.id,
-        warehouseQuantity: u.warehouseQuantity,
-        reservedQuantity: u.reservedQuantity,
-        statusId: resolveInventoryStatus(u.warehouseQuantity, {
-          inStockStatusId,
-          outOfStockStatusId,
-        }),
-        warehouseId,
-      }));
+      // Only in_stock <-> out_of_stock are auto-toggled by quantity.
+      // Any other status (suspended, damaged, expired, etc.) is preserved.
+      const updateInputs = updates.map((u) => {
+        const prev = previousById.get(u.id);
+        const previousStatusId = prev?.status_id;
+        
+        const isToggleableStatus =
+          previousStatusId === inStockStatusId ||
+          previousStatusId === outOfStockStatusId;
+        
+        const statusId = isToggleableStatus
+          ? resolveInventoryStatus(u.warehouseQuantity, {
+            inStockStatusId,
+            outOfStockStatusId,
+          })
+          : previousStatusId;
+        
+        return {
+          id: u.id,
+          warehouseQuantity: u.warehouseQuantity,
+          reservedQuantity: u.reservedQuantity,
+          statusId,
+          warehouseId,
+        };
+      });
 
       const updatedRecords = await updateWarehouseInventoryQuantityBulk(
         updateInputs,
