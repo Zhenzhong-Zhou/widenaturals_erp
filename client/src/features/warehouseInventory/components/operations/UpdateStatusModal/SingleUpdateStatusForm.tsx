@@ -1,21 +1,20 @@
-import type { Dispatch, FC, SetStateAction } from 'react';
+import type { Dispatch, SetStateAction } from 'react';
 import {
   CustomForm,
   CustomTypography,
   Section,
 } from '@components/index';
-import type { FlattenedWarehouseInventory } from '@features/warehouseInventory';
+import type { UpdateStatusFormItem } from '@features/warehouseInventory';
 import type {
   InventoryStatusLookupParams,
   LookupOption,
   LookupPaginationMeta
 } from '@features/lookup';
 import { buildSingleUpdateStatusFields } from './updateStatusFields';
-import { getWarehouseInventoryItemLabel } from './updateStatusItemUtils';
 import { formatLabel } from '@utils/textUtils';
 
 interface SingleUpdateStatusFormProps {
-  item: FlattenedWarehouseInventory;
+  item: UpdateStatusFormItem;
   statusOptions: LookupOption[];
   statusLoading: boolean;
   statusError: string | null;
@@ -37,26 +36,26 @@ interface SingleUpdateStatusFormProps {
  * Displays the selected record and current status, then renders a simple
  * status update form using CustomForm's built-in submit button.
  */
-const SingleUpdateStatusForm: FC<SingleUpdateStatusFormProps> = ({
-                                                                   item,
-                                                                   statusOptions,
-                                                                   statusLoading,
-                                                                   statusError,
-                                                                   statusPaginationMeta,
-                                                                   statusFetchParams,
-                                                                   setStatusFetchParams,
-                                                                   fetchStatusOptions,
-                                                                   loading,
-                                                                   onSubmit,
-                                                                 }) => (
+const SingleUpdateStatusForm = ({
+                                  item,
+                                  statusOptions,
+                                  statusLoading,
+                                  statusError,
+                                  statusPaginationMeta,
+                                  statusFetchParams,
+                                  setStatusFetchParams,
+                                  fetchStatusOptions,
+                                  loading,
+                                  onSubmit,
+                                }: SingleUpdateStatusFormProps) => (
   <>
     <Section>
       <CustomTypography variant="body2" color="textSecondary">
-        {getWarehouseInventoryItemLabel(item)}
+        {item.label}
       </CustomTypography>
       
       <CustomTypography variant="body2" color="textSecondary">
-        Current: {formatLabel(item.statusName)}
+        Current: {formatLabel(item.currentStatusName)}
       </CustomTypography>
     </Section>
     
@@ -70,7 +69,7 @@ const SingleUpdateStatusForm: FC<SingleUpdateStatusFormProps> = ({
         setStatusFetchParams,
         fetchStatusOptions,
       })}
-      initialValues={{ statusId: item.statusId ?? '' }}
+      initialValues={{ statusId: item.currentStatusId }}
       onSubmit={onSubmit}
       submitButtonLabel="Update Status"
       disabled={loading || statusLoading}
