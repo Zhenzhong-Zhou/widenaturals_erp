@@ -1,11 +1,12 @@
 import { type FC, useCallback, useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Grid from '@mui/material/Grid';
 import Skeleton from '@mui/material/Skeleton';
 import Divider from '@mui/material/Divider';
 import {
+  CustomButton,
   CustomTypography,
   ErrorMessage,
   GoBackButton,
@@ -35,11 +36,13 @@ import {
 import { createOnOpenHandler } from '@features/lookup/utils/lookupUtils';
 import { WarehouseItemSummaryPanel } from '@features/warehouseInventory/components/WarehouseItemSummary';
 import { useRecentWarehouses } from '@features/warehouse/hooks';
+import { Stack } from '@mui/material';
 
 const INITIAL_FILTERS: WarehouseInventoryFilters = {};
 
 const WarehouseInventoryListPage: FC = () => {
   const { warehouseId } = useParams<{ warehouseId: string }>();
+  const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(25);
   const [sortBy, setSortBy] =
@@ -94,6 +97,7 @@ const WarehouseInventoryListPage: FC = () => {
     canCreateInventory,
     canViewWarehouseSummary,
     canViewWarehouseItemsSummary,
+    canViewInventoryActivityLog,
   } = useWarehouseInventoryPermissions();
 
   // Warehouse summary
@@ -193,6 +197,11 @@ const WarehouseInventoryListPage: FC = () => {
     }),
     [lookups.inventoryStatus, lookups.product, lookups.sku, lookups.packagingMaterial]
   );
+  
+  const handleGoToActivityLog = useCallback(() => {
+    if (!warehouseId) return;
+    navigate(`/warehouse-inventory/${warehouseId}/activity-log`);
+  }, [navigate, warehouseId]);
 
   if (!warehouseId) {
     return (
@@ -206,9 +215,27 @@ const WarehouseInventoryListPage: FC = () => {
 
   return (
     <Box sx={{ px: 4, py: 3 }}>
-      {/* Back navigation — its own row */}
-      <Box mb={2}>
+      {/* Top toolbar — back + page-level actions */}
+      <Box
+        mb={2}
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
+        gap={1.5}
+      >
         <GoBackButton variant="outlined" />
+        
+        <Stack direction="row" spacing={1.5}>
+          {canViewInventoryActivityLog && (
+            <CustomButton
+              variant="outlined"
+              onClick={handleGoToActivityLog}
+              sx={{ borderRadius: 999, px: 2.5, height: 44 }}
+            >
+              Activity Log
+            </CustomButton>
+          )}
+        </Stack>
       </Box>
 
       {canViewWarehouseSummary && (
