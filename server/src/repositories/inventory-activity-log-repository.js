@@ -26,6 +26,7 @@ const {
   INVENTORY_ACTIVITY_LOG_TABLE,
   INVENTORY_ACTIVITY_LOG_JOINS,
   INVENTORY_ACTIVITY_LOG_SORT_WHITELIST,
+  INVENTORY_ACTIVITY_LOG_TABLE_WITH_ALIAS,
 } = require('./queries/inventory-activity-log-queries');
 const {
   buildInventoryActivityLogFilter,
@@ -135,7 +136,7 @@ const getPaginatedInventoryActivityLog = async ({
   try {
     return /** @type {PaginatedResult<InventoryActivityLogRow>} */ (
       await paginateQuery({
-        tableName: INVENTORY_ACTIVITY_LOG_TABLE,
+        tableName: INVENTORY_ACTIVITY_LOG_TABLE_WITH_ALIAS,
         joins: INVENTORY_ACTIVITY_LOG_JOINS,
         whereClause,
         queryText,
