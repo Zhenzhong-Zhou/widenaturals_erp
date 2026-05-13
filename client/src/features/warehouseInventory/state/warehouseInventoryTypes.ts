@@ -358,6 +358,27 @@ export type UpdateWarehouseInventoryStatusRequest = {
   updates: UpdateWarehouseInventoryStatusItem[];
 };
 
+/**
+ * Normalized input shape for the single-record update-status form.
+ *
+ * Both the list-page row (FlattenedWarehouseInventory) and the detail-page
+ * record (WarehouseInventoryDetailRecord) feed the same form, but their
+ * source shapes differ (flat columns vs nested objects). Each is adapted
+ * into this type — via flattenedToUpdateStatusItem and
+ * detailRecordToUpdateStatusItem — before reaching the form or payload
+ * builder, so neither needs to know which source the item came from.
+ */
+export interface UpdateStatusFormItem {
+  /** Inventory record UUID. */
+  id: string;
+  /** Current inventory status UUID. */
+  currentStatusId: string;
+  /** Current inventory status name. */
+  currentStatusName: string;
+  /** Pre-formatted human-readable label (lot · sku · product, etc.). */
+  label: string;
+}
+
 /** Data returned after updating warehouse inventory statuses. */
 export type UpdateWarehouseInventoryStatusData = {
   count: number;
