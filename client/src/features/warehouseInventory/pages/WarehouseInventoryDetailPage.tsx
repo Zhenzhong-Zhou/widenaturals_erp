@@ -5,16 +5,24 @@ import {
   useEffect,
   useState,
 } from 'react';
-import { useParams } from 'react-router-dom';
 import {
+  useNavigate,
+  useParams
+} from 'react-router-dom';
+import {
+  Alert,
   Box,
   Card,
   Chip,
   Divider,
   Grid,
+  ListItemText,
+  Menu,
+  MenuItem,
+  Snackbar,
   Stack,
   Tab,
-  Tabs
+  Tabs,
 } from '@mui/material';
 import {
   CustomButton,
@@ -33,9 +41,24 @@ import {
   WarehouseInventoryProductInfoPanel,
   WarehouseInventoryZonesTable,
 } from '@features/warehouseInventory/components/WarehouseInventoryDetail';
+import {
+  AdjustQuantitiesModal,
+  RecordOutboundModal,
+  UpdateMetadataModal,
+  UpdateStatusModal,
+} from '@features/warehouseInventory/components/operations';
 import { useWarehouseInventoryDetail } from '@hooks/index';
 import { formatInventoryStatus } from '@utils/formatters';
 import { formatLabel } from '@utils/textUtils';
+import { useWarehouseInventoryPermissions } from '@features/warehouseInventory/hooks';
+
+type DetailModal = 'idle' | 'adjust' | 'updateStatus' | 'metadata' | 'outbound';
+
+interface SnackbarState {
+  open: boolean;
+  message: string;
+  severity: 'success' | 'error';
+}
 
 type DetailTab = 'zones' | 'movements' | 'activity';
 
@@ -54,7 +77,24 @@ const WarehouseInventoryDetailPage: FC = () => {
     warehouseId: string;
     inventoryId: string;
   }>();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<DetailTab>('zones');
+  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+  const menuOpen = Boolean(menuAnchor);
+  const openMenu = (e: SyntheticEvent<HTMLElement>) =>
+    setMenuAnchor(e.currentTarget);
+  const closeMenu = () => setMenuAnchor(null);
+  
+  // Single discriminant for which modal is open
+  const [activeModal, setActiveModal] = useState<DetailModal>('idle');
+  const openModal = useCallback((m: Exclude<DetailModal, 'idle'>) => {
+    closeMenu();
+    setActiveModal(m);
+  }, []);
+  const closeModal = useCallback(() => setActiveModal('idle'), []);
+  
+  // Snackbar
+  const [snackbar, setSnackbar] = useState<SnackbarState | null>(null);
   
   const {
     data,
@@ -68,6 +108,15 @@ const WarehouseInventoryDetailPage: FC = () => {
     fetchDetail,
     resetDetail,
   } = useWarehouseInventoryDetail();
+  
+  const {
+    canAdjustInventory,
+    canAdjustReserved,
+    canUpdateInventoryStatus,
+    canEditInventoryMetadata,
+    canRecordOutbound,
+    canViewInventoryActivityLog,
+  } = useWarehouseInventoryPermissions();
   
   // -----------------------------
   // Fetch on mount
@@ -94,6 +143,27 @@ const WarehouseInventoryDetailPage: FC = () => {
   const handleTabChange = (_e: SyntheticEvent, next: DetailTab) => {
     setActiveTab(next);
   };
+  
+  const handleSuccess = useCallback(
+    (message?: string) => {
+      setSnackbar({
+        open: true,
+        message: message ?? 'Operation completed successfully.',
+        severity: 'success',
+      });
+      handleRefresh();
+    },
+    [handleRefresh]
+  );
+  
+  const goToActivityLog = useCallback(() => {
+    closeMenu();
+    if (warehouseId && inventoryId) {
+      navigate(
+        `/warehouse-inventory/${warehouseId}/inventory/${inventoryId}/activity`
+      );
+    }
+  }, [navigate, warehouseId, inventoryId]);
   
   // -----------------------------
   // Loading / error / empty
@@ -154,28 +224,59 @@ const WarehouseInventoryDetailPage: FC = () => {
           <Stack direction="row" spacing={1.5} alignItems="center">
             <GoBackButton
               variant="outlined"
-              sx={{
-                width: 128,
-                height: 44,
-                px: 2.5,
-                borderRadius: 999,
-                flexShrink: 0,
-              }}
+              sx={{ width: 128, height: 44, px: 2.5, borderRadius: 999, flexShrink: 0 }}
             />
             <CustomButton
               variant="outlined"
-              sx={{
-                width: 128,
-                height: 44,
-                px: 2.5,
-                borderRadius: 999,
-                flexShrink: 0,
-              }}
               onClick={handleRefresh}
+              sx={{ width: 128, height: 44, px: 2.5, borderRadius: 999, flexShrink: 0 }}
             >
               Refresh
             </CustomButton>
+            <CustomButton
+              variant="contained"
+              onClick={openMenu}
+              sx={{ width: 128, height: 44, px: 2.5, borderRadius: 999, flexShrink: 0 }}
+            >
+              Actions ▾
+            </CustomButton>
           </Stack>
+          
+          {/* ── Actions menu ─────────────────────────────────────────────────── */}
+          <Menu
+            anchorEl={menuAnchor}
+            open={menuOpen}
+            onClose={closeMenu}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+          >
+            {canAdjustInventory && (
+              <MenuItem onClick={() => openModal('adjust')}>
+                <ListItemText>Adjust Quantity</ListItemText>
+              </MenuItem>
+            )}
+            {canUpdateInventoryStatus && (
+              <MenuItem onClick={() => openModal('updateStatus')}>
+                <ListItemText>Update Status</ListItemText>
+              </MenuItem>
+            )}
+            {canRecordOutbound && (
+              <MenuItem onClick={() => openModal('outbound')}>
+                <ListItemText>Record Outbound</ListItemText>
+              </MenuItem>
+            )}
+            {canEditInventoryMetadata && (
+              <MenuItem onClick={() => openModal('metadata')}>
+                <ListItemText>Edit Metadata</ListItemText>
+              </MenuItem>
+            )}
+            {canViewInventoryActivityLog && [
+              <Divider key="activity-divider" />,
+              <MenuItem key="activity" onClick={goToActivityLog}>
+                <ListItemText>View Activity Log</ListItemText>
+              </MenuItem>,
+            ]}
+          </Menu>
         </Box>
       </Box>
       
@@ -260,6 +361,59 @@ const WarehouseInventoryDetailPage: FC = () => {
           warehouseInventoryId={inventoryId}
         />
       )}
+      
+      {/* ── Modals ───────────────────────────────────────────────────────── */}
+      {canAdjustInventory && warehouseId && data && (
+        <AdjustQuantitiesModal
+          open={activeModal === 'adjust'}
+          onClose={closeModal}
+          warehouseId={warehouseId}
+          record={data}
+          canAdjustReserved={canAdjustReserved}
+          onSuccess={handleSuccess}
+        />
+      )}
+      
+      {canUpdateInventoryStatus && warehouseId && data && (
+        <UpdateStatusModal
+          open={activeModal === 'updateStatus'}
+          onClose={closeModal}
+          warehouseId={warehouseId}
+          record={data}
+          onSuccess={handleSuccess}
+        />
+      )}
+      
+      {canEditInventoryMetadata && warehouseId && (
+        <UpdateMetadataModal
+          open={activeModal === 'metadata'}
+          onClose={closeModal}
+          warehouseId={warehouseId}
+          record={data}
+          onSuccess={handleSuccess}
+        />
+      )}
+      
+      {canRecordOutbound && warehouseId && (
+        <RecordOutboundModal
+          open={activeModal === 'outbound'}
+          onClose={closeModal}
+          warehouseId={warehouseId}
+          record={data}
+          onSuccess={handleSuccess}
+        />
+      )}
+      
+      <Snackbar
+        open={snackbar?.open ?? false}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert severity={snackbar?.severity ?? 'info'} variant="filled">
+          {snackbar?.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

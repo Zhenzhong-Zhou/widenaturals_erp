@@ -27,9 +27,11 @@ import {
   useWarehouseItemSummary,
   useWarehouseSummary,
 } from '@hooks/index';
-import { useHasPermissionBoolean } from '@features/authorize/hooks';
 import { usePaginationHandlers } from '@utils/hooks';
-import { useWarehouseInventoryLookups } from '@features/warehouseInventory/hooks';
+import {
+  useWarehouseInventoryLookups,
+  useWarehouseInventoryPermissions
+} from '@features/warehouseInventory/hooks';
 import { createOnOpenHandler } from '@features/lookup/utils/lookupUtils';
 import { WarehouseItemSummaryPanel } from '@features/warehouseInventory/components/WarehouseItemSummary';
 import { useRecentWarehouses } from '@features/warehouse/hooks';
@@ -83,23 +85,16 @@ const WarehouseInventoryListPage: FC = () => {
 
   const { addRecent } = useRecentWarehouses();
   const lookups = useWarehouseInventoryLookups();
-  const hasPermission = useHasPermissionBoolean();
-
-  const canViewInventoryDetail = hasPermission(
-    'view_warehouse_inventory_detail'
-  );
-  const canCreateInventory = hasPermission('create_warehouse_inventory');
-  const canAdjustInventory = hasPermission('adjust_warehouse_inventory');
-  const canAdjustReserved = hasPermission('force_adjust_reserved');
-  const canUpdateInventoryStatus = hasPermission(
-    'update_warehouse_inventory_status'
-  );
-  const canViewWarehouseSummary = hasPermission(
-    'view_warehouse_inventory_summary'
-  );
-  const canViewWarehouseItemsSummary = hasPermission(
-    'view_warehouse_inventory_summary_item_details'
-  );
+  
+  const {
+    canAdjustInventory,
+    canAdjustReserved,
+    canUpdateInventoryStatus,
+    canViewInventoryDetail,
+    canCreateInventory,
+    canViewWarehouseSummary,
+    canViewWarehouseItemsSummary,
+  } = useWarehouseInventoryPermissions();
 
   // Warehouse summary
   useEffect(() => {
