@@ -1,4 +1,4 @@
-import { type FC, useEffect, useRef } from 'react';
+import { useRef } from 'react';
 import {
   CustomDatePicker,
   CustomForm,
@@ -12,6 +12,7 @@ import type {
 } from '@features/warehouseInventory';
 import type { CustomFormRef } from '@components/common/CustomForm';
 import { toISODate } from '@utils/dateTimeUtils';
+import { useModalSuccessLifecycle } from '@features/warehouseInventory/hooks';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -20,7 +21,7 @@ interface UpdateMetadataModalProps {
   onClose: () => void;
   warehouseId: string;
   record: WarehouseInventoryDetailRecord;
-  onSuccess?: () => void;
+  onSuccess?: (message: string) => void;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -68,20 +69,16 @@ const buildFields = (record: WarehouseInventoryDetailRecord) => [
     placeholder: '0.00',
   },
 ];
-// todo: installHook.js:1 [handleSuccess] called
-// {message: undefined}
-// overrideMethod	@	installHook.js:1
-// todo: need to use reset to fix
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-const UpdateMetadataModal: FC<UpdateMetadataModalProps> = ({
-  open,
-  onClose,
-  warehouseId,
-  record,
-  onSuccess,
-}) => {
+const UpdateMetadataModal = ({
+                               open,
+                               onClose,
+                               warehouseId,
+                               record,
+                               onSuccess,
+                             }: UpdateMetadataModalProps) => {
   const {
     loading,
     error,
@@ -90,22 +87,20 @@ const UpdateMetadataModal: FC<UpdateMetadataModalProps> = ({
     updateMetadata,
     resetUpdateMetadataState,
   } = useWarehouseInventoryUpdateMetadata();
-
+  
   const formRef = useRef<CustomFormRef>(null);
-
-  useEffect(() => {
-    if (updateResponse) {
-      formRef.current?.resetForm();
-      onClose();
-      onSuccess?.();
-    }
-  }, [updateResponse]);
-
-  const handleClose = () => {
-    formRef.current?.resetForm();
-    onClose();
-  };
-
+  
+  const { handleClose } = useModalSuccessLifecycle({
+    open,
+    success,
+    message: updateResponse?.message,
+    fallbackMessage: 'Inventory metadata updated successfully.',
+    onClose,
+    onSuccess,
+    resetState: resetUpdateMetadataState,
+    formRef,
+  });
+  
   const onSubmit = (values: Record<string, any>) => {
     const payload = buildPayload(values, record);
     // Nothing changed — no-op.
@@ -115,11 +110,11 @@ const UpdateMetadataModal: FC<UpdateMetadataModalProps> = ({
     }
     void updateMetadata(warehouseId, record.id, payload);
   };
-
+  
   return (
     <CustomModal open={open} onClose={handleClose} title="Edit Metadata">
       {error && <ErrorMessage message={error} />}
-
+      
       <CustomForm
         ref={formRef}
         fields={buildFields(record)}

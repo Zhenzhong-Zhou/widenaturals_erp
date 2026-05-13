@@ -1,4 +1,4 @@
-import { type FC, useEffect, useRef } from 'react';
+import { useRef } from 'react';
 import {
   CustomModal,
   CustomForm,
@@ -13,6 +13,7 @@ import type { CustomFormRef } from '@components/common/CustomForm';
 import { useWarehouseInventoryOutbound } from '@hooks/index';
 import type { WarehouseInventoryDetailRecord } from '@features/warehouseInventory';
 import { toISODate } from '@utils/dateTimeUtils';
+import { useModalSuccessLifecycle } from '@features/warehouseInventory/hooks';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -21,7 +22,7 @@ interface RecordOutboundModalProps {
   onClose: () => void;
   warehouseId: string;
   record: WarehouseInventoryDetailRecord;
-  onSuccess?: () => void;
+  onSuccess?: (message: string) => void;
 }
 
 // ─── Zone table columns ───────────────────────────────────────────────────────
@@ -65,13 +66,13 @@ const buildFields = (record: WarehouseInventoryDetailRecord) => [
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-const RecordOutboundModal: FC<RecordOutboundModalProps> = ({
-  open,
-  onClose,
-  warehouseId,
-  record,
-  onSuccess,
-}) => {
+const RecordOutboundModal = ({
+                               open,
+                               onClose,
+                               warehouseId,
+                               record,
+                               onSuccess,
+                             }: RecordOutboundModalProps) => {
   const {
     loading,
     error,
@@ -80,22 +81,20 @@ const RecordOutboundModal: FC<RecordOutboundModalProps> = ({
     recordOutbound,
     resetOutboundState,
   } = useWarehouseInventoryOutbound();
-
+  
   const formRef = useRef<CustomFormRef>(null);
-
-  useEffect(() => {
-    if (outboundResponse) {
-      formRef.current?.resetForm();
-      onClose();
-      onSuccess?.();
-    }
-  }, [outboundResponse]);
-
-  const handleClose = () => {
-    formRef.current?.resetForm();
-    onClose();
-  };
-
+  
+  const { handleClose } = useModalSuccessLifecycle({
+    open,
+    success,
+    message: outboundResponse?.message,
+    fallbackMessage: 'Outbound movement recorded successfully.',
+    onClose,
+    onSuccess,
+    resetState: resetOutboundState,
+    formRef,
+  });
+  
   const onSubmit = (values: Record<string, any>) => {
     void recordOutbound(warehouseId, {
       updates: [
@@ -107,28 +106,24 @@ const RecordOutboundModal: FC<RecordOutboundModalProps> = ({
       ],
     });
   };
-
+  
   return (
     <CustomModal open={open} onClose={handleClose} title="Record Outbound">
-      {/* Current quantity context */}
       <Section>
         <SummaryStat label="Warehouse Qty" value={record.warehouseQuantity} />
         <SummaryStat label="Reserved Qty" value={record.reservedQuantity} />
         <SummaryStat label="Available Qty" value={record.availableQuantity} />
       </Section>
-
-      {/* Zone breakdown — read-only context */}
+      
       {record.zones.length > 0 && (
         <Section>
-          <CustomTypography variant="subtitle2">
-            Zone Breakdown
-          </CustomTypography>
+          <CustomTypography variant="subtitle2">Zone Breakdown</CustomTypography>
           <CustomMiniTable columns={ZONE_COLUMNS} data={record.zones} />
         </Section>
       )}
-
+      
       {error && <ErrorMessage message={error} />}
-
+      
       <CustomForm
         ref={formRef}
         fields={buildFields(record)}
