@@ -1,55 +1,48 @@
-import { useMemo, useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   fetchLotAdjustmentTypeLookupThunk,
-  selectLotAdjustmentTypeError,
-  selectLotAdjustmentTypeItems,
-  selectLotAdjustmentTypeLoading,
+  selectLotAdjustmentTypeLookupOptions,
+  selectLotAdjustmentTypeLookupError,
+  selectLotAdjustmentTypeLookupLoading,
+  selectLotAdjustmentTypeLookupMeta,
 } from '@features/lookup/state';
-import type { LotAdjustmentLookupQueryParams } from '@features/lookup/state';
-import { formatLabel } from '@utils/textUtils';
+import type { LotAdjustmentTypeLookupParams } from '@features/lookup/state';
 import { resetLotAdjustmentTypeLookup } from '@features/lookup/state/lotAdjustmentTypeLookupSlice';
 
 /**
- * Custom hook to manage lot adjustment type lookup.
- * Allows flexible filtering via query params and exposes manual fetch/reset.
- *
+ * Hook for accessing lot adjustment type lookup state and actions.
  */
 const useLotAdjustmentTypeLookup = () => {
   const dispatch = useAppDispatch();
-
-  const items = useAppSelector(selectLotAdjustmentTypeItems);
-  const loading = useAppSelector(selectLotAdjustmentTypeLoading);
-  const error = useAppSelector(selectLotAdjustmentTypeError);
-
-  // Dispatch fetch with object param
-  const fetchLotAdjustmentTypeLookup = useCallback(
-    (params: LotAdjustmentLookupQueryParams = {}) => {
+  
+  const options = useAppSelector(selectLotAdjustmentTypeLookupOptions);
+  const loading = useAppSelector(selectLotAdjustmentTypeLookupLoading);
+  const error = useAppSelector(selectLotAdjustmentTypeLookupError);
+  const meta = useAppSelector(selectLotAdjustmentTypeLookupMeta);
+  
+  const fetch = useCallback(
+    (params?: LotAdjustmentTypeLookupParams) => {
       dispatch(fetchLotAdjustmentTypeLookupThunk(params));
     },
     [dispatch]
   );
-
-  const clearLotAdjustmentTypeLookup = useCallback(() => {
+  
+  const reset = useCallback(() => {
     dispatch(resetLotAdjustmentTypeLookup());
   }, [dispatch]);
-
-  const lookupOptions = useMemo(
-    () =>
-      items.map((item) => ({
-        value: `${item.value}::${item.actionTypeId}`,
-        label: formatLabel(item.label),
-      })),
-    [items]
+  
+  return useMemo(
+    () => ({
+      options,
+      loading,
+      error,
+      meta,
+      fetch,
+      reset,
+    }),
+    [options, loading, error, meta, fetch, reset]
   );
-
-  return {
-    options: lookupOptions,
-    loading,
-    error,
-    fetchLotAdjustmentTypeLookup,
-    clearLotAdjustmentTypeLookup,
-  };
 };
 
 export default useLotAdjustmentTypeLookup;

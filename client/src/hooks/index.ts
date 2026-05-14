@@ -191,6 +191,7 @@ export { default as useInventoryStatusLookup } from './useInventoryStatusLookup'
 export { default as usePricingTypeLookup } from './usePricingTypeLookup';
 export { default as useWarehouseTypeLookup } from './useWarehouseTypeLookup';
 export { default as useLocationLookup } from './useLocationLookup';
+export { default as useInventoryActionTypeLookup } from './useInventoryActionTypeLookup';
 
 /* =====================================================
  * Misc
