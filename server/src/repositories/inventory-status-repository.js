@@ -22,8 +22,12 @@ const {
 } = require('./queries/inventory-status-queries');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { logDbQueryError } = require('../utils/db-logger');
-const { buildInventoryStatusFilters } = require('../utils/sql/build-inventory-status-filter');
-const { paginateQueryByOffset } = require('../utils/db/pagination/pagination-helpers');
+const {
+  buildInventoryStatusFilters,
+} = require('../utils/sql/build-inventory-status-filter');
+const {
+  paginateQueryByOffset,
+} = require('../utils/db/pagination/pagination-helpers');
 
 const CONTEXT = 'inventory-status-repository';
 
@@ -109,14 +113,14 @@ const getInventoryStatusById = async (statusId, client) => {
  * @throws  {AppError} Normalized database error if the query fails.
  */
 const getInventoryStatusLookup = async ({
-                                                   filters = {},
-                                                   limit = 50,
-                                                   offset = 0,
-                                                 }) => {
+  filters = {},
+  limit = 50,
+  offset = 0,
+}) => {
   const context = `${CONTEXT}/getInventoryStatusLookup`;
   const { whereClause, params } = buildInventoryStatusFilters(filters);
   const queryText = buildInventoryStatusLookupQuery(whereClause);
-  
+
   try {
     return /** @type {PaginatedOffsetResult<InventoryStatusLookupRow>} */ (
       await paginateQueryByOffset({

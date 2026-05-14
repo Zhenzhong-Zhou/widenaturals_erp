@@ -1,6 +1,6 @@
 import { type FC } from 'react';
 import type { SortOrder } from '@shared-types/api';
-import { InventoryActivityLogSortField } from '@features/warehouseInventory';
+import type { InventoryActivityLogSortField } from '@features/warehouseInventory';
 import { SortControls } from '@components/index';
 
 interface InventoryActivityLogSortControlsProps {
@@ -16,15 +16,15 @@ const inventoryActivityLogSortOptions: {
 }[] = [
   // ---- Date / activity fields ----
   { label: 'Performed At', value: 'performedAt' },
-  
+
   // ---- Action fields ----
   { label: 'Action Type', value: 'actionTypeName' },
   { label: 'Reference Type', value: 'referenceType' },
-  
+
   // ---- Quantity fields ----
   { label: 'Quantity Change', value: 'quantityChange' },
   { label: 'New Quantity', value: 'newQuantity' },
-  
+
   // ---- Default natural sort ----
   { label: 'Default (Natural Sort)', value: 'defaultNaturalSort' },
 ];

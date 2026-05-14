@@ -113,11 +113,11 @@ const LocationTypeFiltersPanel: FC<Props> = ({
     fieldName: 'statusIds',
     options: status.options,
   });
-  
+
   const formattedStatusOptions = useFormattedOptionLabels<MultiSelectOption>(
     status.options as MultiSelectOption[]
   );
-  
+
   /* -----------------------------
    * Submit / Reset
    * --------------------------- */

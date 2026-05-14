@@ -156,9 +156,9 @@ const UserFiltersPanel: FC<Props> = ({
    * Derived lookup options
    * ----------------------------- */
   const formattedRoleOptions = useFormattedOptionLabels(role.options);
-  
+
   const formattedStatusOptions = useFormattedOptionLabels(status.options);
-  
+
   /* -----------------------------
    * Render
    * ----------------------------- */

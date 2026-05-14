@@ -17,19 +17,19 @@ type LocationDropdownProps = PaginatedDropdownProps<LocationLookupParams>;
  * - Warehouse and address pickers
  */
 const LocationDropdown = ({
-                            options = [],
-                            fetchParams,
-                            onRefresh,
-                            ...rest
-                          }: LocationDropdownProps) => {
+  options = [],
+  fetchParams,
+  onRefresh,
+  ...rest
+}: LocationDropdownProps) => {
   const enrichedOptions = useMemo(() => {
     return Array.from(
       new Map(
         options.map((opt) => {
           const isInactive = opt.isActive === false;
-          
+
           const rawLabel = getRawLabel(opt.label);
-          
+
           return [
             opt.value ?? opt.id,
             {
@@ -49,7 +49,7 @@ const LocationDropdown = ({
       ).values()
     );
   }, [options]);
-  
+
   return (
     <PaginatedDropdown
       label="Select Location"

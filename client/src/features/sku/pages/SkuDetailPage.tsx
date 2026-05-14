@@ -86,14 +86,16 @@ const SkuDetailPage: FC = () => {
   --------------------------------------------------------- */
 
   const hasPermission = useHasPermissionBoolean();
-  
-  const canViewInactive    = hasPermission('view_all_product_statuses');
-  const canUpdateMetadata  = hasPermission(PERMISSION_KEYS.SKUS.UPDATE_METADATA);
-  const canUpdateStatus    = hasPermission(PERMISSION_KEYS.SKUS.UPDATE_STATUS);
-  const canUpdateDimension = hasPermission(PERMISSION_KEYS.SKUS.UPDATE_DIMENSIONS);
-  const canUpdateIdentity  = hasPermission(PERMISSION_KEYS.SKUS.UPDATE_IDENTITY);
-  const canUploadImages    = hasPermission(PERMISSION_KEYS.SKUS.UPLOAD_IMAGE);
-  const canUpdateImages    = hasPermission(PERMISSION_KEYS.SKUS.UPDATE_IMAGE);
+
+  const canViewInactive = hasPermission('view_all_product_statuses');
+  const canUpdateMetadata = hasPermission(PERMISSION_KEYS.SKUS.UPDATE_METADATA);
+  const canUpdateStatus = hasPermission(PERMISSION_KEYS.SKUS.UPDATE_STATUS);
+  const canUpdateDimension = hasPermission(
+    PERMISSION_KEYS.SKUS.UPDATE_DIMENSIONS
+  );
+  const canUpdateIdentity = hasPermission(PERMISSION_KEYS.SKUS.UPDATE_IDENTITY);
+  const canUploadImages = hasPermission(PERMISSION_KEYS.SKUS.UPLOAD_IMAGE);
+  const canUpdateImages = hasPermission(PERMISSION_KEYS.SKUS.UPDATE_IMAGE);
 
   /* ---------------------------------------------------------
    Dialog State

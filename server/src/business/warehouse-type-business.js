@@ -46,16 +46,16 @@ const CONTEXT = 'warehouse-type-business';
  */
 const evaluateWarehouseTypeLookupVisibility = async (user) => {
   const context = `${CONTEXT}/evaluateWarehouseTypeLookupVisibility`;
-  
+
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     const canViewInactive =
       isRoot ||
       permissions.includes(
         WAREHOUSE_CONSTANTS.PERMISSIONS.VIEW_ALL_WAREHOUSE_TYPES
       );
-    
+
     return { canViewInactive };
   } catch (err) {
     logSystemException(

@@ -8,4 +8,3 @@ export {
   isCompositeCategory,
   COMPOSITE_VIEW_PERMISSIONS,
 } from './orderPermissionUtils';
-

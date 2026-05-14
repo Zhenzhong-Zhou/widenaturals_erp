@@ -7,10 +7,7 @@ import {
   LotAdjustmentTypeDropdown,
   UserDropdown,
 } from '@features/lookup/components';
-import {
-  renderDateField,
-  renderSelectField,
-} from '@utils/filters/filterUtils';
+import { renderDateField, renderSelectField } from '@utils/filters/filterUtils';
 import {
   useInventoryActionTypeLookupBinding,
   useLotAdjustmentTypeLookupBinding,
@@ -19,7 +16,7 @@ import {
 import { toISODate } from '@utils/dateTimeUtils';
 import type { OptionType } from '@components/common/Dropdown';
 import type { InventoryActivityLogFilters } from '@features/warehouseInventory';
-import {
+import type {
   InventoryActionTypeLookupParams,
   LookupOption,
   LookupPaginationMeta,
@@ -36,33 +33,31 @@ interface Props {
   onChange: (filters: InventoryActivityLogFilters) => void;
   onApply: () => void;
   onReset: () => void;
-  
+
   inventoryActionTypeOptions: LookupOption[];
   inventoryActionTypeLoading?: boolean;
   inventoryActionTypeError?: string | null;
   inventoryActionTypeMeta: LookupPaginationMeta;
-  
+
   fetchInventoryActionTypeLookup: (
     params?: InventoryActionTypeLookupParams
   ) => void;
-  
+
   adjustmentTypeOptions: LookupOption[];
   adjustmentTypeLoading?: boolean;
   adjustmentTypeError?: string | null;
   adjustmentTypeMeta: LookupPaginationMeta;
-  
+
   fetchLotAdjustmentTypeLookup: (
     params?: LotAdjustmentTypeLookupParams
   ) => void;
-  
+
   userOptions: LookupOption[];
   userLoading?: boolean;
   userError?: string | null;
   userMeta: LookupPaginationMeta;
-  
-  fetchUserLookup: (
-    params?: UserLookupParams
-  ) => void;
+
+  fetchUserLookup: (params?: UserLookupParams) => void;
 }
 
 /* =========================================================
@@ -112,82 +107,82 @@ const REFERENCE_TYPE_OPTIONS: OptionType[] = [
  * own paginated lookup bindings and direct `setValue` wiring.
  */
 const WarehouseInventoryActivityLogFilterPanel: FC<Props> = ({
-                                                               filters,
-                                                               onChange,
-                                                               onApply,
-                                                               onReset,
-                                                               inventoryActionTypeOptions,
-                                                               inventoryActionTypeLoading,
-                                                               inventoryActionTypeError,
-                                                               inventoryActionTypeMeta,
-                                                               fetchInventoryActionTypeLookup,
-                                                               adjustmentTypeOptions,
-                                                               adjustmentTypeLoading,
-                                                               adjustmentTypeError,
-                                                               adjustmentTypeMeta,
-                                                               fetchLotAdjustmentTypeLookup,
-                                                               userOptions,
-                                                               userLoading,
-                                                               userError,
-                                                               userMeta,
-                                                               fetchUserLookup,
-                                                             }) => {
+  filters,
+  onChange,
+  onApply,
+  onReset,
+  inventoryActionTypeOptions,
+  inventoryActionTypeLoading,
+  inventoryActionTypeError,
+  inventoryActionTypeMeta,
+  fetchInventoryActionTypeLookup,
+  adjustmentTypeOptions,
+  adjustmentTypeLoading,
+  adjustmentTypeError,
+  adjustmentTypeMeta,
+  fetchLotAdjustmentTypeLookup,
+  userOptions,
+  userLoading,
+  userError,
+  userMeta,
+  fetchUserLookup,
+}) => {
   const { control, handleSubmit, reset, setValue } =
     useForm<InventoryActivityLogFilters>({
       defaultValues: filters,
     });
-  
+
   // Keep the form aligned with external filter changes (e.g., the page's
   // "Clear Filters" button, or a chip-driven inventoryId removal).
   useEffect(() => {
     reset(filters);
   }, [filters, reset]);
-  
+
   /* -----------------------------
    * Lookup bindings
    * --------------------------- */
-  
+
   const inventoryActionTypeBinding = useInventoryActionTypeLookupBinding({
     fetchInventoryActionTypeLookup,
   });
-  
+
   const adjustmentTypeBinding = useLotAdjustmentTypeLookupBinding({
     fetchLotAdjustmentTypeLookup,
   });
-  
+
   const performedByBinding = useUserLookupBinding({
     fetchUserLookup,
   });
-  
+
   const handleInventoryActionTypeOpen = () => {
     if (!inventoryActionTypeOptions.length) {
       inventoryActionTypeBinding.handleRefresh();
     }
   };
-  
+
   const handlePerformedByOpen = () => {
     if (!userOptions.length) {
       performedByBinding.handleRefresh();
     }
   };
-  
+
   const handleLotAdjustmentOpen = () => {
     if (!adjustmentTypeOptions.length) {
       adjustmentTypeBinding.handleRefresh();
     }
   };
-  
+
   /* -----------------------------
    * Submit / Reset
    * --------------------------- */
-  
+
   const submitFilters = (data: InventoryActivityLogFilters) => {
     const adjusted: InventoryActivityLogFilters = {
       ...data,
       performedAtAfter: toISODate(data.performedAtAfter || undefined),
       performedAtBefore: toISODate(data.performedAtBefore || undefined),
     };
-    
+
     // Keep inventoryId only for inventory-scoped log pages.
     // Full log pages should submit without inventoryId.
     if (filters.inventoryId) {
@@ -195,30 +190,30 @@ const WarehouseInventoryActivityLogFilterPanel: FC<Props> = ({
     } else {
       delete adjusted.inventoryId;
     }
-    
+
     onChange(adjusted);
     onApply();
   };
-  
+
   const resetFilters = () => {
     const nextFilters: InventoryActivityLogFilters = {
       ...emptyFilters,
     };
-    
+
     // Keep inventory scope during reset only when the parent page supplied one.
     if (filters.inventoryId) {
       nextFilters.inventoryId = filters.inventoryId;
     }
-    
+
     reset(nextFilters);
     onChange(nextFilters);
     onReset();
   };
-  
+
   /* -----------------------------
    * Render
    * --------------------------- */
-  
+
   return (
     <form onSubmit={handleSubmit(submitFilters)}>
       <FilterPanelLayout onReset={resetFilters}>
@@ -244,7 +239,7 @@ const WarehouseInventoryActivityLogFilterPanel: FC<Props> = ({
               onInputChange={inventoryActionTypeBinding.handleInputChange}
             />
           </Grid>
-          
+
           {/* --- Adjustment type --- */}
           <Grid size={{ xs: 12, md: 4 }}>
             <LotAdjustmentTypeDropdown
@@ -266,7 +261,7 @@ const WarehouseInventoryActivityLogFilterPanel: FC<Props> = ({
               onInputChange={adjustmentTypeBinding.handleInputChange}
             />
           </Grid>
-          
+
           {/* --- Performed by --- */}
           <Grid size={{ xs: 12, md: 4 }}>
             <UserDropdown
@@ -288,7 +283,7 @@ const WarehouseInventoryActivityLogFilterPanel: FC<Props> = ({
               onInputChange={performedByBinding.handleInputChange}
             />
           </Grid>
-          
+
           {/* --- Reference type (enum) --- */}
           {renderSelectField(
             control,
@@ -296,7 +291,7 @@ const WarehouseInventoryActivityLogFilterPanel: FC<Props> = ({
             'Reference Type',
             REFERENCE_TYPE_OPTIONS
           )}
-          
+
           {/* --- Performed at — date range --- */}
           {renderDateField(control, 'performedAtAfter', 'Performed After')}
           {renderDateField(control, 'performedAtBefore', 'Performed Before')}

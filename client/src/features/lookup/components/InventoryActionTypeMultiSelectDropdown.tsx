@@ -23,10 +23,10 @@ type InventoryActionTypeMultiSelectDropdownProps = Omit<
 const InventoryActionTypeMultiSelectDropdown: FC<
   InventoryActionTypeMultiSelectDropdownProps
 > = ({
-       label = 'Select Inventory Action Types',
-       placeholder = 'Choose inventory action types…',
-       ...rest
-     }) => {
+  label = 'Select Inventory Action Types',
+  placeholder = 'Choose inventory action types…',
+  ...rest
+}) => {
   return (
     <MultiSelectDropdown label={label} placeholder={placeholder} {...rest} />
   );

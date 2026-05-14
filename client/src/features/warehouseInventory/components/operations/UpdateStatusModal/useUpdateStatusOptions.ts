@@ -10,36 +10,30 @@ const DEFAULT_STATUS_FETCH_PARAMS: InventoryStatusLookupParams = {
 };
 
 export const useUpdateStatusOptions = (open: boolean) => {
-  const {
-    options,
-    loading,
-    error,
-    meta,
-    fetch,
-    reset,
-  } = useInventoryStatusLookup();
-  
+  const { options, loading, error, meta, fetch, reset } =
+    useInventoryStatusLookup();
+
   const [statusFetchParams, setStatusFetchParams] =
     useState<InventoryStatusLookupParams>(DEFAULT_STATUS_FETCH_PARAMS);
-  
+
   useEffect(() => {
     if (!open) return;
-    
+
     fetch(statusFetchParams);
-    
+
     // Initial fetch only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, fetch]);
-  
+
   useEffect(() => {
     if (open) return;
-    
+
     reset();
     setStatusFetchParams(DEFAULT_STATUS_FETCH_PARAMS);
   }, [open, reset]);
-  
+
   const statusOptions = useFormattedOptionLabels(options);
-  
+
   return {
     statusOptions,
     statusLoading: loading,

@@ -16,15 +16,15 @@ exports.seed = async function (knex) {
     );
     return;
   }
-  
+
   console.log(
     `[${new Date().toISOString()}] [SEED] Seeding role_permissions...`
   );
-  
+
   // --------------------------------------------------
   // Resolve system metadata
   // --------------------------------------------------
-  
+
   const systemUserId = await fetchDynamicValue(
     knex,
     'users',
@@ -35,7 +35,7 @@ exports.seed = async function (knex) {
   if (!systemUserId) {
     throw new Error('[SEED][role_permissions] System user not found.');
   }
-  
+
   const activeStatusId = await knex('status')
     .where({ name: 'active' })
     .first()
@@ -44,19 +44,19 @@ exports.seed = async function (knex) {
   if (!activeStatusId) {
     throw new Error('[SEED][role_permissions] Active status not found.');
   }
-  
+
   const roles = await knex('roles').select('id', 'name');
   const roleMap = Object.fromEntries(roles.map((r) => [r.name, r.id]));
-  
+
   const permissions = await knex('permissions').select('id', 'key');
   const permissionMap = Object.fromEntries(
     permissions.map((p) => [p.key, p.id])
   );
-  
+
   // ==================================================
   // Bundles
   // ==================================================
-  
+
   // Every authenticated user
   const BASE_AUTH = [
     'view_self_profile',
@@ -65,10 +65,10 @@ exports.seed = async function (knex) {
     'view_user_card',
     'view_user_avatars',
   ];
-  
+
   // Cross-domain lookups every role needs
   const COMMON_LOOKUPS = ['view_status_lookup', 'view_user_lookup'];
-  
+
   // Sales-flow lookups
   const SALES_LOOKUPS = [
     'view_customer_lookup',
@@ -82,7 +82,7 @@ exports.seed = async function (knex) {
     'view_pricing_group_lookup',
     'view_packaging_material_lookup',
   ];
-  
+
   // Inventory / warehouse lookups
   const INVENTORY_LOOKUPS = [
     'view_warehouse_lookup',
@@ -98,14 +98,14 @@ exports.seed = async function (knex) {
     'view_supplier_lookup',
     'view_packaging_material_supplier_lookup',
   ];
-  
+
   // Product / SKU lookups
   const PRODUCT_LOOKUPS = [
     'view_product_lookup',
     'view_sku_code_base_lookup',
     'view_pricing_type_lookup',
   ];
-  
+
   // Catalog read - shared by sales, marketing, qa, account, pm
   const CATALOG_READ = [
     'view_products',
@@ -117,16 +117,16 @@ exports.seed = async function (knex) {
     'view_sku_images',
     'view_compliance_records',
   ];
-  
+
   // Customer read/write
   const CUSTOMER_READ = [
     'view_customers',
     'view_active_customers',
     'view_addresses',
   ];
-  
+
   const CUSTOMER_WRITE = ['create_customers', 'create_addresses'];
-  
+
   // Pricing read
   const PRICING_READ = [
     'view_pricing',
@@ -138,7 +138,7 @@ exports.seed = async function (knex) {
     'view_pricing_group_skus',
     'view_all_valid_pricing',
   ];
-  
+
   // Sales order read
   const SALES_ORDER_READ = [
     'view_orders',
@@ -149,7 +149,7 @@ exports.seed = async function (knex) {
     'view_all_valid_discounts',
     'view_all_valid_tax_rates',
   ];
-  
+
   // Sales order write
   const SALES_ORDER_WRITE = [
     'create_orders',
@@ -159,14 +159,14 @@ exports.seed = async function (knex) {
     'confirm_sales_order',
     'cancel_sales_order',
   ];
-  
+
   // Order pipeline stage visibility
   const ORDER_STAGES = [
     'view_allocation_stage',
     'view_fulfillment_stage',
     'view_shipping_stage',
   ];
-  
+
   // Inventory read
   const INVENTORY_READ = [
     'view_warehouses',
@@ -179,7 +179,7 @@ exports.seed = async function (knex) {
     'view_warehouse_inventory_summary_item_details',
     'view_warehouse_inventory_activity_log',
   ];
-  
+
   // Inventory write
   const INVENTORY_WRITE = [
     'create_warehouse_inbound',
@@ -188,11 +188,11 @@ exports.seed = async function (knex) {
     'update_warehouse_inventory_status',
     'update_warehouse_inventory_metadata',
   ];
-  
+
   // ==================================================
   // ACL-layer bundles (business-layer scope filters)
   // ==================================================
-  
+
   // Warehouse inventory ACL — controls scope/field visibility
   // AFTER the route-level view_warehouse_inventory gate passes
   const WAREHOUSE_INV_ACL_READ_BASE = [
@@ -201,23 +201,21 @@ exports.seed = async function (knex) {
     'view_warehouse_inventory_manufacturer',
     'view_warehouse_inventory_supplier',
   ];
-  
+
   const WAREHOUSE_INV_ACL_FULL_SCOPE = [
     'view_all_warehouses',
     'view_all_warehouse_batch_types',
   ];
-  
-  const WAREHOUSE_INV_ACL_FINANCIALS = [
-    'view_warehouse_inventory_financials',
-  ];
-  
+
+  const WAREHOUSE_INV_ACL_FINANCIALS = ['view_warehouse_inventory_financials'];
+
   const WAREHOUSE_INV_ACL_WRITE = [
     'reserve_warehouse_inventory',
     'release_warehouse_reservation',
     'transfer_warehouse_inventory',
     'force_adjust_reserved',
   ];
-  
+
   // Warehouse-level ACL bundles
 
   // Lets the UI show stock totals on warehouse cards/lists
@@ -230,18 +228,18 @@ exports.seed = async function (knex) {
     'archive_warehouse',
     'view_all_warehouse_types',
   ];
-  
+
   // ────────────────────────────────────────────────────────────────────
   // New ACL bundles (add to your existing bundles section)
   // ────────────────────────────────────────────────────────────────────
-  
+
   // Manufacturer ACL
   const MANUFACTURER_MUTATION = [
     'create_manufacturers',
     'update_manufacturers',
     'manage_manufacturers',
   ];
-  
+
   const MANUFACTURER_ADMIN = [
     'archive_manufacturers',
     'restore_manufacturers',
@@ -251,7 +249,7 @@ exports.seed = async function (knex) {
     'view_all_manufacturers_visibility',
     'admin_override_manufacturer_filters',
   ];
-  
+
   const MANUFACTURER_READ = [
     'view_manufacturer_locations',
     'search_manufacturers_by_status',
@@ -264,7 +262,7 @@ exports.seed = async function (knex) {
     'update_suppliers',
     'manage_suppliers',
   ];
-  
+
   const SUPPLIER_ADMIN = [
     'archive_suppliers',
     'restore_suppliers',
@@ -274,7 +272,7 @@ exports.seed = async function (knex) {
     'view_all_suppliers_visibility',
     'admin_override_supplier_filters',
   ];
-  
+
   const SUPPLIER_READ = [
     'view_supplier_locations',
     'search_suppliers_by_status',
@@ -336,7 +334,7 @@ exports.seed = async function (knex) {
     'update_order',
     'delete_order',
   ];
-  
+
   // Batch read
   const BATCH_READ = [
     'view_batch_registry',
@@ -350,7 +348,7 @@ exports.seed = async function (knex) {
     'view_batch_manufacturer',
     'view_batch_supplier',
   ];
-  
+
   // Batch QA actions
   const BATCH_QA = [
     'update_batch_status',
@@ -371,7 +369,7 @@ exports.seed = async function (knex) {
     'view_compliance_record_history',
     'view_compliance_record_inactive',
   ];
-  
+
   // Batch production / creation
   const BATCH_WRITE = [
     'create_product_batches',
@@ -388,7 +386,7 @@ exports.seed = async function (knex) {
     'archive_batches',
     'update_batch_registry_note',
   ];
-  
+
   // Allocation / fulfillment workflow
   const FULFILLMENT_OPS = [
     'allocate_inventory',
@@ -403,14 +401,14 @@ exports.seed = async function (knex) {
     'ship_sales_order',
     'complete_sales_order',
   ];
-  
+
   // BOM read
   const BOM_READ = [
     'view_boms',
     'view_bom_details',
     'view_bom_production_summary',
   ];
-  
+
   // Non-sales order types - read only
   const SECONDARY_ORDER_TYPES_READ = [
     'view_purchase_order',
@@ -420,7 +418,7 @@ exports.seed = async function (knex) {
     'view_logistics_order',
     'view_manufacturing_order',
   ];
-  
+
   // Admin overrides
   const ADMIN_OVERRIDES = [
     'admin_override_user_filters',
@@ -432,7 +430,7 @@ exports.seed = async function (knex) {
     'admin_override_customer_filters',
     'admin_override_batch_filters',
   ];
-  
+
   // Admin user management
   const USER_MGMT = [
     'create_users',
@@ -452,7 +450,7 @@ exports.seed = async function (knex) {
     'reset_user_credentials',
     'assign_user_roles',
   ];
-  
+
   // Admin role management
   const ROLE_MGMT = [
     'view_roles',
@@ -464,14 +462,14 @@ exports.seed = async function (knex) {
     'manage_roles',
     'assign_role_permissions',
   ];
-  
+
   // ==================================================
   // Role definitions
   // ==================================================
-  
+
   const ROLE_DEFINITIONS = {
     root_admin: ['root_access'],
-    
+
     admin: [
       ...BASE_AUTH,
       ...COMMON_LOOKUPS,
@@ -518,7 +516,7 @@ exports.seed = async function (knex) {
       'view_pricing_history',
       'view_all_pricing_states',
     ],
-    
+
     manager: [
       ...BASE_AUTH,
       ...COMMON_LOOKUPS,
@@ -550,7 +548,7 @@ exports.seed = async function (knex) {
       'transfer_warehouse_inventory',
       'force_adjust_reserved',
     ],
-    
+
     sales: [
       ...BASE_AUTH,
       ...COMMON_LOOKUPS,
@@ -569,7 +567,7 @@ exports.seed = async function (knex) {
       'reserve_warehouse_inventory',
       'release_warehouse_reservation',
     ],
-    
+
     marketing: [
       ...BASE_AUTH,
       ...COMMON_LOOKUPS,
@@ -584,7 +582,7 @@ exports.seed = async function (knex) {
       'view_pricing_group_skus',
       'view_all_valid_discounts',
     ],
-    
+
     qa: [
       ...BASE_AUTH,
       ...COMMON_LOOKUPS,
@@ -603,7 +601,7 @@ exports.seed = async function (knex) {
       'view_active_packaging_material_suppliers',
       'view_all_packaging_material_suppliers',
     ],
-    
+
     product_manager: [
       ...BASE_AUTH,
       ...COMMON_LOOKUPS,
@@ -637,7 +635,7 @@ exports.seed = async function (knex) {
       'view_warehouse_inventory_manufacturer',
       'view_manufacturer_locations',
     ],
-    
+
     account: [
       ...BASE_AUTH,
       ...COMMON_LOOKUPS,
@@ -665,7 +663,7 @@ exports.seed = async function (knex) {
       'view_supplier_locations',
       'view_active_packaging_material_suppliers',
     ],
-    
+
     manufacturing_director: [
       ...BASE_AUTH,
       ...COMMON_LOOKUPS,
@@ -711,7 +709,7 @@ exports.seed = async function (knex) {
       'view_compliance_record_metadata',
       'view_compliance_record_history',
     ],
-    
+
     inventory: [
       ...BASE_AUTH,
       ...COMMON_LOOKUPS,
@@ -754,34 +752,34 @@ exports.seed = async function (knex) {
       'view_internal_lot_adjustment_types',
       'view_all_inventory_allocations',
     ],
-    
+
     user: [...BASE_AUTH],
   };
-  
+
   // --------------------------------------------------
   // Insert mappings
   // --------------------------------------------------
-  
+
   let insertedCount = 0;
   const missingPermissions = new Set();
-  
+
   for (const [roleKey, permissionKeys] of Object.entries(ROLE_DEFINITIONS)) {
     const roleId = roleMap[roleKey];
     if (!roleId) {
       console.warn(`[SEED] Role '${roleKey}' not found. Skipping.`);
       continue;
     }
-    
+
     // Dedupe (bundles may overlap)
     const uniqueKeys = [...new Set(permissionKeys)];
-    
+
     for (const permissionKey of uniqueKeys) {
       const permissionId = permissionMap[permissionKey];
       if (!permissionId) {
         missingPermissions.add(permissionKey);
         continue;
       }
-      
+
       await knex('role_permissions')
         .insert({
           id: knex.raw('uuid_generate_v4()'),
@@ -795,16 +793,16 @@ exports.seed = async function (knex) {
         })
         .onConflict(['role_id', 'permission_id'])
         .ignore();
-      
+
       insertedCount++;
     }
   }
-  
+
   if (missingPermissions.size > 0) {
     console.warn(
       `[SEED] ${missingPermissions.size} permission key(s) not found in DB: ${[...missingPermissions].join(', ')}`
     );
   }
-  
+
   console.log(`[SEED] Inserted ${insertedCount} role-permission mappings.`);
 };

@@ -49,8 +49,8 @@ const columns: MiniColumn<WarehouseZone>[] = [
 ];
 
 const WarehouseInventoryZonesTable: FC<WarehouseInventoryZonesTableProps> = ({
-                                                                               rows,
-                                                                             }) => (
+  rows,
+}) => (
   <CustomMiniTable<WarehouseZone>
     columns={columns}
     data={rows}

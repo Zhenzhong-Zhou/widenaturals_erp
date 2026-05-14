@@ -18,19 +18,19 @@ type InventoryStatusDropdownProps =
  * - Status-based filtering
  */
 const InventoryStatusDropdown = ({
-                                   options = [],
-                                   fetchParams,
-                                   onRefresh,
-                                   ...rest
-                                 }: InventoryStatusDropdownProps) => {
+  options = [],
+  fetchParams,
+  onRefresh,
+  ...rest
+}: InventoryStatusDropdownProps) => {
   const enrichedOptions = useMemo(() => {
     return Array.from(
       new Map(
         options.map((opt) => {
           const isInactive = opt.isActive === false;
-          
+
           const rawLabel = getRawLabel(opt.label);
-          
+
           return [
             opt.value ?? opt.id,
             {
@@ -52,7 +52,7 @@ const InventoryStatusDropdown = ({
       ).values()
     );
   }, [options]);
-  
+
   return (
     <PaginatedDropdown
       label="Select Inventory Status"

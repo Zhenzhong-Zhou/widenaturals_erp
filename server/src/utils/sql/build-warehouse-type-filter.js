@@ -34,29 +34,29 @@ const buildWarehouseTypeFilters = (filters = {}) => {
     'updatedAfter',
     'updatedBefore'
   );
-  
+
   const conditions = ['1=1'];
   const params = [];
   const paramIndexRef = { value: 1 };
-  
+
   const { isActive, keyword } = normalizedFilters;
-  
+
   // ─── State ─────────────────────────────────────────────────────────────────
-  
+
   if (typeof isActive === 'boolean') {
     conditions.push(`wt.is_active = $${paramIndexRef.value++}`);
     params.push(isActive);
   }
-  
+
   // ─── Keyword ───────────────────────────────────────────────────────────────
-  
+
   if (keyword) {
     conditions.push(`wt.name ILIKE $${paramIndexRef.value++}`);
     params.push(`%${String(keyword).trim()}%`);
   }
-  
+
   // ─── Audit ─────────────────────────────────────────────────────────────────
-  
+
   applyDateRangeConditions({
     conditions,
     params,
@@ -65,7 +65,7 @@ const buildWarehouseTypeFilters = (filters = {}) => {
     before: normalizedFilters.createdBefore,
     paramIndexRef,
   });
-  
+
   applyAuditConditions(
     conditions,
     params,
@@ -73,7 +73,7 @@ const buildWarehouseTypeFilters = (filters = {}) => {
     normalizedFilters,
     'wt'
   );
-  
+
   return {
     whereClause: conditions.join(' AND '),
     params,

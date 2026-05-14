@@ -11,7 +11,7 @@ import type {
   WarehousePackagingSummary,
   WarehouseProductSummary,
 } from '@features/warehouseInventory';
-import { BatchEntityType } from '@shared-types/batch';
+import type { BatchEntityType } from '@shared-types/batch';
 
 interface Props {
   products: WarehouseProductSummary[];

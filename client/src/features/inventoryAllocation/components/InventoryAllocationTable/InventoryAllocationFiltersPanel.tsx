@@ -13,7 +13,7 @@ import { mapBatchLookupToOptions } from '@features/lookup/utils/batchRegistryUti
 import {
   useBatchRegistryLookup,
   useOrderTypeLookup,
-  useWarehouseLookup
+  useWarehouseLookup,
 } from '@hooks/index';
 import {
   BatchRegistryMultiSelectDropdown,
@@ -128,12 +128,12 @@ const InventoryAllocationFiltersPanel: FC<Props> = ({
       false
     ) as BatchLookupOption[];
   }, [batchRegistryOptions]);
-  
+
   const orderTypeLabelFormatOptions = useMemo(
     () => ({ preserveHyphen: true }),
     []
   );
-  
+
   const formattedOrderTypeOptions = useFormattedOptionLabels(
     orderTypeOptions,
     orderTypeLabelFormatOptions

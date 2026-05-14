@@ -16,7 +16,11 @@ import {
   expirySeverityToColor,
   getBatchExpiryMeta,
 } from '@features/lookup/utils/batchRegistryUtils';
-import { CustomTypography, PaginatedDropdown, StatusChip } from '@components/index';
+import {
+  CustomTypography,
+  PaginatedDropdown,
+  StatusChip,
+} from '@components/index';
 import Box from '@mui/material/Box';
 
 export type BatchRegistryDropdownProps<
@@ -44,19 +48,19 @@ export type BatchRegistryDropdownProps<
 const BatchRegistryDropdown = <
   TQuery extends BatchRegistryLookupQuery = BatchRegistryLookupQuery,
 >({
-    options = [],
-    ...rest
-  }: BatchRegistryDropdownProps<TQuery>) => {
+  options = [],
+  ...rest
+}: BatchRegistryDropdownProps<TQuery>) => {
   const enrichedBatchRegistryOptions: BatchRegistryOption[] = useMemo(() => {
     return Array.from(
       new Map(
         options.map((opt) => {
           const isProduct = opt.type === 'product';
           const isPackaging = opt.type === 'packaging_material';
-          
+
           const rawLabel = composeBatchLabel(opt);
           const expiryMeta = getBatchExpiryMeta(opt);
-          
+
           // Severity overrides the type-based color when an expiry exists
           const iconColor = expiryMeta.hasExpiryDate
             ? expirySeverityToColor(expiryMeta.expirySeverity)
@@ -65,27 +69,28 @@ const BatchRegistryDropdown = <
               : isPackaging
                 ? 'blue'
                 : 'gray';
-          
+
           const displayLabel = (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <CustomTypography color={isProduct ? 'inherit' : 'primary'}>
                 {rawLabel}
               </CustomTypography>
-              
-              {expiryMeta.hasExpiryDate && expiryMeta.expirySeverity !== 'normal' && (
-                <StatusChip
-                  label={
-                    expiryMeta.isExpired
-                      ? 'Expired'
-                      : `Expires in ${expiryMeta.daysUntilExpiry}d`
-                  }
-                  color={expirySeverityToChipColor(expiryMeta.expirySeverity)}
-                  size="small"
-                />
-              )}
+
+              {expiryMeta.hasExpiryDate &&
+                expiryMeta.expirySeverity !== 'normal' && (
+                  <StatusChip
+                    label={
+                      expiryMeta.isExpired
+                        ? 'Expired'
+                        : `Expires in ${expiryMeta.daysUntilExpiry}d`
+                    }
+                    color={expirySeverityToChipColor(expiryMeta.expirySeverity)}
+                    size="small"
+                  />
+                )}
             </Box>
           );
-          
+
           return [
             opt.id,
             {
@@ -93,7 +98,11 @@ const BatchRegistryDropdown = <
               label: rawLabel,
               type: opt.type,
               displayLabel,
-              icon: isProduct ? faPills : isPackaging ? faBoxOpen : faQuestionCircle,
+              icon: isProduct
+                ? faPills
+                : isPackaging
+                  ? faBoxOpen
+                  : faQuestionCircle,
               tooltip: isProduct
                 ? 'Product Batch'
                 : isPackaging
@@ -107,7 +116,7 @@ const BatchRegistryDropdown = <
       ).values()
     );
   }, [options]);
-  
+
   return (
     <PaginatedDropdown<TQuery>
       label="Select Batch"

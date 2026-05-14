@@ -17,7 +17,7 @@ import {
  * Batch type is a static enum and does not need a server lookup.
  */
 const useWarehouseInventoryLookups = () => {
-  const inventoryStatus    = useInventoryStatusLookup();
+  const inventoryStatus = useInventoryStatusLookup();
   const product = useProductLookup();
   const sku = useSkuLookup();
   const packagingMaterial = usePackagingMaterialLookup();

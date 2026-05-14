@@ -45,12 +45,12 @@ export const mapBatchLookupToOptions = (
   useCompositeValue = false
 ): BatchLookupOption[] => {
   const seen = new Set<string>();
-  
+
   return batchOptions.reduce<BatchLookupOption[]>((acc, item) => {
     const value = useCompositeValue ? `${item.id}::${item.type}` : item.id;
     if (seen.has(value)) return acc;
     seen.add(value);
-    
+
     let label = 'Unknown Type';
     if (item.type === 'product') {
       const name = item.product?.name ?? 'Unknown Product';
@@ -63,7 +63,7 @@ export const mapBatchLookupToOptions = (
       const exp = formatDate(item.packagingMaterial?.expiryDate);
       label = `${name} - ${lot} (Exp: ${exp})`;
     }
-    
+
     acc.push({ value, label, type: item.type });
     return acc;
   }, []);
@@ -164,9 +164,12 @@ const pickExpiryMeta = (
  * its `type` discriminator. Used to drive expiry chips, sort priority, and
  * filter presets in batch and inventory views.
  */
-export const getBatchExpiryMeta = (opt: BatchRegistryLookupItem): ExpiryMeta => {
+export const getBatchExpiryMeta = (
+  opt: BatchRegistryLookupItem
+): ExpiryMeta => {
   if (opt.type === 'product') return pickExpiryMeta(opt.product);
-  if (opt.type === 'packaging_material') return pickExpiryMeta(opt.packagingMaterial);
+  if (opt.type === 'packaging_material')
+    return pickExpiryMeta(opt.packagingMaterial);
   return { hasExpiryDate: false };
 };
 
@@ -180,10 +183,14 @@ export const getBatchExpiryMeta = (opt: BatchRegistryLookupItem): ExpiryMeta => 
  */
 export const expirySeverityToColor = (severity: ExpirySeverity): string => {
   switch (severity) {
-    case 'expired':  return 'red';
-    case 'critical': return 'orange';
-    case 'warning':  return 'yellow';
-    case 'normal':   return 'green';
+    case 'expired':
+      return 'red';
+    case 'critical':
+      return 'orange';
+    case 'warning':
+      return 'yellow';
+    case 'normal':
+      return 'green';
     default: {
       return severity;
     }
@@ -198,10 +205,14 @@ export const expirySeverityToChipColor = (
   severity: ExpirySeverity
 ): 'default' | 'success' | 'warning' | 'error' => {
   switch (severity) {
-    case 'expired':  return 'error';
-    case 'critical': return 'error';
-    case 'warning':  return 'warning';
-    case 'normal':   return 'success';
+    case 'expired':
+      return 'error';
+    case 'critical':
+      return 'error';
+    case 'warning':
+      return 'warning';
+    case 'normal':
+      return 'success';
     default: {
       return severity;
     }

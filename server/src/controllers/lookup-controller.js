@@ -45,7 +45,8 @@ const {
   fetchInventoryStatusLookupService,
   fetchPricingTypeLookupService,
   fetchWarehouseTypeLookupService,
-  fetchLocationLookupService, fetchInventoryActionTypeLookupService,
+  fetchLocationLookupService,
+  fetchInventoryActionTypeLookupService,
 } = require('../services/lookup-service');
 const {
   createLookupController,

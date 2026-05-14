@@ -1,9 +1,6 @@
 import { type FC } from 'react';
 import { Box } from '@mui/material';
-import {
-  CustomTypography,
-  DetailsSection
-} from '@components/index';
+import { CustomTypography, DetailsSection } from '@components/index';
 import type { InventoryActivityLogRecord } from '@features/warehouseInventory';
 import { formatDateTime } from '@utils/dateTimeUtils';
 import { formatLabel } from '@utils/textUtils';
@@ -14,7 +11,7 @@ interface WarehouseInventoryActivityLogExpandedContentProps {
 
 const getDisplayValue = (value: string | null | undefined) => {
   if (typeof value !== 'string') return null;
-  
+
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
 };
@@ -23,7 +20,7 @@ const formatMetadata = (metadata: Record<string, unknown> | null) => {
   if (!metadata || Object.keys(metadata).length === 0) {
     return null;
   }
-  
+
   try {
     return JSON.stringify(metadata, null, 2);
   } catch {
@@ -37,15 +34,15 @@ const WarehouseInventoryActivityLogExpandedContent: FC<
   const hasProductContext = Boolean(
     row.productName || row.sku || row.productLotNumber
   );
-  
+
   const hasPackagingContext = Boolean(
     row.packagingDisplayName ||
     row.packagingMaterialCode ||
     row.packagingLotNumber
   );
-  
+
   const metadataText = formatMetadata(row.metadata);
-  
+
   return (
     <Box sx={{ px: 3, py: 2 }}>
       <Box mb={2}>
@@ -53,7 +50,7 @@ const WarehouseInventoryActivityLogExpandedContent: FC<
           Activity Log Details
         </CustomTypography>
       </Box>
-      
+
       {/* ── Activity ─────────────────────────────────────────────── */}
       <DetailsSection
         sectionTitle="Activity"
@@ -89,7 +86,7 @@ const WarehouseInventoryActivityLogExpandedContent: FC<
           },
         ]}
       />
-      
+
       {/* ── Quantity Snapshot ────────────────────────────────────── */}
       <DetailsSection
         sectionTitle="Quantity Snapshot"
@@ -116,7 +113,7 @@ const WarehouseInventoryActivityLogExpandedContent: FC<
           },
         ]}
       />
-      
+
       {/* ── Source Reference ─────────────────────────────────────── */}
       <DetailsSection
         sectionTitle="Source Reference"
@@ -132,7 +129,7 @@ const WarehouseInventoryActivityLogExpandedContent: FC<
           },
         ]}
       />
-      
+
       {/* ── Product Context ──────────────────────────────────────── */}
       {hasProductContext && (
         <DetailsSection
@@ -153,7 +150,7 @@ const WarehouseInventoryActivityLogExpandedContent: FC<
           ]}
         />
       )}
-      
+
       {/* ── Packaging Material Context ───────────────────────────── */}
       {hasPackagingContext && (
         <DetailsSection
@@ -174,7 +171,7 @@ const WarehouseInventoryActivityLogExpandedContent: FC<
           ]}
         />
       )}
-      
+
       {/* ── Comments ─────────────────────────────────────────────── */}
       <DetailsSection
         sectionTitle="Comments"
@@ -185,14 +182,14 @@ const WarehouseInventoryActivityLogExpandedContent: FC<
           },
         ]}
       />
-      
+
       {/* ── Metadata ─────────────────────────────────────────────── */}
       {metadataText && (
         <Box mt={2}>
           <CustomTypography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
             Metadata
           </CustomTypography>
-          
+
           <Box
             component="pre"
             sx={{

@@ -50,15 +50,15 @@ const CONTEXT = 'lot-adjustment-type-repository';
  * @throws  {AppError}        Normalized database error if the query fails.
  */
 const getLotAdjustmentTypeLookup = async ({
-                                            filters = {},
-                                            limit = 50,
-                                            offset = 0,
-                                          }) => {
+  filters = {},
+  limit = 50,
+  offset = 0,
+}) => {
   const context = `${CONTEXT}/getLotAdjustmentTypeLookup`;
-  
+
   const { whereClause, params } = buildLotAdjustmentTypeFilter(filters);
   const queryText = buildLotAdjustmentTypeLookupQuery(whereClause);
-  
+
   try {
     return await paginateQueryByOffset({
       tableName: LOT_ADJUSTMENT_TYPE_TABLE,

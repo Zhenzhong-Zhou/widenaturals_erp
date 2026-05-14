@@ -15,23 +15,23 @@ import { resetPricingTypeLookup } from '@features/lookup/state/pricingTypeLookup
  */
 const usePricingTypeLookup = () => {
   const dispatch = useAppDispatch();
-  
+
   const options = useAppSelector(selectPricingTypeLookupOptions);
   const loading = useAppSelector(selectPricingTypeLookupLoading);
   const error = useAppSelector(selectPricingTypeLookupError);
   const meta = useAppSelector(selectPricingTypeLookupMeta);
-  
+
   const fetch = useCallback(
     (params?: PricingTypeLookupParams) => {
       dispatch(fetchPricingTypeLookupThunk(params));
     },
     [dispatch]
   );
-  
+
   const reset = useCallback(() => {
     dispatch(resetPricingTypeLookup());
   }, [dispatch]);
-  
+
   return useMemo(
     () => ({
       options,

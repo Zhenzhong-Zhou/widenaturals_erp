@@ -21,7 +21,6 @@
  *  - enrichPricingTypeLookupWithActiveFlag  — decorates a lookup row with isActive
  */
 
-
 'use strict';
 
 const {
@@ -107,14 +106,14 @@ const applyPricingTypeVisibilityRules = (filters, acl) => {
  */
 const evaluatePricingTypeLookupVisibility = async (user) => {
   const context = `${CONTEXT}/evaluatePricingTypeLookupVisibility`;
-  
+
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     const canViewInactive =
       isRoot ||
       permissions.includes(PRICING_CONSTANTS.PERMISSIONS.VIEW_ALL_TYPES);
-    
+
     return {
       canViewInactive,
     };
@@ -127,7 +126,7 @@ const evaluatePricingTypeLookupVisibility = async (user) => {
         userId: user?.id,
       }
     );
-    
+
     throw AppError.businessError(
       'Unable to evaluate pricing type lookup visibility.'
     );

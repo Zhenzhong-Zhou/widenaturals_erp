@@ -24,10 +24,7 @@ import type {
   LookupPaginationMeta,
   UserLookupParams,
 } from '@features/lookup';
-import type {
-  useLocationTypeLookup,
-  useStatusLookup
-} from '@hooks/index';
+import type { useLocationTypeLookup, useStatusLookup } from '@hooks/index';
 import { toISODate } from '@utils/dateTimeUtils';
 import { useFormattedOptionLabels } from '@features/lookup/utils/formatOptionLabels';
 
@@ -133,22 +130,22 @@ const LOCATION_DATE_FIELDS: LocationDateField[] = [
  * - keyword search
  */
 const LocationFiltersPanel: FC<Props> = ({
-                                           filters,
-                                           lookups,
-                                           lookupHandlers,
-                                           onChange,
-                                           onApply,
-                                           onReset,
+  filters,
+  lookups,
+  lookupHandlers,
+  onChange,
+  onApply,
+  onReset,
 
-                                          // -------------------
-                                          // Shared user lookup
-                                          // -------------------
-                                           userOptions,
-                                           userLoading,
-                                           userError,
-                                           userMeta,
-                                           fetchUserLookup,
-                                         }) => {
+  // -------------------
+  // Shared user lookup
+  // -------------------
+  userOptions,
+  userLoading,
+  userError,
+  userMeta,
+  fetchUserLookup,
+}) => {
   const { control, handleSubmit, reset, watch, setValue } =
     useForm<LocationListFilters>({
       defaultValues: filters,
@@ -193,7 +190,7 @@ const LocationFiltersPanel: FC<Props> = ({
     fieldName: 'statusIds',
     options: status.options,
   });
-  
+
   const formattedStatusOptions = useFormattedOptionLabels(status.options);
 
   /* -----------------------------

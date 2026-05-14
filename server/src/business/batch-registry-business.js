@@ -195,30 +195,30 @@ const fetchBatchRegistryForInventoryLookup = async (filters, user) => {
       'warehouseId is required for inventory lookup.'
     );
   }
-  
+
   const acl = await evaluateBatchRegistryVisibility(user);
   const warehouseAccess = await assertWarehouseAccess(user);
-  
+
   if (!warehouseAccess.canViewAll) {
     enforceWarehouseScope(
       warehouseAccess.assignedWarehouseIds,
       filters.warehouseId
     );
   }
-  
+
   const batchReleasedStatusId = getStatusId('batch_released');
-  
+
   const adjustedFilters = {
     ...filters,
     excludeFromWarehouseId: filters.warehouseId,
     statusIds: [batchReleasedStatusId],
   };
-  
+
   if (acl.canViewAllWarehouses) delete adjustedFilters.excludeFromWarehouseId;
   if (acl.canViewAllBatchStatus) delete adjustedFilters.statusIds;
-  
+
   const adjusted = applyBatchRegistryVisibilityRules(adjustedFilters, acl);
-  
+
   // Repo expects excludeFromWarehouseId; warehouseId is business-layer only.
   delete adjusted.warehouseId;
   return adjusted;
@@ -232,14 +232,14 @@ const fetchBatchRegistryForInventoryLookup = async (filters, user) => {
 const fetchBatchRegistryLookup = async (filters, user) => {
   const acl = await evaluateBatchRegistryVisibility(user);
   const batchReleasedStatusId = getStatusId('batch_released');
-  
+
   const adjustedFilters = {
     ...filters,
     statusIds: [batchReleasedStatusId],
   };
-  
+
   if (acl.canViewAllBatchStatus) delete adjustedFilters.statusIds;
-  
+
   return applyBatchRegistryVisibilityRules(adjustedFilters, acl);
 };
 

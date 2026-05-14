@@ -93,12 +93,12 @@ const WarehouseInventoryListTable = ({
   } | null>(null);
   const [singleActionRow, setSingleActionRow] =
     useState<FlattenedWarehouseInventory | null>(null);
-  
+
   const handleRowAdjust = useCallback((row: FlattenedWarehouseInventory) => {
     setSingleActionRow(row);
     startTransition(() => setAdjustOpen(true));
   }, []);
-  
+
   const handleRowUpdateStatus = useCallback(
     (row: FlattenedWarehouseInventory) => {
       setSingleActionRow(row);
@@ -106,22 +106,22 @@ const WarehouseInventoryListTable = ({
     },
     []
   );
-  
+
   const modalItems = useMemo<FlattenedWarehouseInventory[]>(
     () => (singleActionRow ? [singleActionRow] : selectedItems),
     [singleActionRow, selectedItems]
   );
-  
+
   const handleAdjustClose = useCallback(() => {
     setAdjustOpen(false);
     setSingleActionRow(null);
   }, []);
-  
+
   const handleUpdateStatusClose = useCallback(() => {
     setUpdateStatusOpen(false);
     setSingleActionRow(null);
-  }, [])
-  
+  }, []);
+
   const handleSuccess = useCallback(
     (message?: string) => {
       setSnackbar({
@@ -274,7 +274,7 @@ const WarehouseInventoryListTable = ({
           onSuccess={handleSuccess}
         />
       )}
-      
+
       {canAdjust && (
         <AdjustQuantitiesModal
           open={adjustOpen}
@@ -285,7 +285,7 @@ const WarehouseInventoryListTable = ({
           onSuccess={handleSuccess}
         />
       )}
-      
+
       {canUpdateStatus && (
         <UpdateStatusModal
           open={updateStatusOpen}

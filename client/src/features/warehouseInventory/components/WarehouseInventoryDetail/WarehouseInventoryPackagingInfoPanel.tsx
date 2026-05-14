@@ -1,9 +1,7 @@
 import { type FC } from 'react';
 import { Card, Divider, Stack } from '@mui/material';
 import { CustomTypography } from '@components/index';
-import {
-  DetailField
-} from '@features/warehouseInventory/components/WarehouseInventoryDetail';
+import { DetailField } from '@features/warehouseInventory/components/WarehouseInventoryDetail';
 import { formatDate } from '@utils/dateTimeUtils';
 import type { PackagingInfoDetail } from '@features/warehouseInventory';
 
@@ -26,7 +24,7 @@ const WarehouseInventoryPackagingInfoPanel: FC<
       </Card>
     );
   }
-  
+
   return (
     <Card sx={{ p: 3, borderRadius: 2 }}>
       <CustomTypography variant="subtitle1" fontWeight={600} mb={1.5}>
@@ -35,9 +33,9 @@ const WarehouseInventoryPackagingInfoPanel: FC<
       <Stack spacing={1}>
         <DetailField label="Material code" value={info.material.code} />
       </Stack>
-      
+
       <Divider sx={{ my: 2 }} />
-      
+
       <CustomTypography variant="subtitle2" fontWeight={600} mb={1}>
         Batch
       </CustomTypography>
@@ -49,9 +47,9 @@ const WarehouseInventoryPackagingInfoPanel: FC<
           value={formatDate(info.batch.expiryDate)}
         />
       </Stack>
-      
+
       <Divider sx={{ my: 2 }} />
-      
+
       <CustomTypography variant="subtitle2" fontWeight={600} mb={1}>
         Supplier
       </CustomTypography>

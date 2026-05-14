@@ -12,22 +12,55 @@ const PERMISSION_KEYS = require('../../../utils/constants/domain/permission-keys
 // ────────────────────────────────────────────────────────────────────
 
 // Wrapped exports: module.exports = { X }
-const { BATCH_CONSTANTS } = require('../../../utils/constants/domain/batch-constants');
-const { COMPLIANCE_RECORD_CONSTANTS } = require('../../../utils/constants/domain/compliance-record-constants');
-const { INVENTORY_ACTION_TYPE_CONSTANTS } = require('../../../utils/constants/domain/inventory-action-type-constants');
-const { INVENTORY_ALLOCATION_CONSTANTS } = require('../../../utils/constants/domain/inventory-allocation-constants');
-const { INVENTORY_STATUS_CONSTANTS } = require('../../../utils/constants/domain/inventory-status-constants');
-const { LOCATION_CONSTANTS } = require('../../../utils/constants/domain/location-constants');
-const { LOCATION_TYPE_CONSTANTS } = require('../../../utils/constants/domain/location-type-constants');
-const { LOT_ADJUSTMENT_TYPE_CONSTANTS } = require('../../../utils/constants/domain/lot-adjustment-type-constants');
-const { MANUFACTURER_CONSTANTS } = require('../../../utils/constants/domain/manufacturer-constants');
-const { ROLE_CONSTANTS } = require('../../../utils/constants/domain/role-constants');
-const { SKU_CONSTANTS, SKU_IMAGES_CONSTANTS } = require('../../../utils/constants/domain/sku-constants');
-const { STATUS_CONSTANTS } = require('../../../utils/constants/domain/status-constants');
-const { SUPPLIER_CONSTANTS } = require('../../../utils/constants/domain/supplier-constants');
-const { USER_CONSTANTS } = require('../../../utils/constants/domain/user-constants');
-const { WAREHOUSE_CONSTANTS } = require('../../../utils/constants/domain/warehouse-constants');
-const { WAREHOUSE_INVENTORY_CONSTANTS } = require('../../../utils/constants/domain/warehouse-inventory-constants');
+const {
+  BATCH_CONSTANTS,
+} = require('../../../utils/constants/domain/batch-constants');
+const {
+  COMPLIANCE_RECORD_CONSTANTS,
+} = require('../../../utils/constants/domain/compliance-record-constants');
+const {
+  INVENTORY_ACTION_TYPE_CONSTANTS,
+} = require('../../../utils/constants/domain/inventory-action-type-constants');
+const {
+  INVENTORY_ALLOCATION_CONSTANTS,
+} = require('../../../utils/constants/domain/inventory-allocation-constants');
+const {
+  INVENTORY_STATUS_CONSTANTS,
+} = require('../../../utils/constants/domain/inventory-status-constants');
+const {
+  LOCATION_CONSTANTS,
+} = require('../../../utils/constants/domain/location-constants');
+const {
+  LOCATION_TYPE_CONSTANTS,
+} = require('../../../utils/constants/domain/location-type-constants');
+const {
+  LOT_ADJUSTMENT_TYPE_CONSTANTS,
+} = require('../../../utils/constants/domain/lot-adjustment-type-constants');
+const {
+  MANUFACTURER_CONSTANTS,
+} = require('../../../utils/constants/domain/manufacturer-constants');
+const {
+  ROLE_CONSTANTS,
+} = require('../../../utils/constants/domain/role-constants');
+const {
+  SKU_CONSTANTS,
+  SKU_IMAGES_CONSTANTS,
+} = require('../../../utils/constants/domain/sku-constants');
+const {
+  STATUS_CONSTANTS,
+} = require('../../../utils/constants/domain/status-constants');
+const {
+  SUPPLIER_CONSTANTS,
+} = require('../../../utils/constants/domain/supplier-constants');
+const {
+  USER_CONSTANTS,
+} = require('../../../utils/constants/domain/user-constants');
+const {
+  WAREHOUSE_CONSTANTS,
+} = require('../../../utils/constants/domain/warehouse-constants');
+const {
+  WAREHOUSE_INVENTORY_CONSTANTS,
+} = require('../../../utils/constants/domain/warehouse-inventory-constants');
 
 // Unwrapped exports: module.exports = X
 const CUSTOMER_CONSTANTS = require('../../../utils/constants/domain/customer-constants');
@@ -69,8 +102,8 @@ const DOMAIN_PERMISSION_MAPS = [
   LOT_ADJUSTMENT_TYPE_CONSTANTS.PERMISSIONS,
   MANUFACTURER_CONSTANTS.PERMISSIONS,
   ORDER_CONSTANTS.PERMISSIONS,
-  ORDER_CATEGORY_PERMISSIONS,       // generated cross of actions × categories
-  GENERIC_ORDER_PERMISSIONS,        // view_order / create_order / etc.
+  ORDER_CATEGORY_PERMISSIONS, // generated cross of actions × categories
+  GENERIC_ORDER_PERMISSIONS, // view_order / create_order / etc.
   ORDER_TYPE_CONSTANTS.PERMISSIONS,
   PACKAGING_MATERIAL_CONSTANTS.PERMISSIONS,
   PACKAGING_MATERIAL_SUPPLIER_CONSTANTS.PERMISSIONS,
@@ -127,10 +160,10 @@ const toDescription = (snake) =>
 // ────────────────────────────────────────────────────────────────────
 
 const ACTION_META = {
-  view:   { label: 'View',   gerund: 'viewing',   plural: true  },
-  create: { label: 'Create', gerund: 'creating',  plural: false },
-  update: { label: 'Update', gerund: 'updating',  plural: false },
-  delete: { label: 'Delete', gerund: 'deleting',  plural: false },
+  view: { label: 'View', gerund: 'viewing', plural: true },
+  create: { label: 'Create', gerund: 'creating', plural: false },
+  update: { label: 'Update', gerund: 'updating', plural: false },
+  delete: { label: 'Delete', gerund: 'deleting', plural: false },
 };
 
 const METADATA_OVERRIDES = {
@@ -143,12 +176,16 @@ const METADATA_OVERRIDES = {
 // Populate order-category overrides (Allows viewing sales orders, etc.)
 for (const category of ORDER_CATEGORIES) {
   const displayCategory = category.charAt(0).toUpperCase() + category.slice(1);
-  
+
   for (const action of Object.values(GENERIC_ORDER_PERMISSIONS)) {
     const verb = action.split('_')[0];
-    const meta = ACTION_META[verb] || { label: verb, gerund: `${verb}ing`, plural: true };
+    const meta = ACTION_META[verb] || {
+      label: verb,
+      gerund: `${verb}ing`,
+      plural: true,
+    };
     const key = `${verb}_${category}_order`;
-    
+
     METADATA_OVERRIDES[key] = {
       name: `${meta.label} ${meta.plural ? `${displayCategory} Orders` : `${displayCategory} Order`}`,
       description: `Allows ${meta.gerund} ${meta.plural ? `${category} orders` : `a ${category} order`}`,
@@ -167,11 +204,11 @@ exports.seed = async function (knex) {
     );
     return;
   }
-  
+
   console.log(
     `[${new Date().toISOString()}] [SEED] Starting permission seeding...`
   );
-  
+
   const systemUserId = await fetchDynamicValue(
     knex,
     'users',
@@ -184,7 +221,7 @@ exports.seed = async function (knex) {
       '[SEED][permissions] System user not found: system@internal.local'
     );
   }
-  
+
   const activeStatusId = await knex('status')
     .where({ name: 'active' })
     .first()
@@ -192,16 +229,16 @@ exports.seed = async function (knex) {
   if (!activeStatusId) {
     throw new Error('[SEED][permissions] Status "active" not found.');
   }
-  
+
   // Combine all sources and dedupe
   const allKeys = [
     ...new Set([
-      ...flattenPermissionKeys(PERMISSION_KEYS),                       // route-level
-      ...DOMAIN_PERMISSION_MAPS.flatMap((map) => Object.values(map)),  // ACL-layer
-      ...SPECIAL_PERMISSIONS,                                          // root_access
+      ...flattenPermissionKeys(PERMISSION_KEYS), // route-level
+      ...DOMAIN_PERMISSION_MAPS.flatMap((map) => Object.values(map)), // ACL-layer
+      ...SPECIAL_PERMISSIONS, // root_access
     ]),
   ];
-  
+
   const baseFields = {
     status_id: activeStatusId,
     created_at: knex.fn.now(),
@@ -209,7 +246,7 @@ exports.seed = async function (knex) {
     updated_at: null,
     updated_by: null,
   };
-  
+
   const rows = allKeys.map((key) => {
     const override = METADATA_OVERRIDES[key];
     return {
@@ -220,12 +257,12 @@ exports.seed = async function (knex) {
       ...baseFields,
     };
   });
-  
+
   // Single bulk insert — much faster than per-row awaits
   await knex('permissions').insert(rows).onConflict('key').ignore();
-  
+
   console.log(
     `[${new Date().toISOString()}] [SEED] Inserted ${rows.length} permissions ` +
-    `(${DOMAIN_PERMISSION_MAPS.length} ACL-layer maps + route-level + ${SPECIAL_PERMISSIONS.length} special).`
+      `(${DOMAIN_PERMISSION_MAPS.length} ACL-layer maps + route-level + ${SPECIAL_PERMISSIONS.length} special).`
   );
 };

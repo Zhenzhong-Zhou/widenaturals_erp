@@ -14,16 +14,11 @@ interface StatusCellProps extends RowAwareComponentProps<string> {
  * InventoryStatusDropdown, while keeping empty selections normalized as an
  * empty string in form state.
  */
-const StatusCell = ({
-                      value,
-                      onChange,
-                      options,
-                      loading,
-                    }: StatusCellProps) => {
+const StatusCell = ({ value, onChange, options, loading }: StatusCellProps) => {
   const handleChange = (nextValue: string | null) => {
     onChange?.(nextValue ?? '');
   };
-  
+
   return (
     <InventoryStatusDropdown
       value={value ?? null}

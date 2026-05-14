@@ -15,19 +15,19 @@ import {
 interface UseFilterLookupParams<TLookupBundle> {
   /** RHF field name (e.g. "productIds", "skuIds") */
   fieldName: string;
-  
+
   /** Lookup bundle providing options + fetch */
   lookup: TLookupBundle & {
     options: MultiSelectOption[];
     fetch: (params: LookupQuery) => void;
   };
-  
+
   /** react-hook-form watch */
   watch: UseFormWatch<any>;
-  
+
   /** react-hook-form setValue */
   setValue: UseFormSetValue<any>;
-  
+
   /**
    * Optional debounced search hook factory.
    *
@@ -38,7 +38,7 @@ interface UseFilterLookupParams<TLookupBundle> {
   useSearchHandlers?: (lookup: TLookupBundle) => {
     handleSearch: (value: string) => void;
   };
-  
+
   /**
    * Optional per-option formatter applied at the binding layer.
    *
@@ -101,22 +101,22 @@ interface UseFilterLookupParams<TLookupBundle> {
  * ```
  */
 const useFilterLookup = <TLookup>({
-                                    fieldName,
-                                    lookup,
-                                    watch,
-                                    setValue,
-                                    useSearchHandlers,
-                                    formatOption,
-                                  }: UseFilterLookupParams<TLookup>) => {
+  fieldName,
+  lookup,
+  watch,
+  setValue,
+  useSearchHandlers,
+  formatOption,
+}: UseFilterLookupParams<TLookup>) => {
   // Low-level lookup state (keyword, pagination, open)
   const controller = useLookupController({
     options: lookup.options,
     fetch: lookup.fetch,
   });
-  
+
   // Optional debounced search integration
   const searchHandlers = useSearchHandlers ? useSearchHandlers(lookup) : null;
-  
+
   /**
    * Input change handler:
    * - Updates keyword state only
@@ -129,7 +129,7 @@ const useFilterLookup = <TLookup>({
     },
     [controller.handleInputChange, searchHandlers]
   );
-  
+
   // RHF ↔ lookup multi-select binding (applies optional formatter)
   const multiSelect = useMultiSelectBinding({
     watch,
@@ -138,11 +138,11 @@ const useFilterLookup = <TLookup>({
     options: lookup.options,
     formatOption,
   });
-  
+
   return {
     // Selected values, onSelect handler, and formatted options
     ...multiSelect,
-    
+
     // Lookup control API
     keyword: controller.keyword,
     onOpen: controller.handleOpen,

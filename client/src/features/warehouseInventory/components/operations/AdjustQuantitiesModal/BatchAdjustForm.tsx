@@ -39,14 +39,14 @@ interface RowMeta {
  * fields.
  */
 const BatchAdjustForm: FC<BatchAdjustFormProps> = ({
-                                                     items,
-                                                     canAdjustReserved,
-                                                     loading,
-                                                     onSubmit,
-                                                     onCancel,
-                                                   }) => {
+  items,
+  canAdjustReserved,
+  loading,
+  onSubmit,
+  onCancel,
+}) => {
   const formRef = useRef<MultiItemFormRef>(null);
-  
+
   const metaById = useMemo(() => {
     const map = new Map<string, RowMeta>();
     items.forEach((item) => {
@@ -62,7 +62,7 @@ const BatchAdjustForm: FC<BatchAdjustFormProps> = ({
     });
     return map;
   }, [items]);
-  
+
   const defaultValues = useMemo(
     () =>
       items.map((item) => ({
@@ -72,7 +72,7 @@ const BatchAdjustForm: FC<BatchAdjustFormProps> = ({
       })),
     [items]
   );
-  
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', maxHeight: '70vh' }}>
       <Box sx={{ overflowY: 'auto', flex: 1, pr: 1 }}>
@@ -89,9 +89,7 @@ const BatchAdjustForm: FC<BatchAdjustFormProps> = ({
             const meta = metaById.get(row.id);
             if (!meta) return null;
             return (
-              <Box
-                sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}
-              >
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
                 <CustomTypography
                   variant="subtitle1"
                   fontWeight={700}
@@ -144,7 +142,7 @@ const BatchAdjustForm: FC<BatchAdjustFormProps> = ({
           }}
         />
       </Box>
-      
+
       <Box
         sx={{
           display: 'flex',

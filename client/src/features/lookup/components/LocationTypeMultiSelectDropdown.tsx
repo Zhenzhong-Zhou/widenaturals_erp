@@ -23,10 +23,10 @@ type LotAdjustmentTypeMultiSelectDropdownProps = Omit<
 const LotAdjustmentTypeMultiSelectDropdown: FC<
   LotAdjustmentTypeMultiSelectDropdownProps
 > = ({
-       label = 'Select Lot Adjustment Types',
-       placeholder = 'Choose lot adjustment types…',
-       ...rest
-     }) => {
+  label = 'Select Lot Adjustment Types',
+  placeholder = 'Choose lot adjustment types…',
+  ...rest
+}) => {
   return (
     <MultiSelectDropdown label={label} placeholder={placeholder} {...rest} />
   );

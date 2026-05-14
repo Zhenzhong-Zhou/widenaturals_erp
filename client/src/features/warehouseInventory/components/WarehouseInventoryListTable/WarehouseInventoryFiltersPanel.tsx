@@ -17,7 +17,7 @@ import {
 } from '@utils/filters/filterUtils';
 import { toISODate } from '@utils/dateTimeUtils';
 import type { WarehouseInventoryFilters } from '@features/warehouseInventory';
-import {
+import type {
   useInventoryStatusLookup,
   usePackagingMaterialLookup,
   useProductLookup,
@@ -99,29 +99,24 @@ const BATCH_TYPE_OPTIONS: OptionType[] = [
  * - full-text search
  */
 const WarehouseInventoryFiltersPanel: FC<Props> = ({
-                                                     filters,
-                                                     lookups,
-                                                     lookupHandlers,
-                                                     onChange,
-                                                     onApply,
-                                                     onReset,
-                                                   }) => {
+  filters,
+  lookups,
+  lookupHandlers,
+  onChange,
+  onApply,
+  onReset,
+}) => {
   const { control, handleSubmit, reset, watch, setValue } =
     useForm<WarehouseInventoryFilters>({
       defaultValues: filters,
     });
 
-  const {
-    product,
-    sku,
-    packagingMaterial,
-    inventoryStatus
-  } = lookups;
-  
+  const { product, sku, packagingMaterial, inventoryStatus } = lookups;
+
   const formatInventoryStatusOption = (
     opt: MultiSelectOption
   ): MultiSelectOption => formatOptionLabels([opt])[0]!;
-  
+
   // -------------------------
   // Lookup bindings (with debounced keyword search)
   // -------------------------
@@ -148,7 +143,7 @@ const WarehouseInventoryFiltersPanel: FC<Props> = ({
     setValue,
     useSearchHandlers: usePackagingMaterialSearchHandlers,
   });
-  
+
   const inventoryStatusLookup = useFilterLookup({
     fieldName: 'statusIds',
     lookup: inventoryStatus,
@@ -157,7 +152,7 @@ const WarehouseInventoryFiltersPanel: FC<Props> = ({
     useSearchHandlers: usePackagingMaterialSearchHandlers,
     formatOption: formatInventoryStatusOption,
   });
-  
+
   // -------------------------
   // Submit / Reset
   // -------------------------
@@ -257,7 +252,7 @@ const WarehouseInventoryFiltersPanel: FC<Props> = ({
               }}
             />
           </Grid>
-          
+
           {/* Inventory status */}
           <Grid size={{ xs: 12, md: 6 }}>
             <InventoryStatusMultiSelectDropdown

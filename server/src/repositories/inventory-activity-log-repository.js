@@ -93,9 +93,15 @@ const insertInventoryActivityLogBulk = async (
       message: 'Failed to insert inventory activity log records.',
       meta: { entryCount: logEntries.length },
       logFn: (err) =>
-        logBulkInsertError(err, INVENTORY_ACTIVITY_LOG_TABLE, rows, rows.length, {
-          context,
-        }),
+        logBulkInsertError(
+          err,
+          INVENTORY_ACTIVITY_LOG_TABLE,
+          rows,
+          rows.length,
+          {
+            context,
+          }
+        ),
     });
   }
 };

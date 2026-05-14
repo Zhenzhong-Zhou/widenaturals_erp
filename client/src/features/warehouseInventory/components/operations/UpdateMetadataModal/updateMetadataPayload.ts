@@ -14,17 +14,17 @@ export const buildUpdateMetadataPayload = (
   original: WarehouseInventoryDetailRecord
 ): UpdateWarehouseInventoryMetadataRequest => {
   const payload: UpdateWarehouseInventoryMetadataRequest = {};
-  
+
   if (values.inboundDate) {
     payload.inboundDate = values.inboundDate;
   }
-  
+
   if (
     values.warehouseFee !== '' &&
     values.warehouseFee !== original.warehouseFee
   ) {
     payload.warehouseFee = Number(values.warehouseFee);
   }
-  
+
   return payload;
 };

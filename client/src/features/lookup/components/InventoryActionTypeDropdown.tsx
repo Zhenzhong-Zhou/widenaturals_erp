@@ -22,18 +22,18 @@ type InventoryActionTypeDropdownProps =
  * etc.) is surfaced as the option's sub-label by the backend transformer.
  */
 const InventoryActionTypeDropdown = ({
-                                       options = [],
-                                       fetchParams,
-                                       onRefresh,
-                                       ...rest
-                                     }: InventoryActionTypeDropdownProps) => {
+  options = [],
+  fetchParams,
+  onRefresh,
+  ...rest
+}: InventoryActionTypeDropdownProps) => {
   const enrichedOptions = useMemo(() => {
     return Array.from(
       new Map(
         options.map((opt) => {
           const isInactive = opt.isActive === false;
           const rawLabel = getRawLabel(opt.label);
-          
+
           return [
             opt.value ?? opt.id,
             {
@@ -55,7 +55,7 @@ const InventoryActionTypeDropdown = ({
       ).values()
     );
   }, [options]);
-  
+
   return (
     <PaginatedDropdown
       label="Select Inventory Action Type"

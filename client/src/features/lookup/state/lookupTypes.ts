@@ -111,8 +111,7 @@ export interface BatchRegistryLookupQuery extends LookupQuery {
  *
  * camelCase here — buildQueryString converts to snake_case before the wire.
  */
-export interface BatchRegistryForInventoryLookupQuery
-  extends BatchRegistryLookupQuery {
+export interface BatchRegistryForInventoryLookupQuery extends BatchRegistryLookupQuery {
   warehouseId: string;
 }
 
@@ -127,12 +126,12 @@ export interface BatchRegistryForInventoryLookupQuery
  */
 export type ExpiryMeta =
   | {
-  hasExpiryDate: true;
-  daysUntilExpiry: number;
-  isExpired: boolean;
-  isNearExpiry: boolean;
-  expirySeverity: ExpirySeverity;
-}
+      hasExpiryDate: true;
+      daysUntilExpiry: number;
+      isExpired: boolean;
+      isNearExpiry: boolean;
+      expirySeverity: ExpirySeverity;
+    }
   | { hasExpiryDate: false };
 
 /**

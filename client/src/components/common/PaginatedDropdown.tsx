@@ -66,7 +66,7 @@ const PaginatedDropdown = <TParams,>({
         const limit = paginationMeta?.limit || 50;
         const currentOffset = paginationMeta?.offset || 0;
         const nextOffset = currentOffset + limit;
-        
+
         setFetchParams((prev) => ({ ...prev, limit, offset: nextOffset }));
         onRefresh({ ...fetchParams, limit, offset: nextOffset });
       }}

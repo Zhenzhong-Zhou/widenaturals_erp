@@ -1,6 +1,6 @@
 import type {
   FlattenedWarehouseInventory,
-  WarehouseInventoryDetailRecord
+  WarehouseInventoryDetailRecord,
 } from '@features/warehouseInventory';
 
 /**
@@ -46,10 +46,7 @@ export const getDetailRecordInventoryLabel = (
       .filter(Boolean)
       .join(' · ');
   }
-  return [
-    r.packagingInfo?.batch.lotNumber,
-    r.packagingInfo?.material?.code,
-  ]
+  return [r.packagingInfo?.batch.lotNumber, r.packagingInfo?.material?.code]
     .filter(Boolean)
     .join(' · ');
 };

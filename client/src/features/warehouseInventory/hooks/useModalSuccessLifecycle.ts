@@ -37,42 +37,42 @@ interface UseModalSuccessLifecycleResult {
  * so callers do not need to memoize them.
  */
 const useModalSuccessLifecycle = ({
-                                    open,
-                                    success,
-                                    message,
-                                    fallbackMessage,
-                                    onClose,
-                                    onSuccess,
-                                    resetState,
-                                    formRef,
-                                  }: UseModalSuccessLifecycleOptions): UseModalSuccessLifecycleResult => {
+  open,
+  success,
+  message,
+  fallbackMessage,
+  onClose,
+  onSuccess,
+  resetState,
+  formRef,
+}: UseModalSuccessLifecycleOptions): UseModalSuccessLifecycleResult => {
   const handledRef = useRef(false);
   const onSuccessRef = useRef(onSuccess);
   const onCloseRef = useRef(onClose);
   const resetStateRef = useRef(resetState);
-  
+
   // Keep callback refs current without retriggering effects.
   useEffect(() => {
     onSuccessRef.current = onSuccess;
     onCloseRef.current = onClose;
     resetStateRef.current = resetState;
   });
-  
+
   const handleClose = useCallback(() => {
     formRef?.current?.resetForm();
     onCloseRef.current?.();
   }, [formRef]);
-  
+
   // Fire once when the operation succeeds.
   useEffect(() => {
     if (!success) return;
     if (handledRef.current) return;
     handledRef.current = true;
-    
+
     onSuccessRef.current?.(message ?? fallbackMessage);
     handleClose();
   }, [success, message, fallbackMessage, handleClose]);
-  
+
   // Reset slice state and the fire-once guard whenever the modal closes.
   useEffect(() => {
     if (!open) {
@@ -80,7 +80,7 @@ const useModalSuccessLifecycle = ({
       resetStateRef.current?.();
     }
   }, [open]);
-  
+
   return { handleClose };
 };
 

@@ -86,4 +86,3 @@
  * @property {boolean} is_archived
  * @property {string}  status_id
  */
-

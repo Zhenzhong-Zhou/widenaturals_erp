@@ -31,12 +31,12 @@ const ZONE_COLUMNS = [
 ];
 
 const RecordOutboundModal = ({
-                               open,
-                               onClose,
-                               warehouseId,
-                               record,
-                               onSuccess,
-                             }: RecordOutboundModalProps) => {
+  open,
+  onClose,
+  warehouseId,
+  record,
+  onSuccess,
+}: RecordOutboundModalProps) => {
   const {
     loading,
     error,
@@ -45,9 +45,9 @@ const RecordOutboundModal = ({
     recordOutbound,
     resetOutboundState,
   } = useWarehouseInventoryOutbound();
-  
+
   const formRef = useRef<CustomFormRef>(null);
-  
+
   const { handleClose } = useModalSuccessLifecycle({
     open,
     success,
@@ -58,14 +58,14 @@ const RecordOutboundModal = ({
     resetState: resetOutboundState,
     formRef,
   });
-  
+
   const onSubmit = (values: Record<string, any>) => {
     void recordOutbound(
       warehouseId,
       buildRecordOutboundPayload(record, values)
     );
   };
-  
+
   return (
     <CustomModal open={open} onClose={handleClose} title="Record Outbound">
       <Section>
@@ -73,16 +73,18 @@ const RecordOutboundModal = ({
         <SummaryStat label="Reserved Qty" value={record.reservedQuantity} />
         <SummaryStat label="Available Qty" value={record.availableQuantity} />
       </Section>
-      
+
       {record.zones.length > 0 && (
         <Section>
-          <CustomTypography variant="subtitle2">Zone Breakdown</CustomTypography>
+          <CustomTypography variant="subtitle2">
+            Zone Breakdown
+          </CustomTypography>
           <CustomMiniTable columns={ZONE_COLUMNS} data={record.zones} />
         </Section>
       )}
-      
+
       {error && <ErrorMessage message={error} />}
-      
+
       <CustomForm
         ref={formRef}
         fields={buildRecordOutboundFields(record)}

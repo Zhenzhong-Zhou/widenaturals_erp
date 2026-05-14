@@ -11,12 +11,8 @@ import { Box, Card, Divider, Grid } from '@mui/material';
 import Skeleton from '@mui/material/Skeleton';
 import { ORDER_VIEW_MODES } from '@features/order/constants/orderViewModes';
 import { isValidOrderCategory } from '@features/order/utils';
-import {
-  type OrderCategory,
-} from '@utils/constants/orderPermissions';
-import {
-  useHasPermission,
-} from '@features/authorize/hooks';
+import { type OrderCategory } from '@utils/constants/orderPermissions';
+import { useHasPermission } from '@features/authorize/hooks';
 import usePaginatedOrders from '@hooks/usePaginatedOrders';
 import { usePaginationHandlers } from '@utils/hooks';
 import { applyFiltersAndSorting } from '@utils/query';
@@ -46,18 +42,20 @@ const OrdersTable = lazy(
 const OrdersListPage = () => {
   const { category } = useParams<{ category?: string }>();
   const navigate = useNavigate();
-  
+
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [sortBy, setSortBy] = useState<OrderListSortField>('createdAt');
   const [sortOrder, setSortOrder] = useState<'' | 'ASC' | 'DESC'>('');
-  const [filters, setFilters] = useState<OrderListFilters>({} as OrderListFilters);
+  const [filters, setFilters] = useState<OrderListFilters>(
+    {} as OrderListFilters
+  );
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
-  
+
   // Action permissions for the current category.
   // Composite categories ('all', 'allocatable') return create=false automatically.
   const { create: canCreate } = useOrderActionPermissions(category);
-  
+
   // Config permissions (for filter visibility, etc.)
   const hasPermission = useHasPermission();
   const permissionCtx = useMemo<OrderPermissionContext>(
@@ -67,13 +65,16 @@ const OrdersListPage = () => {
     }),
     [hasPermission]
   );
-  
+
   const {
-    orders, pagination,
-    loading: ordersLoading, error: ordersError,
-    fetchOrders, resetOrders,
+    orders,
+    pagination,
+    loading: ordersLoading,
+    error: ordersError,
+    fetchOrders,
+    resetOrders,
   } = usePaginatedOrders();
-  
+
   const isValidCategory = !!category && isValidOrderCategory(category);
   const modeConfig = isValidCategory
     ? ORDER_VIEW_MODES[category as OrderCategory]
@@ -84,7 +85,10 @@ const OrdersListPage = () => {
     if (!modeConfig) return;
     let baseFilters = modeConfig.buildBaseFilters(permissionCtx);
     if (modeConfig.applyAllocationVisibility) {
-      baseFilters = modeConfig.applyAllocationVisibility(permissionCtx, baseFilters);
+      baseFilters = modeConfig.applyAllocationVisibility(
+        permissionCtx,
+        baseFilters
+      );
     }
     setFilters(baseFilters);
   }, [modeConfig, permissionCtx]);
@@ -92,13 +96,26 @@ const OrdersListPage = () => {
   // Memoize the query parameters to avoid unnecessary re-renders or function calls
   const queryParams = useMemo(
     () => ({
-      page, limit, sortBy, sortOrder, filters,
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+      filters,
       fetchFn: (params: Record<string, any>) => {
-        if (!isValidCategory) return;          // ← guard, no empty-string fetch
+        if (!isValidCategory) return; // ← guard, no empty-string fetch
         fetchOrders(category!, params);
       },
     }),
-    [page, limit, sortBy, sortOrder, filters, fetchOrders, category, isValidCategory]
+    [
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+      filters,
+      fetchOrders,
+      category,
+      isValidCategory,
+    ]
   );
 
   // Fetch when dependency change
@@ -106,29 +123,43 @@ const OrdersListPage = () => {
     const timeout = setTimeout(() => applyFiltersAndSorting(queryParams), 200);
     return () => clearTimeout(timeout);
   }, [queryParams]);
-  
-  useEffect(() => () => { resetOrders(); }, [resetOrders]);
-  
-  const handleRefresh = useCallback(() => applyFiltersAndSorting(queryParams), [queryParams]);
-  
+
+  useEffect(
+    () => () => {
+      resetOrders();
+    },
+    [resetOrders]
+  );
+
+  const handleRefresh = useCallback(
+    () => applyFiltersAndSorting(queryParams),
+    [queryParams]
+  );
+
   const handleResetFilters = () => {
     resetOrders();
     if (modeConfig) {
       let baseFilters = modeConfig.buildBaseFilters(permissionCtx);
       if (modeConfig.applyAllocationVisibility) {
-        baseFilters = modeConfig.applyAllocationVisibility(permissionCtx, baseFilters);
+        baseFilters = modeConfig.applyAllocationVisibility(
+          permissionCtx,
+          baseFilters
+        );
       }
       setFilters(baseFilters);
     }
     setPage(1);
   };
-  
-  const { handlePageChange, handleRowsPerPageChange } = usePaginationHandlers(setPage, setLimit);
-  
+
+  const { handlePageChange, handleRowsPerPageChange } = usePaginationHandlers(
+    setPage,
+    setLimit
+  );
+
   if (!modeConfig || !modeConfig.canSee(permissionCtx)) {
     return <AccessDeniedPage />;
   }
-  
+
   const handleDrillDownToggle = (rowId: string) => {
     setExpandedRowId((current) => (current === rowId ? null : rowId));
   };

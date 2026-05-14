@@ -39,9 +39,9 @@ interface UseCreateInventoryBatchLookupResult {
  * BatchLookupContext.Provider.
  */
 export const useCreateInventoryBatchLookup = ({
-                                                open,
-                                                warehouseId,
-                                              }: UseCreateInventoryBatchLookupArgs): UseCreateInventoryBatchLookupResult => {
+  open,
+  warehouseId,
+}: UseCreateInventoryBatchLookupArgs): UseCreateInventoryBatchLookupResult => {
   const {
     items: batchRegistryOptions,
     loading: batchLookupLoading,
@@ -50,7 +50,7 @@ export const useCreateInventoryBatchLookup = ({
     fetchLookup: fetchBatchRegistryLookup,
     resetLookup: resetBatchRegistryLookup,
   } = useBatchRegistryForInventoryLookup();
-  
+
   const [globalBatchType, setGlobalBatchType] =
     useState<BatchTypeFilter>('all');
   const [inputValues, setInputValues] = useState<string[]>([]);
@@ -60,13 +60,13 @@ export const useCreateInventoryBatchLookup = ({
   const [pickedBatches, setPickedBatches] = useState<
     Record<string, BatchRegistryLookupItem>
   >({});
-  
+
   const cachePickedBatch = useCallback((item: BatchRegistryLookupItem) => {
     setPickedBatches((prev) =>
       prev[item.id] ? prev : { ...prev, [item.id]: item }
     );
   }, []);
-  
+
   const defaultLookupQuery = useMemo<BatchRegistryForInventoryLookupQuery>(
     () => ({
       keyword: '',
@@ -77,12 +77,12 @@ export const useCreateInventoryBatchLookup = ({
     }),
     [warehouseId, globalBatchType]
   );
-  
+
   const fetchRef = useRef(fetchBatchRegistryLookup);
   const resetRef = useRef(resetBatchRegistryLookup);
   fetchRef.current = fetchBatchRegistryLookup;
   resetRef.current = resetBatchRegistryLookup;
-  
+
   // Cleanup on close only — query changes do not reset row state.
   useEffect(() => {
     if (!open) return;
@@ -93,13 +93,13 @@ export const useCreateInventoryBatchLookup = ({
       setPickedBatches({});
     };
   }, [open]);
-  
+
   // Refetch when modal opens or filter changes.
   useEffect(() => {
     if (!open) return;
     fetchRef.current(defaultLookupQuery);
   }, [open, defaultLookupQuery]);
-  
+
   const handleBatchTypeChange = useCallback(
     (_e: MouseEvent<HTMLElement>, next: BatchTypeFilter | null) => {
       if (!next) return;
@@ -107,12 +107,12 @@ export const useCreateInventoryBatchLookup = ({
     },
     []
   );
-  
+
   const fetchOptions = useCallback(
     (params: BatchRegistryForInventoryLookupQuery) => fetchRef.current(params),
     []
   );
-  
+
   const bundle = useMemo<BatchLookupBundle>(
     () => ({
       inputValues,
@@ -143,6 +143,6 @@ export const useCreateInventoryBatchLookup = ({
       cachePickedBatch,
     ]
   );
-  
+
   return { bundle, globalBatchType, pickedBatches, handleBatchTypeChange };
 };

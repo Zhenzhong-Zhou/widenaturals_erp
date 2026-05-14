@@ -44,18 +44,18 @@ const buildInventoryStatusFilters = (filters = {}) => {
     'updatedAfter',
     'updatedBefore'
   );
-  
+
   const conditions = ['1=1'];
   const params = [];
   const paramIndexRef = { value: 1 };
-  
+
   // ─── Identity ──────────────────────────────────────────────────────────────
-  
+
   if (Array.isArray(normalizedFilters.ids) && normalizedFilters.ids.length) {
     conditions.push(`ist.id = ANY($${paramIndexRef.value++}::uuid[])`);
     params.push(normalizedFilters.ids);
   }
-  
+
   if (
     Array.isArray(normalizedFilters.excludeIds) &&
     normalizedFilters.excludeIds.length
@@ -63,24 +63,24 @@ const buildInventoryStatusFilters = (filters = {}) => {
     conditions.push(`ist.id <> ALL($${paramIndexRef.value++}::uuid[])`);
     params.push(normalizedFilters.excludeIds);
   }
-  
+
   // ─── State ─────────────────────────────────────────────────────────────────
-  
+
   if (typeof normalizedFilters.isActive === 'boolean') {
     conditions.push(`ist.is_active = $${paramIndexRef.value++}`);
     params.push(normalizedFilters.isActive);
   }
-  
+
   // ─── Keyword ───────────────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.keyword) {
     const kw = `%${String(normalizedFilters.keyword).trim()}%`;
     conditions.push(`ist.name ILIKE $${paramIndexRef.value++}`);
     params.push(kw);
   }
-  
+
   // ─── Audit ─────────────────────────────────────────────────────────────────
-  
+
   applyDateRangeConditions({
     conditions,
     params,
@@ -89,7 +89,7 @@ const buildInventoryStatusFilters = (filters = {}) => {
     before: normalizedFilters.createdBefore,
     paramIndexRef,
   });
-  
+
   applyAuditConditions(
     conditions,
     params,
@@ -97,7 +97,7 @@ const buildInventoryStatusFilters = (filters = {}) => {
     normalizedFilters,
     'ist'
   );
-  
+
   return {
     whereClause: conditions.join(' AND '),
     params,

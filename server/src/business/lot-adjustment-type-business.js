@@ -29,7 +29,9 @@ const {
 } = require('../utils/constants/domain/lot-adjustment-type-constants');
 const { logSystemException } = require('../utils/logging/system-logger');
 const AppError = require('../utils/AppError');
-const { INVENTORY_ACTION_TYPE_CONSTANTS } = require('../utils/constants/domain/inventory-action-type-constants');
+const {
+  INVENTORY_ACTION_TYPE_CONSTANTS,
+} = require('../utils/constants/domain/inventory-action-type-constants');
 
 const CONTEXT = 'lot-adjustment-type-business';
 
@@ -53,10 +55,10 @@ const CONTEXT = 'lot-adjustment-type-business';
  */
 const evaluateLotAdjustmentTypeLookupVisibility = async (user) => {
   const context = `${CONTEXT}/evaluateLotAdjustmentTypeLookupVisibility`;
-  
+
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     return {
       canViewInactive:
         isRoot ||
@@ -112,20 +114,20 @@ const evaluateLotAdjustmentTypeLookupVisibility = async (user) => {
  */
 const resolveLotAdjustmentTypeLookupFilters = (filters, acl) => {
   const next = { ...filters };
-  
+
   // ─── Category scope (always pinned) ───────────────────────────────────────
   next.actionTypeCategories = [
     INVENTORY_ACTION_TYPE_CONSTANTS.CATEGORIES.ADJUSTMENT,
   ];
-  
+
   // ─── Active-status pin ────────────────────────────────────────────────────
   if (!acl.canViewInactive) next.isActive = true;
-  
+
   // ─── Internal-exclusion pin ───────────────────────────────────────────────
   if (!acl.canViewInternal) {
     next.excludeNames = LOT_ADJUSTMENT_TYPE_CONSTANTS.INTERNAL_TYPE_NAMES;
   }
-  
+
   return next;
 };
 

@@ -15,23 +15,23 @@ import { resetInventoryActionTypeLookup } from '@features/lookup/state/inventory
  */
 const useInventoryActionTypeLookup = () => {
   const dispatch = useAppDispatch();
-  
+
   const options = useAppSelector(selectInventoryActionTypeLookupOptions);
   const loading = useAppSelector(selectInventoryActionTypeLookupLoading);
   const error = useAppSelector(selectInventoryActionTypeLookupError);
   const meta = useAppSelector(selectInventoryActionTypeLookupMeta);
-  
+
   const fetch = useCallback(
     (params?: InventoryActionTypeLookupParams) => {
       dispatch(fetchInventoryActionTypeLookupThunk(params));
     },
     [dispatch]
   );
-  
+
   const reset = useCallback(() => {
     dispatch(resetInventoryActionTypeLookup());
   }, [dispatch]);
-  
+
   return useMemo(
     () => ({
       options,

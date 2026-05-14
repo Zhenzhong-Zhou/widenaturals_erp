@@ -16,7 +16,10 @@
 
 'use strict';
 
-const { paginateQuery, paginateQueryByOffset } = require('../utils/db/pagination/pagination-helpers');
+const {
+  paginateQuery,
+  paginateQueryByOffset,
+} = require('../utils/db/pagination/pagination-helpers');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { logDbQueryError } = require('../utils/db-logger');
 const { buildLocationFilter } = require('../utils/sql/build-location-filter');
@@ -26,8 +29,12 @@ const {
   LOCATION_TABLE,
   LOCATION_JOINS,
   LOCATION_SORT_WHITELIST,
-  buildLocationQuery, buildLocationLookupQuery, LOCATION_LOOKUP_TABLE, LOCATION_LOOKUP_JOINS,
-  LOCATION_LOOKUP_ADDITIONAL_SORTS, LOCATION_LOOKUP_SORT_WHITELIST,
+  buildLocationQuery,
+  buildLocationLookupQuery,
+  LOCATION_LOOKUP_TABLE,
+  LOCATION_LOOKUP_JOINS,
+  LOCATION_LOOKUP_ADDITIONAL_SORTS,
+  LOCATION_LOOKUP_SORT_WHITELIST,
 } = require('./queries/location-queries');
 
 const CONTEXT = 'location-repository';
@@ -109,15 +116,11 @@ const getPaginatedLocations = async ({
  * @param {number}          [offset=0]
  * @returns {Promise<PaginatedOffsetResult<LocationLookupRow>>}
  */
-const getLocationLookup = async ({
-                                            filters = {},
-                                            limit = 50,
-                                            offset = 0,
-                                          }) => {
+const getLocationLookup = async ({ filters = {}, limit = 50, offset = 0 }) => {
   const context = `${CONTEXT}/getLocationLookup`;
   const { whereClause, params } = buildLocationFilter(filters);
   const queryText = buildLocationLookupQuery(whereClause);
-  
+
   try {
     return /** @type {PaginatedOffsetResult<LocationLookupRow>} */ (
       await paginateQueryByOffset({
@@ -141,7 +144,10 @@ const getLocationLookup = async ({
       meta: { filters, limit, offset },
       logFn: (err) =>
         logDbQueryError(queryText, params, err, {
-          context, filters, limit, offset,
+          context,
+          filters,
+          limit,
+          offset,
         }),
     });
   }

@@ -6,7 +6,7 @@ import type {
   SortConfig,
 } from '@shared-types/api';
 import type { ReduxPaginatedState } from '@shared-types/pagination';
-import { BatchTypeFilter } from '@shared-types/batch';
+import type { BatchTypeFilter } from '@shared-types/batch';
 
 /**
  * Parameters extracted from the URL path for allocation requests.

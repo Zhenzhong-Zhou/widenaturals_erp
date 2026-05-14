@@ -1,7 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 import {
   type BatchRegistryLookupItem,
-  fetchBatchRegistryLookupThunk
+  fetchBatchRegistryLookupThunk,
 } from '@features/lookup/state';
 import type { BatchRegistryLookupState } from '@features/lookup/state';
 import { applyRejected } from '@features/shared/async/asyncReducerUtils';
@@ -14,7 +14,7 @@ const batchRegistryLookupSlice = createSlice({
   name: 'batchRegistryLookup',
   initialState,
   reducers: {
-    resetBatchRegistryLookup:() =>
+    resetBatchRegistryLookup: () =>
       createInitialOffsetPaginatedState<BatchRegistryLookupItem>(),
   },
   extraReducers: (builder) => {

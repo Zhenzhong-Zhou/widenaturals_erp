@@ -18,7 +18,7 @@ import {
 } from '@features/pricing/components/PricingListTable';
 import { usePaginatedPricing } from '@hooks/index';
 import { usePaginationHandlers } from '@utils/hooks';
-import { PricingFilters, PricingSortField } from '@features/pricing';
+import type { PricingFilters, PricingSortField } from '@features/pricing';
 import { applyFiltersAndSorting } from '@utils/query';
 import { usePricingLookups } from '@features/pricing/hooks';
 

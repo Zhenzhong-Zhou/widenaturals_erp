@@ -14,7 +14,10 @@
 
 'use strict';
 
-const { paginateQuery, paginateQueryByOffset } = require('../utils/db/pagination/pagination-helpers');
+const {
+  paginateQuery,
+  paginateQueryByOffset,
+} = require('../utils/db/pagination/pagination-helpers');
 const { query } = require('../database/db');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { logDbQueryError } = require('../utils/db-logger');
@@ -144,14 +147,14 @@ const getPricingTypeById = async (pricingTypeId) => {
  * @returns {Promise<PaginatedOffsetResult<PricingTypeLookupRow>>}
  */
 const getPricingTypeLookup = async ({
-                                               filters = {},
-                                               limit = 50,
-                                               offset = 0,
-                                             }) => {
+  filters = {},
+  limit = 50,
+  offset = 0,
+}) => {
   const context = `${CONTEXT}/getPricingTypeLookup`;
   const { whereClause, params } = buildPricingTypeFilter(filters);
   const queryText = buildPricingTypeLookupQuery(whereClause);
-  
+
   try {
     return /** @type {PaginatedOffsetResult<PricingTypeLookupRow>} */ (
       await paginateQueryByOffset({

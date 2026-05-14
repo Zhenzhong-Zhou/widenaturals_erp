@@ -1,9 +1,7 @@
 const { pool } = require('../../database/db');
 const { getSkuLookup } = require('../../repositories/sku-repository');
 const { initStatusCache, getStatusId } = require('../../config/status-cache');
-const {
-  fetchSkuLookupService,
-} = require('../../services/lookup-service');
+const { fetchSkuLookupService } = require('../../services/lookup-service');
 
 (async () => {
   const client = await pool.connect();

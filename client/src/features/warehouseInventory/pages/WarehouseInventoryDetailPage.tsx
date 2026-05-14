@@ -80,7 +80,7 @@ const WarehouseInventoryDetailPage: FC = () => {
   const openMenu = (e: SyntheticEvent<HTMLElement>) =>
     setMenuAnchor(e.currentTarget);
   const closeMenu = () => setMenuAnchor(null);
-  
+
   // Single discriminant for which modal is open
   const [activeModal, setActiveModal] = useState<DetailModal>('idle');
   const openModal = useCallback((m: Exclude<DetailModal, 'idle'>) => {
@@ -88,10 +88,10 @@ const WarehouseInventoryDetailPage: FC = () => {
     setActiveModal(m);
   }, []);
   const closeModal = useCallback(() => setActiveModal('idle'), []);
-  
+
   // Snackbar
   const [snackbar, setSnackbar] = useState<SnackbarState | null>(null);
-  
+
   const {
     data,
     loading,
@@ -104,7 +104,7 @@ const WarehouseInventoryDetailPage: FC = () => {
     fetchDetail,
     resetDetail,
   } = useWarehouseInventoryDetail();
-  
+
   const {
     canAdjustInventory,
     canAdjustReserved,
@@ -112,7 +112,7 @@ const WarehouseInventoryDetailPage: FC = () => {
     canEditInventoryMetadata,
     canRecordOutbound,
   } = useWarehouseInventoryPermissions();
-  
+
   // -----------------------------
   // Fetch on mount
   // -----------------------------
@@ -120,12 +120,12 @@ const WarehouseInventoryDetailPage: FC = () => {
     if (warehouseId && inventoryId) {
       fetchDetail(warehouseId, inventoryId);
     }
-    
+
     return () => {
       resetDetail();
     };
   }, [warehouseId, inventoryId]);
-  
+
   // -----------------------------
   // Event handlers
   // -----------------------------
@@ -134,11 +134,11 @@ const WarehouseInventoryDetailPage: FC = () => {
       fetchDetail(warehouseId, inventoryId);
     }
   }, [warehouseId, inventoryId, fetchDetail]);
-  
+
   const handleTabChange = (_e: SyntheticEvent, next: DetailTab) => {
     setActiveTab(next);
   };
-  
+
   const handleSuccess = useCallback(
     (message?: string) => {
       setSnackbar({
@@ -150,7 +150,7 @@ const WarehouseInventoryDetailPage: FC = () => {
     },
     [handleRefresh]
   );
-  
+
   // -----------------------------
   // Derived header title (lot# for product, displayName for packaging)
   // -----------------------------
@@ -160,10 +160,10 @@ const WarehouseInventoryDetailPage: FC = () => {
       : (packagingInfo?.batch.displayName ??
         packagingInfo?.batch.lotNumber ??
         '—');
-  
+
   const batchTypeLabel =
     data?.batchType === 'product' ? 'Product' : 'Packaging Material';
-  
+
   // -----------------------------
   // Render
   // -----------------------------
@@ -178,8 +178,8 @@ const WarehouseInventoryDetailPage: FC = () => {
       ) : (
         <>
           {/* --------------------------------------------------
-       * Header — badges + title + refresh
-       * -------------------------------------------------- */}
+           * Header — badges + title + refresh
+           * -------------------------------------------------- */}
           <Box mb={3}>
             <Stack direction="row" spacing={1} alignItems="center" mb={1.5}>
               <Chip
@@ -187,9 +187,12 @@ const WarehouseInventoryDetailPage: FC = () => {
                 size="small"
                 color={data.batchType === 'product' ? 'primary' : 'secondary'}
               />
-              {formatInventoryStatus(data.status.name, formatLabel(data.status.name))}
+              {formatInventoryStatus(
+                data.status.name,
+                formatLabel(data.status.name)
+              )}
             </Stack>
-            
+
             <Box
               display="flex"
               justifyContent="space-between"
@@ -199,28 +202,46 @@ const WarehouseInventoryDetailPage: FC = () => {
               <CustomTypography variant="h5" fontWeight={600}>
                 {headerTitle}
               </CustomTypography>
-              
+
               <Stack direction="row" spacing={1.5} alignItems="center">
                 <GoBackButton
                   variant="outlined"
-                  sx={{ width: 128, height: 44, px: 2.5, borderRadius: 999, flexShrink: 0 }}
+                  sx={{
+                    width: 128,
+                    height: 44,
+                    px: 2.5,
+                    borderRadius: 999,
+                    flexShrink: 0,
+                  }}
                 />
                 <CustomButton
                   variant="outlined"
                   onClick={handleRefresh}
-                  sx={{ width: 128, height: 44, px: 2.5, borderRadius: 999, flexShrink: 0 }}
+                  sx={{
+                    width: 128,
+                    height: 44,
+                    px: 2.5,
+                    borderRadius: 999,
+                    flexShrink: 0,
+                  }}
                 >
                   Refresh
                 </CustomButton>
                 <CustomButton
                   variant="contained"
                   onClick={openMenu}
-                  sx={{ width: 128, height: 44, px: 2.5, borderRadius: 999, flexShrink: 0 }}
+                  sx={{
+                    width: 128,
+                    height: 44,
+                    px: 2.5,
+                    borderRadius: 999,
+                    flexShrink: 0,
+                  }}
                 >
                   Actions ▾
                 </CustomButton>
               </Stack>
-              
+
               {/* ── Actions menu ─────────────────────────────────────────────────── */}
               <Menu
                 anchorEl={menuAnchor}
@@ -252,29 +273,31 @@ const WarehouseInventoryDetailPage: FC = () => {
               </Menu>
             </Box>
           </Box>
-          
+
           {/* --------------------------------------------------
-       * KPI Row — warehouse / reserved / available
-       * -------------------------------------------------- */}
+           * KPI Row — warehouse / reserved / available
+           * -------------------------------------------------- */}
           <WarehouseInventoryKpiRow
             warehouseQuantity={data.warehouseQuantity}
             reservedQuantity={data.reservedQuantity}
             availableQuantity={data.availableQuantity}
           />
-          
+
           <Divider sx={{ my: 3 }} />
-          
+
           {/* --------------------------------------------------
-       * Main Body — 2 columns
-       * -------------------------------------------------- */}
+           * Main Body — 2 columns
+           * -------------------------------------------------- */}
           <Grid container spacing={3}>
             <Grid size={{ xs: 12, md: 7 }}>
               {data.batchType === 'product' ? (
                 <WarehouseInventoryProductInfoPanel info={data.productInfo} />
               ) : (
-                <WarehouseInventoryPackagingInfoPanel info={data.packagingInfo} />
+                <WarehouseInventoryPackagingInfoPanel
+                  info={data.packagingInfo}
+                />
               )}
-              
+
               <Card sx={{ p: 3, mt: 3, borderRadius: 2 }}>
                 <CustomTypography variant="subtitle1" fontWeight={600} mb={1.5}>
                   Warehouse Details
@@ -297,7 +320,7 @@ const WarehouseInventoryDetailPage: FC = () => {
                 </Stack>
               </Card>
             </Grid>
-            
+
             <Grid size={{ xs: 12, md: 5 }}>
               <WarehouseInventoryMetaPanel
                 inboundDate={data.inboundDate}
@@ -308,23 +331,21 @@ const WarehouseInventoryDetailPage: FC = () => {
               />
             </Grid>
           </Grid>
-          
+
           <Divider sx={{ my: 3 }} />
-          
+
           {/* --------------------------------------------------
-       * Tabs — zones / movements / activity log
-       * -------------------------------------------------- */}
-          <Tabs
-            value={activeTab}
-            onChange={handleTabChange}
-            sx={{ mb: 2 }}
-          >
+           * Tabs — zones / movements / activity log
+           * -------------------------------------------------- */}
+          <Tabs value={activeTab} onChange={handleTabChange} sx={{ mb: 2 }}>
             <Tab label={`Zones (${zones.length})`} value="zones" />
             <Tab label={`Movements (${movements.length})`} value="movements" />
             <Tab label="Activity Log" value="activity" />
           </Tabs>
-          
-          {activeTab === 'zones' && <WarehouseInventoryZonesTable rows={zones} />}
+
+          {activeTab === 'zones' && (
+            <WarehouseInventoryZonesTable rows={zones} />
+          )}
           {activeTab === 'movements' && (
             <WarehouseInventoryMovementsTable rows={movements} />
           )}
@@ -334,7 +355,7 @@ const WarehouseInventoryDetailPage: FC = () => {
               warehouseInventoryId={inventoryId}
             />
           )}
-          
+
           {/* ── Modals ───────────────────────────────────────────────────────── */}
           {canAdjustInventory && warehouseId && data && (
             <AdjustQuantitiesModal
@@ -346,7 +367,7 @@ const WarehouseInventoryDetailPage: FC = () => {
               onSuccess={handleSuccess}
             />
           )}
-          
+
           {canUpdateInventoryStatus && warehouseId && data && (
             <UpdateStatusModal
               open={activeModal === 'updateStatus'}
@@ -356,7 +377,7 @@ const WarehouseInventoryDetailPage: FC = () => {
               onSuccess={handleSuccess}
             />
           )}
-          
+
           {canEditInventoryMetadata && warehouseId && (
             <UpdateMetadataModal
               open={activeModal === 'metadata'}
@@ -366,7 +387,7 @@ const WarehouseInventoryDetailPage: FC = () => {
               onSuccess={handleSuccess}
             />
           )}
-          
+
           {canRecordOutbound && warehouseId && (
             <RecordOutboundModal
               open={activeModal === 'outbound'}
@@ -376,7 +397,7 @@ const WarehouseInventoryDetailPage: FC = () => {
               onSuccess={handleSuccess}
             />
           )}
-          
+
           <Snackbar
             open={snackbar?.open ?? false}
             autoHideDuration={4000}

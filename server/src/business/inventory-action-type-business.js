@@ -46,10 +46,10 @@ const CONTEXT = 'inventory-action-type-business';
  */
 const evaluateInventoryActionTypeLookupVisibility = async (user) => {
   const context = `${CONTEXT}/evaluateInventoryActionTypeLookupVisibility`;
-  
+
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     return {
       canViewInactive:
         isRoot ||

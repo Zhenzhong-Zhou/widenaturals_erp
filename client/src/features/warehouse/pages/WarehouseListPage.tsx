@@ -26,7 +26,7 @@ const WarehouseListPage: FC = () => {
     useState<WarehouseSortField>('defaultNaturalSort');
   const [sortOrder, setSortOrder] = useState<'' | 'ASC' | 'DESC'>('');
   const [filters, setFilters] = useState<WarehouseFilters>({});
-  
+
   const {
     data: warehouses,
     loading: warehousesLoading,
@@ -36,9 +36,9 @@ const WarehouseListPage: FC = () => {
     fetchWarehouses,
     resetWarehouses,
   } = usePaginatedWarehouses();
-  
+
   const hasPermission = useHasPermissionBoolean();
-  
+
   const canViewSummary = hasPermission(
     PERMISSION_KEYS.WAREHOUSE_INVENTORY.VIEW_SUMMARY
   );
@@ -48,7 +48,7 @@ const WarehouseListPage: FC = () => {
   const canViewInventory = hasPermission(
     PERMISSION_KEYS.WAREHOUSE_INVENTORY.VIEW
   );
-  
+
   const queryParams = useMemo<WarehouseQueryParams>(
     () => ({
       page,
@@ -72,12 +72,12 @@ const WarehouseListPage: FC = () => {
     },
     [resetWarehouses]
   );
-  
+
   const { handlePageChange, handleRowsPerPageChange } = usePaginationHandlers(
     setPage,
     setLimit
   );
-  
+
   const handleRefresh = useCallback(() => {
     fetchWarehouses(queryParams);
   }, [queryParams, fetchWarehouses]);
@@ -103,7 +103,7 @@ const WarehouseListPage: FC = () => {
           Warehouse Management
         </CustomTypography>
       </Box>
-      
+
       <Divider sx={{ mb: 3 }} />
 
       {/* ── Filter + Sort Controls ────────────────────────────────── */}
@@ -117,7 +117,7 @@ const WarehouseListPage: FC = () => {
               onReset={handleResetFilters}
             />
           </Grid>
-          
+
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <WarehouseSortControls
               sortBy={sortBy}

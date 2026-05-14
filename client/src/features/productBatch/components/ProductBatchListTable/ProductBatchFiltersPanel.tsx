@@ -217,9 +217,9 @@ const ProductBatchFiltersPanel: FC<Props> = ({
     fieldName: 'statusIds',
     options: status.options,
   });
-  
+
   const formattedStatusOptions = useFormattedOptionLabels(status.options);
-  
+
   /* -----------------------------
    * Render
    * --------------------------- */

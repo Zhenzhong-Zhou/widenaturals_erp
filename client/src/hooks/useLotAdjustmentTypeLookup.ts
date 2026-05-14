@@ -15,23 +15,23 @@ import { resetLotAdjustmentTypeLookup } from '@features/lookup/state/lotAdjustme
  */
 const useLotAdjustmentTypeLookup = () => {
   const dispatch = useAppDispatch();
-  
+
   const options = useAppSelector(selectLotAdjustmentTypeLookupOptions);
   const loading = useAppSelector(selectLotAdjustmentTypeLookupLoading);
   const error = useAppSelector(selectLotAdjustmentTypeLookupError);
   const meta = useAppSelector(selectLotAdjustmentTypeLookupMeta);
-  
+
   const fetch = useCallback(
     (params?: LotAdjustmentTypeLookupParams) => {
       dispatch(fetchLotAdjustmentTypeLookupThunk(params));
     },
     [dispatch]
   );
-  
+
   const reset = useCallback(() => {
     dispatch(resetLotAdjustmentTypeLookup());
   }, [dispatch]);
-  
+
   return useMemo(
     () => ({
       options,

@@ -1,9 +1,7 @@
 import { type FC } from 'react';
 import { Card, Divider, Stack } from '@mui/material';
 import { CustomTypography } from '@components/index';
-import {
-  DetailField
-} from '@features/warehouseInventory/components/WarehouseInventoryDetail';
+import { DetailField } from '@features/warehouseInventory/components/WarehouseInventoryDetail';
 import type { GenericAudit } from '@shared-types/api';
 import { formatDateTime } from '@utils/dateTimeUtils';
 import { formatLabel } from '@utils/textUtils';
@@ -17,12 +15,12 @@ type WarehouseInventoryMetaPanelProps = {
 };
 
 const WarehouseInventoryMetaPanel: FC<WarehouseInventoryMetaPanelProps> = ({
-                                                                             inboundDate,
-                                                                             outboundDate,
-                                                                             lastMovementAt,
-                                                                             registeredAt,
-                                                                             audit,
-                                                                           }) => (
+  inboundDate,
+  outboundDate,
+  lastMovementAt,
+  registeredAt,
+  audit,
+}) => (
   <Stack spacing={3}>
     <Card sx={{ p: 3, borderRadius: 2 }}>
       <CustomTypography variant="subtitle1" fontWeight={600} mb={1.5}>
@@ -38,18 +36,30 @@ const WarehouseInventoryMetaPanel: FC<WarehouseInventoryMetaPanelProps> = ({
         <DetailField label="Registered" value={formatDateTime(registeredAt)} />
       </Stack>
     </Card>
-    
+
     <Card sx={{ p: 3, borderRadius: 2 }}>
       <CustomTypography variant="subtitle1" fontWeight={600} mb={1.5}>
         Audit
       </CustomTypography>
       {audit ? (
         <Stack spacing={1}>
-          <DetailField label="Created by" value={formatLabel(audit.createdBy?.name)} />
-          <DetailField label="Created at" value={formatDateTime(audit.createdAt)} />
+          <DetailField
+            label="Created by"
+            value={formatLabel(audit.createdBy?.name)}
+          />
+          <DetailField
+            label="Created at"
+            value={formatDateTime(audit.createdAt)}
+          />
           <Divider sx={{ my: 0.5 }} />
-          <DetailField label="Updated by" value={formatLabel(audit.updatedBy?.name)} />
-          <DetailField label="Updated at" value={formatDateTime(audit.updatedAt)} />
+          <DetailField
+            label="Updated by"
+            value={formatLabel(audit.updatedBy?.name)}
+          />
+          <DetailField
+            label="Updated at"
+            value={formatDateTime(audit.updatedAt)}
+          />
         </Stack>
       ) : (
         <CustomTypography variant="body2" color="text.secondary">

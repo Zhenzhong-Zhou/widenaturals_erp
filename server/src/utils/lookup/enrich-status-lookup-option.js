@@ -26,10 +26,8 @@
  */
 const enrichStatusLookupOption = (row) => {
   const isActive =
-    typeof row.is_active === 'boolean'
-      ? row.is_active
-      : Boolean(row.isActive);
-  
+    typeof row.is_active === 'boolean' ? row.is_active : Boolean(row.isActive);
+
   return {
     ...row,
     isActive,

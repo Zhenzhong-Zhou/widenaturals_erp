@@ -13,7 +13,7 @@ import type {
   PaginationParams,
   SortConfig,
 } from '@shared-types/api';
-import { ReduxPaginatedState } from '@shared-types/pagination';
+import type { ReduxPaginatedState } from '@shared-types/pagination';
 
 /** A single pricing group record returned from the API. */
 export type PricingGroupRecord = {

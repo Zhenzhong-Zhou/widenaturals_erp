@@ -38,7 +38,7 @@ const useInventoryActionTypeSearchHandlers = (
   const handleSearch = useDebouncedSearch<InventoryActionTypeLookupParams>(
     bundle.fetch
   );
-  
+
   return {
     /**
      * Debounced handler for inventory action type keyword searches.

@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import Grid from '@mui/material/Grid';
 import { FilterPanelLayout } from '@components/index';
 import { renderInputField } from '@utils/filters/filterUtils';
-import { useProductLookup, useSkuLookup } from '@hooks/index';
+import type { useProductLookup, useSkuLookup } from '@hooks/index';
 import type { PricingFilters } from '@features/pricing';
 import { ProductDropdown, SkuDropdown } from '@features/lookup/components';
 import type {

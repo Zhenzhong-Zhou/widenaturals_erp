@@ -71,7 +71,6 @@ const getInventoryActionTypeId = async (actionTypeName, client) => {
   }
 };
 
-
 // ─── Lookup ───────────────────────────────────────────────────────────────────
 
 /**
@@ -92,15 +91,15 @@ const getInventoryActionTypeId = async (actionTypeName, client) => {
  * @throws  {AppError}        Normalized database error if the query fails.
  */
 const getInventoryActionTypeLookup = async ({
-                                              filters = {},
-                                              limit = 50,
-                                              offset = 0,
-                                            }) => {
+  filters = {},
+  limit = 50,
+  offset = 0,
+}) => {
   const context = `${CONTEXT}/getInventoryActionTypeLookup`;
-  
+
   const { whereClause, params } = buildInventoryActionTypeFilter(filters);
   const queryText = buildInventoryActionTypeLookupQuery(whereClause);
-  
+
   try {
     return await paginateQueryByOffset({
       tableName: INVENTORY_ACTION_TYPE_TABLE,

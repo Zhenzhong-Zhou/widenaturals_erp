@@ -5,10 +5,7 @@ import {
   createLookupMetaSelector,
   mapLookupItems,
 } from '@features/lookup/utils/lookupSelectorUtils';
-import type {
-  LocationLookupItem,
-  LookupOption,
-} from '@features/lookup/state';
+import type { LocationLookupItem, LookupOption } from '@features/lookup/state';
 
 // -----------------------------
 // Base Selector

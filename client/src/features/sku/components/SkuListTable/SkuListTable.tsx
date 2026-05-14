@@ -64,7 +64,9 @@ const SkuListTable = ({
 }: SkuListTableProps) => {
   // Shared logic used for permission checks (e.g. canCreateSku)
   const shared = useCreateSkuSharedLogic();
-  const { isAllowed } = usePagePermissionState([PERMISSION_KEYS.SKUS.UPLOAD_IMAGE]);
+  const { isAllowed } = usePagePermissionState([
+    PERMISSION_KEYS.SKUS.UPLOAD_IMAGE,
+  ]);
 
   const getSelectedSkuCount = (
     selectedSkus?: Record<string, SelectedSku>

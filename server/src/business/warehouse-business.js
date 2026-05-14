@@ -18,7 +18,9 @@ const {
 } = require('../services/permission-service');
 const { logSystemException } = require('../utils/logging/system-logger');
 const AppError = require('../utils/AppError');
-const { WAREHOUSE_CONSTANTS } = require('../utils/constants/domain/warehouse-constants');
+const {
+  WAREHOUSE_CONSTANTS,
+} = require('../utils/constants/domain/warehouse-constants');
 const { getStatusId } = require('../config/status-cache');
 
 const CONTEXT = 'warehouse-business';
@@ -100,20 +102,20 @@ const applyWarehouseVisibilityRules = (filters, acl) => {
  */
 const resolveWarehouseFiltersByPermission = async (user, rawFilters = {}) => {
   const context = `${CONTEXT}/resolveWarehouseFiltersByPermission`;
-  
+
   try {
     const ctx = await resolveUserPermissionContext(user);
     const { permissions, isRoot } = ctx;
-    
+
     const canViewAllStatuses =
       isRoot ||
       permissions.includes(WAREHOUSE_CONSTANTS.PERMISSIONS.VIEW_ALL_STATUSES);
     const canViewArchived =
       isRoot ||
       permissions.includes(WAREHOUSE_CONSTANTS.PERMISSIONS.VIEW_ARCHIVED);
-    
+
     const resolvedFilters = { ...rawFilters };
-    
+
     // Status visibility
     if (canViewAllStatuses) {
       delete resolvedFilters.statusId;

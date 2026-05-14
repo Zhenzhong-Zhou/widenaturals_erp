@@ -20,12 +20,10 @@ type LocationMultiSelectDropdownProps = Omit<
  *
  * Thin semantic wrapper around <MultiSelectDropdown />.
  */
-const LocationMultiSelectDropdown: FC<
-  LocationMultiSelectDropdownProps
-> = ({
-                                          label = 'Select Location',
-                                          placeholder = 'Choose location…',
-                                          ...rest
+const LocationMultiSelectDropdown: FC<LocationMultiSelectDropdownProps> = ({
+  label = 'Select Location',
+  placeholder = 'Choose location…',
+  ...rest
 }) => {
   return (
     <MultiSelectDropdown label={label} placeholder={placeholder} {...rest} />

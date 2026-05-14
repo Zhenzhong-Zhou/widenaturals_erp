@@ -1,20 +1,6 @@
-import {
-  type FC,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
-import {
-  useParams,
-} from 'react-router-dom';
-import {
-  Box,
-  Card,
-  Divider,
-  Grid,
-  Stack,
-} from '@mui/material';
+import { type FC, useCallback, useEffect, useMemo, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { Box, Card, Divider, Grid, Stack } from '@mui/material';
 import {
   CustomButton,
   CustomTypography,
@@ -29,9 +15,7 @@ import {
   useLotAdjustmentTypeLookup,
   useUserLookup,
 } from '@hooks/index';
-import {
-  useWarehouseInventoryPermissions,
-} from '@features/warehouseInventory/hooks';
+import { useWarehouseInventoryPermissions } from '@features/warehouseInventory/hooks';
 import type {
   InventoryActivityLogFilters,
   InventoryActivityLogQueryParams,
@@ -67,11 +51,10 @@ const WarehouseInventoryActivityLogPage: FC = () => {
   const [sortBy, setSortBy] =
     useState<InventoryActivityLogSortField>('defaultNaturalSort');
   const [sortOrder, setSortOrder] = useState<'' | 'ASC' | 'DESC'>('');
-  const [filters, setFilters] =
-    useState<InventoryActivityLogFilters>({});
-  
+  const [filters, setFilters] = useState<InventoryActivityLogFilters>({});
+
   const { canViewInventoryActivityLog } = useWarehouseInventoryPermissions();
-  
+
   // -----------------------------
   // Data hook
   // -----------------------------
@@ -85,7 +68,7 @@ const WarehouseInventoryActivityLogPage: FC = () => {
     fetchActivityLog,
     resetActivityLog,
   } = useInventoryActivityLog();
-  
+
   const {
     options: inventoryActionTypeOptions,
     loading: isInventoryActionTypeLoading,
@@ -94,7 +77,7 @@ const WarehouseInventoryActivityLogPage: FC = () => {
     fetch: fetchInventoryActionTypeLookup,
     reset: resetInventoryActionTypeLookup,
   } = useInventoryActionTypeLookup();
-  
+
   const {
     options: lotAdjustmentTypeOptions,
     loading: isLotAdjustmentTypeLoading,
@@ -103,7 +86,7 @@ const WarehouseInventoryActivityLogPage: FC = () => {
     fetch: fetchLotAdjustmentTypeLookup,
     reset: resetLotAdjustmentTypeLookup,
   } = useLotAdjustmentTypeLookup();
-  
+
   const {
     options: userOptions,
     loading: isUserLookupLoading,
@@ -112,19 +95,17 @@ const WarehouseInventoryActivityLogPage: FC = () => {
     fetch: fetchUserLookup,
     reset: resetUserLookup,
   } = useUserLookup();
-  
+
   const formattedInventoryActionTypeOptions = useFormattedOptionLabels(
     inventoryActionTypeOptions
   );
-  
+
   const formattedLotAdjustmentTypeOptions = useFormattedOptionLabels(
     lotAdjustmentTypeOptions
   );
-  
-  const formattedUserOptions = useFormattedOptionLabels(
-    userOptions
-  );
-  
+
+  const formattedUserOptions = useFormattedOptionLabels(userOptions);
+
   const fullQuery = useMemo(
     () => ({
       page,
@@ -135,31 +116,31 @@ const WarehouseInventoryActivityLogPage: FC = () => {
     }),
     [page, limit, sortBy, sortOrder, filters]
   );
-  
+
   const queryParams = useMemo<InventoryActivityLogQueryParams | null>(() => {
     if (!warehouseId) return null;
     return { warehouseId, ...fullQuery };
   }, [warehouseId, fullQuery]);
-  
+
   const refreshInventoryActivityLogList = useCallback(() => {
     if (!queryParams) return;
     fetchActivityLog(queryParams);
   }, [queryParams, fetchActivityLog]);
-  
+
   // Fetch effect — fires whenever queryParams change
   useEffect(() => {
     if (!queryParams) return;
     const t = setTimeout(() => fetchActivityLog(queryParams), 200);
     return () => clearTimeout(t);
   }, [queryParams, fetchActivityLog]);
-  
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       resetActivityLog();
     };
   }, [resetActivityLog]);
-  
+
   // -----------------------------
   // Handlers
   // -----------------------------
@@ -167,7 +148,7 @@ const WarehouseInventoryActivityLogPage: FC = () => {
     setPage,
     setLimit
   );
-  
+
   const handleResetFilters = useCallback(() => {
     resetActivityLog();
     setFilters({});
@@ -176,7 +157,7 @@ const WarehouseInventoryActivityLogPage: FC = () => {
     resetInventoryActionTypeLookup();
     setPage(1);
   }, [resetActivityLog]);
-  
+
   // -----------------------------
   // Guards (warehouseId before permission — without an ID there's nothing
   // to authorize against; flipping the order would surface misleading
@@ -187,7 +168,7 @@ const WarehouseInventoryActivityLogPage: FC = () => {
       <ErrorMessage message="Missing warehouse ID in route." showNavigation />
     );
   }
-  
+
   if (!canViewInventoryActivityLog) {
     return (
       <ErrorMessage
@@ -196,7 +177,7 @@ const WarehouseInventoryActivityLogPage: FC = () => {
       />
     );
   }
-  
+
   // -----------------------------
   // Render
   // -----------------------------
@@ -222,25 +203,37 @@ const WarehouseInventoryActivityLogPage: FC = () => {
               </CustomTypography>
             )}
           </Stack>
-          
+
           <Stack direction="row" spacing={1.5} alignItems="center">
             <GoBackButton
               variant="outlined"
-              sx={{ width: 128, height: 44, px: 2.5, borderRadius: 999, flexShrink: 0 }}
+              sx={{
+                width: 128,
+                height: 44,
+                px: 2.5,
+                borderRadius: 999,
+                flexShrink: 0,
+              }}
             />
             <CustomButton
               variant="outlined"
               onClick={refreshInventoryActivityLogList}
-              sx={{ width: 128, height: 44, px: 2.5, borderRadius: 999, flexShrink: 0 }}
+              sx={{
+                width: 128,
+                height: 44,
+                px: 2.5,
+                borderRadius: 999,
+                flexShrink: 0,
+              }}
             >
               Refresh
             </CustomButton>
           </Stack>
         </Box>
       </Box>
-      
+
       <Divider sx={{ my: 2 }} />
-      
+
       {/* ── Filter + Sort Controls ────────────────────────────────── */}
       <Card sx={{ p: 3, mb: 4, borderRadius: 2, minHeight: 200 }}>
         <Grid container spacing={2}>
@@ -250,19 +243,16 @@ const WarehouseInventoryActivityLogPage: FC = () => {
               onChange={setFilters}
               onApply={() => setPage(1)}
               onReset={handleResetFilters}
-              
               inventoryActionTypeOptions={formattedInventoryActionTypeOptions}
               inventoryActionTypeLoading={isInventoryActionTypeLoading}
               inventoryActionTypeError={inventoryActionTypeError}
               inventoryActionTypeMeta={inventoryActionTypeMeta}
               fetchInventoryActionTypeLookup={fetchInventoryActionTypeLookup}
-              
               adjustmentTypeOptions={formattedLotAdjustmentTypeOptions}
               adjustmentTypeLoading={isLotAdjustmentTypeLoading}
               adjustmentTypeError={lotAdjustmentTypeError}
               adjustmentTypeMeta={lotAdjustmentTypeMeta}
               fetchLotAdjustmentTypeLookup={fetchLotAdjustmentTypeLookup}
-              
               userOptions={formattedUserOptions}
               userLoading={isUserLookupLoading}
               userError={userLookupError}
@@ -280,22 +270,22 @@ const WarehouseInventoryActivityLogPage: FC = () => {
           </Grid>
         </Grid>
       </Card>
-      
+
       {/* --------------------------------------------------
        * Body — loading / error / empty / table
        * -------------------------------------------------- */}
       {loading && (
         <Loading variant="dotted" message="Loading activity log..." />
       )}
-      
+
       {!loading && error && (
         <ErrorMessage message={error} showNavigation={false} />
       )}
-      
+
       {!loading && !error && isEmpty && (
         <NoDataFound message="No activity log entries match the current filters." />
       )}
-      
+
       {!loading && !error && !isEmpty && (
         <WarehouseInventoryActivityLogListTable
           data={data}

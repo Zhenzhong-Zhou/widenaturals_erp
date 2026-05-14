@@ -1,11 +1,9 @@
 import type {
   MultiItemFieldConfig,
-  RowAwareComponentProps
+  RowAwareComponentProps,
 } from '@components/common/MultiItemForm';
 import BatchIdCell from './BatchIdCell';
-import type {
-  LookupOption,
-} from '@features/lookup';
+import type { LookupOption } from '@features/lookup';
 import { StatusCell } from '@features/warehouseInventory/components/shared';
 
 interface BuildCreateInventoryFieldsArgs {
@@ -20,9 +18,9 @@ interface BuildCreateInventoryFieldsArgs {
  * to BatchIdCell, which reads its state from BatchLookupContext.
  */
 export const buildCreateInventoryFields = ({
-                                             statusOptions,
-                                             statusLoading,
-                                           }: BuildCreateInventoryFieldsArgs): MultiItemFieldConfig[] => [
+  statusOptions,
+  statusLoading,
+}: BuildCreateInventoryFieldsArgs): MultiItemFieldConfig[] => [
   {
     id: 'batchId',
     label: 'Batch ID',
@@ -64,11 +62,7 @@ export const buildCreateInventoryFields = ({
     group: 'date-status',
     grid: { xs: 6 },
     component: (props: RowAwareComponentProps) => (
-      <StatusCell
-        {...props}
-        options={statusOptions}
-        loading={statusLoading}
-      />
+      <StatusCell {...props} options={statusOptions} loading={statusLoading} />
     ),
   },
 ];

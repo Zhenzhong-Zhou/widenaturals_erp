@@ -37,7 +37,7 @@ const useLotAdjustmentTypeSearchHandlers = (
   const handleSearch = useDebouncedSearch<LotAdjustmentTypeLookupParams>(
     bundle.fetch
   );
-  
+
   return {
     /**
      * Debounced handler for lot adjustment type keyword searches.

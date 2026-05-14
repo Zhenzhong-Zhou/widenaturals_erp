@@ -5,5 +5,5 @@ export { default as InventoryActivityLogSortControls } from './InventoryActivity
 export { getInventoryActivityLogColumns } from './getInventoryActivityLogColumns';
 export {
   formatQuantityChange,
-  quantityChangeColor
+  quantityChangeColor,
 } from './inventoryActivityLogFormatters';
