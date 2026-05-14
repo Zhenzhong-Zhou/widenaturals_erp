@@ -117,26 +117,6 @@ export interface BatchRegistryForInventoryLookupQuery
 }
 
 /**
- * Query parameters for fetching lot adjustment type lookup options.
- */
-export interface LotAdjustmentLookupQueryParams {
-  /**
-   * Whether to exclude internal-only adjustment types such as
-   * 'manual_stock_insert' and 'manual_stock_update'.
-   * Defaults to `true` on the server if omitted.
-   */
-  excludeInternal?: boolean;
-
-  /**
-   * Whether to restrict results to only quantity adjustment types.
-   * Useful for inventory adjustment forms where only quantity-related
-   * actions are relevant.
-   * Default to `false` if omitted.
-   */
-  restrictToQtyAdjustment?: boolean;
-}
-
-/**
  * Expiry metadata discriminated union.
  *
  * Mirrors the two branches of the backend `getExpiryMeta` helper:
@@ -274,26 +254,44 @@ export type GetWarehouseLookupResponse =
 
 export type WarehouseLookupState = AsyncState<WarehouseLookupItem[]>;
 
-/**
- * Represents a single option in the lot adjustment lookup.
- */
-export interface LotAdjustmentTypeLookupItem extends LookupOption {
-  /**
-   * The unique identifier of the related inventory action type.
-   * Used for internal mapping or further logic.
-   */
-  actionTypeId: string;
-}
+// ---------------------------------------------------------------------------
+// Lot adjustment type lookup
+// ---------------------------------------------------------------------------
 
 /**
- * Typed API response for fetching lot adjustment lookup options.
+ * Lot adjustment type lookup item.
+ *
+ * Represents a specific lot-level adjustment reason (damage, loss,
+ * stolen, etc.). The parent inventory action type's name is surfaced
+ * as the secondary label so users can see which broader action the
+ * adjustment rolls up to.
+ */
+export type LotAdjustmentTypeLookupItem = LookupItemWithSubLabelAndStatus;
+
+/**
+ * Successful API response for lot adjustment type lookup requests.
  */
 export type LotAdjustmentTypeLookupResponse =
   LookupSuccessResponse<LotAdjustmentTypeLookupItem>;
 
-export type LotAdjustmentTypeLookupState = AsyncState<
-  LotAdjustmentTypeLookupItem[]
->;
+/**
+ * Query parameters for fetching lot adjustment type lookup data.
+ *
+ * The endpoint exposes only the base lookup query surface
+ * (keyword, limit, offset). All visibility shaping is applied by
+ * the business layer based on the caller's ACL: results are always
+ * scoped to the adjustment category, inactive types are hidden
+ * unless the caller holds VIEW_ALL_STATUSES, and internal stock-
+ * management types are hidden unless the caller holds VIEW_INTERNAL.
+ * None of these are caller-controllable from the query string.
+ */
+export type LotAdjustmentTypeLookupParams = LookupQuery;
+
+/**
+ * Redux state shape for the lot adjustment type lookup slice.
+ */
+export type LotAdjustmentTypeLookupState =
+  PaginatedLookupState<LotAdjustmentTypeLookupItem>;
 
 /**
  * Represents a batch option in a lookup menu, including its type (e.g., product, packaging).
@@ -1299,3 +1297,40 @@ export type LocationLookupParams = LookupQuery;
  * Redux state shape for the Location lookup slice.
  */
 export type LocationLookupState = PaginatedLookupState<LocationLookupItem>;
+
+// ---------------------------------------------------------------------------
+// Inventory action type lookup
+// ---------------------------------------------------------------------------
+
+/**
+ * Inventory action type lookup item.
+ *
+ * Represents a categorised action type (adjustment, transaction, system,
+ * conversion, hold, transfer, reservation) that drives downstream
+ * inventory movement and audit behaviour. The parent category is
+ * surfaced as the secondary label so users can disambiguate similarly
+ * named actions across categories.
+ */
+export type InventoryActionTypeLookupItem = LookupItemWithSubLabelAndStatus;
+
+/**
+ * Successful API response for inventory action type lookup requests.
+ */
+export type InventoryActionTypeLookupResponse =
+  LookupSuccessResponse<InventoryActionTypeLookupItem>;
+
+/**
+ * Query parameters for fetching inventory action type lookup data.
+ *
+ * The endpoint exposes only the base lookup query surface
+ * (keyword, limit, offset). Visibility shaping — including the
+ * active-status pin for callers without VIEW_ALL_STATUSES — is
+ * applied by the business layer and is not caller-controllable.
+ */
+export type InventoryActionTypeLookupParams = LookupQuery;
+
+/**
+ * Redux state shape for the inventory action type lookup slice.
+ */
+export type InventoryActionTypeLookupState =
+  PaginatedLookupState<InventoryActionTypeLookupItem>;

@@ -24,6 +24,7 @@ import inventoryStatusLookupReducer from './inventoryStatusLookupSlice';
 import pricingTypeLookupReducer from './pricingTypeLookupSlice';
 import warehouseTypeLookupReducer from './warehouseTypeLookupSlice';
 import locationLookupReducer from './locationLookupSlice';
+import inventoryActionTypeLookupReducer from './inventoryActionTypeLookupSlice';
 
 /**
  * Reducer map for Lookup / Dropdown reference data.
@@ -72,4 +73,5 @@ export const lookupReducers = {
   pricingTypeLookup: pricingTypeLookupReducer,
   warehouseTypeLookup: warehouseTypeLookupReducer,
   locationLookup: locationLookupReducer,
+  inventoryActionTypeLookup: inventoryActionTypeLookupReducer,
 };
