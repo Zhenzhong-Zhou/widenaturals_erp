@@ -98,7 +98,6 @@ const CreateInventoryModal: FC<CreateInventoryModalProps> = ({
   useEffect(() => {
     if (!open) return;
     fetchStatusLookup(statusFetchParams);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, fetchStatusLookup]);
 
   // Reset on close only

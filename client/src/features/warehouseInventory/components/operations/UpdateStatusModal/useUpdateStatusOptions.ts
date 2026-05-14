@@ -22,7 +22,6 @@ export const useUpdateStatusOptions = (open: boolean) => {
     fetch(statusFetchParams);
 
     // Initial fetch only.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, fetch]);
 
   useEffect(() => {
