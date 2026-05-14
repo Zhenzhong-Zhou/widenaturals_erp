@@ -110,7 +110,10 @@ const buildOrderFilter = (filters = {}) => {
     paramIndexRef.value++;
   }
 
-  if (normalizedFilters.orderStatusIds !== null) {
+  if (
+    Array.isArray(normalizedFilters.orderStatusIds) &&
+    normalizedFilters.orderStatusIds.length > 0
+  ) {
     const ids = Array.isArray(normalizedFilters.orderStatusIds)
       ? normalizedFilters.orderStatusIds
       : [normalizedFilters.orderStatusIds];
