@@ -3,13 +3,13 @@ import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import { TruncatedText } from '@components/index';
 import type { Column } from '@components/common/CustomTable';
-import { formatDateTime } from '@utils/dateTimeUtils';
 import { formatLabel } from '@utils/textUtils';
-import type { InventoryActivityLogRecord } from '@features/warehouseInventory/state';
+import { formatDateTime } from '@utils/dateTimeUtils';
 import {
   formatQuantityChange,
   quantityChangeColor,
-} from './inventoryActivityLogFormatters';
+} from '@features/warehouseInventory/components/WarehouseInventoryActivityLogListTable/inventoryActivityLogFormatters';
+import type { InventoryActivityLogRecord } from '@features/warehouseInventory';
 
 /**
  * Builds column definitions for the warehouse inventory activity log mini table.
@@ -23,12 +23,14 @@ export const getInventoryActivityLogColumns = (
     canViewDetail?: boolean;
     expandedRowId?: string | null;
     handleDrillDownToggle?: (id: string) => void;
+    showItemContext?: boolean;
   } = {}
 ): Column<InventoryActivityLogRecord>[] => {
   const {
     canViewDetail = false,
     expandedRowId,
     handleDrillDownToggle,
+    showItemContext = false,
   } = options;
   
   return [
@@ -37,6 +39,43 @@ export const getInventoryActivityLogColumns = (
       label: 'When',
       format: (value) => formatDateTime(value as string) ?? '—',
     },
+    // ── Item context — inserted only when scope isn't pre-narrowed ─────────
+    ...(showItemContext
+      ? [
+        {
+          id: 'batchType',
+          label: 'Type',
+          sortable: true,
+          renderCell: (row: InventoryActivityLogRecord) => formatLabel(row.batchType),
+        },
+        {
+          id: 'entityName',
+          label: 'Entity',
+          sortable: false,
+          renderCell: (row: InventoryActivityLogRecord) => (
+            <TruncatedText
+              text={
+                row.batchType === 'product'
+                  ? row.productName
+                  : row.packagingDisplayName
+              }
+              maxLength={20}
+              variant="body2"
+              sx={{ fontWeight: 400 }}
+            />
+          ),
+        },
+        {
+          id: 'lotNumber',
+          label: 'Lot Number',
+          sortable: true,
+          renderCell: (row: InventoryActivityLogRecord) =>
+            row.batchType === 'product'
+              ? row.productLotNumber
+              : row.packagingLotNumber,
+        },
+      ]
+      : []),
     {
       id: 'actionTypeName',
       label: 'Action',

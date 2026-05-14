@@ -1,49 +1,56 @@
-import {
-  type FC,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Box, Stack } from '@mui/material';
 import {
   CustomButton,
-  CustomTable,
   CustomTypography,
   ErrorMessage,
   Loading,
 } from '@components/index';
 import {
   ActivityLogToolbar,
-  WarehouseInventoryActivityLogExpandedContent,
 } from '@features/warehouseInventory/components/WarehouseInventoryDetail/WarehouseInventoryActivityLogPanel';
+import {
+  WarehouseInventoryActivityLogListTable
+} from '@features/warehouseInventory/components/WarehouseInventoryActivityLogListTable';
 import { useInventoryActivityLog } from '@hooks/index';
 import { usePaginationHandlers } from '@utils/hooks';
-import type {
-  InventoryActivityLogFilters,
-  InventoryActivityLogRecord,
-} from '@features/warehouseInventory/state';
-import { getInventoryActivityLogColumns } from './getInventoryActivityLogColumns';
+import type { InventoryActivityLogFilters } from '@features/warehouseInventory/state';
 
-
-type WarehouseInventoryActivityLogPanelProps = {
+interface WarehouseInventoryActivityLogPanelProps {
   warehouseId: string;
   warehouseInventoryId: string;
-};
+}
 
 const hasActiveFilters = (filters: InventoryActivityLogFilters) =>
-  Object.values(filters).some((value) => value !== undefined && value !== null && value !== '');
+  Object.values(filters).some(
+    (value) => value !== undefined && value !== null && value !== ''
+  );
 
-const WarehouseInventoryActivityLogPanel: FC<
-  WarehouseInventoryActivityLogPanelProps
-> = ({ warehouseId, warehouseInventoryId }) => {
+/**
+ * Embedded activity log panel used inside the warehouse inventory detail page.
+ *
+ * Locks the inventoryId filter to the current record so the panel always
+ * shows activity for one specific inventory entry. For warehouse-wide
+ * activity log viewing across all records, see
+ * WarehouseInventoryActivityLogPage — both surfaces share the same
+ * WarehouseInventoryActivityLogTable, column definitions, and expanded
+ * row content. The panel and page diverge only in their toolbars/filter
+ * UI and the surrounding chrome.
+ *
+ * Drill-down state lives inside the table component, so resetting filters
+ * from this panel does not need to touch expand state.
+ */
+const WarehouseInventoryActivityLogPanel = ({
+                                              warehouseId,
+                                              warehouseInventoryId,
+                                            }: WarehouseInventoryActivityLogPanelProps) => {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [filters, setFilters] = useState<InventoryActivityLogFilters>({});
-  const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
   
   const {
     data,
+    pagination: paginationInfo,
     loading,
     error,
     totalRecords,
@@ -82,15 +89,10 @@ const WarehouseInventoryActivityLogPanel: FC<
     setLimit
   );
   
-  const handleDrillDownToggle = useCallback((id: string) => {
-    setExpandedRowId((currentId) => (currentId === id ? null : id));
-  }, []);
-  
   const handleFiltersChange = useCallback(
     (next: InventoryActivityLogFilters) => {
       setFilters(next);
       setPage(1);
-      setExpandedRowId(null);
     },
     []
   );
@@ -98,25 +100,7 @@ const WarehouseInventoryActivityLogPanel: FC<
   const handleReset = useCallback(() => {
     setFilters({});
     setPage(1);
-    setExpandedRowId(null);
   }, []);
-  
-  const columns = useMemo(
-    () =>
-      getInventoryActivityLogColumns({
-        canViewDetail: true,
-        expandedRowId,
-        handleDrillDownToggle,
-      }),
-    [expandedRowId, handleDrillDownToggle]
-  );
-  
-  const renderExpandedContent = useCallback(
-    (row: InventoryActivityLogRecord) => (
-      <WarehouseInventoryActivityLogExpandedContent row={row} />
-    ),
-    []
-  );
   
   const filtersActive = hasActiveFilters(filters);
   
@@ -174,14 +158,12 @@ const WarehouseInventoryActivityLogPanel: FC<
       )}
       
       {!loading && !error && !isEmpty && (
-        <CustomTable<InventoryActivityLogRecord>
-          columns={columns}
+        <WarehouseInventoryActivityLogListTable
           data={data}
-          expandable
-          expandedRowId={expandedRowId}
-          expandedContent={renderExpandedContent}
+          loading={loading}
           page={page - 1}
-          initialRowsPerPage={limit}
+          rowsPerPage={limit}
+          totalPages={paginationInfo?.totalPages ?? 0}
           totalRecords={totalRecords}
           onPageChange={handlePageChange}
           onRowsPerPageChange={handleRowsPerPageChange}
