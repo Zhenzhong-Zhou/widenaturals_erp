@@ -23,7 +23,7 @@ export { default as PricingGroupDropdown } from './PricingGroupDropdown';
 export { default as DiscountDropdown } from './DiscountDropdown';
 
 // Order / Payment / Delivery
-export { default as OrderTypesDropdown } from './OrderTypesDropdown';
+export { default as OrderTypeDropdown } from './OrderTypeDropdown';
 export { default as PaymentMethodDropdown } from './PaymentMethodDropdown';
 export { default as DeliveryMethodDropdown } from './DeliveryMethodDropdown';
 export { default as TaxRateDropdown } from './TaxRateDropdown';

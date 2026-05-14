@@ -1,25 +1,30 @@
 import { type FC, type RefObject, useMemo } from 'react';
 import { useWatch } from 'react-hook-form';
-import FormControlLabel from '@mui/material/FormControlLabel';
-import Checkbox from '@mui/material/Checkbox';
+import currencyCodes from 'currency-codes';
+import { Checkbox, FormControlLabel } from '@mui/material';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import CustomTypography from '@components/common/CustomTypography';
-import CustomDatePicker from '@components/common/CustomDatePicker';
-import CustomerDropdown from '@features/lookup/components/CustomerDropdown';
-import OrderTypeDropdown from '@features/lookup/components/OrderTypesDropdown';
-import PaymentMethodDropdown from '@features/lookup/components/PaymentMethodDropdown';
-import DiscountDropdown from '@features/lookup/components/DiscountDropdown';
-import TaxRateDropdown from '@features/lookup/components/TaxRateDropdown';
-import DeliveryMethodDropdown from '@features/lookup/components/DeliveryMethodDropdown';
-import Dropdown from '@components/common/Dropdown';
-import BaseInput from '@components/common/BaseInput';
-import CustomForm, {
-  type CustomFormRef,
-  type CustomRenderParams,
-  type FieldConfig,
+import {
+  BaseInput,
+  CustomDatePicker,
+  CustomForm,
+  CustomTypography,
+  Dropdown,
+  FieldStatusHelper,
+} from '@components/index';
+import {
+  CustomerDropdown,
+  DeliveryMethodDropdown,
+  DiscountDropdown,
+  OrderTypeDropdown,
+  PaymentMethodDropdown,
+  TaxRateDropdown,
+} from '@features/lookup/components';
+import type {
+  CustomFormRef,
+  CustomRenderParams,
+  FieldConfig,
 } from '@components/common/CustomForm';
-import FieldStatusHelper from '@components/common/FieldStatusHelper';
 import type {
   LookupOption,
   CustomerLookupQuery,
@@ -31,7 +36,6 @@ import type {
   OrderTypeLookupQueryParams,
 } from '@features/lookup/state';
 import { transformLookupOptions } from '@utils/lookupTransformers';
-import currencyCodes from 'currency-codes';
 import type { UsePaginatedDropdownReturn } from '@utils/lookupHelpers';
 import type { CreateSalesOrderInput } from '@features/order/state';
 
