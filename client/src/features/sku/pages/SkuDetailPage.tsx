@@ -35,6 +35,7 @@ import { UpdateSkuDimensionsDialog } from '@features/sku/components/UpdateSkuDim
 import { UpdateSkuIdentityDialog } from '@features/sku/components/UpdateSkuIdentity';
 import { SkuImageUpdateDialog } from '@features/skuImage/components/UpdateImageForm';
 import { SkuImageUploadDialog } from '@features/skuImage/components/UploadImageForm';
+import { PERMISSION_KEYS } from '@features/authorize/constants/permissionKeys';
 
 /**
  * Active dialog state for SKU detail page.
@@ -85,14 +86,14 @@ const SkuDetailPage: FC = () => {
   --------------------------------------------------------- */
 
   const hasPermission = useHasPermissionBoolean();
-
-  const canViewInactive = hasPermission('view_all_product_statuses');
-  const canUpdateMetadata = hasPermission('update_sku_metadata');
-  const canUpdateStatus = hasPermission('update_sku_status');
-  const canUpdateDimension = hasPermission('update_sku_dimension');
-  const canUpdateIdentity = hasPermission('update_sku_identity');
-  const canUploadImages = hasPermission('update_sku_metadata');
-  const canUpdateImages = hasPermission('update_sku_images');
+  
+  const canViewInactive    = hasPermission('view_all_product_statuses');
+  const canUpdateMetadata  = hasPermission(PERMISSION_KEYS.SKUS.UPDATE_METADATA);
+  const canUpdateStatus    = hasPermission(PERMISSION_KEYS.SKUS.UPDATE_STATUS);
+  const canUpdateDimension = hasPermission(PERMISSION_KEYS.SKUS.UPDATE_DIMENSIONS);
+  const canUpdateIdentity  = hasPermission(PERMISSION_KEYS.SKUS.UPDATE_IDENTITY);
+  const canUploadImages    = hasPermission(PERMISSION_KEYS.SKUS.UPLOAD_IMAGE);
+  const canUpdateImages    = hasPermission(PERMISSION_KEYS.SKUS.UPDATE_IMAGE);
 
   /* ---------------------------------------------------------
    Dialog State

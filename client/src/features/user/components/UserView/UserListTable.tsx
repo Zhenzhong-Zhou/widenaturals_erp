@@ -12,6 +12,7 @@ import {
 } from '@features/user/components/UserView';
 import { usePagePermissionState } from '@features/authorize/hooks';
 import type { FlattenedUserRecord } from '@features/user/state';
+import { PERMISSION_KEYS } from '@features/authorize/constants/permissionKeys';
 
 interface UserListTableProps extends Omit<
   CustomTableProps<FlattenedUserRecord>,
@@ -49,7 +50,7 @@ const UserListTable = ({
   onRefresh,
 }: UserListTableProps) => {
   // Permission state (UI-only decision)
-  const { isAllowed } = usePagePermissionState(['create_users']);
+  const { isAllowed } = usePagePermissionState([PERMISSION_KEYS.USERS.CREATE_USER]);
 
   /* -------------------------------------------------------
    * Memoize column definitions

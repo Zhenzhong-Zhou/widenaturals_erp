@@ -10,6 +10,7 @@ import {
 } from '@features/product/components/ProductListTable';
 import type { FlattenedProductRecord } from '@features/product/state/productTypes';
 import { usePagePermissionState } from '@features/authorize/hooks';
+import { PERMISSION_KEYS } from '@features/authorize/constants/permissionKeys';
 
 /**
  * Props for the Product list table.
@@ -52,7 +53,7 @@ const ProductListTable = ({
   onRefresh,
   onAddNew,
 }: ProductListTableProps) => {
-  const { isAllowed } = usePagePermissionState(['create_products']);
+  const { isAllowed } = usePagePermissionState([PERMISSION_KEYS.PRODUCTS.CREATE]);
 
   // -------------------------------------------------------
   // Memoize Column Definitions

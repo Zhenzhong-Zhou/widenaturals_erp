@@ -23,6 +23,7 @@ import {
   ProductUpdateInfoDialog,
   UpdateProductStatusDialog,
 } from '@features/product/components/UpdateProductForm';
+import { PERMISSION_KEYS } from '@features/authorize/constants/permissionKeys';
 
 const ProductDetailPage = () => {
   // --------------------------------------
@@ -51,8 +52,8 @@ const ProductDetailPage = () => {
   // --------------------------------------
   // 3. Permission Hooks
   // --------------------------------------
-  const canUpdateStatus = usePagePermissionState(['update_product_status']);
-  const canUpdateInfo = usePagePermissionState(['update_product_info']);
+  const canUpdateStatus = usePagePermissionState([PERMISSION_KEYS.PRODUCTS.UPDATE_STATUS]);
+  const canUpdateInfo   = usePagePermissionState([PERMISSION_KEYS.PRODUCTS.UPDATE_INFO]);
 
   // --------------------------------------
   // 4. UI State (Dialogs)

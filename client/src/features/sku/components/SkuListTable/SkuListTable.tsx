@@ -13,6 +13,7 @@ import {
   SkuExpandedContent,
 } from '@features/sku/components/SkuListTable';
 import type { FlattenedSkuRecord, SelectedSku } from '@features/sku/state';
+import { PERMISSION_KEYS } from '@features/authorize/constants/permissionKeys';
 
 interface SkuListTableProps extends Omit<
   CustomTableProps<FlattenedSkuRecord>,
@@ -63,7 +64,7 @@ const SkuListTable = ({
 }: SkuListTableProps) => {
   // Shared logic used for permission checks (e.g. canCreateSku)
   const shared = useCreateSkuSharedLogic();
-  const { isAllowed } = usePagePermissionState(['create_skus_images']);
+  const { isAllowed } = usePagePermissionState([PERMISSION_KEYS.SKUS.UPLOAD_IMAGE]);
 
   const getSelectedSkuCount = (
     selectedSkus?: Record<string, SelectedSku>

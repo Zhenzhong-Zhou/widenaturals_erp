@@ -16,6 +16,7 @@ import type {
 } from '@features/warehouse';
 import { usePaginatedWarehouses } from '@hooks/index';
 import { useHasPermissionBoolean } from '@features/authorize/hooks';
+import { PERMISSION_KEYS } from '@features/authorize/constants/permissionKeys';
 
 const WarehouseListPage: FC = () => {
   const [sortBy, setSortBy] =
@@ -35,10 +36,10 @@ const WarehouseListPage: FC = () => {
   } = usePaginatedWarehouses();
 
   const hasPermission = useHasPermissionBoolean();
-
-  const canViewSummary = hasPermission('view_warehouse_summary');
-  const canViewDetails = hasPermission('view_warehouse_details');
-  const canViewInventory = hasPermission('view_warehouse_inventory');
+  
+  const canViewSummary   = hasPermission(PERMISSION_KEYS.WAREHOUSE_INVENTORY.VIEW_SUMMARY);
+  const canViewDetails   = hasPermission(PERMISSION_KEYS.WAREHOUSE_INVENTORY.VIEW_DETAILS);
+  const canViewInventory = hasPermission(PERMISSION_KEYS.WAREHOUSE_INVENTORY.VIEW);
 
   const queryParams = useMemo<WarehouseQueryParams>(
     () => ({
