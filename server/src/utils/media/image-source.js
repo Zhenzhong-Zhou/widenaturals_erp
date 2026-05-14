@@ -17,6 +17,7 @@ const { Readable } = require('stream');
 const fsp = require('fs/promises');
 const net = require('net');
 const dns = require('dns').promises;
+const { URL } = require('node:url');
 const AppError = require('../AppError');
 const { retry } = require('../retry/retry');
 const {
@@ -190,7 +191,7 @@ const resolveSource = async (src, skuCode) => {
 
       const response = await retry(
         async () => {
-          const res = await fetch(sanitizedUrl, { redirect: 'error' });
+          const res = await globalThis.fetch(sanitizedUrl, { redirect: 'error' });
 
           if (!res.ok) {
             const error = new Error(`HTTP error: ${res.status}`);

@@ -40,7 +40,7 @@ const transformLoginResponse = (result) => {
   }
 
   const lastLogin =
-    last_login == null ? null : new Date(last_login).toISOString();
+    last_login === null ? null : new Date(last_login).toISOString();
 
   return {
     accessToken,

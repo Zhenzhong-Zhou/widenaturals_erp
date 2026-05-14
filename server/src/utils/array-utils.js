@@ -134,7 +134,7 @@ const deduplicatePairs = (list, keySelector) => {
  */
 const normalizeToArray = (value) => {
   if (Array.isArray(value)) return value;
-  if (value == null) return [];
+  if (value === null) return [];
   return [value];
 };
 

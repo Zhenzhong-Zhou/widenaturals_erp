@@ -92,14 +92,14 @@ const buildWarehouseInventoryFilter = (filters = {}) => {
     params.push(normalizedFilters.packagingMaterialIds);
   }
 
-  if (normalizedFilters.lowStockThreshold != null) {
+  if (normalizedFilters.lowStockThreshold !== null) {
     conditions.push(
       `(wi.warehouse_quantity - wi.reserved_quantity) <= $${paramIndexRef.value++}`
     );
     params.push(normalizedFilters.lowStockThreshold);
   }
 
-  if (normalizedFilters.expiringWithinDays != null) {
+  if (normalizedFilters.expiringWithinDays !== null) {
     conditions.push(
       `COALESCE(pb.expiry_date, pmb.expiry_date) <= (CURRENT_DATE + $${paramIndexRef.value++} * INTERVAL '1 day')`
     );

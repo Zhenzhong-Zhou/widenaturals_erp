@@ -126,7 +126,7 @@ const paginateQuery = async ({
     throw AppError.validationError('Invalid queryText', { context });
   }
 
-  if (countQuery != null && typeof countQuery !== 'string') {
+  if (countQuery !== null && typeof countQuery !== 'string') {
     throw AppError.validationError('Invalid countQuery', { context });
   }
 
