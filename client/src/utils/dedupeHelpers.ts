@@ -1,23 +1,23 @@
-import type { Draft } from '@reduxjs/toolkit';
-
 /**
  * Deduplicates an array of items by their `id` field.
  *
  * - Uses a `Map` to ensure each unique `id` appears only once in the result.
- * - If multiple items share the same `id`, the **last one** in the array is kept.
- * - Supports both plain objects and Immer `Draft<T>` objects.
+ * - If multiple items share the same `id`, the last one in the array is kept.
+ * - Keeps this helper independent from Redux Toolkit / Immer draft types.
  *
  * @template T - The type of items, each with a string `id`.
- * @param items - An array of items (possibly including Immer drafts) to deduplicate.
- * @returns A new array containing only unique items by `id`.
+ * @param items - Readonly array of plain items to deduplicate.
+ * @returns A new plain array containing only unique items by `id`.
  */
 export const dedupeById = <T extends { id: string }>(
-  items: (T | Draft<T>)[]
-): (T | Draft<T>)[] => {
-  const map = new Map<string, T | Draft<T>>();
+  items: readonly T[]
+): T[] => {
+  const map = new Map<string, T>();
+  
   for (const item of items) {
     map.set(item.id, item); // last one wins
   }
+  
   return Array.from(map.values());
 };
 
@@ -43,27 +43,6 @@ export const dedupeByValuePreserveOrder = <T extends { value: string }>(
   }
 
   return result;
-};
-
-/**
- * Deduplicates array by `value` field using an optional resolver to determine which duplicate to keep.
- *
- * If no resolver is provided, keep the **last occurrence** of each item.
- *
- * Use when:
- * - You need to control which duplicate wins (e.g., based on flags or timestamps).
- * - Order is **not** important, or you plan to sort after.
- */
-export const dedupeByValue = <T extends { value: string }>(
-  items: T[],
-  resolver?: (a: T, b: T) => T
-): T[] => {
-  const map = new Map<string, T>();
-  for (const item of items) {
-    const existing = map.get(item.value);
-    map.set(item.value, existing && resolver ? resolver(existing, item) : item);
-  }
-  return Array.from(map.values());
 };
 
 /**

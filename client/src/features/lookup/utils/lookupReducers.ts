@@ -1,4 +1,5 @@
-import { current, type Draft } from '@reduxjs/toolkit';
+import { type Draft } from '@reduxjs/toolkit';
+import { castDraft } from 'immer';
 import type { PaginatedLookupState } from '@shared-types/api';
 import { dedupeById } from '@utils/dedupeHelpers';
 
@@ -22,30 +23,33 @@ export interface PaginatedPayload<T> {
 }
 
 /**
- * Applies a paginated fulfilled response to the Redux Draft state.
+ * Applies a paginated fulfilled response to the Redux draft lookup state.
  *
- * - Appends the new items to the current state if `offset > 0`, otherwise replaces the state.
- * - Deduplicates the result by `id`.
+ * - Replaces existing data when `offset === 0`.
+ * - Appends new items when loading additional pages.
+ * - Deduplicates combined results by `id`, keeping the latest item.
+ * - Casts the plain deduped array back into Immer draft form before assignment.
  * - Resets loading and error states.
  * - Updates pagination metadata (`hasMore`, `limit`, `offset`).
  *
- * @template T - A type with a unique `id` field.
- * @param state - The Draft state object representing the paginated lookup state.
- * @param payload - The paginated payload received from a fulfilled API response.
+ * @template T - A lookup item type with a unique string `id`.
+ * @param state - Immer draft state for the paginated lookup slice.
+ * @param payload - Paginated lookup payload from a fulfilled API response.
  */
 export const applyPaginatedFulfilled = <T extends { id: string }>(
   state: Draft<PaginatedLookupState<T>>,
   payload: PaginatedPayload<T>
 ) => {
-  const { items, hasMore, limit, offset } = payload;
-
-  const existing = offset === 0 ? [] : current(state.data);
-  const combined = [...existing, ...items];
-
-  state.data = dedupeById(combined) as Draft<T>[];
+  const { items, hasMore, limit, offset = 0 } = payload;
+  
+  const existing = offset === 0 ? [] : ([...state.data] as unknown as T[]);
+  
+  const combined = dedupeById<T>([...existing, ...items]);
+  
+  state.data = castDraft(combined);
   state.loading = false;
   state.error = null;
   state.hasMore = hasMore ?? false;
   state.limit = limit ?? 50;
-  state.offset = offset ?? 0;
+  state.offset = offset;
 };
