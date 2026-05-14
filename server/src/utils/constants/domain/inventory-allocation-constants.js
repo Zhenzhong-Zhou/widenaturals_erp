@@ -1,5 +1,5 @@
 /**
- * @file inventory-allocation.js
+ * @file inventory-allocation-constants.js
  * @description Constants for the inventory allocation domain.
  */
 

@@ -27,7 +27,7 @@ const {
 } = require('../utils/constants/domain/warehouse-inventory-constants');
 const {
   INVENTORY_ALLOCATION_CONSTANTS,
-} = require('../utils/constants/domain/inventory-allocation');
+} = require('../utils/constants/domain/inventory-allocation-constants');
 const {
   getWarehouseIdsByUserId,
 } = require('../repositories/user-warehouse-assignment-repository');
