@@ -93,8 +93,10 @@ const PERMISSION_KEYS = {
     CREATE_OUTBOUND: 'create_warehouse_outbound',
     ADJUST_INVENTORY: 'adjust_warehouse_inventory',
     UPDATE_INVENTORY_STATUS: 'update_warehouse_inventory_status',
+    EDIT_METADATA: 'update_warehouse_inventory_metadata',
     VIEW_SUMMARY: 'view_warehouse_inventory_summary',
     VIEW_SUMMARY_ITEM_DETAILS: 'view_warehouse_inventory_summary_item_details',
+    VIEW_ACTIVITY_LOG: 'view_warehouse_inventory_activity_log',
   },
   CUSTOMERS: {
     CREATE: 'create_customers',
