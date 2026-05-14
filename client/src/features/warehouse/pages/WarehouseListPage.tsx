@@ -17,45 +17,47 @@ import type {
 import { usePaginatedWarehouses } from '@hooks/index';
 import { useHasPermissionBoolean } from '@features/authorize/hooks';
 import { PERMISSION_KEYS } from '@features/authorize/constants/permissionKeys';
+import { usePaginationHandlers } from '@utils/hooks';
 
 const WarehouseListPage: FC = () => {
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
   const [sortBy, setSortBy] =
     useState<WarehouseSortField>('defaultNaturalSort');
   const [sortOrder, setSortOrder] = useState<'' | 'ASC' | 'DESC'>('');
   const [filters, setFilters] = useState<WarehouseFilters>({});
-
+  
   const {
     data: warehouses,
     loading: warehousesLoading,
     error: warehousesError,
     totalRecords: totalWarehouseRecords,
     pagination: warehousePagination,
-    pageInfo: warehousePageInfo,
     fetchWarehouses,
     resetWarehouses,
   } = usePaginatedWarehouses();
-
+  
   const hasPermission = useHasPermissionBoolean();
   
-  const canViewSummary   = hasPermission(PERMISSION_KEYS.WAREHOUSE_INVENTORY.VIEW_SUMMARY);
-  const canViewDetails   = hasPermission(PERMISSION_KEYS.WAREHOUSE_INVENTORY.VIEW_DETAILS);
-  const canViewInventory = hasPermission(PERMISSION_KEYS.WAREHOUSE_INVENTORY.VIEW);
-
+  const canViewSummary = hasPermission(
+    PERMISSION_KEYS.WAREHOUSE_INVENTORY.VIEW_SUMMARY
+  );
+  const canViewDetails = hasPermission(
+    PERMISSION_KEYS.WAREHOUSE_INVENTORY.VIEW_DETAILS
+  );
+  const canViewInventory = hasPermission(
+    PERMISSION_KEYS.WAREHOUSE_INVENTORY.VIEW
+  );
+  
   const queryParams = useMemo<WarehouseQueryParams>(
     () => ({
-      page: warehousePageInfo.page,
-      limit: warehousePageInfo.limit,
+      page,
+      limit,
       sortBy,
       sortOrder,
       filters,
     }),
-    [
-      warehousePageInfo.page,
-      warehousePageInfo.limit,
-      sortBy,
-      sortOrder,
-      filters,
-    ]
+    [page, limit, sortBy, sortOrder, filters]
   );
 
   // Fetch on params change
@@ -70,26 +72,18 @@ const WarehouseListPage: FC = () => {
     },
     [resetWarehouses]
   );
-
-  const handlePageChange = useCallback(
-    (newPage: number) => {
-      fetchWarehouses({ ...queryParams, page: newPage + 1 });
-    },
-    [queryParams, fetchWarehouses]
+  
+  const { handlePageChange, handleRowsPerPageChange } = usePaginationHandlers(
+    setPage,
+    setLimit
   );
-
-  const handleRowsPerPageChange = useCallback(
-    (newLimit: number) => {
-      fetchWarehouses({ ...queryParams, page: 1, limit: newLimit });
-    },
-    [queryParams, fetchWarehouses]
-  );
-
+  
   const handleRefresh = useCallback(() => {
     fetchWarehouses(queryParams);
   }, [queryParams, fetchWarehouses]);
 
   const handleResetFilters = useCallback(() => {
+    setPage(1);
     resetWarehouses();
     setFilters({});
   }, [resetWarehouses]);
@@ -109,7 +103,7 @@ const WarehouseListPage: FC = () => {
           Warehouse Management
         </CustomTypography>
       </Box>
-
+      
       <Divider sx={{ mb: 3 }} />
 
       {/* ── Filter + Sort Controls ────────────────────────────────── */}
@@ -123,6 +117,7 @@ const WarehouseListPage: FC = () => {
               onReset={handleResetFilters}
             />
           </Grid>
+          
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <WarehouseSortControls
               sortBy={sortBy}
@@ -141,8 +136,8 @@ const WarehouseListPage: FC = () => {
         <WarehouseListTable
           data={warehouses}
           loading={warehousesLoading}
-          page={warehousePageInfo.page - 1}
-          rowsPerPage={warehousePageInfo.limit}
+          page={page - 1}
+          rowsPerPage={limit}
           totalRecords={totalWarehouseRecords}
           totalPages={warehousePagination?.totalPages ?? 0}
           onPageChange={handlePageChange}
