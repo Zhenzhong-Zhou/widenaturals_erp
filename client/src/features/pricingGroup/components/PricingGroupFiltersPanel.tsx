@@ -7,13 +7,12 @@ import {
   renderInputField,
   renderNumericField,
 } from '@utils/filters/filterUtils';
-import { formatLabel } from '@utils/textUtils';
 import { toISODate } from '@utils/dateTimeUtils';
 import type { PricingGroupFilters } from '@features/pricingGroup';
 import { StatusMultiSelectDropdown } from '@features/lookup/components';
 import type { useStatusLookup } from '@hooks/index';
 import { useMultiSelectBinding } from '@features/lookup/hooks';
-import { useFormattedOptions } from '@features/lookup/utils/lookupUtils';
+import { useFormattedOptionLabels } from '@features/lookup/utils/formatOptionLabels';
 
 /* =========================================================
  * Types
@@ -161,12 +160,9 @@ const PricingGroupFiltersPanel: FC<Props> = ({
     fieldName: 'statusId',
     options: status.options,
   });
-
-  const formattedStatusOptions = useFormattedOptions(
-    status.options,
-    formatLabel
-  );
-
+  
+  const formattedStatusOptions = useFormattedOptionLabels(status.options);
+  
   /* -----------------------------
    * Render
    * --------------------------- */
