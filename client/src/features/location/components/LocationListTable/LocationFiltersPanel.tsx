@@ -1,6 +1,6 @@
 import { type FC, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import Grid from '@mui/material/Grid';
+import { Grid } from '@mui/material';
 import { FilterPanelLayout } from '@components/index';
 import {
   StatusMultiSelectDropdown,
@@ -24,10 +24,12 @@ import type {
   LookupPaginationMeta,
   UserLookupParams,
 } from '@features/lookup';
-import type { useLocationTypeLookup, useStatusLookup } from '@hooks/index';
-import { formatLabel } from '@utils/textUtils';
+import type {
+  useLocationTypeLookup,
+  useStatusLookup
+} from '@hooks/index';
 import { toISODate } from '@utils/dateTimeUtils';
-import { useFormattedOptions } from '@features/lookup/utils/lookupUtils';
+import { useFormattedOptionLabels } from '@features/lookup/utils/formatOptionLabels';
 
 /* =========================================================
  * Types
@@ -131,22 +133,22 @@ const LOCATION_DATE_FIELDS: LocationDateField[] = [
  * - keyword search
  */
 const LocationFiltersPanel: FC<Props> = ({
-  filters,
-  lookups,
-  lookupHandlers,
-  onChange,
-  onApply,
-  onReset,
+                                           filters,
+                                           lookups,
+                                           lookupHandlers,
+                                           onChange,
+                                           onApply,
+                                           onReset,
 
-  // -------------------
-  // Shared user lookup
-  // -------------------
-  userOptions,
-  userLoading,
-  userError,
-  userMeta,
-  fetchUserLookup,
-}) => {
+                                          // -------------------
+                                          // Shared user lookup
+                                          // -------------------
+                                           userOptions,
+                                           userLoading,
+                                           userError,
+                                           userMeta,
+                                           fetchUserLookup,
+                                         }) => {
   const { control, handleSubmit, reset, watch, setValue } =
     useForm<LocationListFilters>({
       defaultValues: filters,
@@ -191,11 +193,8 @@ const LocationFiltersPanel: FC<Props> = ({
     fieldName: 'statusIds',
     options: status.options,
   });
-
-  const formattedStatusOptions = useFormattedOptions(
-    status.options,
-    formatLabel
-  );
+  
+  const formattedStatusOptions = useFormattedOptionLabels(status.options);
 
   /* -----------------------------
    * Submit / Reset

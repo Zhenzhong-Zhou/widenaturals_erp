@@ -34,7 +34,7 @@ import { BatchLookupContext } from './BatchLookupContext';
 import type {
   InventoryStatusLookupParams,
 } from '@features/lookup';
-import { formatLabel } from '@utils/textUtils';
+import { useFormattedOptionLabels } from '@features/lookup/utils/formatOptionLabels';
 
 interface CreateInventoryModalProps {
   open: boolean;
@@ -116,14 +116,7 @@ const CreateInventoryModal: FC<CreateInventoryModalProps> = ({
     setStatusFetchParams({ keyword: '', limit: 100, offset: 0 });
   }, [open, resetStatusLookup]);
   
-  const formattedStatusOptions = useMemo(
-    () =>
-      statusOptions.map((opt) => ({
-        ...opt,
-        label: formatLabel(opt.label),
-      })),
-    [statusOptions]
-  );
+  const formattedStatusOptions = useFormattedOptionLabels(statusOptions);
   
   const fields = useMemo(
     () =>

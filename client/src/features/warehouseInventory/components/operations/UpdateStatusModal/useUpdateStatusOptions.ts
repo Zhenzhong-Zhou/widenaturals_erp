@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useInventoryStatusLookup } from '@hooks/index';
 import type { InventoryStatusLookupParams } from '@features/lookup';
-import { formatLabel } from '@utils/textUtils';
+import { useFormattedOptionLabels } from '@features/lookup/utils/formatOptionLabels';
 
 const DEFAULT_STATUS_FETCH_PARAMS: InventoryStatusLookupParams = {
   keyword: '',
@@ -38,14 +38,7 @@ export const useUpdateStatusOptions = (open: boolean) => {
     setStatusFetchParams(DEFAULT_STATUS_FETCH_PARAMS);
   }, [open, reset]);
   
-  const statusOptions = useMemo(
-    () =>
-      options.map((opt) => ({
-        ...opt,
-        label: formatLabel(opt.label),
-      })),
-    [options]
-  );
+  const statusOptions = useFormattedOptionLabels(options);
   
   return {
     statusOptions,
