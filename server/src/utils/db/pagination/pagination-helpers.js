@@ -125,12 +125,17 @@ const paginateQuery = async ({
   if (!queryText || typeof queryText !== 'string') {
     throw AppError.validationError('Invalid queryText', { context });
   }
-
-  if (countQuery !== null && typeof countQuery !== 'string') {
+  
+  const hasCustomCountQuery = countQuery !== null && countQuery !== undefined;
+  
+  if (
+    hasCustomCountQuery &&
+    (typeof countQuery !== 'string' || countQuery.trim() === '')
+  ) {
     throw AppError.validationError('Invalid countQuery', { context });
   }
-
-  if (!countQuery && (!tableName || typeof tableName !== 'string')) {
+  
+  if (!hasCustomCountQuery && (!tableName || typeof tableName !== 'string')) {
     throw AppError.validationError(
       'tableName is required when countQuery is not provided.',
       { context }
@@ -189,8 +194,9 @@ const paginateQuery = async ({
   //--------------------------------------------------
   // Build count query
   //--------------------------------------------------
-  const countQueryText =
-    countQuery || generateCountQuery(tableName, joins, whereClause);
+  const countQueryText = hasCustomCountQuery
+    ? countQuery
+    : generateCountQuery(tableName, joins, whereClause);
 
   try {
     //--------------------------------------------------
