@@ -457,7 +457,7 @@ const transformSkuCodeBaseLookup = (row, userAccess) => {
 
   const brand = row.brand_code || 'N/A';
   const category = row.category_code || 'N/A';
-  const base = row.base_code != null ? row.base_code : '—';
+  const base = row.base_code !== null ? row.base_code : '—';
   const label = `${brand}-${category} (${base})`;
 
   return {

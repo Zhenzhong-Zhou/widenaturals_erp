@@ -69,7 +69,7 @@ const buildLocationFilter = (filters = {}) => {
 
   const statusValue = statusIds?.length ? statusIds : statusId;
 
-  if (statusValue != null) {
+  if (statusValue !== null) {
     conditions.push(
       Array.isArray(statusValue)
         ? `l.status_id = ANY($${paramIndexRef.value++}::uuid[])`
@@ -84,7 +84,7 @@ const buildLocationFilter = (filters = {}) => {
     ? locationTypeIds
     : locationTypeId;
 
-  if (locationTypeValue != null) {
+  if (locationTypeValue !== null) {
     conditions.push(
       Array.isArray(locationTypeValue)
         ? `l.location_type_id = ANY($${paramIndexRef.value++}::uuid[])`

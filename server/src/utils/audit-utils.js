@@ -101,7 +101,7 @@ const makeAudit = (
   // Normalize timestamps to a comparable key regardless of whether the DB
   // returns a Date object or an ISO string
   const toKey = (t) => {
-    if (t == null) return null;
+    if (t === null) return null;
     if (t instanceof Date) return t.getTime();
     return String(t);
   };
@@ -127,12 +127,12 @@ const makeAudit = (
 
   if (!dedupe) return audit;
 
-  const sameTime = createdAtKey != null && createdAtKey === updatedAtKey;
+  const sameTime = createdAtKey !== null && createdAtKey === updatedAtKey;
 
   const sameUserById =
     includeIds &&
-    audit.createdBy?.id != null &&
-    audit.updatedBy?.id != null &&
+    audit.createdBy?.id !== null &&
+    audit.updatedBy?.id !== null &&
     String(audit.createdBy.id) === String(audit.updatedBy.id);
 
   // Name-based dedupe runs even when includeFullName=false — names are

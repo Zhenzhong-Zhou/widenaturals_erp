@@ -59,7 +59,7 @@ const buildProductFilter = (filters = {}) => {
       ? normalizedFilters.status_id
       : normalizedFilters._activeStatusId;
 
-  if (statusFilterValue != null) {
+  if (statusFilterValue !== null) {
     conditions.push(
       Array.isArray(statusFilterValue)
         ? `p.status_id = ANY($${paramIndexRef.value}::uuid[])`
