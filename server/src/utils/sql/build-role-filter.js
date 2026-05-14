@@ -49,7 +49,7 @@ const buildRoleFilter = (filters = {}) => {
     : filters.status_id
       ? filters.status_id
       : filters._activeStatusId;
-  
+
   if (statusFilterValue !== null && statusFilterValue !== undefined) {
     conditions.push(
       Array.isArray(statusFilterValue)

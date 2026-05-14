@@ -55,9 +55,9 @@ const buildWarehouseInventoryFilter = (filters = {}) => {
   const conditions = ['1=1'];
   const params = [];
   const paramIndexRef = { value: 1 };
-  
+
   const hasValue = (value) => value !== null && value !== undefined;
-  
+
   // ─── Warehouse scope ────────────────────────────────────────────────────────
 
   if (normalizedFilters.warehouseId) {
@@ -93,14 +93,14 @@ const buildWarehouseInventoryFilter = (filters = {}) => {
     conditions.push(`pm.id = ANY($${paramIndexRef.value++}::uuid[])`);
     params.push(normalizedFilters.packagingMaterialIds);
   }
-  
+
   if (hasValue(normalizedFilters.lowStockThreshold)) {
     conditions.push(
       `(wi.warehouse_quantity - wi.reserved_quantity) <= $${paramIndexRef.value++}`
     );
     params.push(normalizedFilters.lowStockThreshold);
   }
-  
+
   if (hasValue(normalizedFilters.expiringWithinDays)) {
     conditions.push(
       `COALESCE(pb.expiry_date, pmb.expiry_date) <= (CURRENT_DATE + $${paramIndexRef.value++} * INTERVAL '1 day')`

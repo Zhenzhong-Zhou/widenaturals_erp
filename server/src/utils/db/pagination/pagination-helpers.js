@@ -125,16 +125,16 @@ const paginateQuery = async ({
   if (!queryText || typeof queryText !== 'string') {
     throw AppError.validationError('Invalid queryText', { context });
   }
-  
+
   const hasCustomCountQuery = countQuery !== null && countQuery !== undefined;
-  
+
   if (
     hasCustomCountQuery &&
     (typeof countQuery !== 'string' || countQuery.trim() === '')
   ) {
     throw AppError.validationError('Invalid countQuery', { context });
   }
-  
+
   if (!hasCustomCountQuery && (!tableName || typeof tableName !== 'string')) {
     throw AppError.validationError(
       'tableName is required when countQuery is not provided.',
