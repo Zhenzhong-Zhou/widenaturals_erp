@@ -49,7 +49,7 @@ const {
 } = require('../repositories/user-warehouse-assignment-repository');
 const { applyBatchTypeVisibility } = require('./apply-batch-type-visibility');
 const {
-  PERMISSIONS,
+  WAREHOUSE_INVENTORY_CONSTANTS,
 } = require('../utils/constants/domain/warehouse-inventory-constants');
 const {
   validateBatchRegistryIds,
@@ -82,14 +82,14 @@ const CONTEXT = 'warehouse-inventory-business';
  */
 const evaluateWarehouseInventoryVisibility = async (user) => {
   const context = `${CONTEXT}/evaluateWarehouseInventoryVisibility`;
-
+  
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
 
     // ─── Warehouse scope ───────────────────────────────────────────────────────
 
     const canViewAllWarehouses =
-      isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_WAREHOUSES);
+      isRoot || permissions.includes(WAREHOUSE_INVENTORY_CONSTANTS.PERMISSIONS.VIEW_ALL_WAREHOUSES);
 
     let assignedWarehouseIds = null;
 
@@ -100,29 +100,28 @@ const evaluateWarehouseInventoryVisibility = async (user) => {
     // ─── Batch-type visibility ─────────────────────────────────────────────────
 
     const canViewAllBatchTypes =
-      isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_BATCH_TYPES);
-
+      isRoot || permissions.includes(WAREHOUSE_INVENTORY_CONSTANTS.PERMISSIONS.VIEW_ALL_BATCH_TYPES);
+    
     const canViewProductBatches =
       canViewAllBatchTypes ||
-      permissions.includes(PERMISSIONS.VIEW_PRODUCT_INVENTORY);
-
+      permissions.includes(WAREHOUSE_INVENTORY_CONSTANTS.PERMISSIONS.VIEW_PRODUCT_INVENTORY);
+    
     const canViewPackagingBatches =
       canViewAllBatchTypes ||
-      permissions.includes(PERMISSIONS.VIEW_PACKAGING_INVENTORY);
-
-    // ─── Field-level visibility ────────────────────────────────────────────────
-
+      permissions.includes(WAREHOUSE_INVENTORY_CONSTANTS.PERMISSIONS.VIEW_PACKAGING_INVENTORY);
+    
+    // Field-level visibility
     const canViewFinancials =
-      isRoot || permissions.includes(PERMISSIONS.VIEW_INVENTORY_FINANCIALS);
-
+      isRoot || permissions.includes(WAREHOUSE_INVENTORY_CONSTANTS.PERMISSIONS.VIEW_INVENTORY_FINANCIALS);
+    
     const canViewManufacturer =
       canViewAllBatchTypes ||
-      permissions.includes(PERMISSIONS.VIEW_INVENTORY_MANUFACTURER);
-
+      permissions.includes(WAREHOUSE_INVENTORY_CONSTANTS.PERMISSIONS.VIEW_INVENTORY_MANUFACTURER);
+    
     const canViewSupplier =
       canViewAllBatchTypes ||
-      permissions.includes(PERMISSIONS.VIEW_INVENTORY_SUPPLIER);
-
+      permissions.includes(WAREHOUSE_INVENTORY_CONSTANTS.PERMISSIONS.VIEW_INVENTORY_SUPPLIER);
+    
     return {
       // Warehouse scope
       canViewAllWarehouses,
@@ -149,10 +148,7 @@ const evaluateWarehouseInventoryVisibility = async (user) => {
     logSystemException(
       err,
       'Failed to evaluate warehouse inventory visibility',
-      {
-        context,
-        userId: user?.id,
-      }
+      { context, userId: user?.id }
     );
 
     throw AppError.businessError(
@@ -204,15 +200,15 @@ const applyWarehouseInventoryVisibilityRules = (filters, acl) => {
  */
 const assertWarehouseAccess = async (user) => {
   const context = `${CONTEXT}/assertWarehouseAccess`;
-
+  
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
 
     const canViewAll =
-      isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_WAREHOUSES);
+      isRoot || permissions.includes(WAREHOUSE_INVENTORY_CONSTANTS.PERMISSIONS.VIEW_ALL_WAREHOUSES);
 
     const canAdjustReserved =
-      isRoot || permissions.includes(PERMISSIONS.FORCE_ADJUST_RESERVED);
+      isRoot || permissions.includes(WAREHOUSE_INVENTORY_CONSTANTS.PERMISSIONS.FORCE_ADJUST_RESERVED);
 
     if (canViewAll) {
       return { assignedWarehouseIds: null, canViewAll, canAdjustReserved };

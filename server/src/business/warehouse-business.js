@@ -100,19 +100,21 @@ const applyWarehouseVisibilityRules = (filters, acl) => {
  */
 const resolveWarehouseFiltersByPermission = async (user, rawFilters = {}) => {
   const context = `${CONTEXT}/resolveWarehouseFiltersByPermission`;
-
+  
   try {
-    const { permissions, isRoot } = await resolveUserPermissionContext(user);
-
+    const ctx = await resolveUserPermissionContext(user);
+    const { permissions, isRoot } = ctx;
+    
     const canViewAllStatuses =
       isRoot ||
       permissions.includes(WAREHOUSE_CONSTANTS.PERMISSIONS.VIEW_ALL_STATUSES);
     const canViewArchived =
       isRoot ||
       permissions.includes(WAREHOUSE_CONSTANTS.PERMISSIONS.VIEW_ARCHIVED);
-
+    
     const resolvedFilters = { ...rawFilters };
-
+    
+    // Status visibility
     if (canViewAllStatuses) {
       delete resolvedFilters.statusId;
     } else if (!resolvedFilters.statusId) {
