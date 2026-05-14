@@ -1,13 +1,13 @@
 import { type FC } from 'react';
 import type { MultiSelectDropdownProps } from '@components/common/MultiSelectDropdown';
-import MultiSelectDropdown from '@components/common/MultiSelectDropdown';
+import { MultiSelectDropdown } from '@components/index';
 
 /**
- * Location Type-specific multi-select dropdown props.
+ * Lot adjustment type-specific multi-select dropdown props.
  *
- * Allows location-type-specific defaults and future extensions.
+ * Allows lot-adjustment-specific defaults and future extensions.
  */
-type LocationTypeMultiSelectDropdownProps = Omit<
+type LotAdjustmentTypeMultiSelectDropdownProps = Omit<
   MultiSelectDropdownProps,
   'label' | 'placeholder'
 > & {
@@ -16,20 +16,20 @@ type LocationTypeMultiSelectDropdownProps = Omit<
 };
 
 /**
- * Reusable multi-select dropdown for selecting location types.
+ * Reusable multi-select dropdown for selecting lot adjustment types.
  *
  * Thin semantic wrapper around <MultiSelectDropdown />.
  */
-const LocationTypeMultiSelectDropdown: FC<
-  LocationTypeMultiSelectDropdownProps
+const LotAdjustmentTypeMultiSelectDropdown: FC<
+  LotAdjustmentTypeMultiSelectDropdownProps
 > = ({
-  label = 'Select Location Type',
-  placeholder = 'Choose location type…',
-  ...rest
-}) => {
+       label = 'Select Lot Adjustment Types',
+       placeholder = 'Choose lot adjustment types…',
+       ...rest
+     }) => {
   return (
     <MultiSelectDropdown label={label} placeholder={placeholder} {...rest} />
   );
 };
 
-export default LocationTypeMultiSelectDropdown;
+export default LotAdjustmentTypeMultiSelectDropdown;
