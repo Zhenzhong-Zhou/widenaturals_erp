@@ -75,19 +75,27 @@ const warehouseLookupQuerySchema = Joi.object({
 });
 
 /**
- * Validation schema for querying lot adjustment types in lookup endpoints.
+ * Joi schema for validating lot adjustment type lookup query parameters.
  *
- * Supported Query Parameters:
- * - excludeInternal (boolean, optional): If true, excludes internal/system-only adjustment types.
- * - restrictToQtyAdjustment (boolean, optional): If true, only includes adjustment types that affect quantity.
+ * This schema extends the shared `baseLookupQuerySchema`, which
+ * defines the standard lookup query structure used across the API.
  *
- * These flags are typically used to customize dropdown options in inventory-related forms.
+ * Typical fields inherited from the base schema include:
+ * - keyword
+ * - limit
+ * - offset
+ *
+ * This endpoint exposes no filter knobs. Visibility is determined
+ * entirely by the caller's ACL in the business layer:
+ *  - Results are always scoped to parent action category 'adjustment'
+ *    (the semantic boundary of this lookup).
+ *  - Internal stock-management types (e.g. manual_stock_insert,
+ *    manual_stock_update) are hidden by default; VIEW_INTERNAL unlocks them.
+ *  - Inactive types are hidden by default; VIEW_ALL_STATUSES unlocks them.
  */
-const lotAdjustmentTypeLookupSchema = Joi.object({
-  excludeInternal: createBooleanFlag('Exclude Internal Types'),
-  restrictToQtyAdjustment: createBooleanFlag(
-    'Restrict to Quantity Adjustments'
-  ),
+const lotAdjustmentTypeLookupQuerySchema = Joi.object({
+  // Reuse common lookup validation rules
+  ...baseLookupQuerySchema,
 });
 
 /**
@@ -638,11 +646,30 @@ const locationLookupQuerySchema = Joi.object({
   ...baseLookupQuerySchema,
 });
 
+/**
+ * Joi schema for validating inventory action type lookup query parameters.
+ *
+ * This schema extends the shared `baseLookupQuerySchema`, which
+ * defines the standard lookup query structure used across the API.
+ *
+ * Typical fields inherited from the base schema include:
+ * - keyword
+ * - limit
+ * - offset
+ *
+ * Visibility shaping (active-status pin) is performed by the business
+ * layer based on the caller's ACL, not by query-string flags.
+ */
+const inventoryActionTypeLookupQuerySchema = Joi.object({
+  // Reuse common lookup validation rules
+  ...baseLookupQuerySchema,
+});
+
 module.exports = {
   batchRegistryLookupQuerySchema,
   batchRegistryForInventoryLookupQuerySchema,
   warehouseLookupQuerySchema,
-  lotAdjustmentTypeLookupSchema,
+  lotAdjustmentTypeLookupQuerySchema,
   customerLookupQuerySchema,
   customerAddressLookupQuerySchema,
   orderTypeLookupQuerySchema,
@@ -667,4 +694,5 @@ module.exports = {
   pricingTypeLookupQuerySchema,
   warehouseTypeLookupQuerySchema,
   locationLookupQuerySchema,
+  inventoryActionTypeLookupQuerySchema,
 };

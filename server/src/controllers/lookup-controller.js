@@ -45,7 +45,7 @@ const {
   fetchInventoryStatusLookupService,
   fetchPricingTypeLookupService,
   fetchWarehouseTypeLookupService,
-  fetchLocationLookupService,
+  fetchLocationLookupService, fetchInventoryActionTypeLookupService,
 } = require('../services/lookup-service');
 const {
   createLookupController,
@@ -108,15 +108,12 @@ const getWarehouseLookupController = createLookupController({
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Lot adjustment type lookup.
- * Supports excludeInternal query param to filter out internal-only types.
- *
  * @route      GET /api/v1/lookups/lot-adjustment-types
  * @permission view_lot_adjustment_lookup
  */
 const getLotAdjustmentLookupController = createLookupController({
   service: fetchLotAdjustmentLookupService,
-  successMessage: 'Lot adjustment lookup retrieved successfully.',
+  successMessage: 'Lot adjustment type lookup retrieved successfully.',
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -464,6 +461,18 @@ const getLocationLookupController = createLookupController({
   successMessage: 'Location lookup retrieved successfully.',
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Inventory Action Type
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * @route      GET /api/v1/lookups/inventory-action-types
+ * @permission view_inventory_action_type_lookup
+ */
+const getInventoryActionTypeLookupController = createLookupController({
+  service: fetchInventoryActionTypeLookupService,
+  successMessage: 'Inventory action type lookup retrieved successfully.',
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Exports
@@ -498,4 +507,5 @@ module.exports = {
   getPricingTypeLookupController,
   getWarehouseTypeLookupController,
   getLocationLookupController,
+  getInventoryActionTypeLookupController,
 };

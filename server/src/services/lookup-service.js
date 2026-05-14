@@ -23,7 +23,6 @@ const { getWarehouseLookup } = require('../repositories/warehouse-repository');
 const {
   transformBatchRegistryPaginatedLookupResult,
   transformWarehouseLookupRows,
-  transformLotAdjustmentLookupOptions,
   transformCustomerPaginatedLookupResult,
   transformCustomerAddressesLookupResult,
   transformOrderTypeLookupResult,
@@ -49,6 +48,8 @@ const {
   transformPricingTypePaginatedLookupResult,
   transformWarehouseTypePaginatedLookupResult,
   transformLocationPaginatedLookupResult,
+  transformInventoryActionTypePaginatedLookupResult,
+  transformLotAdjustmentTypePaginatedLookupResult,
 } = require('../transformers/lookup-transformer');
 const {
   getLotAdjustmentTypeLookup,
@@ -68,7 +69,9 @@ const {
   resolveWarehouseFiltersByPermission,
 } = require('../business/warehouse-business');
 const {
-  enforceExternalAccessPermission,
+  evaluateLotAdjustmentTypeLookupVisibility,
+  resolveLotAdjustmentTypeLookupFilters,
+  enrichLotAdjustmentTypeLookupRow,
 } = require('../business/lot-adjustment-type-business');
 const { getOrderTypeLookup } = require('../repositories/order-type-repository');
 const {
@@ -229,6 +232,12 @@ const {
   enrichLocationLookupRow
 } = require('../business/location-business');
 const { enrichStatusLookupOption } = require('../utils/lookup/enrich-status-lookup-option');
+const { getInventoryActionTypeLookup } = require('../repositories/inventory-action-type-repository');
+const {
+  evaluateInventoryActionTypeLookupVisibility,
+  resolveInventoryActionTypeLookupFilters,
+  enrichInventoryActionTypeLookupRow
+} = require('../business/inventory-action-type-business');
 
 const CONTEXT = 'lookup-service';
 
@@ -313,29 +322,32 @@ const fetchWarehouseLookupService = async (user, { filters = {} } = {}) => {
 
 // ---------------------------------------------------------------------------
 
-const fetchLotAdjustmentLookupService = async (user, filters = {}) => {
+const fetchLotAdjustmentLookupService = async (
+  user,
+  { filters = {}, limit = 50, offset = 0 }
+) => {
   const context = `${CONTEXT}/fetchLotAdjustmentLookupService`;
-
+  
   try {
-    const includeExternal = !!filters.includeExternal;
-    await enforceExternalAccessPermission(user, includeExternal);
-
-    const rows = await getLotAdjustmentTypeLookup(filters);
-
-    return {
-      items: transformLotAdjustmentLookupOptions(rows),
-      hasMore: false,
-    };
+    return await executeLookupWorkflow({
+      user,
+      filters,
+      limit,
+      offset,
+      repository: getLotAdjustmentTypeLookup,
+      aclEvaluator: evaluateLotAdjustmentTypeLookupVisibility,
+      aclFilterApplier: resolveLotAdjustmentTypeLookupFilters,
+      transformer: transformLotAdjustmentTypePaginatedLookupResult,
+      rowEnricher: enrichLotAdjustmentTypeLookupRow,
+      enrichmentCondition: (acl) => acl.canViewInactive,
+    });
   } catch (error) {
     if (error instanceof AppError) throw error;
-
-    throw AppError.serviceError(
-      'Unable to fetch lot adjustment lookup options.',
-      {
-        context,
-        meta: { error: error.message },
-      }
-    );
+    
+    throw AppError.serviceError('Unable to fetch lot adjustment lookup.', {
+      context,
+      meta: { error: error.message },
+    });
   }
 };
 
@@ -1350,6 +1362,43 @@ const fetchLocationLookupService = async (
 
 // ---------------------------------------------------------------------------
 
+const fetchInventoryActionTypeLookupService = async (
+  user,
+  { filters = {}, limit = 50, offset = 0 }
+) => {
+  const context = `${CONTEXT}/fetchInventoryActionTypeLookupService`;
+  const activeStatusId = getStatusId('general_active');
+  
+  try {
+    return await executeLookupWorkflow({
+      user,
+      filters,
+      limit,
+      offset,
+      repository: getInventoryActionTypeLookup,
+      aclEvaluator: evaluateInventoryActionTypeLookupVisibility,
+      aclFilterApplier: (filters, acl) =>
+        resolveInventoryActionTypeLookupFilters(filters, acl, activeStatusId),
+      transformer: transformInventoryActionTypePaginatedLookupResult,
+      rowEnricher: (row) =>
+        enrichInventoryActionTypeLookupRow(row, activeStatusId),
+      enrichmentCondition: (acl) => acl.canViewInactive,
+    });
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    
+    throw AppError.serviceError(
+      'Unable to fetch inventory action type lookup.',
+      {
+        context,
+        meta: { error: error.message },
+      }
+    );
+  }
+};
+
+// ---------------------------------------------------------------------------
+
 module.exports = {
   fetchBatchRegistryLookupService,
   fetchBatchRegistryForInventoryLookupService,
@@ -1379,4 +1428,5 @@ module.exports = {
   fetchPricingTypeLookupService,
   fetchWarehouseTypeLookupService,
   fetchLocationLookupService,
+  fetchInventoryActionTypeLookupService,
 };

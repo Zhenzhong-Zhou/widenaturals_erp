@@ -37,6 +37,7 @@ const {
   PRICING_TYPE_FLAG_MAP,
   WAREHOUSE_TYPE_FLAG_MAP,
   LOCATION_FLAG_MAP,
+  INVENTORY_ACTION_TYPE_FLAG_MAP, LOT_ADJUSTMENT_TYPE_FLAG_MAP,
 } = require('../utils/constants/lookup-flag-maps');
 const { getExpiryMeta } = require('../utils/batch-utils');
 
@@ -117,15 +118,19 @@ const transformWarehouseLookupRows = (rows) => {
 // Lot adjustment
 // ---------------------------------------------------------------------------
 
-const transformLotAdjustmentLookupOptions = (rows) => {
-  if (!Array.isArray(rows)) return [];
+const transformLotAdjustmentTypeLookup = createEntityLookupTransformer({
+  labelKey: 'name',
+  subLabelKey: 'inventory_action_type_name',
+  flagMap: LOT_ADJUSTMENT_TYPE_FLAG_MAP,
+});
 
-  return rows.map((row) => ({
-    value: row.lot_adjustment_type_id,
-    label: row.name,
-    actionTypeId: row.inventory_action_type_id,
-  }));
-};
+const transformLotAdjustmentTypePaginatedLookupResult = (
+  paginatedResult,
+  acl
+) =>
+  transformLoadMoreResult(paginatedResult, (row) =>
+    transformLotAdjustmentTypeLookup(row, acl)
+  );
 
 // ---------------------------------------------------------------------------
 // Customer
@@ -720,11 +725,30 @@ const transformLocationPaginatedLookupResult = (paginatedResult, acl) =>
   );
 
 // ---------------------------------------------------------------------------
+// Inventory Action Type
+// ---------------------------------------------------------------------------
+
+const transformInventoryActionTypeLookup = createEntityLookupTransformer({
+  labelKey: 'name',
+  subLabelKey: 'category',
+  flagMap: INVENTORY_ACTION_TYPE_FLAG_MAP,
+});
+
+const transformInventoryActionTypePaginatedLookupResult = (
+  paginatedResult,
+  acl
+) =>
+  transformLoadMoreResult(paginatedResult, (row) =>
+    transformInventoryActionTypeLookup(row, acl)
+  );
+
+
+// ---------------------------------------------------------------------------
 
 module.exports = {
   transformBatchRegistryPaginatedLookupResult,
   transformWarehouseLookupRows,
-  transformLotAdjustmentLookupOptions,
+  transformLotAdjustmentTypePaginatedLookupResult,
   transformCustomerPaginatedLookupResult,
   transformCustomerAddressesLookupResult,
   transformOrderTypeLookupResult,
@@ -750,4 +774,5 @@ module.exports = {
   transformPricingTypePaginatedLookupResult,
   transformWarehouseTypePaginatedLookupResult,
   transformLocationPaginatedLookupResult,
+  transformInventoryActionTypePaginatedLookupResult,
 };
