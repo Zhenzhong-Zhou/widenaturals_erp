@@ -520,7 +520,7 @@ const SORTABLE_FIELDS = {
     quantityChange: 'ial.quantity_change',
     actionType: 'iat.name',
     referenceType: 'ial.reference_type',
-    defaultNaturalSort: ['ial.performed_at DESC'],
+    defaultNaturalSort: 'ial.performed_at',
   },
   customerSortMap: {
     customerName: `
