@@ -3,6 +3,8 @@ export { default as BatchRegistryDropdown } from './BatchRegistryDropdown';
 export { default as BatchRegistryMultiSelectDropdown } from './BatchRegistryMultiSelectDropdown';
 export { default as LotAdjustmentTypeDropdown } from './LotAdjustmentTypeDropdown';
 export { default as LotAdjustmentTypeMultiSelectDropdown } from './LotAdjustmentTypeMultiSelectDropdown';
+export { default as InventoryActionTypeDropdown } from './InventoryActionTypeDropdown';
+export { default as InventoryActionTypeMultiSelectDropdown } from './InventoryActionTypeMultiSelectDropdown';
 
 // Customer / User
 export { default as CustomerDropdown } from './CustomerDropdown';
