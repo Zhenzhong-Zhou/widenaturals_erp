@@ -25,27 +25,6 @@ const INVENTORY_ALLOCATION_CONSTANTS = {
     // -------------------------------------------------
 
     /**
-     * Allows manually triggering inventory allocation
-     * against an order.
-     */
-    CREATE_ALLOCATION: 'create_inventory_allocation',
-
-    /**
-     * Allows confirming a pending allocation.
-     */
-    CONFIRM_ALLOCATION: 'confirm_inventory_allocation',
-
-    /**
-     * Allows cancelling an active allocation.
-     */
-    CANCEL_ALLOCATION: 'cancel_inventory_allocation',
-
-    /**
-     * Allows processing an allocation return.
-     */
-    RETURN_ALLOCATION: 'return_inventory_allocation',
-
-    /**
      * Allows reassigning an allocation to a different warehouse.
      */
     REASSIGN_ALLOCATION: 'reassign_inventory_allocation',
