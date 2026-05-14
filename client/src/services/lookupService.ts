@@ -12,11 +12,16 @@ import type {
   DeliveryMethodLookupResponse,
   DiscountLookupQueryParams,
   DiscountLookupResponse,
-  GetWarehouseLookupResponse, InventoryStatusLookupParams, InventoryStatusLookupResponse, LocationLookupParams,
+  GetWarehouseLookupResponse,
+  InventoryActionTypeLookupParams,
+  InventoryActionTypeLookupResponse,
+  InventoryStatusLookupParams,
+  InventoryStatusLookupResponse,
+  LocationLookupParams,
   LocationLookupResponse,
   LocationTypeLookupParams,
   LocationTypeLookupResponse,
-  LotAdjustmentLookupQueryParams,
+  LotAdjustmentTypeLookupParams,
   LotAdjustmentTypeLookupResponse,
   ManufacturerLookupParams,
   ManufacturerLookupResponse,
@@ -27,7 +32,9 @@ import type {
   PaymentMethodLookupQueryParams,
   PaymentMethodLookupResponse,
   PricingGroupLookupQueryParams,
-  PricingGroupLookupResponse, PricingTypeLookupParams, PricingTypeLookupResponse,
+  PricingGroupLookupResponse,
+  PricingTypeLookupParams,
+  PricingTypeLookupResponse,
   ProductLookupParams,
   ProductLookupResponse,
   RoleLookupParams,
@@ -43,7 +50,9 @@ import type {
   TaxRateLookupQueryParams,
   TaxRateLookupResponse,
   UserLookupParams,
-  UserLookupResponse, WarehouseTypeLookupParams, WarehouseTypeLookupResponse,
+  UserLookupResponse,
+  WarehouseTypeLookupParams,
+  WarehouseTypeLookupResponse,
 } from '@features/lookup/state/lookupTypes';
 
 /* =========================================================
@@ -109,9 +118,15 @@ const fetchWarehouseLookup = (
  * Inventory / Adjustment
  * ======================================================= */
 
+/** Fetch inventory action type lookup items. */
+export const fetchInventoryActionTypeLookup = (
+  params?: InventoryActionTypeLookupParams
+): Promise<InventoryActionTypeLookupResponse> =>
+  getLookup(API_ENDPOINTS.LOOKUPS.INVENTORY_ACTION_TYPES, params);
+
 /** Fetch lot adjustment type lookup items. */
-const fetchLotAdjustmentTypeLookup = (
-  params: LotAdjustmentLookupQueryParams = {}
+export const fetchLotAdjustmentTypeLookup = (
+  params?: LotAdjustmentTypeLookupParams
 ): Promise<LotAdjustmentTypeLookupResponse> =>
   getLookup(API_ENDPOINTS.LOOKUPS.LOT_ADJUSTMENT_TYPES, params);
 
@@ -169,7 +184,7 @@ const fetchDeliveryMethodLookup = (
 const fetchPricingGroupLookup = (
   params?: PricingGroupLookupQueryParams
 ): Promise<PricingGroupLookupResponse> =>
-  getLookup(API_ENDPOINTS.LOOKUPS.PRICING_GROUP, params);
+  getLookup(API_ENDPOINTS.LOOKUPS.PRICING_GROUPS, params);
 
 /* =========================================================
  * SKU / Product / Status
@@ -266,6 +281,7 @@ export const lookupService = {
   fetchBatchRegistryLookup,
   fetchBatchRegistryForInventoryLookup,
   fetchWarehouseLookup,
+  fetchInventoryActionTypeLookup,
   fetchLotAdjustmentTypeLookup,
   fetchCustomerLookup,
   fetchAddressesByCustomerId,
