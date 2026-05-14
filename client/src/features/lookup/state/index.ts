@@ -32,6 +32,7 @@ export * from './inventoryStatusLookupSelectors';
 export * from './pricingTypeLookupSelectors';
 export * from './warehouseTypeLookupSelectors';
 export * from './locationLookupSelectors';
+export * from './inventoryActionTypeLookupSelectors';
 
 // --------------------------------------------------
 // Thunks & Types

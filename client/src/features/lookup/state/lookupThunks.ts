@@ -35,11 +35,15 @@ import type {
   DiscountLookupQueryParams,
   DiscountLookupResponse,
   GetWarehouseLookupResponse,
+  InventoryActionTypeLookupParams,
+  InventoryActionTypeLookupResponse,
   InventoryStatusLookupParams,
-  InventoryStatusLookupResponse, LocationLookupParams, LocationLookupResponse,
+  InventoryStatusLookupResponse,
+  LocationLookupParams,
+  LocationLookupResponse,
   LocationTypeLookupParams,
   LocationTypeLookupResponse,
-  LotAdjustmentLookupQueryParams,
+  LotAdjustmentTypeLookupParams,
   LotAdjustmentTypeLookupResponse,
   ManufacturerLookupParams,
   ManufacturerLookupResponse,
@@ -50,7 +54,9 @@ import type {
   PaymentMethodLookupQueryParams,
   PaymentMethodLookupResponse,
   PricingGroupLookupQueryParams,
-  PricingGroupLookupResponse, PricingTypeLookupParams, PricingTypeLookupResponse,
+  PricingGroupLookupResponse,
+  PricingTypeLookupParams,
+  PricingTypeLookupResponse,
   ProductLookupParams,
   ProductLookupResponse,
   RoleLookupParams,
@@ -66,7 +72,9 @@ import type {
   TaxRateLookupQueryParams,
   TaxRateLookupResponse,
   UserLookupParams,
-  UserLookupResponse, WarehouseTypeLookupParams, WarehouseTypeLookupResponse,
+  UserLookupResponse,
+  WarehouseTypeLookupParams,
+  WarehouseTypeLookupResponse,
 } from '@features/lookup/state/lookupTypes';
 
 /* ------------------------- Core Lookups ------------------------- */
@@ -113,19 +121,23 @@ export const fetchWarehouseLookupThunk = createAsyncThunk<
   }
 });
 
+// ---------------------------------------------------------------------------
+// Lot adjustment type
+// ---------------------------------------------------------------------------
+
 export const fetchLotAdjustmentTypeLookupThunk = createAsyncThunk<
   LotAdjustmentTypeLookupResponse,
-  LotAdjustmentLookupQueryParams | undefined,
+  LotAdjustmentTypeLookupParams | undefined,
   { rejectValue: UiErrorPayload }
 >(
   'lookup/fetchLotAdjustmentTypeLookup',
-  async (filters = {}, { rejectWithValue }) => {
-    try {
-      return await lookupService.fetchLotAdjustmentTypeLookup(filters);
-    } catch (error) {
-      return rejectWithValue(extractUiErrorPayload(error));
+    async (params, { rejectWithValue }) => {
+      try {
+        return await lookupService.fetchLotAdjustmentTypeLookup(params);
+      } catch (error) {
+        return rejectWithValue(extractUiErrorPayload(error));
+      }
     }
-  }
 );
 
 /* ------------------------- Customer Lookups ------------------------- */
@@ -418,3 +430,22 @@ export const fetchLocationLookupThunk = createAsyncThunk<
     return rejectWithValue(extractUiErrorPayload(error));
   }
 });
+
+// ---------------------------------------------------------------------------
+// Inventory action type
+// ---------------------------------------------------------------------------
+
+export const fetchInventoryActionTypeLookupThunk = createAsyncThunk<
+  InventoryActionTypeLookupResponse,
+  InventoryActionTypeLookupParams | undefined,
+  { rejectValue: UiErrorPayload }
+>(
+  'lookup/fetchInventoryActionTypeLookup',
+    async (params, { rejectWithValue }) => {
+      try {
+        return await lookupService.fetchInventoryActionTypeLookup(params);
+      } catch (error) {
+        return rejectWithValue(extractUiErrorPayload(error));
+      }
+    }
+);
