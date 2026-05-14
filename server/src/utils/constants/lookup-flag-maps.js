@@ -130,6 +130,32 @@ const LOCATION_FLAG_MAP = {
   canViewArchived: 'isArchived',
 };
 
+/**
+ * Flag map for inventory action type lookup row visibility.
+ *
+ * Maps ACL keys from InventoryActionTypeLookupAcl to row fields surfaced
+ * by the inventory action type lookup query. Each field is only included
+ * in the transformed output when the corresponding ACL key is true.
+ *
+ * @type {FlagMap}
+ */
+const INVENTORY_ACTION_TYPE_FLAG_MAP = {
+  canViewInactive: 'isActive',
+};
+
+/**
+ * Flag map for lot adjustment type lookup row visibility.
+ *
+ * `canViewInternal` is intentionally absent — internal types are excluded
+ * via filter pinning rather than tagged on output, so there's no row
+ * field to gate visibility on.
+ *
+ * @type {FlagMap}
+ */
+const LOT_ADJUSTMENT_TYPE_FLAG_MAP = {
+  canViewInactive: 'isActive',
+};
+
 module.exports = {
   STANDARD_FLAG_MAP,
   STATUS_ONLY_FLAG_MAP,
@@ -139,4 +165,6 @@ module.exports = {
   PRICING_TYPE_FLAG_MAP,
   WAREHOUSE_TYPE_FLAG_MAP,
   LOCATION_FLAG_MAP,
+  INVENTORY_ACTION_TYPE_FLAG_MAP,
+  LOT_ADJUSTMENT_TYPE_FLAG_MAP,
 };
