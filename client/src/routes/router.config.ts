@@ -277,6 +277,18 @@ export const appRoutes: AppRoute[] = [
       requiredPermission: ROUTE_PERMISSIONS.WAREHOUSE_INVENTORY.VIEW_DETAILS,
     },
   }),
+  
+  defineRoute({
+    path: '/warehouse-inventory/:warehouseId/activity-log',
+    component: lazy(
+      () =>
+        import('@features/warehouseInventory/pages/WarehouseInventoryActivityLogPage')
+    ),
+    meta: {
+      requiresAuth: true,
+      requiredPermission: ROUTE_PERMISSIONS.WAREHOUSE_INVENTORY.VIEW,
+    },
+  }),
 
   defineRoute({
     path: '/inventory-allocations',
