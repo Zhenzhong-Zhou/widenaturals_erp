@@ -1,4 +1,4 @@
-import { PricingExportFilters } from '@features/pricing';
+import type { PricingExportFilters } from '@features/pricing';
 
 /**
  * Builds a human-readable filename suffix from active pricing export filters.

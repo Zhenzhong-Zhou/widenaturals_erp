@@ -123,9 +123,9 @@ const PricingTypeFiltersPanel: FC<Props> = ({
     fieldName: 'statusId',
     options: status.options,
   });
-  
+
   const formattedStatusOptions = useFormattedOptionLabels(status.options);
-  
+
   /* -----------------------------
    * Render
    * --------------------------- */

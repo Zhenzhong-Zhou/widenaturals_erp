@@ -37,7 +37,8 @@ const {
   PRICING_TYPE_FLAG_MAP,
   WAREHOUSE_TYPE_FLAG_MAP,
   LOCATION_FLAG_MAP,
-  INVENTORY_ACTION_TYPE_FLAG_MAP, LOT_ADJUSTMENT_TYPE_FLAG_MAP,
+  INVENTORY_ACTION_TYPE_FLAG_MAP,
+  LOT_ADJUSTMENT_TYPE_FLAG_MAP,
 } = require('../utils/constants/lookup-flag-maps');
 const { getExpiryMeta } = require('../utils/batch-utils');
 
@@ -741,7 +742,6 @@ const transformInventoryActionTypePaginatedLookupResult = (
   transformLoadMoreResult(paginatedResult, (row) =>
     transformInventoryActionTypeLookup(row, acl)
   );
-
 
 // ---------------------------------------------------------------------------
 

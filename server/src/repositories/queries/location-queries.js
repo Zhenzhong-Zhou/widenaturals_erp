@@ -70,15 +70,9 @@ const LOCATION_LOOKUP_TABLE = 'locations l';
 
 const LOCATION_LOOKUP_JOINS = [];
 
-const LOCATION_LOOKUP_SORT_WHITELIST = new Set([
-  'l.name',
-  'l.city',
-  'l.id',
-]);
+const LOCATION_LOOKUP_SORT_WHITELIST = new Set(['l.name', 'l.city', 'l.id']);
 
-const LOCATION_LOOKUP_ADDITIONAL_SORTS = [
-  { column: 'l.id', direction: 'ASC' },
-];
+const LOCATION_LOOKUP_ADDITIONAL_SORTS = [{ column: 'l.id', direction: 'ASC' }];
 
 /**
  * @param {string} whereClause

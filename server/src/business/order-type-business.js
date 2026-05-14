@@ -157,27 +157,29 @@ const enforceOrderTypeLookupVisibilityRules = (
   options = {}
 ) => {
   const adjusted = { ...filters };
-  
+
   const requestedCategory = options.categoryScope ?? filters.category;
-  
+
   if (requestedCategory) {
     const requestedCategories = Array.isArray(requestedCategory)
       ? requestedCategory
       : [requestedCategory];
-    
+
     if (!access.canViewAllCategories) {
       const allowedCategories = requestedCategories.filter((category) =>
         access.accessibleCategories?.includes(category)
       );
-      
+
       if (allowedCategories.length === 0) {
         throw AppError.authorizationError(
           'User is not authorized to view the requested order category.'
         );
       }
-      
+
       adjusted.category =
-        allowedCategories.length === 1 ? allowedCategories[0] : allowedCategories;
+        allowedCategories.length === 1
+          ? allowedCategories[0]
+          : allowedCategories;
     } else {
       adjusted.category =
         requestedCategories.length === 1
@@ -190,22 +192,22 @@ const enforceOrderTypeLookupVisibilityRules = (
         'User is not authorized to view any order categories.'
       );
     }
-    
+
     adjusted.category = access.accessibleCategories;
   }
-  
+
   if (filters.keyword && !access.canViewAllKeywords) {
     adjusted._restrictKeywordToValidOnly = true;
   }
-  
+
   if (!access.canViewAllStatuses) {
     delete adjusted.statusId;
-    
+
     if (options.activeStatusId) {
       adjusted._activeStatusId = options.activeStatusId;
     }
   }
-  
+
   return adjusted;
 };
 

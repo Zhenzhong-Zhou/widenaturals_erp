@@ -130,9 +130,9 @@ const ProductFiltersPanel: FC<ProductFiltersPanelProps> = ({
     fieldName: 'statusIds',
     options: statusOptions,
   });
-  
+
   const formattedStatusOptions = useFormattedOptionLabels(statusOptions);
-  
+
   // -------------------------------
   // Submit / Reset
   // -------------------------------

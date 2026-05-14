@@ -15,23 +15,23 @@ import { resetWarehouseTypeLookup } from '@features/lookup/state/warehouseTypeLo
  */
 const useWarehouseTypeLookup = () => {
   const dispatch = useAppDispatch();
-  
+
   const options = useAppSelector(selectWarehouseTypeLookupOptions);
   const loading = useAppSelector(selectWarehouseTypeLookupLoading);
   const error = useAppSelector(selectWarehouseTypeLookupError);
   const meta = useAppSelector(selectWarehouseTypeLookupMeta);
-  
+
   const fetch = useCallback(
     (params?: WarehouseTypeLookupParams) => {
       dispatch(fetchWarehouseTypeLookupThunk(params));
     },
     [dispatch]
   );
-  
+
   const reset = useCallback(() => {
     dispatch(resetWarehouseTypeLookup());
   }, [dispatch]);
-  
+
   return useMemo(
     () => ({
       options,

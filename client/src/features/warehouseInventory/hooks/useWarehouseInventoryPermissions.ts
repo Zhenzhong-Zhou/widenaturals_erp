@@ -22,7 +22,7 @@ export interface WarehouseInventoryPermissions {
  */
 const useWarehouseInventoryPermissions = (): WarehouseInventoryPermissions => {
   const hasPermission = useHasPermissionBoolean();
-  
+
   return {
     // Read
     canViewInventoryDetail: hasPermission(
@@ -37,7 +37,7 @@ const useWarehouseInventoryPermissions = (): WarehouseInventoryPermissions => {
     canViewInventoryActivityLog: hasPermission(
       PERMISSION_KEYS.WAREHOUSE_INVENTORY.VIEW_ACTIVITY_LOG
     ),
-    
+
     // Write
     canCreateInventory: hasPermission(
       PERMISSION_KEYS.WAREHOUSE_INVENTORY.CREATE_INBOUND
@@ -49,7 +49,9 @@ const useWarehouseInventoryPermissions = (): WarehouseInventoryPermissions => {
     canUpdateInventoryStatus: hasPermission(
       PERMISSION_KEYS.WAREHOUSE_INVENTORY.UPDATE_INVENTORY_STATUS
     ),
-    canEditInventoryMetadata: hasPermission(PERMISSION_KEYS.WAREHOUSE_INVENTORY.EDIT_METADATA),
+    canEditInventoryMetadata: hasPermission(
+      PERMISSION_KEYS.WAREHOUSE_INVENTORY.EDIT_METADATA
+    ),
     canRecordOutbound: hasPermission(
       PERMISSION_KEYS.WAREHOUSE_INVENTORY.CREATE_OUTBOUND
     ),

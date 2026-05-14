@@ -41,14 +41,14 @@ const CONTEXT = 'warehouse-type-repository';
  * @returns {Promise<PaginatedOffsetResult<WarehouseTypeLookupRow>>}
  */
 const getWarehouseTypeLookup = async ({
-                                                 filters = {},
-                                                 limit = 50,
-                                                 offset = 0,
-                                               }) => {
+  filters = {},
+  limit = 50,
+  offset = 0,
+}) => {
   const context = `${CONTEXT}/getWarehouseTypeLookup`;
   const { whereClause, params } = buildWarehouseTypeFilters(filters);
   const queryText = buildWarehouseTypeLookupQuery(whereClause);
-  
+
   try {
     return /** @type {PaginatedOffsetResult<WarehouseTypeLookupRow>} */ (
       await paginateQueryByOffset({

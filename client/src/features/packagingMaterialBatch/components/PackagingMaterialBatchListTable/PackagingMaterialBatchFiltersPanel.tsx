@@ -2,10 +2,7 @@ import { type FC, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Grid } from '@mui/material';
 import { FilterPanelLayout } from '@components/index';
-import {
-  renderDateField,
-  renderInputField
-} from '@utils/filters/filterUtils';
+import { renderDateField, renderInputField } from '@utils/filters/filterUtils';
 import { toISODate } from '@utils/dateTimeUtils';
 import type { PackagingMaterialBatchFilters } from '@features/packagingMaterialBatch/state';
 import {
@@ -205,7 +202,7 @@ const PackagingMaterialBatchFiltersPanel: FC<Props> = ({
     fieldName: 'statusIds',
     options: status.options,
   });
-  
+
   const formattedStatusOptions = useFormattedOptionLabels(status.options);
 
   /* -----------------------------

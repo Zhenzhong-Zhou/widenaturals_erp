@@ -21,18 +21,18 @@ type LotAdjustmentTypeDropdownProps =
  * reconciliation tooling, etc.
  */
 const LotAdjustmentTypeDropdown = ({
-                                     options = [],
-                                     fetchParams,
-                                     onRefresh,
-                                     ...rest
-                                   }: LotAdjustmentTypeDropdownProps) => {
+  options = [],
+  fetchParams,
+  onRefresh,
+  ...rest
+}: LotAdjustmentTypeDropdownProps) => {
   const enrichedOptions = useMemo(() => {
     return Array.from(
       new Map(
         options.map((opt) => {
           const isInactive = opt.isActive === false;
           const rawLabel = getRawLabel(opt.label);
-          
+
           return [
             opt.value ?? opt.id,
             {
@@ -54,7 +54,7 @@ const LotAdjustmentTypeDropdown = ({
       ).values()
     );
   }, [options]);
-  
+
   return (
     <PaginatedDropdown
       label="Select Lot Adjustment Type"

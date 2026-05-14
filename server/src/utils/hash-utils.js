@@ -43,7 +43,10 @@ const normalizeChecksumValue = (value) => {
  * @param {unknown} value - Address field value.
  * @returns {string} Lowercased and trimmed string value.
  */
-const normalizeAddressHashValue = (value) => String(value ?? '').trim().toLowerCase();
+const normalizeAddressHashValue = (value) =>
+  String(value ?? '')
+    .trim()
+    .toLowerCase();
 
 // ─── Inventory Activity Log Checksum ─────────────────────────────────────────
 
@@ -70,15 +73,15 @@ const normalizeAddressHashValue = (value) => String(value ?? '').trim().toLowerC
  * @returns {string} SHA-256 hex digest.
  */
 const computeLogChecksum = ({
-                              warehouseInventoryId,
-                              actionTypeId,
-                              previousQuantity,
-                              quantityChange,
-                              newQuantity,
-                              performedBy,
-                              performedAt,
-                              referenceId = '',
-                            }) => {
+  warehouseInventoryId,
+  actionTypeId,
+  previousQuantity,
+  quantityChange,
+  newQuantity,
+  performedBy,
+  performedAt,
+  referenceId = '',
+}) => {
   const payload = [
     warehouseInventoryId,
     actionTypeId,
@@ -91,7 +94,7 @@ const computeLogChecksum = ({
   ]
     .map(normalizeChecksumValue)
     .join('|');
-  
+
   return crypto.createHash('sha256').update(payload).digest('hex');
 };
 
@@ -129,7 +132,7 @@ const generateAddressHash = (address) => {
     normalizeAddressHashValue(address.postal_code),
     normalizeAddressHashValue(address.country),
   ].join('|');
-  
+
   return crypto.createHash('sha256').update(payload).digest('hex');
 };
 

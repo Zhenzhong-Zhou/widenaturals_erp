@@ -4,9 +4,7 @@ import FilterListIcon from '@mui/icons-material/FilterList';
 import { CustomButton, CustomTypography } from '@components/index';
 import type { InventoryActivityLogFilters } from '@features/warehouseInventory/state';
 import { formatDate } from '@utils/dateTimeUtils';
-import {
-  ActivityLogFiltersForm
-} from '@features/warehouseInventory/components/WarehouseInventoryDetail/WarehouseInventoryActivityLogPanel/index';
+import { ActivityLogFiltersForm } from '@features/warehouseInventory/components/WarehouseInventoryDetail/WarehouseInventoryActivityLogPanel/index';
 
 type ActivityLogToolbarProps = {
   filters: InventoryActivityLogFilters;
@@ -19,23 +17,24 @@ type ActivityLogToolbarProps = {
 };
 
 const ActivityLogToolbar: FC<ActivityLogToolbarProps> = ({
-                                                           filters,
-                                                           onFiltersChange,
-                                                           onReset,
-                                                           resolveActionTypeName,
-                                                           resolveAdjustmentTypeName,
-                                                           resolveUserName,
-                                                         }) => {
+  filters,
+  onFiltersChange,
+  onReset,
+  resolveActionTypeName,
+  resolveAdjustmentTypeName,
+  resolveUserName,
+}) => {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const open = Boolean(anchorEl);
-  
-  const handleOpen = (e: MouseEvent<HTMLElement>) => setAnchorEl(e.currentTarget);
+
+  const handleOpen = (e: MouseEvent<HTMLElement>) =>
+    setAnchorEl(e.currentTarget);
   const handleClose = () => setAnchorEl(null);
-  
+
   const activeChips = useMemo(() => {
     const chips: { key: keyof InventoryActivityLogFilters; label: string }[] =
       [];
-    
+
     if (filters.actionTypeId) {
       chips.push({
         key: 'actionTypeId',
@@ -72,7 +71,7 @@ const ActivityLogToolbar: FC<ActivityLogToolbarProps> = ({
         label: `To: ${formatDate(filters.performedAtBefore)}`,
       });
     }
-    
+
     return chips;
   }, [
     filters,
@@ -80,13 +79,13 @@ const ActivityLogToolbar: FC<ActivityLogToolbarProps> = ({
     resolveAdjustmentTypeName,
     resolveUserName,
   ]);
-  
+
   const handleRemoveFilter = (key: keyof InventoryActivityLogFilters) => {
     const next = { ...filters };
     delete next[key];
     onFiltersChange(next);
   };
-  
+
   return (
     <Box>
       <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
@@ -97,7 +96,7 @@ const ActivityLogToolbar: FC<ActivityLogToolbarProps> = ({
         >
           <FilterListIcon fontSize="small" />
         </IconButton>
-        
+
         {activeChips.length === 0 ? (
           <CustomTypography variant="body2" color="text.secondary">
             No filters applied
@@ -112,14 +111,14 @@ const ActivityLogToolbar: FC<ActivityLogToolbarProps> = ({
             />
           ))
         )}
-        
+
         {activeChips.length > 0 && (
           <CustomButton size="small" variant="text" onClick={onReset}>
             Clear all
           </CustomButton>
         )}
       </Stack>
-      
+
       <Popover
         open={open}
         anchorEl={anchorEl}

@@ -1,3 +1,3 @@
-export { default as WarehouseSummarySection } from '../WarehouseSummaryHeader/WarehouseSummarySection';
-export { default as WarehouseSummaryHeader } from '../WarehouseSummaryHeader/WarehouseSummaryHeader';
-export { default as WarehouseInventoryAlertSummary } from '../WarehouseSummaryHeader/WarehouseInventoryAlertSummary';
+export { default as WarehouseSummarySection } from './WarehouseSummarySection';
+export { default as WarehouseSummaryHeader } from './WarehouseSummaryHeader';
+export { default as WarehouseInventoryAlertSummary } from './WarehouseInventoryAlertSummary';

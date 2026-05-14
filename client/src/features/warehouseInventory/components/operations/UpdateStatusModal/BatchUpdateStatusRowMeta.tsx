@@ -15,8 +15,8 @@ interface BatchUpdateStatusRowTitleProps {
 }
 
 export const BatchUpdateStatusRowTitle = ({
-                                            meta,
-                                          }: BatchUpdateStatusRowTitleProps) => (
+  meta,
+}: BatchUpdateStatusRowTitleProps) => (
   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
     <CustomTypography
       variant="subtitle1"
@@ -25,7 +25,7 @@ export const BatchUpdateStatusRowTitle = ({
     >
       {meta.name ?? '—'}
     </CustomTypography>
-    
+
     <CustomTypography
       variant="caption"
       color="text.secondary"
@@ -42,8 +42,8 @@ interface BatchUpdateStatusCurrentStatusProps {
 }
 
 export const BatchUpdateStatusCurrentStatus = ({
-                                                 meta,
-                                               }: BatchUpdateStatusCurrentStatusProps) => (
+  meta,
+}: BatchUpdateStatusCurrentStatusProps) => (
   <Box sx={{ display: 'flex', gap: 3, mb: 1 }}>
     <Box>
       <CustomTypography
@@ -53,7 +53,7 @@ export const BatchUpdateStatusCurrentStatus = ({
       >
         Current Status
       </CustomTypography>
-      
+
       <CustomTypography variant="body2" fontWeight={600}>
         {meta.currentStatus ? formatLabel(meta.currentStatus) : '—'}
       </CustomTypography>

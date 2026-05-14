@@ -18,19 +18,19 @@ type WarehouseTypeDropdownProps =
  * - Warehouse classification
  */
 const WarehouseTypeDropdown = ({
-                                 options = [],
-                                 fetchParams,
-                                 onRefresh,
-                                 ...rest
-                               }: WarehouseTypeDropdownProps) => {
+  options = [],
+  fetchParams,
+  onRefresh,
+  ...rest
+}: WarehouseTypeDropdownProps) => {
   const enrichedOptions = useMemo(() => {
     return Array.from(
       new Map(
         options.map((opt) => {
           const isInactive = opt.isActive === false;
-          
+
           const rawLabel = getRawLabel(opt.label);
-          
+
           return [
             opt.value ?? opt.id,
             {
@@ -52,7 +52,7 @@ const WarehouseTypeDropdown = ({
       ).values()
     );
   }, [options]);
-  
+
   return (
     <PaginatedDropdown
       label="Select Warehouse Type"

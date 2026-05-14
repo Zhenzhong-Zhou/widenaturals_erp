@@ -1,9 +1,5 @@
 import { useRef } from 'react';
-import {
-  CustomForm,
-  CustomModal,
-  ErrorMessage,
-} from '@components/index';
+import { CustomForm, CustomModal, ErrorMessage } from '@components/index';
 import type { CustomFormRef } from '@components/common/CustomForm';
 import { useWarehouseInventoryUpdateMetadata } from '@hooks/index';
 import { useModalSuccessLifecycle } from '@features/warehouseInventory/hooks';
@@ -20,12 +16,12 @@ interface UpdateMetadataModalProps {
 }
 
 const UpdateMetadataModal = ({
-                               open,
-                               onClose,
-                               warehouseId,
-                               record,
-                               onSuccess,
-                             }: UpdateMetadataModalProps) => {
+  open,
+  onClose,
+  warehouseId,
+  record,
+  onSuccess,
+}: UpdateMetadataModalProps) => {
   const {
     loading,
     error,
@@ -34,9 +30,9 @@ const UpdateMetadataModal = ({
     updateMetadata,
     resetUpdateMetadataState,
   } = useWarehouseInventoryUpdateMetadata();
-  
+
   const formRef = useRef<CustomFormRef>(null);
-  
+
   const { handleClose } = useModalSuccessLifecycle({
     open,
     success,
@@ -47,7 +43,7 @@ const UpdateMetadataModal = ({
     resetState: resetUpdateMetadataState,
     formRef,
   });
-  
+
   const onSubmit = (values: Record<string, any>) => {
     const payload = buildUpdateMetadataPayload(values, record);
     if (Object.keys(payload).length === 0) {
@@ -56,11 +52,11 @@ const UpdateMetadataModal = ({
     }
     void updateMetadata(warehouseId, record.id, payload);
   };
-  
+
   return (
     <CustomModal open={open} onClose={handleClose} title="Edit Metadata">
       {error && <ErrorMessage message={error} />}
-      
+
       <CustomForm
         ref={formRef}
         fields={buildUpdateMetadataFields(record)}

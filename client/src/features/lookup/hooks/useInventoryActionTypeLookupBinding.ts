@@ -45,14 +45,14 @@ interface UseInventoryActionTypeLookupBindingOptions {
  * fields.
  */
 const useInventoryActionTypeLookupBinding = ({
-                                               fetchInventoryActionTypeLookup,
-                                             }: UseInventoryActionTypeLookupBindingOptions) => {
+  fetchInventoryActionTypeLookup,
+}: UseInventoryActionTypeLookupBindingOptions) => {
   const [fetchParams, setFetchParams] =
     useState<InventoryActionTypeLookupParams>({
       offset: 0,
       limit: 10,
     });
-  
+
   /**
    * Handles keyword search input changes.
    * Resets pagination offset and immediately triggers lookup fetch.
@@ -60,19 +60,19 @@ const useInventoryActionTypeLookupBinding = ({
   const handleInputChange = useCallback(
     (_: unknown, newValue: string, reason: string) => {
       if (reason !== 'input') return;
-      
+
       const nextParams = {
         ...fetchParams,
         keyword: newValue,
         offset: 0,
       };
-      
+
       setFetchParams(nextParams);
       fetchInventoryActionTypeLookup(nextParams);
     },
     [fetchParams, fetchInventoryActionTypeLookup]
   );
-  
+
   /**
    * Refreshes lookup results using either:
    * - Provided params override
@@ -84,7 +84,7 @@ const useInventoryActionTypeLookupBinding = ({
     },
     [fetchInventoryActionTypeLookup, fetchParams]
   );
-  
+
   return {
     fetchParams,
     setFetchParams,

@@ -51,7 +51,9 @@ const useCreateSkuSharedLogic = (): CreateSkuSharedLogic => {
   // ---------------------------------------------------------------------------
   // 1. Permissions
   // ---------------------------------------------------------------------------
-  const { isAllowed: canCreateSku } = usePagePermissionState(PERMISSION_KEYS.SKUS.CREATE);
+  const { isAllowed: canCreateSku } = usePagePermissionState(
+    PERMISSION_KEYS.SKUS.CREATE
+  );
 
   // redirect if not allowed
   useEffect(() => {

@@ -45,11 +45,7 @@ const inventoryStatusLookupSlice = createSlice({
         }
       )
       .addCase(fetchInventoryStatusLookupThunk.rejected, (state, action) => {
-        applyRejected(
-          state,
-          action,
-          'Failed to fetch inventory status lookup'
-        );
+        applyRejected(state, action, 'Failed to fetch inventory status lookup');
       });
   },
 });

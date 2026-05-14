@@ -26,9 +26,7 @@ interface BuildSingleUpdateStatusFieldsArgs {
   statusError: string | null;
   statusPaginationMeta?: LookupPaginationMeta;
   statusFetchParams: InventoryStatusLookupParams;
-  setStatusFetchParams: Dispatch<
-    SetStateAction<InventoryStatusLookupParams>
-  >;
+  setStatusFetchParams: Dispatch<SetStateAction<InventoryStatusLookupParams>>;
   fetchStatusOptions: (
     params: InventoryStatusLookupParams
   ) => void | Promise<void>;
@@ -41,20 +39,16 @@ interface BuildSingleUpdateStatusFieldsArgs {
  * its own statusId while reusing the same status option list.
  */
 export const buildBatchUpdateStatusFields = ({
-                                               statusOptions,
-                                               statusLoading,
-                                             }: BuildBatchUpdateStatusFieldsArgs): MultiItemFieldConfig[] => [
+  statusOptions,
+  statusLoading,
+}: BuildBatchUpdateStatusFieldsArgs): MultiItemFieldConfig[] => [
   {
     id: 'statusId',
     label: 'New Status',
     type: 'custom',
     required: true,
     component: (props: RowAwareComponentProps<string>) => (
-      <StatusCell
-        {...props}
-        options={statusOptions}
-        loading={statusLoading}
-      />
+      <StatusCell {...props} options={statusOptions} loading={statusLoading} />
     ),
     grid: { xs: 12, sm: 12 },
   },
@@ -67,14 +61,14 @@ export const buildBatchUpdateStatusFields = ({
  * CustomForm does not receive MultiItemForm row-aware component props.
  */
 export const buildSingleUpdateStatusFields = ({
-                                                statusOptions,
-                                                statusLoading,
-                                                statusError,
-                                                statusPaginationMeta,
-                                                statusFetchParams,
-                                                setStatusFetchParams,
-                                                fetchStatusOptions,
-                                              }: BuildSingleUpdateStatusFieldsArgs): FieldConfig[] => [
+  statusOptions,
+  statusLoading,
+  statusError,
+  statusPaginationMeta,
+  statusFetchParams,
+  setStatusFetchParams,
+  fetchStatusOptions,
+}: BuildSingleUpdateStatusFieldsArgs): FieldConfig[] => [
   {
     id: 'statusId',
     label: 'New Status',

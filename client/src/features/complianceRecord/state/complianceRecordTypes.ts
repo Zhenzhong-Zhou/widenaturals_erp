@@ -1,4 +1,4 @@
-import {
+import type {
   CreatedUpdatedDateFilter,
   ExpiryDateRanges,
   GenericAudit,

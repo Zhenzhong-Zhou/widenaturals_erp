@@ -16,14 +16,14 @@ import SingleUpdateStatusForm from './SingleUpdateStatusForm';
 import BatchUpdateStatusForm from './BatchUpdateStatusForm';
 import {
   detailRecordToUpdateStatusItem,
-  flattenedToUpdateStatusItem
+  flattenedToUpdateStatusItem,
 } from '@features/warehouseInventory/utils';
 
 interface UpdateStatusModalProps {
   open: boolean;
   onClose: () => void;
   warehouseId: string;
-  
+
   /**
    * Single mode (detail page): pass `record`.
    * Batch mode (list page): pass `selectedItems`.
@@ -35,13 +35,13 @@ interface UpdateStatusModalProps {
 }
 
 const UpdateStatusModal = ({
-                             open,
-                             onClose,
-                             warehouseId,
-                             record,
-                             selectedItems,
-                             onSuccess,
-                           }: UpdateStatusModalProps) => {
+  open,
+  onClose,
+  warehouseId,
+  record,
+  selectedItems,
+  onSuccess,
+}: UpdateStatusModalProps) => {
   const {
     loading: updateLoading,
     error: updateError,
@@ -50,7 +50,7 @@ const UpdateStatusModal = ({
     updateStatuses,
     resetUpdateStatusState,
   } = useWarehouseInventoryUpdateStatus();
-  
+
   const {
     statusOptions,
     statusLoading,
@@ -60,7 +60,7 @@ const UpdateStatusModal = ({
     setStatusFetchParams,
     fetchStatusOptions,
   } = useUpdateStatusOptions(open);
-  
+
   const isBatch = (selectedItems?.length ?? 0) > 1;
   const singleItem = useMemo<UpdateStatusFormItem | undefined>(() => {
     if (record) return detailRecordToUpdateStatusItem(record);
@@ -68,20 +68,20 @@ const UpdateStatusModal = ({
     const [first] = selectedItems;
     return first ? flattenedToUpdateStatusItem(first) : undefined;
   }, [record, selectedItems]);
-  
+
   const onSuccessRef = useRef(onSuccess);
   onSuccessRef.current = onSuccess;
   const handledRef = useRef(false);
-  
+
   useEffect(() => {
     if (open) handledRef.current = false;
   }, [open]);
-  
+
   const handleClose = useCallback(() => {
     resetUpdateStatusState();
     onClose();
   }, [resetUpdateStatusState, onClose]);
-  
+
   useEffect(() => {
     if (!success) return;
     if (handledRef.current) return;
@@ -91,14 +91,14 @@ const UpdateStatusModal = ({
     );
     handleClose();
   }, [success, updateResponse?.message, handleClose]);
-  
+
   const handleBatchSubmit = useCallback(
     (rows: Record<string, any>[]) => {
       void updateStatuses(warehouseId, buildBatchUpdateStatusPayload(rows));
     },
     [updateStatuses, warehouseId]
   );
-  
+
   const handleSingleSubmit = useCallback(
     (values: Record<string, any>) => {
       if (!singleItem) return;
@@ -109,16 +109,17 @@ const UpdateStatusModal = ({
     },
     [singleItem, updateStatuses, warehouseId]
   );
-  
+
   const title = useMemo(() => {
-    if (isBatch && selectedItems) return getUpdateStatusModalTitle(selectedItems);
+    if (isBatch && selectedItems)
+      return getUpdateStatusModalTitle(selectedItems);
     return 'Update Status';
   }, [isBatch, selectedItems]);
-  
+
   return (
     <CustomModal open={open} onClose={handleClose} title={title}>
       {updateError && <ErrorMessage message={updateError} />}
-      
+
       {isBatch && selectedItems ? (
         <BatchUpdateStatusForm
           items={selectedItems}

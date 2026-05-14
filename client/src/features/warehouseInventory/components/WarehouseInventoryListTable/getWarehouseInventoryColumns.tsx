@@ -68,9 +68,9 @@ export const getWarehouseInventoryColumns = (
           row.batchType === 'product'
             ? row.productLotNumber
             : row.packagingLotNumber;
-        
+
         if (!lotNumber) return '—';
-        
+
         return (
           <Link
             component={RouterLink}

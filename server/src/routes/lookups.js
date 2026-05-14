@@ -79,7 +79,8 @@ const {
   getInventoryStatusLookupController,
   getPricingTypeLookupController,
   getWarehouseTypeLookupController,
-  getLocationLookupController, getInventoryActionTypeLookupController,
+  getLocationLookupController,
+  getInventoryActionTypeLookupController,
 } = require('../controllers/lookup-controller');
 
 const router = express.Router();

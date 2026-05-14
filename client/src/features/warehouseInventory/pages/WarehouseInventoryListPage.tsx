@@ -31,7 +31,7 @@ import {
 import { usePaginationHandlers } from '@utils/hooks';
 import {
   useWarehouseInventoryLookups,
-  useWarehouseInventoryPermissions
+  useWarehouseInventoryPermissions,
 } from '@features/warehouseInventory/hooks';
 import { createOnOpenHandler } from '@features/lookup/utils/lookupUtils';
 import { WarehouseItemSummaryPanel } from '@features/warehouseInventory/components/WarehouseItemSummary';
@@ -88,7 +88,7 @@ const WarehouseInventoryListPage: FC = () => {
 
   const { addRecent } = useRecentWarehouses();
   const lookups = useWarehouseInventoryLookups();
-  
+
   const {
     canAdjustInventory,
     canAdjustReserved,
@@ -140,17 +140,17 @@ const WarehouseInventoryListPage: FC = () => {
     }),
     [page, limit, sortBy, sortOrder, filters]
   );
-  
+
   const queryParams = useMemo<WarehouseInventoryQueryParams | null>(() => {
     if (!warehouseId) return null;
     return { warehouseId, ...fullQuery };
   }, [warehouseId, fullQuery]);
-  
+
   const refreshWarehouseInventoryList = useCallback(() => {
     if (!queryParams) return;
     fetchWarehouseInventory(queryParams);
   }, [queryParams, fetchWarehouseInventory]);
-  
+
   // Fetch effect — fires whenever queryParams change
   useEffect(() => {
     if (!queryParams) return;
@@ -185,19 +185,24 @@ const WarehouseInventoryListPage: FC = () => {
   const handleSelectionChange = useCallback((ids: string[]) => {
     setSelectedIds(ids);
   }, []);
-  
+
   const lookupHandlers = useMemo(
     () => ({
       onOpen: {
-        inventoryStatus:   createOnOpenHandler(lookups.inventoryStatus),
+        inventoryStatus: createOnOpenHandler(lookups.inventoryStatus),
         product: createOnOpenHandler(lookups.product),
         sku: createOnOpenHandler(lookups.sku),
         packagingMaterial: createOnOpenHandler(lookups.packagingMaterial),
       },
     }),
-    [lookups.inventoryStatus, lookups.product, lookups.sku, lookups.packagingMaterial]
+    [
+      lookups.inventoryStatus,
+      lookups.product,
+      lookups.sku,
+      lookups.packagingMaterial,
+    ]
   );
-  
+
   const handleGoToActivityLog = useCallback(() => {
     if (!warehouseId) return;
     navigate(`/warehouse-inventory/${warehouseId}/activity-log`);
@@ -224,7 +229,7 @@ const WarehouseInventoryListPage: FC = () => {
         gap={1.5}
       >
         <GoBackButton variant="outlined" />
-        
+
         <Stack direction="row" spacing={1.5}>
           {canViewInventoryActivityLog && (
             <CustomButton

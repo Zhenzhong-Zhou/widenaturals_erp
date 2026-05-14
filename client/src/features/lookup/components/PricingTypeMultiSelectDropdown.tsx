@@ -23,10 +23,10 @@ type PricingTypeMultiSelectDropdownProps = Omit<
 const PricingTypeMultiSelectDropdown: FC<
   PricingTypeMultiSelectDropdownProps
 > = ({
-       label = 'Select Pricing Type',
-       placeholder = 'Choose pricing type…',
-       ...rest
-     }) => {
+  label = 'Select Pricing Type',
+  placeholder = 'Choose pricing type…',
+  ...rest
+}) => {
   return (
     <MultiSelectDropdown label={label} placeholder={placeholder} {...rest} />
   );

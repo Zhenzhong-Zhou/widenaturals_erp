@@ -53,7 +53,9 @@ const ProductListTable = ({
   onRefresh,
   onAddNew,
 }: ProductListTableProps) => {
-  const { isAllowed } = usePagePermissionState([PERMISSION_KEYS.PRODUCTS.CREATE]);
+  const { isAllowed } = usePagePermissionState([
+    PERMISSION_KEYS.PRODUCTS.CREATE,
+  ]);
 
   // -------------------------------------------------------
   // Memoize Column Definitions

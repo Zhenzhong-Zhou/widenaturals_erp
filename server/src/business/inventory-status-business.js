@@ -32,18 +32,18 @@ const CONTEXT = 'business/inventory-status-business';
  */
 const evaluateInventoryStatusLookupVisibility = async (user) => {
   const context = `${CONTEXT}/evaluateInventoryStatusLookupVisibility`;
-  
+
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     // ─── Status visibility ─────────────────────────────────────────────────────
-    
+
     const canViewInactive =
       isRoot ||
       permissions.includes(
         INVENTORY_STATUS_CONSTANTS.PERMISSIONS.VIEW_ALL_INVENTORY_STATUS
       );
-    
+
     return {
       canViewInactive,
     };
@@ -56,7 +56,7 @@ const evaluateInventoryStatusLookupVisibility = async (user) => {
         userId: user?.id,
       }
     );
-    
+
     throw AppError.businessError(
       'Unable to evaluate inventory status lookup visibility.'
     );

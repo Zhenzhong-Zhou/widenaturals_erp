@@ -32,7 +32,7 @@ export const getInventoryActivityLogColumns = (
     handleDrillDownToggle,
     showItemContext = false,
   } = options;
-  
+
   return [
     {
       id: 'performedAt',
@@ -42,39 +42,40 @@ export const getInventoryActivityLogColumns = (
     // ── Item context — inserted only when scope isn't pre-narrowed ─────────
     ...(showItemContext
       ? [
-        {
-          id: 'batchType',
-          label: 'Type',
-          sortable: true,
-          renderCell: (row: InventoryActivityLogRecord) => formatLabel(row.batchType),
-        },
-        {
-          id: 'entityName',
-          label: 'Entity',
-          sortable: false,
-          renderCell: (row: InventoryActivityLogRecord) => (
-            <TruncatedText
-              text={
-                row.batchType === 'product'
-                  ? row.productName
-                  : row.packagingDisplayName
-              }
-              maxLength={20}
-              variant="body2"
-              sx={{ fontWeight: 400 }}
-            />
-          ),
-        },
-        {
-          id: 'lotNumber',
-          label: 'Lot Number',
-          sortable: true,
-          renderCell: (row: InventoryActivityLogRecord) =>
-            row.batchType === 'product'
-              ? row.productLotNumber
-              : row.packagingLotNumber,
-        },
-      ]
+          {
+            id: 'batchType',
+            label: 'Type',
+            sortable: true,
+            renderCell: (row: InventoryActivityLogRecord) =>
+              formatLabel(row.batchType),
+          },
+          {
+            id: 'entityName',
+            label: 'Entity',
+            sortable: false,
+            renderCell: (row: InventoryActivityLogRecord) => (
+              <TruncatedText
+                text={
+                  row.batchType === 'product'
+                    ? row.productName
+                    : row.packagingDisplayName
+                }
+                maxLength={20}
+                variant="body2"
+                sx={{ fontWeight: 400 }}
+              />
+            ),
+          },
+          {
+            id: 'lotNumber',
+            label: 'Lot Number',
+            sortable: true,
+            renderCell: (row: InventoryActivityLogRecord) =>
+              row.batchType === 'product'
+                ? row.productLotNumber
+                : row.packagingLotNumber,
+          },
+        ]
       : []),
     {
       id: 'actionTypeName',
@@ -124,40 +125,40 @@ export const getInventoryActivityLogColumns = (
           '—'
         ),
     },
-    
+
     // ── Drill-down toggle — gated by canViewDetail ────────────────────────────
     ...(canViewDetail && handleDrillDownToggle
       ? [
-        {
-          id: 'details',
-          label: '',
-          align: 'center' as const,
-          renderCell: (row: InventoryActivityLogRecord) => {
-            const isExpanded = expandedRowId === row.id;
-            
-            return (
-              <IconButton
-                size="small"
-                aria-label={
-                  isExpanded
-                    ? 'Collapse activity log details'
-                    : 'Expand activity log details'
-                }
-                onClick={(event) => {
-                  event.stopPropagation();
-                  handleDrillDownToggle(row.id);
-                }}
-              >
-                {isExpanded ? (
-                  <KeyboardArrowDownIcon fontSize="small" />
-                ) : (
-                  <KeyboardArrowRightIcon fontSize="small" />
-                )}
-              </IconButton>
-            );
+          {
+            id: 'details',
+            label: '',
+            align: 'center' as const,
+            renderCell: (row: InventoryActivityLogRecord) => {
+              const isExpanded = expandedRowId === row.id;
+
+              return (
+                <IconButton
+                  size="small"
+                  aria-label={
+                    isExpanded
+                      ? 'Collapse activity log details'
+                      : 'Expand activity log details'
+                  }
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleDrillDownToggle(row.id);
+                  }}
+                >
+                  {isExpanded ? (
+                    <KeyboardArrowDownIcon fontSize="small" />
+                  ) : (
+                    <KeyboardArrowRightIcon fontSize="small" />
+                  )}
+                </IconButton>
+              );
+            },
           },
-        },
-      ]
+        ]
       : []),
   ];
 };

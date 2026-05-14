@@ -211,32 +211,42 @@ const {
 } = require('../business/batch-registry-business');
 const {
   evaluateInventoryStatusLookupVisibility,
-  resolveInventoryStatusLookupFilters
+  resolveInventoryStatusLookupFilters,
 } = require('../business/inventory-status-business');
-const { getInventoryStatusLookup } = require('../repositories/inventory-status-repository');
-const { getPricingTypeLookup } = require('../repositories/pricing-type-repository');
+const {
+  getInventoryStatusLookup,
+} = require('../repositories/inventory-status-repository');
+const {
+  getPricingTypeLookup,
+} = require('../repositories/pricing-type-repository');
 const {
   evaluatePricingTypeLookupVisibility,
   resolvePricingTypeLookupFilters,
-  enrichPricingTypeLookupWithActiveFlag
+  enrichPricingTypeLookupWithActiveFlag,
 } = require('../business/pricing-type-business');
-const { getWarehouseTypeLookup } = require('../repositories/warehouse-type-repository');
+const {
+  getWarehouseTypeLookup,
+} = require('../repositories/warehouse-type-repository');
 const {
   evaluateWarehouseTypeLookupVisibility,
-  resolveWarehouseTypeLookupFilters
+  resolveWarehouseTypeLookupFilters,
 } = require('../business/warehouse-type-business');
 const { getLocationLookup } = require('../repositories/location-repository');
 const {
   evaluateLocationLookupVisibility,
   resolveLocationLookupFilters,
-  enrichLocationLookupRow
+  enrichLocationLookupRow,
 } = require('../business/location-business');
-const { enrichStatusLookupOption } = require('../utils/lookup/enrich-status-lookup-option');
-const { getInventoryActionTypeLookup } = require('../repositories/inventory-action-type-repository');
+const {
+  enrichStatusLookupOption,
+} = require('../utils/lookup/enrich-status-lookup-option');
+const {
+  getInventoryActionTypeLookup,
+} = require('../repositories/inventory-action-type-repository');
 const {
   evaluateInventoryActionTypeLookupVisibility,
   resolveInventoryActionTypeLookupFilters,
-  enrichInventoryActionTypeLookupRow
+  enrichInventoryActionTypeLookupRow,
 } = require('../business/inventory-action-type-business');
 
 const CONTEXT = 'lookup-service';
@@ -248,7 +258,7 @@ const fetchBatchRegistryLookupService = async (
   { filters = {}, limit = 50, offset = 0 }
 ) => {
   const context = `${CONTEXT}/fetchBatchRegistryLookupService`;
-  
+
   try {
     const preparedFilters = await fetchBatchRegistryLookup(filters, user);
     const rawResult = await getBatchRegistryLookup({
@@ -259,7 +269,7 @@ const fetchBatchRegistryLookupService = async (
     return transformBatchRegistryPaginatedLookupResult(rawResult);
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
+
     throw AppError.serviceError('Unable to fetch batch registry lookup list.', {
       context,
       meta: { error: error.message },
@@ -272,7 +282,7 @@ const fetchBatchRegistryForInventoryLookupService = async (
   { filters = {}, limit = 50, offset = 0 }
 ) => {
   const context = `${CONTEXT}/fetchBatchRegistryForInventoryLookupService`;
-  
+
   try {
     const preparedFilters = await fetchBatchRegistryForInventoryLookup(
       filters,
@@ -286,7 +296,7 @@ const fetchBatchRegistryForInventoryLookupService = async (
     return transformBatchRegistryPaginatedLookupResult(rawResult);
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
+
     throw AppError.serviceError(
       'Unable to fetch batch registry lookup list for inventory.',
       { context, meta: { error: error.message } }
@@ -327,7 +337,7 @@ const fetchLotAdjustmentLookupService = async (
   { filters = {}, limit = 50, offset = 0 }
 ) => {
   const context = `${CONTEXT}/fetchLotAdjustmentLookupService`;
-  
+
   try {
     return await executeLookupWorkflow({
       user,
@@ -343,7 +353,7 @@ const fetchLotAdjustmentLookupService = async (
     });
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
+
     throw AppError.serviceError('Unable to fetch lot adjustment lookup.', {
       context,
       meta: { error: error.message },
@@ -734,13 +744,11 @@ const fetchPricingGroupLookupService = async (
       activeStatusId
     );
 
-    const { data = [], pagination = {} } = await getPricingGroupLookup(
-      {
-        filters: queryFilters,
-        limit,
-        offset,
-      }
-    );
+    const { data = [], pagination = {} } = await getPricingGroupLookup({
+      filters: queryFilters,
+      limit,
+      offset,
+    });
 
     const enrichedRows = data.map((row) =>
       enrichPricingGroupRow(row, activeStatusId)
@@ -1173,7 +1181,7 @@ const fetchBatchStatusLookupService = async (
   { filters = {}, limit = 50, offset = 0 }
 ) => {
   const context = `${CONTEXT}/fetchBatchStatusLookupService`;
-  
+
   try {
     return await executeLookupWorkflow({
       user,
@@ -1189,7 +1197,7 @@ const fetchBatchStatusLookupService = async (
     });
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
+
     throw AppError.serviceError('Unable to fetch batch status lookup.', {
       context,
       meta: { error: error.message },
@@ -1205,7 +1213,7 @@ const fetchPackagingMaterialSupplierLookupService = async (
 ) => {
   const context = `${CONTEXT}/fetchPackagingMaterialSupplierLookupService`;
   const activeStatusId = getStatusId('general_active');
-  
+
   try {
     return await executeLookupWorkflow({
       user,
@@ -1217,12 +1225,15 @@ const fetchPackagingMaterialSupplierLookupService = async (
       aclFilterApplier: enforcePackagingMaterialSupplierLookupVisibilityRules,
       transformer: transformPackagingMaterialSupplierPaginatedLookupResult,
       rowEnricher: (row) =>
-        enrichPackagingMaterialSupplierLookupWithActiveFlag(row, activeStatusId),
+        enrichPackagingMaterialSupplierLookupWithActiveFlag(
+          row,
+          activeStatusId
+        ),
       enrichmentCondition: (acl) => acl.canViewAllStatuses,
     });
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
+
     throw AppError.serviceError(
       'Unable to fetch packaging material supplier lookup.',
       { context, meta: { error: error.message } }
@@ -1237,7 +1248,7 @@ const fetchInventoryStatusLookupService = async (
   { filters = {}, limit = 50, offset = 0 }
 ) => {
   const context = `${CONTEXT}/fetchInventoryStatusLookupService`;
-  
+
   try {
     return await executeLookupWorkflow({
       user,
@@ -1248,13 +1259,12 @@ const fetchInventoryStatusLookupService = async (
       aclEvaluator: evaluateInventoryStatusLookupVisibility,
       aclFilterApplier: resolveInventoryStatusLookupFilters,
       transformer: transformInventoryStatusPaginatedLookupResult,
-      rowEnricher: (row) =>
-        enrichStatusLookupOption(row),
+      rowEnricher: (row) => enrichStatusLookupOption(row),
       enrichmentCondition: (acl) => acl.canViewInactive,
     });
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
+
     throw AppError.serviceError('Unable to fetch inventory status lookup.', {
       context,
       meta: { error: error.message },
@@ -1270,7 +1280,7 @@ const fetchPricingTypeLookupService = async (
 ) => {
   const context = `${CONTEXT}/fetchPricingTypeLookupService`;
   const activeStatusId = getStatusId('general_active');
-  
+
   try {
     return await executeLookupWorkflow({
       user,
@@ -1288,7 +1298,7 @@ const fetchPricingTypeLookupService = async (
     });
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
+
     throw AppError.serviceError('Unable to fetch pricing type lookup.', {
       context,
       meta: { error: error.message },
@@ -1303,7 +1313,7 @@ const fetchWarehouseTypeLookupService = async (
   { filters = {}, limit = 50, offset = 0 }
 ) => {
   const context = `${CONTEXT}/fetchWarehouseTypeLookupService`;
-  
+
   try {
     return await executeLookupWorkflow({
       user,
@@ -1319,7 +1329,7 @@ const fetchWarehouseTypeLookupService = async (
     });
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
+
     throw AppError.serviceError('Unable to fetch warehouse type lookup.', {
       context,
       meta: { error: error.message },
@@ -1335,7 +1345,7 @@ const fetchLocationLookupService = async (
 ) => {
   const context = `${CONTEXT}/fetchLocationLookupService`;
   const activeStatusId = getStatusId('general_active');
-  
+
   try {
     return await executeLookupWorkflow({
       user,
@@ -1352,7 +1362,7 @@ const fetchLocationLookupService = async (
     });
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
+
     throw AppError.serviceError('Unable to fetch location lookup.', {
       context,
       meta: { error: error.message },
@@ -1368,7 +1378,7 @@ const fetchInventoryActionTypeLookupService = async (
 ) => {
   const context = `${CONTEXT}/fetchInventoryActionTypeLookupService`;
   const activeStatusId = getStatusId('general_active');
-  
+
   try {
     return await executeLookupWorkflow({
       user,
@@ -1386,7 +1396,7 @@ const fetchInventoryActionTypeLookupService = async (
     });
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
+
     throw AppError.serviceError(
       'Unable to fetch inventory action type lookup.',
       {

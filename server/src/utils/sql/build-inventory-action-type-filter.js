@@ -54,73 +54,73 @@ const buildInventoryActionTypeFilter = (filters = {}) => {
     'updatedAfter',
     'updatedBefore'
   );
-  
+
   const conditions = ['1=1'];
   const params = [];
   const paramIndexRef = { value: 1 };
-  
+
   // ─── Identity ───────────────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.ids?.length) {
     conditions.push(`iat.id = ANY($${paramIndexRef.value}::uuid[])`);
     params.push(normalizedFilters.ids);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.categories?.length) {
     conditions.push(`iat.category = ANY($${paramIndexRef.value}::text[])`);
     params.push(normalizedFilters.categories);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.statusId) {
     conditions.push(`iat.status_id = $${paramIndexRef.value}`);
     params.push(normalizedFilters.statusId);
     paramIndexRef.value++;
   }
-  
+
   // ─── Behavior Flags ─────────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.isAdjustment !== undefined) {
     conditions.push(`iat.is_adjustment = $${paramIndexRef.value}`);
     params.push(normalizedFilters.isAdjustment);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.affectsFinancials !== undefined) {
     conditions.push(`iat.affects_financials = $${paramIndexRef.value}`);
     params.push(normalizedFilters.affectsFinancials);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.requiresAudit !== undefined) {
     conditions.push(`iat.requires_audit = $${paramIndexRef.value}`);
     params.push(normalizedFilters.requiresAudit);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.defaultAction !== undefined) {
     conditions.push(`iat.default_action = $${paramIndexRef.value}`);
     params.push(normalizedFilters.defaultAction);
     paramIndexRef.value++;
   }
-  
+
   // ─── Audit ──────────────────────────────────────────────────────────────────
-  
+
   if (normalizedFilters.createdBy) {
     conditions.push(`iat.created_by = $${paramIndexRef.value}`);
     params.push(normalizedFilters.createdBy);
     paramIndexRef.value++;
   }
-  
+
   if (normalizedFilters.updatedBy) {
     conditions.push(`iat.updated_by = $${paramIndexRef.value}`);
     params.push(normalizedFilters.updatedBy);
     paramIndexRef.value++;
   }
-  
+
   // ─── Date Range ─────────────────────────────────────────────────────────────
-  
+
   applyDateRangeConditions({
     conditions,
     params,
@@ -129,7 +129,7 @@ const buildInventoryActionTypeFilter = (filters = {}) => {
     before: normalizedFilters.createdBefore,
     paramIndexRef,
   });
-  
+
   applyDateRangeConditions({
     conditions,
     params,
@@ -138,9 +138,9 @@ const buildInventoryActionTypeFilter = (filters = {}) => {
     before: normalizedFilters.updatedBefore,
     paramIndexRef,
   });
-  
+
   // ─── Text ───────────────────────────────────────────────────────────────────
-  
+
   paramIndexRef.value = addIlikeFilter(
     conditions,
     params,
@@ -148,7 +148,7 @@ const buildInventoryActionTypeFilter = (filters = {}) => {
     normalizedFilters.name,
     'iat.name'
   );
-  
+
   paramIndexRef.value = addIlikeFilter(
     conditions,
     params,
@@ -156,9 +156,9 @@ const buildInventoryActionTypeFilter = (filters = {}) => {
     normalizedFilters.description,
     'iat.description'
   );
-  
+
   // ─── Keyword (must remain last) ──────────────────────────────────────────────
-  
+
   if (normalizedFilters.keyword) {
     conditions.push(`(
       iat.name        ILIKE $${paramIndexRef.value} OR
@@ -167,7 +167,7 @@ const buildInventoryActionTypeFilter = (filters = {}) => {
     params.push(`%${normalizedFilters.keyword}%`);
     paramIndexRef.value++;
   }
-  
+
   return {
     whereClause: conditions.join(' AND '),
     params,

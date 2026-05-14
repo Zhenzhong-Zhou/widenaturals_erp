@@ -24,7 +24,7 @@ export const buildBatchFields = (
       grid: { xs: 12, sm: 6 },
     },
   ];
-  
+
   if (canAdjustReserved) {
     fields.push({
       id: 'reservedQuantity',
@@ -34,7 +34,7 @@ export const buildBatchFields = (
       grid: { xs: 12, sm: 6 },
     });
   }
-  
+
   return fields;
 };
 
@@ -58,7 +58,7 @@ export const buildSingleFields = (
       defaultHelperText: `Current: ${record.warehouseQuantity}`,
     },
   ];
-  
+
   if (canAdjustReserved) {
     fields.push({
       id: 'reservedQuantity',
@@ -69,6 +69,6 @@ export const buildSingleFields = (
       defaultHelperText: `Current: ${record.reservedQuantity}`,
     });
   }
-  
+
   return fields;
 };

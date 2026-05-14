@@ -217,23 +217,32 @@ export const appRoutes: AppRoute[] = [
       requiredPermission: ROUTE_PERMISSIONS.ORDERS.VIEW,
     },
   }),
-  
+
   defineRoute({
     path: '/orders/:category/all',
     component: lazy(() => import('@features/order/pages/OrdersListPage')),
-    meta: { requiresAuth: true, requiredPermission: buildOrderPermissionResolver('VIEW') },
+    meta: {
+      requiresAuth: true,
+      requiredPermission: buildOrderPermissionResolver('VIEW'),
+    },
   }),
-  
+
   defineRoute({
     path: '/orders/:category/new',
     component: lazy(() => import('@features/order/pages/OrderBasePage')),
-    meta: { requiresAuth: true, requiredPermission: buildOrderPermissionResolver('CREATE') },
+    meta: {
+      requiresAuth: true,
+      requiredPermission: buildOrderPermissionResolver('CREATE'),
+    },
   }),
-  
+
   defineRoute({
     path: '/orders/:category/details/:orderId',
     component: lazy(() => import('@features/order/pages/OrderDetailsPage')),
-    meta: { requiresAuth: true, requiredPermission: buildOrderPermissionResolver('VIEW') },
+    meta: {
+      requiresAuth: true,
+      requiredPermission: buildOrderPermissionResolver('VIEW'),
+    },
   }),
 
   /* ---------- Inventory & Warehousing ---------- */
@@ -265,7 +274,7 @@ export const appRoutes: AppRoute[] = [
       requiredPermission: ROUTE_PERMISSIONS.WAREHOUSES.VIEW,
     },
   }),
-  
+
   defineRoute({
     path: '/warehouse-inventory/:warehouseId/inventory/:inventoryId',
     component: lazy(
@@ -277,7 +286,7 @@ export const appRoutes: AppRoute[] = [
       requiredPermission: ROUTE_PERMISSIONS.WAREHOUSE_INVENTORY.VIEW_DETAILS,
     },
   }),
-  
+
   defineRoute({
     path: '/warehouse-inventory/:warehouseId/activity-log',
     component: lazy(

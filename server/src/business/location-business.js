@@ -51,16 +51,14 @@ const CONTEXT = 'location-business';
  */
 const evaluateLocationLookupVisibility = async (user) => {
   const context = `${CONTEXT}/evaluateLocationLookupVisibility`;
-  
+
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     return {
       canViewInactive:
         isRoot ||
-        permissions.includes(
-          LOCATION_CONSTANTS.PERMISSIONS.VIEW_ALL_STATUSES
-        ),
+        permissions.includes(LOCATION_CONSTANTS.PERMISSIONS.VIEW_ALL_STATUSES),
       canViewArchived:
         isRoot ||
         permissions.includes(LOCATION_CONSTANTS.PERMISSIONS.VIEW_ARCHIVED),

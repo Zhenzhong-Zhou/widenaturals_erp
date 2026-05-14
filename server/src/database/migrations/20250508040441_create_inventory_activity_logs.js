@@ -64,7 +64,7 @@ exports.up = async function (knex) {
         'order', 'transfer', 'audit', 'return', 'manual', 'fulfillment', 'adjustment'
       ));
   `);
-  
+
   await knex.raw(`
     CREATE INDEX idx_inventory_activity_logs_inventory_performed
       ON inventory_activity_logs (warehouse_inventory_id, performed_at DESC);

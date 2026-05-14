@@ -23,10 +23,10 @@ type WarehouseTypeMultiSelectDropdownProps = Omit<
 const WarehouseTypeMultiSelectDropdown: FC<
   WarehouseTypeMultiSelectDropdownProps
 > = ({
-       label = 'Select Warehouse Type',
-       placeholder = 'Choose warehouse type…',
-       ...rest
-     }) => {
+  label = 'Select Warehouse Type',
+  placeholder = 'Choose warehouse type…',
+  ...rest
+}) => {
   return (
     <MultiSelectDropdown label={label} placeholder={placeholder} {...rest} />
   );

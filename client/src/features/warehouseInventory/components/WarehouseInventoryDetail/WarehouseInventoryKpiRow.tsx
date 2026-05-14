@@ -32,10 +32,10 @@ const KpiCard: FC<KpiCardProps> = ({ label, value, emphasis }) => (
 );
 
 const WarehouseInventoryKpiRow: FC<WarehouseInventoryKpiRowProps> = ({
-                                                                       warehouseQuantity,
-                                                                       reservedQuantity,
-                                                                       availableQuantity,
-                                                                     }) => (
+  warehouseQuantity,
+  reservedQuantity,
+  availableQuantity,
+}) => (
   <Grid container spacing={2}>
     <Grid size={{ xs: 12, sm: 4 }}>
       <KpiCard label="Warehouse" value={warehouseQuantity} />

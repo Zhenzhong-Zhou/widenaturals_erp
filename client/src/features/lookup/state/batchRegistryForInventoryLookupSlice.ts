@@ -1,7 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 import {
   type BatchRegistryLookupItem,
-  fetchBatchRegistryForInventoryLookupThunk
+  fetchBatchRegistryForInventoryLookupThunk,
 } from '@features/lookup/state';
 import type { BatchRegistryLookupState } from '@features/lookup/state';
 import { applyRejected } from '@features/shared/async/asyncReducerUtils';
@@ -30,12 +30,10 @@ const batchRegistryForInventoryLookupSlice = createSlice({
         (state, action) => {
           const { items, limit, offset, hasMore } = action.payload;
           state.loading = false;
-          
+
           state.data =
-            offset === 0
-              ? items
-              : [...state.data, ...items].slice(-MAX_ITEMS);
-          
+            offset === 0 ? items : [...state.data, ...items].slice(-MAX_ITEMS);
+
           state.limit = limit;
           state.offset = offset;
           state.hasMore = hasMore;

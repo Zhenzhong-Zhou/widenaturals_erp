@@ -1,8 +1,6 @@
 const { pool } = require('../../database/db');
 const { initStatusCache } = require('../../config/status-cache');
-const {
-  fetchDiscountLookupService,
-} = require('../../services/lookup-service');
+const { fetchDiscountLookupService } = require('../../services/lookup-service');
 
 (async () => {
   const client = await pool.connect();
@@ -30,10 +28,7 @@ const {
       offset: 0,
     };
 
-    const result = await fetchDiscountLookupService(
-      enrichedUser,
-      options
-    );
+    const result = await fetchDiscountLookupService(enrichedUser, options);
     console.log('✅ Discount lookup result:', result);
   } catch (error) {
     console.error('❌ Failed to fetch discount lookup:', error.message);

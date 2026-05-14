@@ -7,7 +7,7 @@
  * sort fields, and Redux state types.
  */
 
-import {
+import type {
   ApiSuccessResponse,
   GenericAudit,
   PaginatedResponse,
@@ -19,7 +19,7 @@ import {
 } from '@shared-types/api';
 import type { ReduxPaginatedState } from '@shared-types/pagination';
 import type { NullableNumber, NullableString } from '@shared-types/shared';
-import { WarehouseSummaryAlerts } from '@features/warehouseInventory';
+import type { WarehouseSummaryAlerts } from '@features/warehouseInventory';
 
 // =============================================================================
 // Shared Sub-types

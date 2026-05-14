@@ -29,18 +29,18 @@ interface SingleRecordAdjustFormProps {
  * FlattenedWarehouseInventory (when batch mode collapses to one row).
  */
 const SingleRecordAdjustForm: FC<SingleRecordAdjustFormProps> = ({
-                                                                   record,
-                                                                   canAdjustReserved,
-                                                                   loading,
-                                                                   onSubmit,
-                                                                 }) => (
+  record,
+  canAdjustReserved,
+  loading,
+  onSubmit,
+}) => (
   <>
     <Section>
       <SummaryStat label="Current Warehouse" value={record.warehouseQuantity} />
       <SummaryStat label="Current Reserved" value={record.reservedQuantity} />
       <SummaryStat label="Current Available" value={record.availableQuantity} />
     </Section>
-    
+
     <CustomForm
       fields={buildSingleFields(record, canAdjustReserved)}
       initialValues={{

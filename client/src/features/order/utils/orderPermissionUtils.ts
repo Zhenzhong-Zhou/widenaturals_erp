@@ -55,9 +55,8 @@ export const toPermissionValue = (
  * composite-category VIEW resolutions so the array is built once per
  * module load rather than on every resolver call.
  */
-export const COMPOSITE_VIEW_PERMISSIONS: readonly string[] = REAL_CATEGORIES.map(
-  (c) => toPermissionValue('VIEW', c)
-);
+export const COMPOSITE_VIEW_PERMISSIONS: readonly string[] =
+  REAL_CATEGORIES.map((c) => toPermissionValue('VIEW', c));
 
 /**
  * Creates a route-level dynamic permission resolver scoped to a single
@@ -80,15 +79,15 @@ export const COMPOSITE_VIEW_PERMISSIONS: readonly string[] = REAL_CATEGORIES.map
  */
 export const buildOrderPermissionResolver =
   (action: OrderAction): DynamicPermissionResolver =>
-    (params) => {
-      const category = params.category;
-      if (!category || !isValidOrderCategory(category)) return null;
-      
-      if (isCompositeCategory(category)) {
-        if (action !== 'VIEW') return null;
-        // Spread to hand callers a fresh, mutable array; the source is shared.
-        return { any: [...COMPOSITE_VIEW_PERMISSIONS] };
-      }
-      
-      return { any: [toPermissionValue(action, category)] };
-    };
+  (params) => {
+    const category = params.category;
+    if (!category || !isValidOrderCategory(category)) return null;
+
+    if (isCompositeCategory(category)) {
+      if (action !== 'VIEW') return null;
+      // Spread to hand callers a fresh, mutable array; the source is shared.
+      return { any: [...COMPOSITE_VIEW_PERMISSIONS] };
+    }
+
+    return { any: [toPermissionValue(action, category)] };
+  };

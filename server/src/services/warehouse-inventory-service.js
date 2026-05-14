@@ -341,7 +341,7 @@ const adjustWarehouseInventoryQuantityService = async ({
           { context }
         );
       }
-      
+
       // Index previous records by id so we can read the current status per row.
       const previousById = new Map(previousRecords.map((r) => [r.id, r]));
 
@@ -350,18 +350,18 @@ const adjustWarehouseInventoryQuantityService = async ({
       const updateInputs = updates.map((u) => {
         const prev = previousById.get(u.id);
         const previousStatusId = prev?.status_id;
-        
+
         const isToggleableStatus =
           previousStatusId === inStockStatusId ||
           previousStatusId === outOfStockStatusId;
-        
+
         const statusId = isToggleableStatus
           ? resolveInventoryStatus(u.warehouseQuantity, {
-            inStockStatusId,
-            outOfStockStatusId,
-          })
+              inStockStatusId,
+              outOfStockStatusId,
+            })
           : previousStatusId;
-        
+
         return {
           id: u.id,
           warehouseQuantity: u.warehouseQuantity,

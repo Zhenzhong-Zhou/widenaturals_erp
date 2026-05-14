@@ -44,14 +44,15 @@ interface UseLotAdjustmentTypeLookupBindingOptions {
  * different single-select lookup fields.
  */
 const useLotAdjustmentTypeLookupBinding = ({
-                                             fetchLotAdjustmentTypeLookup,
-                                           }: UseLotAdjustmentTypeLookupBindingOptions) => {
-  const [fetchParams, setFetchParams] =
-    useState<LotAdjustmentTypeLookupParams>({
+  fetchLotAdjustmentTypeLookup,
+}: UseLotAdjustmentTypeLookupBindingOptions) => {
+  const [fetchParams, setFetchParams] = useState<LotAdjustmentTypeLookupParams>(
+    {
       offset: 0,
       limit: 10,
-    });
-  
+    }
+  );
+
   /**
    * Handles keyword search input changes.
    * Resets pagination offset and immediately triggers lookup fetch.
@@ -59,19 +60,19 @@ const useLotAdjustmentTypeLookupBinding = ({
   const handleInputChange = useCallback(
     (_: unknown, newValue: string, reason: string) => {
       if (reason !== 'input') return;
-      
+
       const nextParams = {
         ...fetchParams,
         keyword: newValue,
         offset: 0,
       };
-      
+
       setFetchParams(nextParams);
       fetchLotAdjustmentTypeLookup(nextParams);
     },
     [fetchParams, fetchLotAdjustmentTypeLookup]
   );
-  
+
   /**
    * Refreshes lookup results using either:
    * - Provided params override
@@ -83,7 +84,7 @@ const useLotAdjustmentTypeLookupBinding = ({
     },
     [fetchLotAdjustmentTypeLookup, fetchParams]
   );
-  
+
   return {
     fetchParams,
     setFetchParams,

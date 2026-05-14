@@ -8,7 +8,9 @@ const {
   validateUUID,
   validateOptionalText,
 } = require('./general-validators');
-const { BATCH_TYPE_VALUES } = require('../utils/constants/domain/batch-constants');
+const {
+  BATCH_TYPE_VALUES,
+} = require('../utils/constants/domain/batch-constants');
 
 /**
  * Batch Registry query schema
@@ -137,7 +139,9 @@ const updateBatchRegistryNoteSchema = Joi.object({
  * Returns the base schema; callers compose .required()/.optional()/.allow().
  */
 const batchTypeField = () =>
-  Joi.string().valid(...BATCH_TYPE_VALUES).label('Batch Type');
+  Joi.string()
+    .valid(...BATCH_TYPE_VALUES)
+    .label('Batch Type');
 
 module.exports = {
   batchRegistryQuerySchema,

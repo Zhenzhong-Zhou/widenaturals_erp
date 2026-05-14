@@ -1,6 +1,4 @@
-import type {
-  AdjustWarehouseInventoryQuantityRequest,
-} from '@features/warehouseInventory';
+import type { AdjustWarehouseInventoryQuantityRequest } from '@features/warehouseInventory';
 
 /**
  * Single-record variant of the adjust-quantities payload.

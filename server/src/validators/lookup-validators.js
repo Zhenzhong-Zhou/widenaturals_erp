@@ -42,7 +42,7 @@ const baseLookupQuerySchema = {
  */
 const batchRegistryLookupQuerySchema = Joi.object({
   batchType: batchTypeField().optional().allow('', null),
-  
+
   ...baseLookupQuerySchema,
 });
 
@@ -61,9 +61,9 @@ const batchRegistryLookupQuerySchema = Joi.object({
  */
 const batchRegistryForInventoryLookupQuerySchema = Joi.object({
   batchType: batchTypeField().optional().allow('', null),
-  
+
   warehouseId: validateUUID('Warehouse ID').required(),
-  
+
   ...baseLookupQuerySchema,
 });
 

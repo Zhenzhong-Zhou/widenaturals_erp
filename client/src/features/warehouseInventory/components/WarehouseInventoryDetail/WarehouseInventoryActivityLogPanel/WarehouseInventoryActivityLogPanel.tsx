@@ -6,12 +6,8 @@ import {
   ErrorMessage,
   Loading,
 } from '@components/index';
-import {
-  ActivityLogToolbar,
-} from '@features/warehouseInventory/components/WarehouseInventoryDetail/WarehouseInventoryActivityLogPanel';
-import {
-  WarehouseInventoryActivityLogListTable
-} from '@features/warehouseInventory/components/WarehouseInventoryActivityLogListTable';
+import { ActivityLogToolbar } from '@features/warehouseInventory/components/WarehouseInventoryDetail/WarehouseInventoryActivityLogPanel';
+import { WarehouseInventoryActivityLogListTable } from '@features/warehouseInventory/components/WarehouseInventoryActivityLogListTable';
 import { useInventoryActivityLog } from '@hooks/index';
 import { usePaginationHandlers } from '@utils/hooks';
 import type { InventoryActivityLogFilters } from '@features/warehouseInventory/state';
@@ -41,13 +37,13 @@ const hasActiveFilters = (filters: InventoryActivityLogFilters) =>
  * from this panel does not need to touch expand state.
  */
 const WarehouseInventoryActivityLogPanel = ({
-                                              warehouseId,
-                                              warehouseInventoryId,
-                                            }: WarehouseInventoryActivityLogPanelProps) => {
+  warehouseId,
+  warehouseInventoryId,
+}: WarehouseInventoryActivityLogPanelProps) => {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [filters, setFilters] = useState<InventoryActivityLogFilters>({});
-  
+
   const {
     data,
     pagination: paginationInfo,
@@ -58,7 +54,7 @@ const WarehouseInventoryActivityLogPanel = ({
     fetchActivityLog,
     resetActivityLog,
   } = useInventoryActivityLog();
-  
+
   useEffect(() => {
     fetchActivityLog({
       warehouseId,
@@ -77,18 +73,18 @@ const WarehouseInventoryActivityLogPanel = ({
     filters,
     fetchActivityLog,
   ]);
-  
+
   useEffect(() => {
     return () => {
       resetActivityLog();
     };
   }, [resetActivityLog]);
-  
+
   const { handlePageChange, handleRowsPerPageChange } = usePaginationHandlers(
     setPage,
     setLimit
   );
-  
+
   const handleFiltersChange = useCallback(
     (next: InventoryActivityLogFilters) => {
       setFilters(next);
@@ -96,14 +92,14 @@ const WarehouseInventoryActivityLogPanel = ({
     },
     []
   );
-  
+
   const handleReset = useCallback(() => {
     setFilters({});
     setPage(1);
   }, []);
-  
+
   const filtersActive = hasActiveFilters(filters);
-  
+
   return (
     <Stack spacing={2}>
       <ActivityLogToolbar
@@ -111,13 +107,13 @@ const WarehouseInventoryActivityLogPanel = ({
         onFiltersChange={handleFiltersChange}
         onReset={handleReset}
       />
-      
+
       {loading && (
         <Loading variant="dotted" message="Loading activity log..." />
       )}
-      
+
       {!loading && error && <ErrorMessage message={error} />}
-      
+
       {!loading && !error && isEmpty && (
         <Box
           sx={{
@@ -133,7 +129,7 @@ const WarehouseInventoryActivityLogPanel = ({
           <CustomTypography variant="subtitle1" sx={{ fontWeight: 600 }}>
             No activity recorded yet.
           </CustomTypography>
-          
+
           <CustomTypography
             variant="body2"
             color="text.secondary"
@@ -143,7 +139,7 @@ const WarehouseInventoryActivityLogPanel = ({
               ? 'No activity log records match the current filters.'
               : 'This inventory item does not have activity log records yet.'}
           </CustomTypography>
-          
+
           {filtersActive && (
             <CustomButton
               size="small"
@@ -156,7 +152,7 @@ const WarehouseInventoryActivityLogPanel = ({
           )}
         </Box>
       )}
-      
+
       {!loading && !error && !isEmpty && (
         <WarehouseInventoryActivityLogListTable
           data={data}

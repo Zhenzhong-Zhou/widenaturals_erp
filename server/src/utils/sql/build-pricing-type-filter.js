@@ -37,22 +37,22 @@ const buildPricingTypeFilter = (filters = {}) => {
     'updatedAfter',
     'updatedBefore'
   );
-  
+
   const conditions = ['1=1'];
   const params = [];
   const paramIndexRef = { value: 1 };
-  
+
   const { statusId, keyword } = normalizedFilters;
-  
+
   // ─── Status ────────────────────────────────────────────────────────────────
-  
+
   if (statusId) {
     conditions.push(`pt.status_id = $${paramIndexRef.value++}`);
     params.push(statusId);
   }
-  
+
   // ─── Keyword ────────────────────────────────────────────────────────────────
-  
+
   if (keyword) {
     const idx = paramIndexRef.value++;
     conditions.push(`(
@@ -61,9 +61,9 @@ const buildPricingTypeFilter = (filters = {}) => {
     )`);
     params.push(`%${String(keyword).trim()}%`);
   }
-  
+
   // ─── Audit ─────────────────────────────────────────────────────────────────
-  
+
   applyDateRangeConditions({
     conditions,
     params,
@@ -72,7 +72,7 @@ const buildPricingTypeFilter = (filters = {}) => {
     before: normalizedFilters.createdBefore,
     paramIndexRef,
   });
-  
+
   applyAuditConditions(
     conditions,
     params,
@@ -80,7 +80,7 @@ const buildPricingTypeFilter = (filters = {}) => {
     normalizedFilters,
     'pt'
   );
-  
+
   return {
     whereClause: conditions.join(' AND '),
     params,

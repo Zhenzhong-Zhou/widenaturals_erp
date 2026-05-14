@@ -36,8 +36,10 @@ const PricingExportControls = ({ liveFilters }: PricingExportControlsProps) => {
     });
 
   const exportStatus = useStatusLookup();
-  const formattedExportStatusOptions = useFormattedOptionLabels(exportStatus.options);
-  
+  const formattedExportStatusOptions = useFormattedOptionLabels(
+    exportStatus.options
+  );
+
   const handleExport = useCallback(() => {
     dispatch(
       exportPricingThunk({

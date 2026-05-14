@@ -15,7 +15,9 @@ export interface BatchLookupBundle {
   inputValues: string[];
   setInputValues: Dispatch<SetStateAction<string[]>>;
   fetchParamsArray: BatchRegistryForInventoryLookupQuery[];
-  setFetchParamsArray: Dispatch<SetStateAction<BatchRegistryForInventoryLookupQuery[]>>;
+  setFetchParamsArray: Dispatch<
+    SetStateAction<BatchRegistryForInventoryLookupQuery[]>
+  >;
   options: BatchRegistryLookupItem[];
   loading: boolean;
   error: string | null;

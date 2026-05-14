@@ -15,23 +15,23 @@ import { resetInventoryStatusLookup } from '@features/lookup/state/inventoryStat
  */
 const useInventoryStatusLookup = () => {
   const dispatch = useAppDispatch();
-  
+
   const options = useAppSelector(selectInventoryStatusLookupOptions);
   const loading = useAppSelector(selectInventoryStatusLookupLoading);
   const error = useAppSelector(selectInventoryStatusLookupError);
   const meta = useAppSelector(selectInventoryStatusLookupMeta);
-  
+
   const fetch = useCallback(
     (params?: InventoryStatusLookupParams) => {
       dispatch(fetchInventoryStatusLookupThunk(params));
     },
     [dispatch]
   );
-  
+
   const reset = useCallback(() => {
     dispatch(resetInventoryStatusLookup());
   }, [dispatch]);
-  
+
   return useMemo(
     () => ({
       options,

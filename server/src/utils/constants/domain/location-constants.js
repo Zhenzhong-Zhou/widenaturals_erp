@@ -11,7 +11,7 @@
 const LOCATION_CONSTANTS = {
   PERMISSIONS: {
     // ── Scope ─────────────────────────────────────────────────────────────────
-    
+
     /**
      * Grants visibility across all locations.
      *
@@ -20,22 +20,22 @@ const LOCATION_CONSTANTS = {
      * assignments are introduced for this domain).
      */
     VIEW_ALL: 'view_all_locations',
-    
+
     // ── Visibility overrides ──────────────────────────────────────────────────
-    
+
     /** Allows viewing archived locations. */
     VIEW_ARCHIVED: 'view_archived_locations',
-    
+
     /** Allows viewing locations in any status, not just active. */
     VIEW_ALL_STATUSES: 'view_all_location_statuses',
-    
+
     // ── Mutations ─────────────────────────────────────────────────────────────
-    
+
     /** Allows archiving a location record. */
     ARCHIVE: 'archive_location',
-    
+
     // ── Location types ────────────────────────────────────────────────────────
-    
+
     /** Allows viewing inactive location types in the location types lookup. */
     VIEW_ALL_LOCATION_TYPES: 'view_all_location_types',
   },

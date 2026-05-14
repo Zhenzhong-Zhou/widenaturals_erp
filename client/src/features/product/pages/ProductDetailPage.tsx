@@ -52,8 +52,12 @@ const ProductDetailPage = () => {
   // --------------------------------------
   // 3. Permission Hooks
   // --------------------------------------
-  const canUpdateStatus = usePagePermissionState([PERMISSION_KEYS.PRODUCTS.UPDATE_STATUS]);
-  const canUpdateInfo   = usePagePermissionState([PERMISSION_KEYS.PRODUCTS.UPDATE_INFO]);
+  const canUpdateStatus = usePagePermissionState([
+    PERMISSION_KEYS.PRODUCTS.UPDATE_STATUS,
+  ]);
+  const canUpdateInfo = usePagePermissionState([
+    PERMISSION_KEYS.PRODUCTS.UPDATE_INFO,
+  ]);
 
   // --------------------------------------
   // 4. UI State (Dialogs)

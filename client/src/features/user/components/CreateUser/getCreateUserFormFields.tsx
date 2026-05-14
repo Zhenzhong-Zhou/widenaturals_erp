@@ -59,7 +59,7 @@ export const getCreateUserFormFields = (
       onKeywordChange,
     },
   } = deps;
-  
+
   const mapRoleOptionsToUi = (options: LookupOption[]) =>
     formatOptionLabels(options).map(({ label, value }) => ({
       label,

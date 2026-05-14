@@ -33,23 +33,23 @@ interface WarehouseInventoryActivityLogTableProps {
  * their expanded panel.
  */
 const WarehouseInventoryActivityLogListTable = ({
-                                                  data,
-                                                  loading,
-                                                  page,
-                                                  rowsPerPage,
-                                                  totalPages,
-                                                  totalRecords,
-                                                  onPageChange,
-                                                  onRowsPerPageChange,
-                                                  canViewDetail = true,
-                                                  showItemContext = false,
-                                            }: WarehouseInventoryActivityLogTableProps) => {
+  data,
+  loading,
+  page,
+  rowsPerPage,
+  totalPages,
+  totalRecords,
+  onPageChange,
+  onRowsPerPageChange,
+  canViewDetail = true,
+  showItemContext = false,
+}: WarehouseInventoryActivityLogTableProps) => {
   // ── Drill-down ────────────────────────────────────────────────────────────
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
   const handleDrillDownToggle = useCallback((rowId: string) => {
     setExpandedRowId((prev) => (prev === rowId ? null : rowId));
   }, []);
-  
+
   // ── Columns ───────────────────────────────────────────────────────────────
   const columns = useMemo(
     () =>
@@ -61,7 +61,7 @@ const WarehouseInventoryActivityLogListTable = ({
       }),
     [canViewDetail, expandedRowId, handleDrillDownToggle, showItemContext]
   );
-  
+
   // ── Expanded row ──────────────────────────────────────────────────────────
   const renderExpandedContent = useCallback(
     (row: InventoryActivityLogRecord) => (
@@ -80,7 +80,7 @@ const WarehouseInventoryActivityLogListTable = ({
     ),
     []
   );
-  
+
   return (
     <CustomTable<InventoryActivityLogRecord>
       data={data}

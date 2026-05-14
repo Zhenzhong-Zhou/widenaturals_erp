@@ -33,7 +33,7 @@ export type UserLookupBundle = {
  */
 const useUserSearchHandlers = (bundle: UserLookupBundle) => {
   const handleSearch = useDebouncedSearch<UserLookupParams>(bundle.fetch);
-  
+
   return {
     /**
      * Debounced handler for user keyword searches.

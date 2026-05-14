@@ -21,23 +21,23 @@ import { resetBatchRegistryForInventoryLookup } from '@features/lookup/state/bat
  */
 const useBatchRegistryForInventoryLookup = () => {
   const dispatch = useAppDispatch();
-  
+
   const items = useAppSelector(selectBatchRegistryForInventoryLookupItems);
   const loading = useAppSelector(selectBatchRegistryForInventoryLookupLoading);
   const error = useAppSelector(selectBatchRegistryForInventoryLookupError);
   const meta = useAppSelector(selectBatchRegistryForInventoryLookupMeta);
-  
+
   const fetchLookup = useCallback(
     (params: BatchRegistryForInventoryLookupQuery) =>
       dispatch(fetchBatchRegistryForInventoryLookupThunk(params)),
     [dispatch]
   );
-  
+
   const resetLookup = useCallback(
     () => dispatch(resetBatchRegistryForInventoryLookup()),
     [dispatch]
   );
-  
+
   return {
     items,
     loading,

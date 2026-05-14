@@ -12,7 +12,7 @@ import type {
 import type { FieldConfig } from '@components/common/CustomForm';
 import {
   formatOptionLabel,
-  formatOptionLabels
+  formatOptionLabels,
 } from '@features/lookup/utils/formatOptionLabels';
 
 export interface StatusLookupController {
@@ -43,7 +43,7 @@ const useStatusFieldController = ({
   currentStatusName,
 }: UseStatusFieldControllerArgs) => {
   const { options, loading, error, meta, fetch, reset } = lookup;
-  
+
   const formattedStatusOptions = useMemo<StatusLookupOption[]>(() => {
     const formatted = formatOptionLabels(options);
 
@@ -58,7 +58,7 @@ const useStatusFieldController = ({
         label: currentStatusName,
         isActive: true,
       };
-      
+
       formatted.unshift(formatOptionLabel(currentStatusOption));
     }
 

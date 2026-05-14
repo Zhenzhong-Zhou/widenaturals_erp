@@ -15,23 +15,23 @@ import { resetLocationLookup } from '@features/lookup/state/locationLookupSlice'
  */
 const useLocationLookup = () => {
   const dispatch = useAppDispatch();
-  
+
   const options = useAppSelector(selectLocationLookupOptions);
   const loading = useAppSelector(selectLocationLookupLoading);
   const error = useAppSelector(selectLocationLookupError);
   const meta = useAppSelector(selectLocationLookupMeta);
-  
+
   const fetch = useCallback(
     (params?: LocationLookupParams) => {
       dispatch(fetchLocationLookupThunk(params));
     },
     [dispatch]
   );
-  
+
   const reset = useCallback(() => {
     dispatch(resetLocationLookup());
   }, [dispatch]);
-  
+
   return useMemo(
     () => ({
       options,

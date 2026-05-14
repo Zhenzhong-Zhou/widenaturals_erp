@@ -64,8 +64,7 @@ export const formatOptionLabel = <T extends LabelOption>(
 export const formatOptionLabels = <T extends LabelOption>(
   options: T[],
   formatOptions?: FormatLabelOptions
-): T[] =>
-  options.map((option) => formatOptionLabel(option, formatOptions));
+): T[] => options.map((option) => formatOptionLabel(option, formatOptions));
 
 /**
  * React hook for memoizing formatted option labels inside components.

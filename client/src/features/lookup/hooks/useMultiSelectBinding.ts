@@ -24,16 +24,16 @@ import type { MultiSelectOption } from '@components/common/MultiSelectDropdown';
  * - handleSelect: writes the new ID list back to RHF with shouldDirty,
  *   or undefined when the selection is empty
  */
-const useMultiSelectBinding =<
+const useMultiSelectBinding = <
   TFormValues extends FieldValues,
   TFieldName extends Path<TFormValues>,
 >({
-    watch,
-    setValue,
-    fieldName,
-    options,
-    formatOption,
-  }: {
+  watch,
+  setValue,
+  fieldName,
+  options,
+  formatOption,
+}: {
   watch: UseFormWatch<TFormValues>;
   setValue: UseFormSetValue<TFormValues>;
   fieldName: TFieldName;
@@ -45,20 +45,20 @@ const useMultiSelectBinding =<
     if (!formatOption) return options;
     return options.map(formatOption);
   }, [options, formatOption]);
-  
+
   // RHF-safe read
   const ids = watch(fieldName) as
     | PathValue<TFormValues, TFieldName>
     | undefined;
-  
+
   const selectedOptions = useMemo<MultiSelectOption[]>(() => {
     if (!Array.isArray(ids)) return [];
     return formattedOptions.filter((opt) => ids.includes(opt.value));
   }, [ids, formattedOptions]);
-  
+
   const handleSelect = (selected: MultiSelectOption[]) => {
     const values = selected.map((o) => o.value);
-    
+
     setValue(
       fieldName,
       (values.length ? values : undefined) as PathValue<
@@ -66,9 +66,9 @@ const useMultiSelectBinding =<
         TFieldName
       >,
       { shouldDirty: true }
-  );
+    );
   };
-  
+
   return {
     options: formattedOptions,
     selectedOptions,

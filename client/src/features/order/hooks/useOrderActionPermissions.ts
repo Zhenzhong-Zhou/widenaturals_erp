@@ -57,10 +57,10 @@ const EMPTY_FLAGS: ActionFlags = {
  */
 const useOrderActionPermissions = (category?: string): ActionFlags => {
   const checkPermission = useHasPermission();
-  
+
   return useMemo(() => {
     if (!category || !isValidOrderCategory(category)) return EMPTY_FLAGS;
-    
+
     if (isCompositeCategory(category)) {
       return {
         ...EMPTY_FLAGS,
@@ -68,7 +68,7 @@ const useOrderActionPermissions = (category?: string): ActionFlags => {
         view: checkPermission([...COMPOSITE_VIEW_PERMISSIONS]) === true,
       };
     }
-    
+
     return ORDER_ACTIONS.reduce<ActionFlags>(
       (acc, action) => {
         acc[action.toLowerCase() as Lowercase<OrderAction>] =

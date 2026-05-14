@@ -15,14 +15,14 @@ const REFERENCE_TYPE_OPTIONS: Array<
 > = ['order', 'transfer', 'audit', 'return', 'manual'];
 
 const ActivityLogFiltersForm: FC<ActivityLogFiltersFormProps> = ({
-                                                                   filters,
-                                                                   onFiltersChange,
-                                                                   onReset,
-                                                                   onClose,
-                                                                 }) => {
+  filters,
+  onFiltersChange,
+  onReset,
+  onClose,
+}) => {
   // Draft state — don't fire fetches on every keystroke; commit on Apply
   const [draft, setDraft] = useState<InventoryActivityLogFilters>(filters);
-  
+
   const handleChange = <K extends keyof InventoryActivityLogFilters>(
     key: K,
     value: InventoryActivityLogFilters[K] | undefined
@@ -37,18 +37,18 @@ const ActivityLogFiltersForm: FC<ActivityLogFiltersFormProps> = ({
       return next;
     });
   };
-  
+
   const handleApply = () => {
     onFiltersChange(draft);
     onClose();
   };
-  
+
   return (
     <Stack spacing={2}>
       <CustomTypography variant="subtitle1" fontWeight={600}>
         Filter Activity Log
       </CustomTypography>
-      
+
       {/* Swap for an action type LookupSelect when available */}
       <TextField
         label="Action type ID"
@@ -59,7 +59,7 @@ const ActivityLogFiltersForm: FC<ActivityLogFiltersFormProps> = ({
           handleChange('actionTypeId', e.target.value || undefined)
         }
       />
-      
+
       {/* Swap for an adjustment type LookupSelect when available */}
       <TextField
         label="Adjustment type ID"
@@ -70,7 +70,7 @@ const ActivityLogFiltersForm: FC<ActivityLogFiltersFormProps> = ({
           handleChange('adjustmentTypeId', e.target.value || undefined)
         }
       />
-      
+
       <TextField
         select
         label="Reference type"
@@ -92,7 +92,7 @@ const ActivityLogFiltersForm: FC<ActivityLogFiltersFormProps> = ({
           </MenuItem>
         ))}
       </TextField>
-      
+
       {/* Swap for a user LookupSelect when available */}
       <TextField
         label="Performed by (user ID)"
@@ -103,7 +103,7 @@ const ActivityLogFiltersForm: FC<ActivityLogFiltersFormProps> = ({
           handleChange('performedBy', e.target.value || undefined)
         }
       />
-      
+
       <Stack direction="row" spacing={1}>
         <TextField
           label="From"
@@ -138,7 +138,7 @@ const ActivityLogFiltersForm: FC<ActivityLogFiltersFormProps> = ({
           }
         />
       </Stack>
-      
+
       <Box display="flex" justifyContent="flex-end" gap={1}>
         <CustomButton variant="text" onClick={onReset}>
           Reset
