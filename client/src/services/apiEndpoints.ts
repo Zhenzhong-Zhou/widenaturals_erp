@@ -127,7 +127,7 @@ export const API_ENDPOINTS = {
     TAX_RATES: '/lookups/tax-rates',
     DELIVERY_METHODS: '/lookups/delivery-methods',
     SKUS: '/lookups/skus',
-    PRICING_GROUP: '/lookups/pricing-groups',
+    PRICING_GROUPS: '/lookups/pricing-groups',
     PACKAGING_MATERIALS: '/lookups/packaging-materials',
     SKU_CODE_BASES: '/lookups/sku-code-bases',
     PRODUCTS: '/lookups/products',
@@ -141,6 +141,7 @@ export const API_ENDPOINTS = {
     PRICING_TYPES: '/lookups/pricing-types',
     WAREHOUSES_TYPES: '/lookups/warehouse-types',
     LOCATIONS: '/lookups/locations',
+    INVENTORY_ACTION_TYPES: '/lookups/inventory-action-types',
   },
   REPORTS: {
     INVENTORY_ACTIVITY_LOGS: 'reports/inventory-activity-logs',
