@@ -31,7 +31,7 @@ import {
 } from '@features/lookup/hooks';
 import type { OptionType } from '@components/common/Dropdown';
 import type { MultiSelectOption } from '@components/common/MultiSelectDropdown';
-import { formatLabel } from '@utils/textUtils';
+import { formatOptionLabels } from '@features/lookup/utils/formatOptionLabels';
 
 // =========================================================
 // Types
@@ -99,13 +99,13 @@ const BATCH_TYPE_OPTIONS: OptionType[] = [
  * - full-text search
  */
 const WarehouseInventoryFiltersPanel: FC<Props> = ({
-  filters,
-  lookups,
-  lookupHandlers,
-  onChange,
-  onApply,
-  onReset,
-}) => {
+                                                     filters,
+                                                     lookups,
+                                                     lookupHandlers,
+                                                     onChange,
+                                                     onApply,
+                                                     onReset,
+                                                   }) => {
   const { control, handleSubmit, reset, watch, setValue } =
     useForm<WarehouseInventoryFilters>({
       defaultValues: filters,
@@ -120,7 +120,7 @@ const WarehouseInventoryFiltersPanel: FC<Props> = ({
   
   const formatInventoryStatusOption = (
     opt: MultiSelectOption
-  ): MultiSelectOption => ({ ...opt, label: formatLabel(opt.label) });
+  ): MultiSelectOption => formatOptionLabels([opt])[0]!;
   
   // -------------------------
   // Lookup bindings (with debounced keyword search)

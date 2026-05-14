@@ -14,7 +14,7 @@ import type {
   LookupQuery,
 } from '@features/lookup';
 import { validatePasswordStrength } from '@features/auth/utils/validatePassword';
-import { formatLabel } from '@utils/textUtils';
+import { formatOptionLabels } from '@features/lookup/utils/formatOptionLabels';
 
 /**
  * External dependencies required by the Create User form.
@@ -59,11 +59,11 @@ export const getCreateUserFormFields = (
       onKeywordChange,
     },
   } = deps;
-
+  
   const mapRoleOptionsToUi = (options: LookupOption[]) =>
-    options.map((opt) => ({
-      label: formatLabel(opt.label),
-      value: opt.value,
+    formatOptionLabels(options).map(({ label, value }) => ({
+      label,
+      value,
     }));
 
   const roleOptionsUi = mapRoleOptionsToUi(options);
