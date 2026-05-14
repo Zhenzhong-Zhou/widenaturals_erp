@@ -191,7 +191,9 @@ const resolveSource = async (src, skuCode) => {
 
       const response = await retry(
         async () => {
-          const res = await globalThis.fetch(sanitizedUrl, { redirect: 'error' });
+          const res = await globalThis.fetch(sanitizedUrl, {
+            redirect: 'error',
+          });
 
           if (!res.ok) {
             const error = new Error(`HTTP error: ${res.status}`);
