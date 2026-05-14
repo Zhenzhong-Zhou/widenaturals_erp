@@ -13,10 +13,9 @@ import { StatusDropdown } from '@features/lookup/components';
 import { useStatusLookup } from '@hooks/index';
 import { useAppDispatch } from '@store/storeHooks';
 import { exportPricingThunk } from '@features/pricing/state';
-import { useFormattedOptions } from '@features/lookup/utils/lookupUtils';
-import { formatLabel } from '@utils/textUtils';
 import type { PricingFilters } from '@features/pricing';
 import type { LookupQuery } from '@features/lookup';
+import { useFormattedOptionLabels } from '@features/lookup/utils/formatOptionLabels';
 
 interface PricingExportControlsProps {
   /** Live filter values from the filter panel — used as export filter context. */
@@ -37,11 +36,8 @@ const PricingExportControls = ({ liveFilters }: PricingExportControlsProps) => {
     });
 
   const exportStatus = useStatusLookup();
-  const formattedExportStatusOptions = useFormattedOptions(
-    exportStatus.options,
-    formatLabel
-  );
-
+  const formattedExportStatusOptions = useFormattedOptionLabels(exportStatus.options);
+  
   const handleExport = useCallback(() => {
     dispatch(
       exportPricingThunk({

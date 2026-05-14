@@ -1,7 +1,7 @@
 import { type FC, useEffect } from 'react';
 import type { Path } from 'react-hook-form';
 import { useForm } from 'react-hook-form';
-import Grid from '@mui/material/Grid';
+import { Grid } from '@mui/material';
 import { FilterPanelLayout } from '@components/index';
 import type { UserFilters } from '@features/user/state';
 import type { FilterField } from '@shared-types/shared';
@@ -15,13 +15,12 @@ import {
   RoleMultiSelectDropdown,
   StatusMultiSelectDropdown,
 } from '@features/lookup/components';
-import { useFormattedOptions } from '@features/lookup/utils/lookupUtils';
 import { renderDateField, renderInputField } from '@utils/filters/filterUtils';
-import { formatLabel } from '@utils/textUtils';
 import type {
   UserFiltersPanelLookups,
   UserLookupHandlers,
 } from '@features/user/types/hookTypes';
+import { useFormattedOptionLabels } from '@features/lookup/utils/formatOptionLabels';
 
 interface Props {
   filters: UserFilters;
@@ -156,13 +155,10 @@ const UserFiltersPanel: FC<Props> = ({
   /* -----------------------------
    * Derived lookup options
    * ----------------------------- */
-  const formattedRoleOptions = useFormattedOptions(role.options, formatLabel);
-
-  const formattedStatusOptions = useFormattedOptions(
-    status.options,
-    formatLabel
-  );
-
+  const formattedRoleOptions = useFormattedOptionLabels(role.options);
+  
+  const formattedStatusOptions = useFormattedOptionLabels(status.options);
+  
   /* -----------------------------
    * Render
    * ----------------------------- */
