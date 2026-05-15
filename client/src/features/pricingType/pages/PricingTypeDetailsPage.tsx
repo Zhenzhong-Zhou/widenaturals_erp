@@ -1,9 +1,6 @@
 import { type FC, useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import Box from '@mui/material/Box';
-import Card from '@mui/material/Card';
-import Divider from '@mui/material/Divider';
-import Grid from '@mui/material/Grid';
+import { Box, Card, Divider, Grid } from '@mui/material';
 import {
   CustomButton,
   CustomTypography,
@@ -207,12 +204,14 @@ const PricingTypeDetailsPage: FC = () => {
        * Pricing Groups Section
        * -------------------------------------------------- */}
       <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        mb={2}
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          mb: 2,
+        }}
       >
-        <CustomTypography variant="h6" fontWeight={600}>
+        <CustomTypography variant="h6" sx={{ fontWeight: 600 }}>
           Pricing Groups
         </CustomTypography>
 

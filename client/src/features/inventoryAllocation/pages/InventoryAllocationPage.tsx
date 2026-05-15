@@ -1,8 +1,5 @@
 import { type FC, useCallback, useEffect, useMemo, useState } from 'react';
-import Box from '@mui/material/Box';
-import Grid from '@mui/material/Grid';
-import Card from '@mui/material/Card';
-import Divider from '@mui/material/Divider';
+import { Box, Card, Divider, Grid } from '@mui/material';
 import { CustomTypography, Loading, NoDataFound } from '@components/index';
 import InventoryAllocationTable, {
   InventoryAllocationFiltersPanel,
@@ -85,14 +82,16 @@ const InventoryAllocationPage: FC = () => {
     <Box sx={{ px: 4, py: 3 }}>
       {/* Header */}
       <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        flexWrap="wrap"
-        mb={3}
-        gap={2}
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          mb: 3,
+          gap: 2,
+        }}
       >
-        <CustomTypography variant="h5" fontWeight={700}>
+        <CustomTypography variant="h5" sx={{ fontWeight: 700 }}>
           Inventory Allocation Management
         </CustomTypography>
       </Box>

@@ -1,15 +1,12 @@
 import { useCallback, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import Box from '@mui/material/Box';
-import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
-import Stack from '@mui/material/Stack';
-import Divider from '@mui/material/Divider';
-import CustomTypography from '@components/common/CustomTypography';
-import CustomButton from '@components/common/CustomButton';
-import GoBackButton from '@components/common/GoBackButton';
-import ErrorMessage from '@components/common/ErrorMessage';
-import Loading from '@components/common/Loading';
+import {
+  Box,
+  Card,
+  CardContent,
+  Divider,
+  Stack
+} from '@mui/material';
 import {
   BomHeaderSection,
   BomSummarySection,
@@ -17,8 +14,18 @@ import {
   BomMaterialSupplySummarySection,
   BomReadinessSummarySection,
 } from '@features/bom/components/BomOverview';
-import useBomDetails from '@hooks/useBomDetails';
-import useBomMaterialSupplyDetails from '@hooks/useBomMaterialSupplyDetails';
+import {
+  CustomButton,
+  CustomTypography,
+  ErrorMessage,
+  GoBackButton,
+  Loading
+} from '@components/index';
+import {
+  useBomDetails,
+  useBomMaterialSupplyDetails,
+  useBomProductionReadiness
+} from '@hooks/index';
 import {
   flattenBomHeader,
   flattenBomSummary,
@@ -29,7 +36,6 @@ import {
   flattenBomReadinessMetadata,
 } from '@features/bom/utils';
 import { mergeBomDetailsWithSupplyAndReadiness } from '@features/bom/utils/mergeBomOverviewData';
-import useBomProductionReadiness from '@hooks/useBomProductionReadiness';
 
 const BomOverviewPage = () => {
   const { bomId } = useParams<{ bomId: string }>();
@@ -180,7 +186,14 @@ const BomOverviewPage = () => {
       </CustomTypography>
 
       {/* === Actions Row === */}
-      <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 3 }}>
+      <Stack
+        direction="row"
+        spacing={2}
+        sx={{
+          alignItems: 'center',
+          mb: 3,
+        }}
+      >
         <GoBackButton />
       </Stack>
 
@@ -209,8 +222,14 @@ const BomOverviewPage = () => {
             <CustomTypography variant="h4" sx={{ fontWeight: 'bold' }}>
               BOM Overview
             </CustomTypography>
-
-            <Stack direction="row" spacing={2} alignItems="center">
+            
+            <Stack
+              direction="row"
+              spacing={2}
+              sx={{
+                alignItems: 'center',
+              }}
+            >
               <CustomButton onClick={refreshBomDetails}>
                 Refresh BOM Details
               </CustomButton>
@@ -326,7 +345,14 @@ const BomOverviewPage = () => {
           </Box>
 
           {/* --- Footer --- */}
-          <Box mt={4} display="flex" justifyContent="flex-end" gap={2}>
+          <Box
+            sx={{
+              mt: 4,
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: 2,
+            }}
+          >
             <CustomButton variant="contained" color="info" href="/boms">
               Back to BOM List
             </CustomButton>

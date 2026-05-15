@@ -1,11 +1,7 @@
 import type { FC, ReactNode } from 'react';
-import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
-import CardMedia from '@mui/material/CardMedia';
-import CardActions from '@mui/material/CardActions';
-import Box from '@mui/material/Box';
-import CustomTypography from '@components/common/CustomTypography';
-import type { SxProps, Theme } from '@mui/system';
+import type { SxProps, Theme } from '@mui/material/styles';
+import { Box, Card, CardActions, CardContent, CardMedia } from '@mui/material';
+import { CustomTypography } from '@components/index';
 
 interface CustomCardProps {
   title?: string | ReactNode;
@@ -61,8 +57,8 @@ const CustomCard: FC<CustomCardProps> = ({
           }}
         />
       )}
-
-      <CardContent sx={{ ...contentSx }}>
+      
+      <CardContent sx={contentSx}>
         {title &&
           (typeof title === 'string' ? (
             <CustomTypography
@@ -80,9 +76,9 @@ const CustomCard: FC<CustomCardProps> = ({
               {title}
             </CustomTypography>
           ) : (
-            title // JSX already provided, like <Typography variant="h6">...</Typography>
+            title
           ))}
-
+        
         {subtitle && (
           <CustomTypography
             variant="body1"
@@ -96,14 +92,14 @@ const CustomCard: FC<CustomCardProps> = ({
             {subtitle}
           </CustomTypography>
         )}
-
-        {children && <Box mt={2}>{children}</Box>}
+        
+        {children && <Box sx={{ mt: 2 }}>{children}</Box>}
       </CardContent>
 
       {actions ? (
         <CardActions sx={{ justifyContent: 'center' }}>{actions}</CardActions>
       ) : (
-        <Box height={40} />
+        <Box sx={{ height: 40 }} aria-hidden="true" />
       )}
     </Card>
   );

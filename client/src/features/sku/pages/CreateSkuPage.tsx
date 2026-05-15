@@ -72,12 +72,14 @@ const CreateSkuPage = () => {
       <Box sx={{ mb: 3 }}>
         <Stack
           direction="row"
-          alignItems="center"
-          justifyContent="space-between"
           spacing={2}
+          sx={{
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
         >
           {/* Title */}
-          <CustomTypography variant="h5" fontWeight={700}>
+          <CustomTypography variant="h5" sx={{ fontWeight: 700 }}>
             Create SKUs
           </CustomTypography>
 
@@ -154,7 +156,7 @@ const CreateSkuPage = () => {
       {/* ----------------------------------------- */}
       {/* FORM BODY */}
       {/* ----------------------------------------- */}
-      <Box mx={'auto'}>
+      <Box sx={{ mx: 'auto' }}>
         {createError && <ErrorMessage message={createError} showNavigation />}
         {createSuccess && createdResponse && (
           <SkuSuccessDialog

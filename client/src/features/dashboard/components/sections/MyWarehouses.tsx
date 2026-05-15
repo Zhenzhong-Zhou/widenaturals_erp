@@ -1,13 +1,15 @@
 import { type FC, useEffect, useMemo } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
-import Box from '@mui/material/Box';
-import Card from '@mui/material/Card';
-import CardActionArea from '@mui/material/CardActionArea';
-import Grid from '@mui/material/Grid';
-import IconButton from '@mui/material/IconButton';
-import Skeleton from '@mui/material/Skeleton';
-import Tooltip from '@mui/material/Tooltip';
-import Chip from '@mui/material/Chip';
+import {
+  Box,
+  Card,
+  CardActionArea,
+  Chip,
+  Grid,
+  IconButton,
+  Skeleton,
+  Tooltip
+} from '@mui/material';
 import HistoryIcon from '@mui/icons-material/History';
 import WarehouseIcon from '@mui/icons-material/Warehouse';
 import ClearAllIcon from '@mui/icons-material/ClearAll';
@@ -102,13 +104,20 @@ const MyWarehouses: FC = () => {
 
   if (!canView) return null;
   if (error) return null;
-
+  
   if (loading) {
     return (
       <Box>
-        <CustomTypography variant="subtitle1" fontWeight={700} mb={2}>
+        <CustomTypography
+          variant="subtitle1"
+          sx={{
+            fontWeight: 700,
+            mb: 2,
+          }}
+        >
           My Warehouses
         </CustomTypography>
+        
         <Grid container spacing={2}>
           {[0, 1, 2].map((i) => (
             <Grid key={i} size={{ xs: 12, sm: 6, md: 4 }}>
@@ -123,22 +132,25 @@ const MyWarehouses: FC = () => {
       </Box>
     );
   }
-
+  
   if (ordered.length === 0) return null;
-
+  
   const hasRecent = recent.length > 0;
-
+  
   return (
     <Box>
       <Box
-        display="flex"
-        alignItems="center"
-        justifyContent="space-between"
-        mb={2}
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          mb: 2,
+        }}
       >
-        <CustomTypography variant="subtitle1" fontWeight={700}>
+        <CustomTypography variant="subtitle1" sx={{ fontWeight: 700 }}>
           My Warehouses
         </CustomTypography>
+        
         {hasRecent && (
           <Tooltip title="Clear recently visited">
             <IconButton size="small" onClick={clearRecent}>
@@ -147,7 +159,7 @@ const MyWarehouses: FC = () => {
           </Tooltip>
         )}
       </Box>
-
+      
       <Grid container spacing={2}>
         {ordered.map((w) => (
           <Grid key={w.id} size={{ xs: 12, sm: 6, md: 4 }}>
@@ -170,11 +182,13 @@ const MyWarehouses: FC = () => {
                 }}
               >
                 <Box
-                  display="flex"
-                  alignItems="center"
-                  gap={2}
-                  width="100%"
-                  minHeight={64}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 2,
+                    width: '100%',
+                    minHeight: 64,
+                  }}
                 >
                   <Box
                     sx={{
@@ -184,23 +198,34 @@ const MyWarehouses: FC = () => {
                   >
                     <WarehouseIcon fontSize="large" />
                   </Box>
-
-                  <Box flex={1} minWidth={0}>
+                  
+                  <Box
+                    sx={{
+                      flex: 1,
+                      minWidth: 0,
+                    }}
+                  >
                     {/* Top row: name + recent indicator */}
                     <Box
-                      display="flex"
-                      alignItems="center"
-                      gap={0.75}
-                      mb={0.25}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 0.75,
+                        mb: 0.25,
+                      }}
                     >
                       <CustomTypography
                         variant="subtitle2"
-                        fontWeight={700}
                         noWrap
-                        sx={{ flex: 1, minWidth: 0 }}
+                        sx={{
+                          fontWeight: 700,
+                          flex: 1,
+                          minWidth: 0,
+                        }}
                       >
                         {w.name}
                       </CustomTypography>
+                      
                       {w.isRecent && (
                         <Tooltip title="Recently visited">
                           <HistoryIcon
@@ -210,22 +235,28 @@ const MyWarehouses: FC = () => {
                         </Tooltip>
                       )}
                     </Box>
-
+                    
                     {/* Bottom row: code + location + type chip */}
                     <Box
-                      display="flex"
-                      alignItems="center"
-                      gap={1}
-                      minHeight={20}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        minHeight: 20,
+                      }}
                     >
                       <CustomTypography
                         variant="caption"
                         color="text.secondary"
                         noWrap
-                        sx={{ flex: 1, minWidth: 0 }}
+                        sx={{
+                          flex: 1,
+                          minWidth: 0,
+                        }}
                       >
                         {w.code} · {w.locationName}
                       </CustomTypography>
+                      
                       {w.warehouseType && (
                         <Chip
                           label={formatLabel(w.warehouseType)}

@@ -1,8 +1,7 @@
 import { type FC } from 'react';
-import Box from '@mui/material/Box';
-import Grid from '@mui/material/Grid';
-import CustomTypography from '@components/common/CustomTypography';
 import type { AddressListItem } from '@features/address/state/addressTypes';
+import { Box, Grid } from '@mui/material';
+import { CustomTypography } from '@components/index';
 
 interface AddressExpandedContentProps {
   row: AddressListItem;
@@ -24,7 +23,7 @@ const AddressExpandedContent: FC<AddressExpandedContentProps> = ({ row }) => {
 
   return (
     <Box sx={{ px: 3, py: 2 }}>
-      <CustomTypography variant="subtitle1" fontWeight={600} gutterBottom>
+      <CustomTypography variant="subtitle1" sx={{ fontWeight: 600 }} gutterBottom>
         Address Details
       </CustomTypography>
 
@@ -34,8 +33,10 @@ const AddressExpandedContent: FC<AddressExpandedContentProps> = ({ row }) => {
             <Box>
               <CustomTypography
                 variant="body2"
-                fontWeight={600}
-                sx={{ color: 'text.primary' }}
+                sx={{
+                  fontWeight: 600,
+                  color: 'text.primary'
+              }}
               >
                 {label}:
               </CustomTypography>

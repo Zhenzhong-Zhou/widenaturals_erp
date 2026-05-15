@@ -1,11 +1,13 @@
 import { type FC, useCallback, useMemo, useState } from 'react';
+import { Box } from '@mui/material';
+import {
+  CustomTable,
+  CustomTypography
+} from '@components/index';
 import type {
   BomItemWithSupplyAndReadiness,
   FlattenedBomDetailRow,
 } from '@features/bom/state/bomTypes';
-import Box from '@mui/material/Box';
-import CustomTable from '@components/common/CustomTable';
-import CustomTypography from '@components/common/CustomTypography';
 import {
   BomPartExpandedSection,
   getBomDetailsTableColumns,
@@ -140,12 +142,14 @@ const BomDetailsTable: FC<BomDetailsTableProps> = ({
     <Box>
       {/* --- Header --- */}
       <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        mb={2}
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          mb: 2,
+        }}
       >
-        <CustomTypography variant="h6" fontWeight={600}>
+        <CustomTypography variant="h6" sx={{ fontWeight: 600 }}>
           BOM Details
         </CustomTypography>
       </Box>

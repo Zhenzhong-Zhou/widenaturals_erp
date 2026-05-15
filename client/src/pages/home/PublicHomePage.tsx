@@ -9,7 +9,7 @@ import {
   InfoCard,
   BrandCard,
   Footer,
-} from './components';
+} from '@pages/home/components';
 
 /**
  * PublicHomePage
@@ -240,7 +240,7 @@ const PublicHomePage: FC = () => {
             }}
           >
             <Box>
-              <CustomTypography variant="subtitle2" fontWeight={900}>
+              <CustomTypography variant="subtitle2" sx={{ fontWeight: 900 }}>
                 WIDE Naturals Inc.
               </CustomTypography>
               <CustomTypography variant="body2" sx={{ mt: 0.5 }}>
@@ -260,8 +260,14 @@ const PublicHomePage: FC = () => {
                 </Link>
               </CustomTypography>
             </Box>
-
-            <Stack direction="row" spacing={1.5} flexWrap="wrap">
+            
+            <Stack
+              direction="row"
+              spacing={1.5}
+              sx={{
+                flexWrap: 'wrap',
+              }}
+            >
               <CustomButton
                 variant="contained"
                 href={`mailto:${CONTACT_EMAIL}?subject=Partnership%20Inquiry`}

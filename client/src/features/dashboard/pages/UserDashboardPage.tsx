@@ -22,7 +22,7 @@ const UserDashboardPage: FC<DashboardPageProps> = () => {
     <DashboardLayout
       fullName={fullName ?? undefined}
       header={
-        <CustomTypography variant="h6" fontWeight={600} gutterBottom>
+        <CustomTypography variant="h6" sx={{ fontWeight: 600 }} gutterBottom>
           Welcome
         </CustomTypography>
       }

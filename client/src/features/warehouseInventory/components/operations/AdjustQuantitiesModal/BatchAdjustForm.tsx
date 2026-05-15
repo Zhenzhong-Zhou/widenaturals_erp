@@ -92,8 +92,10 @@ const BatchAdjustForm: FC<BatchAdjustFormProps> = ({
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
                 <CustomTypography
                   variant="subtitle1"
-                  fontWeight={700}
-                  sx={{ lineHeight: 1.2 }}
+                  sx={{
+                    fontWeight: 700,
+                    lineHeight: 1.2,
+                  }}
                 >
                   {meta.name ?? '—'}
                 </CustomTypography>
@@ -121,7 +123,7 @@ const BatchAdjustForm: FC<BatchAdjustFormProps> = ({
                   >
                     Original Warehouse
                   </CustomTypography>
-                  <CustomTypography variant="body2" fontWeight={600}>
+                  <CustomTypography variant="body2" sx={{ fontWeight: 600 }}>
                     {meta.origWarehouse}
                   </CustomTypography>
                 </Box>
@@ -133,7 +135,7 @@ const BatchAdjustForm: FC<BatchAdjustFormProps> = ({
                   >
                     Original Reserved
                   </CustomTypography>
-                  <CustomTypography variant="body2" fontWeight={600}>
+                  <CustomTypography variant="body2" sx={{ fontWeight: 600 }}>
                     {meta.origReserved}
                   </CustomTypography>
                 </Box>

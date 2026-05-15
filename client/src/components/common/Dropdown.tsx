@@ -7,22 +7,25 @@ import {
   isValidElement,
   type ReactNode,
 } from 'react';
-import { useTheme } from '@mui/material';
-import Autocomplete, {
+import {
+  Autocomplete,
   type AutocompleteProps,
-} from '@mui/material/Autocomplete';
-import Box from '@mui/material/Box';
-import MenuItem from '@mui/material/MenuItem';
-import Divider from '@mui/material/Divider';
-import Stack from '@mui/material/Stack';
-import Tooltip from '@mui/material/Tooltip';
+  Box,
+  Divider,
+  MenuItem,
+  Stack,
+  Tooltip,
+  useTheme
+} from '@mui/material';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import type { IconProp } from '@fortawesome/fontawesome-svg-core';
 import { faPlus, faSyncAlt } from '@fortawesome/free-solid-svg-icons';
-import CustomTypography from '@components/common/CustomTypography';
-import BaseInput from '@components/common/BaseInput';
-import Loading from '@components/common/Loading';
-import ErrorMessage from '@components/common/ErrorMessage';
+import {
+  BaseInput,
+  CustomTypography,
+  ErrorMessage,
+  Loading
+} from '@components/index';
 
 export interface OptionType {
   value: string | null;
@@ -225,9 +228,9 @@ const Dropdown: FC<DropdownProps> = ({
               <Stack
                 key="top-options"
                 direction="row"
-                justifyContent="space-between"
-                alignItems="center"
                 sx={{
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
                   padding: '8px 16px',
                   backgroundColor: theme.palette.background.default,
                   marginBottom: '4px',
@@ -336,7 +339,7 @@ const Dropdown: FC<DropdownProps> = ({
               </MenuItem>
             )}
             {error && (
-              <Box mt={1}>
+              <Box sx={{ mt: 1 }}>
                 <ErrorMessage message={error} />
               </Box>
             )}

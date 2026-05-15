@@ -32,25 +32,35 @@ const PricingTypeDetailPanel: FC<PricingTypeDetailPanelProps> = ({
        * Page Header
        * -------------------------------------------------- */}
       <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="flex-start"
-        flexWrap="wrap"
-        mb={1}
-        gap={2}
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          flexWrap: 'wrap',
+          mb: 1,
+          gap: 2,
+        }}
       >
         <Box>
-          <CustomTypography variant="h5" fontWeight={700}>
+          <CustomTypography variant="h5" sx={{ fontWeight: 700 }}>
             {pricingType.name}
           </CustomTypography>
+          
           <CustomTypography variant="body2" color="text.secondary">
             {pricingType.code} · {pricingType.slug} ·{' '}
             {formatLabel(pricingType.status.name)}
           </CustomTypography>
         </Box>
-
-        <Box display="flex" gap={2} alignItems="center">
+        
+        <Box
+          sx={{
+            display: 'flex',
+            gap: 2,
+            alignItems: 'center',
+          }}
+        >
           <GoBackButton />
+          
           <CustomButton
             variant="outlined"
             onClick={onEdit}
@@ -60,14 +70,14 @@ const PricingTypeDetailPanel: FC<PricingTypeDetailPanelProps> = ({
           </CustomButton>
         </Box>
       </Box>
-
+      
       <Divider sx={{ mb: 3 }} />
-
+      
       {/* --------------------------------------------------
        * Description
        * -------------------------------------------------- */}
       {pricingType.description && (
-        <Box mb={3}>
+        <Box sx={{ mb: 3 }}>
           <CustomTypography variant="body1" color="text.secondary">
             {pricingType.description}
           </CustomTypography>

@@ -42,7 +42,7 @@ const OrdersLayout = () => {
   };
 
   return (
-    <Box p={3}>
+    <Box sx={{ p: 3 }}>
       <CustomTypography variant="h4" gutterBottom>
         Orders
       </CustomTypography>
@@ -70,7 +70,13 @@ const OrdersLayout = () => {
 
       <Card elevation={1} sx={{ p: 2 }}>
         {location.pathname === '/orders' ? (
-          <Box p={2} textAlign="center" color="text.secondary">
+          <Box
+            sx={{
+              p: 2,
+              textAlign: 'center',
+              color: 'text.secondary',
+            }}
+          >
             Please select an order view from above.
           </Box>
         ) : (

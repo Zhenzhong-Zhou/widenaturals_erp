@@ -1,8 +1,10 @@
 import { type FC, useState } from 'react';
-import Box from '@mui/material/Box';
-import Tab from '@mui/material/Tab';
-import Tabs from '@mui/material/Tabs';
-import { CustomTypography, ErrorMessage, Loading } from '@components/index';
+import { Box, Tab, Tabs } from '@mui/material';
+import {
+  CustomTypography,
+  ErrorMessage,
+  Loading
+} from '@components/index';
 import {
   WarehousePackagingSummaryCard,
   WarehouseProductSummaryCard,
@@ -49,11 +51,11 @@ const WarehouseItemSummaryPanel: FC<Props> = ({
   if (!hasProducts && !hasPackaging) return null;
 
   return (
-    <Box mt={4}>
-      <CustomTypography variant="h6" fontWeight={700} mb={2}>
+    <Box sx={{ mt: 4 }}>
+      <CustomTypography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
         Item Summary
       </CustomTypography>
-
+      
       <Tabs
         value={activeTab}
         onChange={(_, value: BatchEntityType) => setActiveTab(value)}
@@ -65,15 +67,15 @@ const WarehouseItemSummaryPanel: FC<Props> = ({
           value="packaging_material"
         />
       </Tabs>
-
+      
       {/* ── Column headers ──────────────────────────────────────── */}
       <Box
-        display="flex"
-        alignItems="center"
-        px={2}
-        py={1}
-        gap={3}
         sx={{
+          display: 'flex',
+          alignItems: 'center',
+          px: 2,
+          py: 1,
+          gap: 3,
           borderBottom: 1,
           borderColor: 'divider',
           fontWeight: 600,
@@ -83,22 +85,27 @@ const WarehouseItemSummaryPanel: FC<Props> = ({
           letterSpacing: 0.5,
         }}
       >
-        <Box flex={1}>Name</Box>
-        <Box minWidth={80} textAlign="right">
+        <Box sx={{ flex: 1 }}>Name</Box>
+        
+        <Box sx={{ minWidth: 80, textAlign: 'right' }}>
           Total
         </Box>
-        <Box minWidth={80} textAlign="right">
+        
+        <Box sx={{ minWidth: 80, textAlign: 'right' }}>
           Reserved
         </Box>
-        <Box minWidth={80} textAlign="right">
+        
+        <Box sx={{ minWidth: 80, textAlign: 'right' }}>
           Available
         </Box>
-        <Box minWidth={75} />
-        <Box minWidth={200}>Earliest Expiry</Box>
+        
+        <Box sx={{ minWidth: 75 }} />
+        
+        <Box sx={{ minWidth: 200 }}>Earliest Expiry</Box>
       </Box>
-
+      
       {/* ── Tab content ─────────────────────────────────────────── */}
-      <Box mt={1}>
+      <Box sx={{ mt: 1 }}>
         {activeTab === 'product' &&
           products.map((product) => (
             <WarehouseProductSummaryCard
@@ -106,7 +113,7 @@ const WarehouseItemSummaryPanel: FC<Props> = ({
               product={product}
             />
           ))}
-
+        
         {activeTab === 'packaging_material' &&
           packagingMaterials.map((material) => (
             <WarehousePackagingSummaryCard

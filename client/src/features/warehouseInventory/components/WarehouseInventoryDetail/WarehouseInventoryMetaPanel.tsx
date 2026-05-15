@@ -23,7 +23,13 @@ const WarehouseInventoryMetaPanel: FC<WarehouseInventoryMetaPanelProps> = ({
 }) => (
   <Stack spacing={3}>
     <Card sx={{ p: 3, borderRadius: 2 }}>
-      <CustomTypography variant="subtitle1" fontWeight={600} mb={1.5}>
+      <CustomTypography
+        variant="subtitle1"
+        sx={{
+          fontWeight: 600,
+          mb: 1.5,
+        }}
+      >
         Dates
       </CustomTypography>
       <Stack spacing={1}>
@@ -38,7 +44,13 @@ const WarehouseInventoryMetaPanel: FC<WarehouseInventoryMetaPanelProps> = ({
     </Card>
 
     <Card sx={{ p: 3, borderRadius: 2 }}>
-      <CustomTypography variant="subtitle1" fontWeight={600} mb={1.5}>
+      <CustomTypography
+        variant="subtitle1"
+        sx={{
+          fontWeight: 600,
+          mb: 1.5,
+        }}
+      >
         Audit
       </CustomTypography>
       {audit ? (

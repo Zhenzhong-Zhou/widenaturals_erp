@@ -20,7 +20,7 @@ const OrderExpandedContent: FC<OrderExpandedContentProps> = ({ row }) => {
 
   return (
     <Box sx={{ px: 3, py: 2 }}>
-      <CustomTypography variant="subtitle1" fontWeight={600} gutterBottom>
+      <CustomTypography variant="subtitle1" sx={{ fontWeight: 600 }} gutterBottom>
         Order Details
       </CustomTypography>
 
@@ -30,8 +30,10 @@ const OrderExpandedContent: FC<OrderExpandedContentProps> = ({ row }) => {
             <Box>
               <CustomTypography
                 variant="body2"
-                fontWeight={600}
-                sx={{ color: 'text.primary' }}
+                sx={{
+                  fontWeight: 600,
+                  color: 'text.primary'
+              }}
               >
                 {label}:
               </CustomTypography>

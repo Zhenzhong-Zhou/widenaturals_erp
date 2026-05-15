@@ -7,11 +7,7 @@ import {
   useMemo,
   lazy,
 } from 'react';
-import Skeleton from '@mui/material/Skeleton';
-import Box from '@mui/material/Box';
-import Divider from '@mui/material/Divider';
-import Card from '@mui/material/Card';
-import Grid from '@mui/material/Grid';
+import { Box, Card, Divider, Grid, Skeleton } from '@mui/material';
 import {
   CustomTypography,
   GoBackButton,
@@ -138,12 +134,14 @@ const OutboundFulfillmentsListPage: FC = () => {
   return (
     <Box sx={{ px: 4, py: 3 }}>
       <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        flexWrap="wrap"
-        mb={3}
-        gap={2}
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          mb: 3,
+          gap: 2,
+        }}
       >
         <CustomTypography variant="h5">Outbound Fulfillments</CustomTypography>
         <GoBackButton sx={{ borderRadius: 20 }} />

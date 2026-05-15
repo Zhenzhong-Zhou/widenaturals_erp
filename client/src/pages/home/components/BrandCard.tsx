@@ -20,7 +20,7 @@ const BrandCard: FC<BrandCardProps> = ({ title, body }) => {
         boxShadow: (t) => t.customShadows.card,
       }}
     >
-      <CustomTypography variant="subtitle2" fontWeight={800}>
+      <CustomTypography variant="subtitle2" sx={{ fontWeight: 800 }}>
         {title}
       </CustomTypography>
 

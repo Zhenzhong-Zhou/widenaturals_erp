@@ -1,9 +1,10 @@
+import { Box, Skeleton } from '@mui/material';
 import { type ComponentType, Suspense } from 'react';
-import Box from '@mui/material/Box';
-import Skeleton from '@mui/material/Skeleton';
-import CustomTypography from '@components/common/CustomTypography';
-import CustomButton from '@components/common/CustomButton';
-import ErrorMessage from '@components/common/ErrorMessage';
+import {
+  CustomButton,
+  CustomTypography,
+  ErrorMessage
+} from '@components/index';
 
 type DetailTableProps = {
   data: any[];
@@ -87,7 +88,7 @@ const ExpandableDetailSection = <T extends { itemId: string }>({
       </Suspense>
 
       {onRefreshDetail && (
-        <Box mt={1}>
+        <Box sx={{ mt: 1 }}>
           <CustomButton
             size="small"
             onClick={() => onRefreshDetail(row.itemId)}

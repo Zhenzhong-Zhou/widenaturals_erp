@@ -1,5 +1,5 @@
-import useUserPageController from '@features/user/hooks/useUserPageController';
-import UserCardLayout from '@features/user/layouts/UserCardLayout';
+import { useUserPageController } from '@features/user/hooks';
+import { UserCardLayout } from '@features/user/layouts';
 
 /**
  * Users page rendered in card (grid) view.

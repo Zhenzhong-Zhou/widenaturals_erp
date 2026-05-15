@@ -1,10 +1,6 @@
 import { type FC, useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import Box from '@mui/material/Box';
-import Card from '@mui/material/Card';
-import Grid from '@mui/material/Grid';
-import Skeleton from '@mui/material/Skeleton';
-import Divider from '@mui/material/Divider';
+import { Box, Card, Divider, Grid, Skeleton, Stack } from '@mui/material';
 import {
   CustomButton,
   CustomTypography,
@@ -28,15 +24,14 @@ import {
   useWarehouseItemSummary,
   useWarehouseSummary,
 } from '@hooks/index';
+import { WarehouseItemSummaryPanel } from '@features/warehouseInventory/components/WarehouseItemSummary';
 import { usePaginationHandlers } from '@utils/hooks';
 import {
   useWarehouseInventoryLookups,
   useWarehouseInventoryPermissions,
 } from '@features/warehouseInventory/hooks';
-import { createOnOpenHandler } from '@features/lookup/utils/lookupUtils';
-import { WarehouseItemSummaryPanel } from '@features/warehouseInventory/components/WarehouseItemSummary';
 import { useRecentWarehouses } from '@features/warehouse/hooks';
-import { Stack } from '@mui/material';
+import { createOnOpenHandler } from '@features/lookup/utils/lookupUtils';
 
 const INITIAL_FILTERS: WarehouseInventoryFilters = {};
 
@@ -222,11 +217,13 @@ const WarehouseInventoryListPage: FC = () => {
     <Box sx={{ px: 4, py: 3 }}>
       {/* Top toolbar — back + page-level actions */}
       <Box
-        mb={2}
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        gap={1.5}
+        sx={{
+          mb: 2,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: 1.5,
+        }}
       >
         <GoBackButton variant="outlined" />
 

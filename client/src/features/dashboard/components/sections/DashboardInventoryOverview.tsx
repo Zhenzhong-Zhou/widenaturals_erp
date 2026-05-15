@@ -42,10 +42,22 @@ const DashboardInventoryOverview: FC<Props> = ({ warehouses }) => {
 
   return (
     <Box>
-      <CustomTypography variant="subtitle1" fontWeight={700} mb={2}>
+      <CustomTypography
+        variant="subtitle1"
+        sx={{
+          fontWeight: 700,
+          mb: 2,
+        }}
+      >
         Inventory Overview
       </CustomTypography>
-      <Stack direction="row" spacing={4} flexWrap="wrap">
+      <Stack
+        direction="row"
+        spacing={4}
+        sx={{
+          flexWrap: 'wrap',
+        }}
+      >
         <SummaryStat
           label="Warehouses"
           value={totals.warehouseCount}

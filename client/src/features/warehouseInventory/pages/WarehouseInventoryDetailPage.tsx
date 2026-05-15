@@ -180,8 +180,15 @@ const WarehouseInventoryDetailPage: FC = () => {
           {/* --------------------------------------------------
            * Header — badges + title + refresh
            * -------------------------------------------------- */}
-          <Box mb={3}>
-            <Stack direction="row" spacing={1} alignItems="center" mb={1.5}>
+          <Box sx={{ mb: 3 }}>
+            <Stack
+              direction="row"
+              spacing={1}
+              sx={{
+                alignItems: 'center',
+                mb: 1.5,
+              }}
+            >
               <Chip
                 label={batchTypeLabel}
                 size="small"
@@ -192,18 +199,26 @@ const WarehouseInventoryDetailPage: FC = () => {
                 formatLabel(data.status.name)
               )}
             </Stack>
-
+            
             <Box
-              display="flex"
-              justifyContent="space-between"
-              alignItems="center"
-              gap={2}
+              sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                gap: 2,
+              }}
             >
-              <CustomTypography variant="h5" fontWeight={600}>
+              <CustomTypography variant="h5" sx={{ fontWeight: 600 }}>
                 {headerTitle}
               </CustomTypography>
-
-              <Stack direction="row" spacing={1.5} alignItems="center">
+              
+              <Stack
+                direction="row"
+                spacing={1.5}
+                sx={{
+                  alignItems: 'center',
+                }}
+              >
                 <GoBackButton
                   variant="outlined"
                   sx={{
@@ -282,7 +297,7 @@ const WarehouseInventoryDetailPage: FC = () => {
             reservedQuantity={data.reservedQuantity}
             availableQuantity={data.availableQuantity}
           />
-
+          
           <Divider sx={{ my: 3 }} />
 
           {/* --------------------------------------------------
@@ -293,23 +308,40 @@ const WarehouseInventoryDetailPage: FC = () => {
               {data.batchType === 'product' ? (
                 <WarehouseInventoryProductInfoPanel info={data.productInfo} />
               ) : (
-                <WarehouseInventoryPackagingInfoPanel
-                  info={data.packagingInfo}
-                />
+                <WarehouseInventoryPackagingInfoPanel info={data.packagingInfo} />
               )}
-
+              
               <Card sx={{ p: 3, mt: 3, borderRadius: 2 }}>
-                <CustomTypography variant="subtitle1" fontWeight={600} mb={1.5}>
+                <CustomTypography
+                  variant="subtitle1"
+                  sx={{
+                    fontWeight: 600,
+                    mb: 1.5,
+                  }}
+                >
                   Warehouse Details
                 </CustomTypography>
+                
                 <Stack spacing={1}>
-                  <Box display="flex" justifyContent="space-between">
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                    }}
+                  >
                     <CustomTypography color="text.secondary">
                       Warehouse fee
                     </CustomTypography>
                     <CustomTypography>{data.warehouseFee}</CustomTypography>
                   </Box>
-                  <Box display="flex" justifyContent="space-between" gap={2}>
+                  
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      gap: 2,
+                    }}
+                  >
                     <CustomTypography color="text.secondary">
                       Batch note
                     </CustomTypography>
@@ -320,7 +352,7 @@ const WarehouseInventoryDetailPage: FC = () => {
                 </Stack>
               </Card>
             </Grid>
-
+            
             <Grid size={{ xs: 12, md: 5 }}>
               <WarehouseInventoryMetaPanel
                 inboundDate={data.inboundDate}
@@ -331,7 +363,7 @@ const WarehouseInventoryDetailPage: FC = () => {
               />
             </Grid>
           </Grid>
-
+          
           <Divider sx={{ my: 3 }} />
 
           {/* --------------------------------------------------
@@ -342,13 +374,15 @@ const WarehouseInventoryDetailPage: FC = () => {
             <Tab label={`Movements (${movements.length})`} value="movements" />
             <Tab label="Activity Log" value="activity" />
           </Tabs>
-
+          
           {activeTab === 'zones' && (
             <WarehouseInventoryZonesTable rows={zones} />
           )}
+          
           {activeTab === 'movements' && (
             <WarehouseInventoryMovementsTable rows={movements} />
           )}
+          
           {activeTab === 'activity' && warehouseId && inventoryId && (
             <WarehouseInventoryActivityLogPanel
               warehouseId={warehouseId}
@@ -367,7 +401,7 @@ const WarehouseInventoryDetailPage: FC = () => {
               onSuccess={handleSuccess}
             />
           )}
-
+          
           {canUpdateInventoryStatus && warehouseId && data && (
             <UpdateStatusModal
               open={activeModal === 'updateStatus'}
@@ -377,7 +411,7 @@ const WarehouseInventoryDetailPage: FC = () => {
               onSuccess={handleSuccess}
             />
           )}
-
+          
           {canEditInventoryMetadata && warehouseId && (
             <UpdateMetadataModal
               open={activeModal === 'metadata'}
@@ -387,7 +421,7 @@ const WarehouseInventoryDetailPage: FC = () => {
               onSuccess={handleSuccess}
             />
           )}
-
+          
           {canRecordOutbound && warehouseId && (
             <RecordOutboundModal
               open={activeModal === 'outbound'}
@@ -397,7 +431,7 @@ const WarehouseInventoryDetailPage: FC = () => {
               onSuccess={handleSuccess}
             />
           )}
-
+          
           <Snackbar
             open={snackbar?.open ?? false}
             autoHideDuration={4000}

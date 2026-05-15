@@ -15,31 +15,52 @@ const WarehouseInventoryProductInfoPanel: FC<
   if (!info) {
     return (
       <Card sx={{ p: 3, borderRadius: 2 }}>
-        <CustomTypography variant="subtitle1" fontWeight={600} mb={1}>
+        <CustomTypography
+          variant="subtitle1"
+          sx={{
+            fontWeight: 600,
+            mb: 1,
+          }}
+        >
           Product
         </CustomTypography>
+        
         <CustomTypography variant="body2" color="text.secondary">
           No product information available.
         </CustomTypography>
       </Card>
     );
   }
-
+  
   return (
     <Card sx={{ p: 3, borderRadius: 2 }}>
-      <CustomTypography variant="subtitle1" fontWeight={600} mb={1.5}>
+      <CustomTypography
+        variant="subtitle1"
+        sx={{
+          fontWeight: 600,
+          mb: 1.5,
+        }}
+      >
         Product
       </CustomTypography>
+      
       <Stack spacing={1}>
         <DetailField label="Display name" value={info.product.displayName} />
         <DetailField label="Brand" value={info.product.brand} />
       </Stack>
-
+      
       <Divider sx={{ my: 2 }} />
-
-      <CustomTypography variant="subtitle2" fontWeight={600} mb={1}>
+      
+      <CustomTypography
+        variant="subtitle2"
+        sx={{
+          fontWeight: 600,
+          mb: 1,
+        }}
+      >
         SKU
       </CustomTypography>
+      
       <Stack spacing={1}>
         <DetailField label="SKU code" value={info.sku.sku} />
         <DetailField label="Barcode" value={info.sku.barcode} />
@@ -47,12 +68,19 @@ const WarehouseInventoryProductInfoPanel: FC<
         <DetailField label="Country" value={info.sku.countryCode} />
         <DetailField label="Market region" value={info.sku.marketRegion} />
       </Stack>
-
+      
       <Divider sx={{ my: 2 }} />
-
-      <CustomTypography variant="subtitle2" fontWeight={600} mb={1}>
+      
+      <CustomTypography
+        variant="subtitle2"
+        sx={{
+          fontWeight: 600,
+          mb: 1,
+        }}
+      >
         Batch
       </CustomTypography>
+      
       <Stack spacing={1}>
         <DetailField label="Lot number" value={info.batch.lotNumber} />
         <DetailField
@@ -60,12 +88,19 @@ const WarehouseInventoryProductInfoPanel: FC<
           value={formatDate(info.batch.expiryDate)}
         />
       </Stack>
-
+      
       <Divider sx={{ my: 2 }} />
-
-      <CustomTypography variant="subtitle2" fontWeight={600} mb={1}>
+      
+      <CustomTypography
+        variant="subtitle2"
+        sx={{
+          fontWeight: 600,
+          mb: 1,
+        }}
+      >
         Manufacturer
       </CustomTypography>
+      
       <Stack spacing={1}>
         <DetailField label="Name" value={info.manufacturer.name} />
       </Stack>

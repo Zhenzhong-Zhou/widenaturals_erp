@@ -45,7 +45,7 @@ const WarehouseInventoryActivityLogExpandedContent: FC<
 
   return (
     <Box sx={{ px: 3, py: 2 }}>
-      <Box mb={2}>
+      <Box sx={{ mb: 2 }}>
         <CustomTypography variant="subtitle1" sx={{ fontWeight: 600 }}>
           Activity Log Details
         </CustomTypography>
@@ -185,7 +185,7 @@ const WarehouseInventoryActivityLogExpandedContent: FC<
 
       {/* ── Metadata ─────────────────────────────────────────────── */}
       {metadataText && (
-        <Box mt={2}>
+        <Box sx={{ mb: 2 }}>
           <CustomTypography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
             Metadata
           </CustomTypography>

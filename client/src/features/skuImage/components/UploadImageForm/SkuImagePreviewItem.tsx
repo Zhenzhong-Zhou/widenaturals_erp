@@ -52,7 +52,7 @@ const SkuImagePreviewItem = <T extends SkuImageUiBase>({
       <Box
         sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 1 }}
       >
-        <CustomTypography variant="body2" fontWeight={600}>
+        <CustomTypography variant="body2" sx={{ fontWeight: 600 }}>
           Image {index + 1}
         </CustomTypography>
 

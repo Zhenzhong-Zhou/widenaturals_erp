@@ -1,5 +1,5 @@
 import { type FC } from 'react';
-import Box from '@mui/material/Box';
+import { Box } from '@mui/material';
 import { ExpiryChip, LowStockChip } from '@features/warehouseInventory/shared';
 import type { FlattenedWarehouseInventory } from '@features/warehouseInventory';
 
@@ -19,7 +19,13 @@ const InventoryStatusBadge: FC<InventoryStatusBadgeProps> = ({
   if (!record && !expiryDate) return null;
 
   return (
-    <Box display="flex" alignItems="center" gap={0.5}>
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 0.5,
+      }}
+    >
       {record && <LowStockChip available={record.availableQuantity} />}
       <ExpiryChip date={expiryDate} />
     </Box>

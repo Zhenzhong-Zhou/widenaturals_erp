@@ -1,17 +1,21 @@
 import type { FC } from 'react';
 import { useRef, useState } from 'react';
-import Box from '@mui/material/Box';
-import Accordion from '@mui/material/Accordion';
-import AccordionSummary from '@mui/material/AccordionSummary';
-import AccordionDetails from '@mui/material/AccordionDetails';
-import Tooltip from '@mui/material/Tooltip';
-import IconButton from '@mui/material/IconButton';
+import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
+  Box,
+  IconButton,
+  Tooltip
+} from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import InfoOutlined from '@mui/icons-material/InfoOutlined';
-import DetailsSection from '@components/common/DetailsSection';
-import MetadataSection from '@components/common/MetadataSection';
-import StatusChip from '@components/common/StatusChip';
-import CustomTypography from '@components/common/CustomTypography';
+import {
+  CustomTypography,
+  DetailsSection,
+  MetadataSection,
+  StatusChip,
+} from '@components/index';
 import { PermissionDialog } from '@features/user/components/UserProfile';
 import { useDialogFocusHandlers } from '@utils/hooks';
 import { formatLabel } from '@utils/textUtils';
@@ -74,7 +78,13 @@ const UserProfileDetails: FC<UserProfileDetailsProps> = ({
             label: 'Permissions',
             value: permissions.length,
             format: () => (
-              <Box display="flex" alignItems="baseline" gap={0.5}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'baseline',
+                  gap: 0.5,
+                }}
+              >
                 <CustomTypography variant="body2">
                   {permissions.length} permissions
                 </CustomTypography>
@@ -132,10 +142,12 @@ const UserProfileDetails: FC<UserProfileDetailsProps> = ({
 
         <AccordionDetails>
           <Box
-            display="grid"
-            gridTemplateColumns={{ xs: '1fr', md: '1fr 1fr' }}
-            columnGap={3}
-            rowGap={2}
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+              columnGap: 3,
+              rowGap: 2,
+            }}
           >
             <MetadataSection
               title={'Audit'}

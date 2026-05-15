@@ -1,5 +1,5 @@
 import { type FC } from 'react';
-import PageShell from '@features/user/layouts/PageShell';
+import { PageShell } from '@features/user/layouts';
 import {
   UserFilterAndSortPanel,
   UserListTable,

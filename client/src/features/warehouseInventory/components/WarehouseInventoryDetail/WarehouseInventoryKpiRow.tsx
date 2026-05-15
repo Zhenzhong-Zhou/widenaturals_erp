@@ -22,7 +22,7 @@ const KpiCard: FC<KpiCardProps> = ({ label, value, emphasis }) => (
       </CustomTypography>
       <CustomTypography
         variant="h4"
-        fontWeight={600}
+        sx={{ fontWeight: 600 }}
         color={emphasis ? 'primary.main' : 'text.primary'}
       >
         {value.toLocaleString()}

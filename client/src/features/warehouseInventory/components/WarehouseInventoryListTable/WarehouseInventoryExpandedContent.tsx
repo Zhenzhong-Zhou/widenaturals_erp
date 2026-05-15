@@ -1,9 +1,6 @@
 import { type FC } from 'react';
-import Box from '@mui/material/Box';
-import Stack from '@mui/material/Stack';
-import CustomTypography from '@components/common/CustomTypography';
-import CustomButton from '@components/common/CustomButton';
-import DetailsSection from '@components/common/DetailsSection';
+import { Box, Stack } from '@mui/material';
+import { CustomButton, CustomTypography, DetailsSection } from '@components/index';
 import { formatDate, formatDateTime } from '@utils/dateTimeUtils';
 import { formatLabel } from '@utils/textUtils';
 import type { FlattenedWarehouseInventory } from '@features/warehouseInventory/state/warehouseInventoryTypes';
@@ -30,12 +27,14 @@ const WarehouseInventoryExpandedContent: FC<
   return (
     <Box sx={{ px: 3, py: 2 }}>
       <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        mb={2}
-        flexWrap="wrap"
-        gap={2}
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          mb: 2,
+          flexWrap: 'wrap',
+          gap: 2,
+        }}
       >
         <CustomTypography variant="subtitle1" sx={{ fontWeight: 600 }}>
           Inventory Details

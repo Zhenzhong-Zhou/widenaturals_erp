@@ -85,16 +85,24 @@ const PricingListTable = ({
       {/* TABLE HEADER */}
       {/* ----------------------------------------- */}
       <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        mb={2}
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          mb: 2,
+        }}
       >
-        <CustomTypography variant="h6" fontWeight={600}>
+        <CustomTypography variant="h6" sx={{ fontWeight: 600 }}>
           Pricing List
         </CustomTypography>
-
-        <Box display="flex" gap={2} alignItems="center">
+        
+        <Box
+          sx={{
+            display: 'flex',
+            gap: 2,
+            alignItems: 'center',
+          }}
+        >
           <CustomButton
             onClick={onRefresh}
             variant="outlined"

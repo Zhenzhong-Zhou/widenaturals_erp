@@ -88,7 +88,14 @@ const ActivityLogToolbar: FC<ActivityLogToolbarProps> = ({
 
   return (
     <Box>
-      <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+      <Stack
+        direction="row"
+        spacing={1}
+        sx={{
+          alignItems: 'center',
+          flexWrap: 'wrap',
+        }}
+      >
         <IconButton
           size="small"
           onClick={handleOpen}

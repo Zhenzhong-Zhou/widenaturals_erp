@@ -20,8 +20,10 @@ export const BatchUpdateStatusRowTitle = ({
   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
     <CustomTypography
       variant="subtitle1"
-      fontWeight={700}
-      sx={{ lineHeight: 1.2 }}
+      sx={{
+        fontWeight: 700,
+        lineHeight: 1.2
+    }}
     >
       {meta.name ?? '—'}
     </CustomTypography>
@@ -54,7 +56,7 @@ export const BatchUpdateStatusCurrentStatus = ({
         Current Status
       </CustomTypography>
 
-      <CustomTypography variant="body2" fontWeight={600}>
+      <CustomTypography variant="body2" sx={{ fontWeight: 600 }}>
         {meta.currentStatus ? formatLabel(meta.currentStatus) : '—'}
       </CustomTypography>
     </Box>

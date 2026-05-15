@@ -108,7 +108,14 @@ const AddressFiltersPanel: FC<Props> = ({
   };
 
   return (
-    <Box mb={2} p={2} border="1px solid #ccc" borderRadius={2}>
+    <Box
+      sx={{
+        mb: 2,
+        p: 2,
+        border: '1px solid #ccc',
+        borderRadius: 2,
+      }}
+    >
       <form onSubmit={handleSubmit(submitFilters)}>
         <Grid container spacing={2} sx={{ minHeight: 160 }}>
           <Grid size={{ xs: 12, sm: 9 }}>
@@ -156,8 +163,15 @@ const AddressFiltersPanel: FC<Props> = ({
             renderDateField(control, name, label)
           )}
         </Grid>
-
-        <Box display="flex" flexWrap="wrap" gap={2} mt={3}>
+        
+        <Box
+          sx={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 2,
+            mt: 3,
+          }}
+        >
           <CustomButton type="submit" variant="contained">
             Apply
           </CustomButton>

@@ -1,10 +1,6 @@
 import { type FC } from 'react';
-import Modal from '@mui/material/Modal';
-import Box from '@mui/material/Box';
-import Divider from '@mui/material/Divider';
-import Stack from '@mui/material/Stack';
-import CustomButton from '@components/common/CustomButton';
-import CustomTypography from '@components/common/CustomTypography';
+import { Box, Divider, Modal, Stack } from '@mui/material';
+import { CustomButton, CustomTypography } from '@components/index';
 import { InitiateFulfillmentForm } from '@features/outboundFulfillment/components/InitiateFulfillmentFormModal';
 import type { InitiateFulfillmentBody } from '@features/outboundFulfillment/state';
 import { useModalFocusHandlers } from '@utils/hooks';
@@ -99,9 +95,11 @@ const InitiateFulfillmentModal: FC<InitiateFulfillmentModalProps> = ({
           {/* Footer */}
           <Stack
             direction="row"
-            justifyContent="flex-end"
             spacing={2}
-            sx={{ p: 3 }}
+            sx={{
+              justifyContent: 'flex-end',
+              p: 3,
+            }}
           >
             <CustomButton
               onClick={handleClose}
