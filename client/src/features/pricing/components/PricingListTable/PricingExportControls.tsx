@@ -5,9 +5,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import Box from '@mui/material/Box';
-import Select from '@mui/material/Select';
-import MenuItem from '@mui/material/MenuItem';
+import { Box, MenuItem, Select } from '@mui/material';
 import { CustomButton } from '@components/index';
 import { StatusDropdown } from '@features/lookup/components';
 import { useStatusLookup } from '@hooks/index';
@@ -56,7 +54,13 @@ const PricingExportControls = ({ liveFilters }: PricingExportControlsProps) => {
   }, [dispatch, liveFilters, exportFormat, exportStatusId]);
 
   return (
-    <Box display="flex" gap={1} alignItems="center">
+    <Box
+      sx={{
+        display: 'flex',
+        gap: 1,
+        alignItems: 'center',
+      }}
+    >
       <StatusDropdown
         options={formattedExportStatusOptions}
         value={exportStatusId ?? null}

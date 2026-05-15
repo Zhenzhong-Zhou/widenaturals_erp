@@ -45,7 +45,7 @@ const ActivityLogFiltersForm: FC<ActivityLogFiltersFormProps> = ({
 
   return (
     <Stack spacing={2}>
-      <CustomTypography variant="subtitle1" fontWeight={600}>
+      <CustomTypography variant="subtitle1" sx={{ fontWeight: 600 }}>
         Filter Activity Log
       </CustomTypography>
 
@@ -138,8 +138,14 @@ const ActivityLogFiltersForm: FC<ActivityLogFiltersFormProps> = ({
           }
         />
       </Stack>
-
-      <Box display="flex" justifyContent="flex-end" gap={1}>
+      
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'flex-end',
+          gap: 1,
+        }}
+      >
         <CustomButton variant="text" onClick={onReset}>
           Reset
         </CustomButton>

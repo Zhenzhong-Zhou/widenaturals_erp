@@ -1,5 +1,5 @@
 import { type FC, type ReactNode } from 'react';
-import Box from '@mui/material/Box';
+import { Box } from '@mui/material';
 
 interface Props {
   children: ReactNode;
@@ -13,7 +13,13 @@ interface Props {
  * rows show a chip and others do not.
  */
 const ChipSlot: FC<Props> = ({ children, minWidth = 90 }) => (
-  <Box minWidth={minWidth} display="flex" justifyContent="flex-start">
+  <Box
+    sx={{
+      minWidth,
+      display: 'flex',
+      justifyContent: 'flex-start',
+    }}
+  >
     {children}
   </Box>
 );

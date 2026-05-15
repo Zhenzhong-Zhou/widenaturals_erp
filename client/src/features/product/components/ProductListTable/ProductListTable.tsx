@@ -1,9 +1,11 @@
 import { Suspense, useCallback, useMemo } from 'react';
-import Box from '@mui/material/Box';
-import CustomTable from '@components/common/CustomTable';
-import CustomTypography from '@components/common/CustomTypography';
-import CustomButton from '@components/common/CustomButton';
-import SkeletonExpandedRow from '@components/common/SkeletonExpandedRow';
+import { Box } from '@mui/material';
+import {
+  CustomButton,
+  CustomTable,
+  CustomTypography,
+  SkeletonExpandedRow,
+} from '@components/index';
 import {
   getProductListTableColumns,
   ProductExpandedContent,
@@ -94,16 +96,23 @@ const ProductListTable = ({
       {/* TABLE HEADER */}
       {/* ----------------------------------------- */}
       <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        mb={2}
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          mb: 2,
+        }}
       >
-        <CustomTypography variant="h6" fontWeight={600}>
+        <CustomTypography variant="h6" sx={{ fontWeight: 600 }}>
           Product List
         </CustomTypography>
-
-        <Box display="flex" gap={2}>
+        
+        <Box
+          sx={{
+            display: 'flex',
+            gap: 2,
+          }}
+        >
           {isAllowed && (
             <CustomButton
               onClick={onAddNew}

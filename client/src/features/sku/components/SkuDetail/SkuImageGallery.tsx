@@ -1,17 +1,22 @@
 import { type FC, type MouseEvent, useState, useMemo, useEffect } from 'react';
-import { alpha, useMediaQuery } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
-import Box from '@mui/material/Box';
-import CardMedia from '@mui/material/CardMedia';
-import Stack from '@mui/material/Stack';
-import IconButton from '@mui/material/IconButton';
-import Tooltip from '@mui/material/Tooltip';
+import {
+  alpha,
+  Box,
+  CardMedia,
+  IconButton,
+  Stack,
+  Tooltip,
+  useMediaQuery,
+  useTheme
+} from '@mui/material';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import ZoomImageDialog from '@components/common/ZoomImageDialog';
-import CustomTypography from '@components/common/CustomTypography';
-import ImageMetadataPopover from '@components/common/ImageMetadataPopover';
+import {
+  CustomTypography,
+  ImageMetadataPopover,
+  ZoomImageDialog
+} from '@components/index';
 import { ThumbnailList } from '@features/sku/components/SkuDetail';
 import { formatImageUrl } from '@utils/formatImageUrl';
 import { formatDateTime } from '@utils/dateTimeUtils';
@@ -134,25 +139,32 @@ const SkuImageGallery: FC<Props> = ({ images, maxThumbsDesktop }) => {
 
   return (
     <Box
-      display="flex"
-      flexDirection={isMobile ? 'column' : 'row'}
-      gap={2}
-      width="100%"
+      sx={{
+        display: 'flex',
+        flexDirection: isMobile ? 'column' : 'row',
+        gap: 2,
+        width: '100%',
+      }}
     >
       {/* DESKTOP THUMBNAILS */}
       {!isMobile && (
-        <Stack alignItems="center" spacing={1}>
+        <Stack
+          spacing={1}
+          sx={{
+            alignItems: 'center',
+          }}
+        >
           <IconButton size="small" disabled={!canScrollUp} onClick={scrollUp}>
             <KeyboardArrowUpIcon />
           </IconButton>
-
+          
           <ThumbnailList
             images={visibleThumbs}
             selectedGroupId={selectedGroup?.groupId}
             isMobile={false}
             onSelect={handleThumbClick}
           />
-
+          
           <IconButton
             size="small"
             disabled={!canScrollDown}
@@ -162,9 +174,15 @@ const SkuImageGallery: FC<Props> = ({ images, maxThumbsDesktop }) => {
           </IconButton>
         </Stack>
       )}
-
+      
       {/* MAIN IMAGE */}
-      <Box flex={1} textAlign="center" sx={{ position: 'relative' }}>
+      <Box
+        sx={{
+          flex: 1,
+          textAlign: 'center',
+          position: 'relative',
+        }}
+      >
         <Tooltip title="Image Metadata">
           <IconButton
             size="small"
@@ -187,7 +205,7 @@ const SkuImageGallery: FC<Props> = ({ images, maxThumbsDesktop }) => {
             <InfoOutlinedIcon fontSize="small" />
           </IconButton>
         </Tooltip>
-
+        
         <CardMedia
           component="img"
           image={displayUrl}
@@ -201,24 +219,30 @@ const SkuImageGallery: FC<Props> = ({ images, maxThumbsDesktop }) => {
             cursor: zoomVariant ? 'zoom-in' : 'default',
           }}
         />
-
+        
         <CustomTypography
           variant="caption"
           color="text.secondary"
-          mt={1}
-          display="block"
+          sx={{
+            mt: 1,
+            display: 'block',
+          }}
         >
           Click image to zoom
         </CustomTypography>
       </Box>
-
+      
       {/* MOBILE THUMBNAILS */}
       {isMobile && (
         <Box>
-          <CustomTypography variant="caption" color="text.secondary" mb={1}>
+          <CustomTypography
+            variant="caption"
+            color="text.secondary"
+            sx={{ mb: 1 }}
+          >
             Swipe to view images
           </CustomTypography>
-
+          
           <ThumbnailList
             images={thumbnailGroups}
             selectedGroupId={selectedGroup?.groupId}
@@ -227,14 +251,14 @@ const SkuImageGallery: FC<Props> = ({ images, maxThumbsDesktop }) => {
           />
         </Box>
       )}
-
+      
       <ZoomImageDialog
         open={zoomOpen}
         onClose={() => setZoomOpen(false)}
         imageUrl={zoomUrl}
         altText={zoomVariant?.altText}
       />
-
+      
       <ImageMetadataPopover
         anchorEl={metaAnchorEl}
         open={metaOpen}

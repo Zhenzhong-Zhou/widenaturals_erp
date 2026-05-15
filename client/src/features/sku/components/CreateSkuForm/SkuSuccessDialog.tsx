@@ -1,11 +1,8 @@
 import { type FC, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Box, Stack } from '@mui/material';
+import { CustomButton, CustomDialog, CustomTypography } from '@components/index';
 import type { CreateSkuResponse, CreatedSkuRecord } from '@features/sku/state';
-import Stack from '@mui/material/Stack';
-import Box from '@mui/material/Box';
-import CustomDialog from '@components/common/CustomDialog';
-import CustomTypography from '@components/common/CustomTypography';
-import CustomButton from '@components/common/CustomButton';
 
 interface SkuSuccessDialogProps {
   open: boolean;
@@ -51,15 +48,15 @@ const SkuSuccessDialog: FC<SkuSuccessDialogProps> = ({
             <Stack
               key={sku.id}
               direction="row"
-              justifyContent="space-between"
-              alignItems="center"
               sx={{
+                justifyContent: 'space-between',
+                alignItems: 'center',
                 border: '1px solid #eee',
                 borderRadius: 1,
                 padding: 1.5,
               }}
             >
-              <CustomTypography variant="body1" fontWeight={500}>
+              <CustomTypography variant="body1" sx={{ fontWeight: 500 }}>
                 {sku.skuCode}
               </CustomTypography>
 

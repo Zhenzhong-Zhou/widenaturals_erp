@@ -186,25 +186,34 @@ const WarehouseInventoryActivityLogPage: FC = () => {
       {/* --------------------------------------------------
        * Header — badges + title + actions
        * -------------------------------------------------- */}
-      <Box mb={3}>
+      <Box sx={{ mb: 3 }}>
         <Box
-          display="flex"
-          justifyContent="space-between"
-          alignItems="center"
-          gap={2}
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: 2,
+          }}
         >
           <Stack spacing={0.5}>
-            <CustomTypography variant="h5" fontWeight={600}>
+            <CustomTypography variant="h5" sx={{ fontWeight: 600 }}>
               Warehouse Inventory Activity Log
             </CustomTypography>
+            
             {totalRecords > 0 && (
               <CustomTypography variant="body2" color="text.secondary">
                 {totalRecords} {totalRecords === 1 ? 'entry' : 'entries'}
               </CustomTypography>
             )}
           </Stack>
-
-          <Stack direction="row" spacing={1.5} alignItems="center">
+          
+          <Stack
+            direction="row"
+            spacing={1.5}
+            sx={{
+              alignItems: 'center',
+            }}
+          >
             <GoBackButton
               variant="outlined"
               sx={{
@@ -215,6 +224,7 @@ const WarehouseInventoryActivityLogPage: FC = () => {
                 flexShrink: 0,
               }}
             />
+            
             <CustomButton
               variant="outlined"
               onClick={refreshInventoryActivityLogList}
@@ -231,9 +241,9 @@ const WarehouseInventoryActivityLogPage: FC = () => {
           </Stack>
         </Box>
       </Box>
-
+      
       <Divider sx={{ my: 2 }} />
-
+      
       {/* ── Filter + Sort Controls ────────────────────────────────── */}
       <Card sx={{ p: 3, mb: 4, borderRadius: 2, minHeight: 200 }}>
         <Grid container spacing={2}>
@@ -260,6 +270,7 @@ const WarehouseInventoryActivityLogPage: FC = () => {
               fetchUserLookup={fetchUserLookup}
             />
           </Grid>
+          
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <InventoryActivityLogSortControls
               sortBy={sortBy}
@@ -270,22 +281,20 @@ const WarehouseInventoryActivityLogPage: FC = () => {
           </Grid>
         </Grid>
       </Card>
-
+      
       {/* --------------------------------------------------
        * Body — loading / error / empty / table
        * -------------------------------------------------- */}
-      {loading && (
-        <Loading variant="dotted" message="Loading activity log..." />
-      )}
-
+      {loading && <Loading variant="dotted" message="Loading activity log..." />}
+      
       {!loading && error && (
         <ErrorMessage message={error} showNavigation={false} />
       )}
-
+      
       {!loading && !error && isEmpty && (
         <NoDataFound message="No activity log entries match the current filters." />
       )}
-
+      
       {!loading && !error && !isEmpty && (
         <WarehouseInventoryActivityLogListTable
           data={data}

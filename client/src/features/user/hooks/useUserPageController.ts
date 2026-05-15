@@ -4,7 +4,7 @@ import type {
   UserSortField,
   UserViewMode,
 } from '@features/user/state';
-import useUserLookups from '@features/user/hooks/useUserLookups';
+import { useUserLookups } from '@features/user/hooks';
 import { usePaginatedUsers } from '@hooks/index';
 import { usePaginationHandlers } from '@utils/hooks';
 import { getInitialUserLimit } from '@features/user/utils';

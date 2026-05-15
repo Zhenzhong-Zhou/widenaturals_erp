@@ -1,5 +1,5 @@
 import { type FC, useMemo } from 'react';
-import Box from '@mui/material/Box';
+import { Box } from '@mui/material';
 import { CustomButton, CustomTable, CustomTypography } from '@components/index';
 import type { FlattenedOrderTypeRecord } from '@features/orderType/state';
 import { getOrderTypeTableColumns } from '@features/orderType/components/index';
@@ -40,10 +40,12 @@ const OrderTypesTable: FC<OrderTypesTableProps> = ({
   return (
     <Box>
       <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        mb={2}
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          mb: 2,
+        }}
       >
         <CustomTypography variant="h6">Order Type List</CustomTypography>
         <CustomButton

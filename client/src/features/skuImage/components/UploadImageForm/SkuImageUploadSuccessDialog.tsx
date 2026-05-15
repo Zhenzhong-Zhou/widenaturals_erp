@@ -1,7 +1,6 @@
 import type { FC } from 'react';
 import { Link } from 'react-router-dom';
-import Box from '@mui/material/Box';
-import Stack from '@mui/material/Stack';
+import { Box, Stack } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
 import {
@@ -142,7 +141,9 @@ const SkuImageUploadSuccessDialog: FC<Props> = ({
                             {r.error.traceId && (
                               <CustomTypography
                                 variant="caption"
-                                display="block"
+                                sx={{
+                                  display: 'block',
+                                }}
                               >
                                 Ref: {r.error.traceId}
                               </CustomTypography>
@@ -188,8 +189,10 @@ const SkuImageUploadSuccessDialog: FC<Props> = ({
             <Stack
               direction="row"
               spacing={2}
-              justifyContent="flex-end"
-              sx={{ mt: 3 }}
+              sx={{
+                justifyContent: 'flex-end',
+                mt: 3,
+              }}
             >
               <CustomButton
                 variant="outlined"

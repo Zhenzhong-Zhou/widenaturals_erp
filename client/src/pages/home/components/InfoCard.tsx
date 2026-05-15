@@ -21,7 +21,7 @@ const InfoCard: FC<InfoCardProps> = ({ title, body, bullets }) => {
         boxShadow: (t) => t.customShadows.card,
       }}
     >
-      <CustomTypography variant="subtitle2" fontWeight={800}>
+      <CustomTypography variant="subtitle2" sx={{ fontWeight: 800 }}>
         {title}
       </CustomTypography>
 

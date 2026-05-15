@@ -1,8 +1,7 @@
 import { type FC, useEffect } from 'react';
-import Box from '@mui/material/Box';
-import Grid from '@mui/material/Grid';
-import CustomButton from '@components/common/CustomButton';
 import { useForm } from 'react-hook-form';
+import { Box, Grid } from '@mui/material';
+import { CustomButton } from '@components/index';
 import type { OrderListFilters } from '@features/order/state';
 import { toISODate } from '@utils/dateTimeUtils';
 import {
@@ -83,7 +82,14 @@ const OrderFiltersPanel: FC<Props> = ({
   ];
 
   return (
-    <Box mb={2} p={2} border="1px solid #ccc" borderRadius={2}>
+    <Box
+      sx={{
+        mb: 2,
+        p: 2,
+        border: '1px solid #ccc',
+        borderRadius: 2,
+      }}
+    >
       <form onSubmit={handleSubmit(submitFilters)}>
         <Grid container spacing={2} sx={{ minHeight: 160 }}>
           {textFields.map(({ name, label, placeholder }) =>
@@ -101,8 +107,15 @@ const OrderFiltersPanel: FC<Props> = ({
             CUSTOMER_TYPE_OPTIONS
           )}
         </Grid>
-
-        <Box display="flex" flexWrap="wrap" gap={2} mt={3}>
+        
+        <Box
+          sx={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 2,
+            mt: 3,
+          }}
+        >
           <CustomButton type="submit" variant="contained">
             Apply
           </CustomButton>

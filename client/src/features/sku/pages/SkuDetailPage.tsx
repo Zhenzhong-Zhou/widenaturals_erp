@@ -8,7 +8,7 @@ import {
 } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
 import { useLocation } from 'react-router';
-import Grid from '@mui/material/Grid';
+import { Grid } from '@mui/material';
 import { DetailPage, Loading } from '@components/index';
 import { NotFoundPage } from '@pages/system';
 import { useSkuDetail, useStatusLookup } from '@hooks/index';
@@ -316,7 +316,11 @@ const SkuDetailPage: FC = () => {
       --------------------------------------------------------- */}
 
       {sku && (
-        <Grid container spacing={2} mt={4}>
+        <Grid
+          container
+          spacing={2}
+          sx={{ mt: 4 }}
+        >
           {/* Image Gallery */}
 
           <Grid size={{ xs: 12, md: 4 }} sx={{ pr: { md: 4 } }}>

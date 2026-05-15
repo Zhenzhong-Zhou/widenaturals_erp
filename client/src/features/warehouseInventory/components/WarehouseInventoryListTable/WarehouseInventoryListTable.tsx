@@ -178,26 +178,35 @@ const WarehouseInventoryListTable = ({
     <Box>
       {/* ── Table header ─────────────────────────────────────────── */}
       <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        mb={2}
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          mb: 2,
+        }}
       >
-        <CustomTypography variant="h6" fontWeight={600}>
+        <CustomTypography variant="h6" sx={{ fontWeight: 600 }}>
           Inventory
+          
           {hasSelection && (
             <CustomTypography
               component="span"
               variant="body2"
-              color="textSecondary"
+              color="text.secondary"
               sx={{ ml: 1 }}
             >
               ({selectedRowIds.length} selected)
             </CustomTypography>
           )}
         </CustomTypography>
-
-        <Box display="flex" gap={1} alignItems="center">
+        
+        <Box
+          sx={{
+            display: 'flex',
+            gap: 1,
+            alignItems: 'center',
+          }}
+        >
           {hasSelection && canUpdateStatus && (
             <CustomButton
               variant="outlined"

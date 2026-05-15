@@ -1,10 +1,12 @@
 import { type FC, useMemo, useState } from 'react';
-import Accordion from '@mui/material/Accordion';
-import AccordionSummary from '@mui/material/AccordionSummary';
-import AccordionDetails from '@mui/material/AccordionDetails';
-import Box from '@mui/material/Box';
-import Chip from '@mui/material/Chip';
-import Stack from '@mui/material/Stack';
+import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
+  Box,
+  Chip,
+  Stack
+} from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import {
   CustomTypography,
@@ -44,71 +46,108 @@ const WarehouseProductSummaryCard: FC<Props> = ({ product }) => {
     >
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
         <Box
-          display="flex"
-          alignItems="center"
-          gap={2}
-          flexWrap="wrap"
-          width="100%"
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 2,
+            flexWrap: 'wrap',
+            width: '100%',
+          }}
         >
-          <Box flex={1} minWidth={200}>
-            <Box display="flex" alignItems="center" gap={1}>
+          <Box
+            sx={{
+              flex: 1,
+              minWidth: 200,
+            }}
+          >
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+              }}
+            >
               <TruncatedText
                 text={product.productName ?? '(unnamed product)'}
                 maxLength={40}
                 variant="subtitle1"
-                fontWeight={700}
+                sx={{ fontWeight: 700 }}
               />
+              
               {product.brand && (
                 <Chip label={product.brand} size="small" variant="outlined" />
               )}
             </Box>
+            
             <CustomTypography variant="caption" color="text.secondary">
               {product.skus.length} SKU{product.skus.length === 1 ? '' : 's'} ·{' '}
               {product.batchCount} batch{product.batchCount === 1 ? '' : 'es'}
             </CustomTypography>
           </Box>
-
+          
           <Stack
             direction="row"
             spacing={3}
-            alignItems="center"
-            flexWrap="wrap"
+            useFlexGap
+            sx={{
+              alignItems: 'center',
+              flexWrap: 'wrap',
+            }}
           >
             <SummaryStat
               label="Total"
               value={product.totalQuantity}
               minWidth={80}
             />
+            
             <SummaryStat
               label="Reserved"
               value={product.totalReserved}
               minWidth={80}
             />
-            <Box display="flex" alignItems="center" gap={1}>
+            
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+              }}
+            >
               <SummaryStat
                 label="Available"
                 value={product.totalAvailable}
                 minWidth={80}
               />
+              
               <ChipSlot>
                 <LowStockChip available={product.totalAvailable} />
               </ChipSlot>
             </Box>
-            <Box display="flex" alignItems="center" gap={1} minWidth={140}>
+            
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                minWidth: 140,
+              }}
+            >
               <Box>
                 <CustomTypography
                   variant="caption"
                   color="text.secondary"
-                  display="block"
+                  sx={{ display: 'block' }}
                 >
                   Earliest Expiry
                 </CustomTypography>
-                <CustomTypography variant="body2" fontWeight={600}>
+                
+                <CustomTypography variant="body2" sx={{ fontWeight: 600 }}>
                   {product.earliestExpiry
                     ? formatDate(product.earliestExpiry)
                     : '—'}
                 </CustomTypography>
               </Box>
+              
               <ChipSlot>
                 <ExpiryChip date={product.earliestExpiry} />
               </ChipSlot>
@@ -116,7 +155,7 @@ const WarehouseProductSummaryCard: FC<Props> = ({ product }) => {
           </Stack>
         </Box>
       </AccordionSummary>
-
+      
       <AccordionDetails>
         <CustomMiniTable
           columns={columns}

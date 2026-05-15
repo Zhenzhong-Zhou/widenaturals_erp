@@ -30,7 +30,7 @@ const Footer: FC<FooterProps> = ({ onStaffLogin }) => {
       >
         {/* COMPANY */}
         <Box>
-          <CustomTypography variant="body2" fontWeight={800}>
+          <CustomTypography variant="body2" sx={{ fontWeight: 800 }}>
             © {new Date().getFullYear()} WIDE Naturals Inc.
           </CustomTypography>
           <CustomTypography

@@ -1,9 +1,5 @@
 import { type FC, useEffect, useMemo, useState } from 'react';
-import Box from '@mui/material/Box';
-import Divider from '@mui/material/Divider';
-import Card from '@mui/material/Card';
-import Grid from '@mui/material/Grid';
-import Stack from '@mui/material/Stack';
+import { Box, Card, Divider, Grid, Stack } from '@mui/material';
 import { usePaginateOrderTypes } from '@hooks/index';
 import {
   CustomButton,
@@ -80,13 +76,15 @@ const OrderTypesPage: FC = () => {
       {/* Page Header */}
       <Stack
         direction="row"
-        justifyContent="space-between"
-        alignItems="center"
-        flexWrap="wrap"
         spacing={2}
-        mb={3}
+        sx={{
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          mb: 3,
+        }}
       >
-        <CustomTypography variant="h5" fontWeight={700}>
+        <CustomTypography variant="h5" sx={{ fontWeight: 700 }}>
           Order Types
         </CustomTypography>
         {/* Add a button or right-hand action here if needed */}

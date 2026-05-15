@@ -38,7 +38,13 @@ const Header: FC<HeaderProps> = ({ onStaffLogin }) => {
         }}
       >
         {/* Brand */}
-        <Stack direction="row" spacing={2} alignItems="center">
+        <Stack
+          direction="row"
+          spacing={2}
+          sx={{
+            alignItems: 'center',
+          }}
+        >
           {/* Logo */}
           <Box
             component="a"
@@ -68,8 +74,8 @@ const Header: FC<HeaderProps> = ({ onStaffLogin }) => {
           >
             <CustomTypography
               variant="h6"
-              fontWeight={700}
               sx={{
+                fontWeight: 700,
                 color: 'text.primary',
                 m: 0,
               }}
@@ -94,8 +100,8 @@ const Header: FC<HeaderProps> = ({ onStaffLogin }) => {
         <Stack
           direction="row"
           spacing={3}
-          alignItems="center"
           sx={{
+            alignItems: 'center',
             display: { xs: 'none', md: 'flex' },
           }}
         >

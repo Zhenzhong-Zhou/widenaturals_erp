@@ -1,9 +1,7 @@
 import { type FC } from 'react';
-import Stack from '@mui/material/Stack';
-import PageShell from '@features/user/layouts/PageShell';
-import CustomButton from '@components/common/CustomButton';
-import GoBackButton from '@components/common/GoBackButton';
-import CustomPagination from '@components/common/CustomPagination';
+import { Stack } from '@mui/material';
+import { CustomButton, CustomPagination, GoBackButton } from '@components/index';
+import { PageShell } from '@features/user/layouts';
 import {
   UserCardGrid,
   UserFilterAndSortPanel,
@@ -54,7 +52,13 @@ const UserCardLayout: FC<{ controller: UserPageController }> = ({
     <PageShell
       title="Users"
       actions={
-        <Stack direction="row" spacing={1} alignItems="center">
+        <Stack
+          direction="row"
+          spacing={1}
+          sx={{
+            alignItems: 'center',
+          }}
+        >
           <GoBackButton
             size="small"
             variant="outlined"

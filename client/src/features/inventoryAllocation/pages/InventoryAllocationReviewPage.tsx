@@ -1,10 +1,6 @@
 import { useCallback, useEffect, useMemo } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
-import Box from '@mui/material/Box';
-import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
-import Stack from '@mui/material/Stack';
-import Divider from '@mui/material/Divider';
+import { Box, Card, CardContent, Divider, Stack, } from '@mui/material';
 import {
   CustomButton,
   CustomTypography,
@@ -167,7 +163,14 @@ const InventoryAllocationReviewPage = () => {
       </CustomTypography>
 
       {/* Actions Row */}
-      <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 3 }}>
+      <Stack
+        direction="row"
+        spacing={2}
+        sx={{
+          alignItems: 'center',
+          mb: 3,
+        }}
+      >
         <GoBackButton />
       </Stack>
 
@@ -226,8 +229,15 @@ const InventoryAllocationReviewPage = () => {
             items={allocationReviewItems}
             itemCount={allocationItemCount}
           />
-
-          <Box mt={4} display="flex" justifyContent="flex-end" gap={2}>
+          
+          <Box
+            sx={{
+              mt: 4,
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: 2,
+            }}
+          >
             <CustomButton
               variant="outlined"
               color="secondary"

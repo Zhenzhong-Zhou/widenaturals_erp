@@ -15,7 +15,7 @@ const columns: MiniColumn<WarehouseZone>[] = [
     id: 'zoneCode',
     label: 'Zone',
     renderCell: (row) => (
-      <CustomTypography fontWeight={500}>{row.zoneCode}</CustomTypography>
+      <CustomTypography sx={{ fontWeight: 500 }}>{row.zoneCode}</CustomTypography>
     ),
   },
   {

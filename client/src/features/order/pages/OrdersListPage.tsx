@@ -7,8 +7,7 @@ import {
   useState,
 } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Box, Card, Divider, Grid } from '@mui/material';
-import Skeleton from '@mui/material/Skeleton';
+import { Box, Card, Divider, Grid, Skeleton } from '@mui/material';
 import { ORDER_VIEW_MODES } from '@features/order/constants/orderViewModes';
 import { isValidOrderCategory } from '@features/order/utils';
 import { type OrderCategory } from '@utils/constants/orderPermissions';
@@ -167,12 +166,14 @@ const OrdersListPage = () => {
   return (
     <Box sx={{ px: 4, py: 3 }}>
       <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        flexWrap="wrap"
-        mb={3}
-        gap={2}
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          mb: 3,
+          gap: 2,
+        }}
       >
         <CustomTypography variant="h5">Order Management</CustomTypography>
         <GoBackButton sx={{ borderRadius: 20 }} />

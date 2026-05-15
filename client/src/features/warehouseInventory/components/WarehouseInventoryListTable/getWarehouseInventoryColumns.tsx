@@ -93,7 +93,13 @@ export const getWarehouseInventoryColumns = (
             ? row.productExpiryDate
             : row.packagingExpiryDate;
         return (
-          <Box display="flex" alignItems="center" gap={1}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+            }}
+          >
             <span>{date ? formatDate(date) : '—'}</span>
             <InventoryStatusBadge expiryDate={date ?? null} />
           </Box>
@@ -117,7 +123,13 @@ export const getWarehouseInventoryColumns = (
       label: 'Available',
       sortable: true,
       renderCell: (row) => (
-        <Box display="flex" alignItems="center" gap={1}>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+          }}
+        >
           <span>{row.availableQuantity.toLocaleString()}</span>
           <InventoryStatusBadge record={row} />
         </Box>

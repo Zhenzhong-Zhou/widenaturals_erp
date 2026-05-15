@@ -136,8 +136,10 @@ const Hero: FC<HeroProps> = ({ onPrimary, onSecondary }) => {
           >
             <CustomTypography
               variant="subtitle2"
-              fontWeight={800}
-              sx={{ color: 'text.primary' }}
+              sx={{
+                fontWeight: 800,
+                color: 'text.primary'
+            }}
               gutterBottom
             >
               Capabilities Snapshot

@@ -13,10 +13,12 @@ type DetailFieldProps = {
  */
 const DetailField: FC<DetailFieldProps> = ({ label, value }) => (
   <Box
-    display="flex"
-    justifyContent="space-between"
-    alignItems="baseline"
-    gap={2}
+    sx={{
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'baseline',
+      gap: 2,
+    }}
   >
     <CustomTypography variant="body2" color="text.secondary">
       {label}

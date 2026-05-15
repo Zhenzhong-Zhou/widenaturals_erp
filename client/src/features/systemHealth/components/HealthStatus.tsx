@@ -77,7 +77,7 @@ const HealthStatus: FC<HealthStatusProps> = ({ sx }) => {
           color: 'text.primary',
         }}
       >
-        <CustomTypography variant="body2" fontWeight={600}>
+        <CustomTypography variant="body2" sx={{ fontWeight: 600 }}>
           Server: {formatLabel(serverStatus) || 'Unknown'}
         </CustomTypography>
 

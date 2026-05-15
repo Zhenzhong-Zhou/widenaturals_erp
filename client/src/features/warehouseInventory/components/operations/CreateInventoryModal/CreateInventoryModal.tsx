@@ -149,7 +149,7 @@ const CreateInventoryModal: FC<CreateInventoryModalProps> = ({
             borderColor: 'divider',
           }}
         >
-          <CustomTypography variant="body2" fontWeight={600}>
+          <CustomTypography variant="body2" sx={{ fontWeight: 600 }}>
             Batch Type
           </CustomTypography>
           <ToggleButtonGroup

@@ -67,15 +67,15 @@ const CreateProductSuccessDialog: FC<CreateProductSuccessDialogProps> = ({
                 <Stack
                   key={product.id}
                   direction="row"
-                  justifyContent="space-between"
-                  alignItems="center"
                   sx={{
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
                     border: '1px solid #eee',
                     borderRadius: 1,
                     padding: 1.5,
                   }}
                 >
-                  <CustomTypography variant="body1" fontWeight={500}>
+                  <CustomTypography variant="body1" sx={{ fontWeight: 500 }}>
                     {product.name}
                   </CustomTypography>
 

@@ -1,10 +1,10 @@
 import type { FC, ReactNode } from 'react';
-import CustomTypography from '@components/common/CustomTypography';
-import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import ErrorOutlinedIcon from '@mui/icons-material/ErrorOutlined';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import { CustomTypography } from '@components/index';
 
-export type FieldStatus = 'required' | 'invalid' | 'valid' | 'none';
+type FieldStatus = 'required' | 'invalid' | 'valid' | 'none';
 
 interface FieldStatusHelperProps {
   status?: FieldStatus; // 'required', 'invalid', 'valid', 'none'
@@ -31,7 +31,7 @@ const FieldStatusHelper: FC<FieldStatusHelperProps> = ({
 
   switch (status) {
     case 'required':
-      icon = <ErrorOutlineIcon fontSize="small" />;
+      icon = <ErrorOutlinedIcon fontSize="small" />;
       color = 'error';
       break;
     case 'invalid':

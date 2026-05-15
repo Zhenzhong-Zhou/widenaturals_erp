@@ -55,22 +55,31 @@ const Row = ({
   bold?: boolean;
 }) => (
   <Box
-    display="grid"
-    gridTemplateColumns="90% auto"
-    alignItems="center"
-    width="100%"
+    sx={{
+      display: 'grid',
+      gridTemplateColumns: '90% auto',
+      alignItems: 'center',
+      width: '100%',
+    }}
   >
     <CustomTypography
       variant="body2"
-      fontWeight={bold ? 'bold' : 'normal'}
-      sx={{ minWidth: 80, textAlign: 'right' }}
+      sx={{
+        fontWeight: bold ? 'bold' : 'normal',
+        minWidth: 80,
+        textAlign: 'right',
+      }}
     >
       {label}
     </CustomTypography>
+    
     <CustomTypography
       variant="body2"
-      fontWeight={bold ? 'bold' : 'normal'}
-      sx={{ minWidth: 80, textAlign: 'right' }}
+      sx={{
+        fontWeight: bold ? 'bold' : 'normal',
+        minWidth: 80,
+        textAlign: 'right',
+      }}
     >
       {value}
     </CustomTypography>

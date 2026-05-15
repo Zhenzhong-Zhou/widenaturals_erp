@@ -1,11 +1,7 @@
 import { type FC, lazy, useCallback, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { useLocation } from 'react-router';
-import Box from '@mui/material/Box';
-import Stack from '@mui/material/Stack';
-import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
-import Divider from '@mui/material/Divider';
+import { Box, Card, CardContent, Divider, Stack,  } from '@mui/material';
 import {
   CustomButton,
   CustomTypography,
@@ -163,7 +159,14 @@ const OutboundShipmentDetailsPage: FC = () => {
       </CustomTypography>
 
       {/* Actions Row */}
-      <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 3 }}>
+      <Stack
+        direction="row"
+        spacing={2}
+        sx={{
+          alignItems: 'center',
+          mb: 3,
+        }}
+      >
         <GoBackButton />
       </Stack>
 
@@ -192,8 +195,14 @@ const OutboundShipmentDetailsPage: FC = () => {
             <CustomTypography variant="h4" sx={{ fontWeight: 'bold' }}>
               Outbound Shipment Details Review
             </CustomTypography>
-
-            <Stack direction="row" spacing={2} alignItems="center">
+            
+            <Stack
+              direction="row"
+              spacing={2}
+              sx={{
+                alignItems: 'center',
+              }}
+            >
               {shipmentDetailsError && (
                 <ErrorMessage message={shipmentDetailsError} />
               )}

@@ -1,4 +1,4 @@
-import Box from '@mui/material/Box';
+import { Box } from '@mui/material';
 import type { MiniColumn } from '@components/common/CustomMiniTable';
 import { formatDate } from '@utils/dateTimeUtils';
 import { ExpiryChip, LowStockChip } from '@features/warehouseInventory/shared';
@@ -47,10 +47,12 @@ export const getProductSkuColumns =
       align: 'right',
       renderCell: (row) => (
         <Box
-          display="inline-flex"
-          alignItems="center"
-          gap={1}
-          justifyContent="flex-end"
+          sx={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 1,
+            justifyContent: 'flex-end',
+          }}
         >
           {row.totalAvailable}
           <LowStockChip available={row.totalAvailable} />
@@ -67,7 +69,13 @@ export const getProductSkuColumns =
       id: 'earliestExpiry',
       label: 'Earliest Expiry',
       renderCell: (row) => (
-        <Box display="flex" alignItems="center" gap={1}>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+          }}
+        >
           <span>
             {row.earliestExpiry ? formatDate(row.earliestExpiry) : '—'}
           </span>

@@ -44,7 +44,13 @@ const AllocationActionToolbar: FC<AllocationActionToolbarProps> = ({
   refresh,
 }) => {
   return (
-    <Stack direction="row" spacing={2} alignItems="center">
+    <Stack
+      direction="row"
+      spacing={2}
+      sx={{
+        alignItems: 'center',
+      }}
+    >
       {confirmError && <ErrorMessage message={confirmError} />}
 
       <AllocationStatusSummary {...allocationSummary} />

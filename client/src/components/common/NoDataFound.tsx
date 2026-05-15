@@ -1,8 +1,10 @@
 import type { FC, ReactNode } from 'react';
-import Box from '@mui/material/Box';
-import CustomTypography from '@components/common/CustomTypography';
-import GoBackButton from '@components/common/GoBackButton';
-import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import HelpOutlinedIcon from '@mui/icons-material/HelpOutlined';
+import { Box } from '@mui/material';
+import {
+  CustomTypography,
+  GoBackButton
+} from '@components/index';
 
 interface NoDataFoundProps {
   message?: string;
@@ -12,7 +14,7 @@ interface NoDataFoundProps {
 
 const NoDataFound: FC<NoDataFoundProps> = ({
   message = 'No records found.',
-  icon = <HelpOutlineIcon fontSize="large" color="disabled" />,
+  icon = <HelpOutlinedIcon fontSize="large" color="disabled" />,
   action = <GoBackButton sx={{ mt: 1, minWidth: 160 }} />,
 }) => {
   return (

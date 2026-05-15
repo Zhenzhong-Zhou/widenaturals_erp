@@ -87,7 +87,7 @@ const SkuImageUpdateCard = ({
     >
       {/* Header */}
       <Box sx={{ mb: 2 }}>
-        <CustomTypography variant="h6" fontWeight={700}>
+        <CustomTypography variant="h6" sx={{ fontWeight: 700 }}>
           {displayProductName}
         </CustomTypography>
         <CustomTypography variant="body2" color="text.secondary">

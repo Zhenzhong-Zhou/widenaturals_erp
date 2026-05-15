@@ -15,30 +15,51 @@ const WarehouseInventoryPackagingInfoPanel: FC<
   if (!info) {
     return (
       <Card sx={{ p: 3, borderRadius: 2 }}>
-        <CustomTypography variant="subtitle1" fontWeight={600} mb={1}>
+        <CustomTypography
+          variant="subtitle1"
+          sx={{
+            fontWeight: 600,
+            mb: 1,
+          }}
+        >
           Packaging Material
         </CustomTypography>
+        
         <CustomTypography variant="body2" color="text.secondary">
           No packaging information available.
         </CustomTypography>
       </Card>
     );
   }
-
+  
   return (
     <Card sx={{ p: 3, borderRadius: 2 }}>
-      <CustomTypography variant="subtitle1" fontWeight={600} mb={1.5}>
+      <CustomTypography
+        variant="subtitle1"
+        sx={{
+          fontWeight: 600,
+          mb: 1.5,
+        }}
+      >
         Packaging Material
       </CustomTypography>
+      
       <Stack spacing={1}>
         <DetailField label="Material code" value={info.material.code} />
       </Stack>
-
+      
       <Divider sx={{ my: 2 }} />
-
-      <CustomTypography variant="subtitle2" fontWeight={600} mb={1}>
+      
+      <CustomTypography
+        variant="subtitle2"
+        sx={{
+          fontWeight: 600,
+          mb: 1,
+        }}
+      >
         Batch
       </CustomTypography>
+      
       <Stack spacing={1}>
         <DetailField label="Display name" value={info.batch.displayName} />
         <DetailField label="Lot number" value={info.batch.lotNumber} />
@@ -47,12 +68,19 @@ const WarehouseInventoryPackagingInfoPanel: FC<
           value={formatDate(info.batch.expiryDate)}
         />
       </Stack>
-
+      
       <Divider sx={{ my: 2 }} />
-
-      <CustomTypography variant="subtitle2" fontWeight={600} mb={1}>
+      
+      <CustomTypography
+        variant="subtitle2"
+        sx={{
+          fontWeight: 600,
+          mb: 1,
+        }}
+      >
         Supplier
       </CustomTypography>
+      
       <Stack spacing={1}>
         <DetailField label="Name" value={info.supplier.name} />
       </Stack>

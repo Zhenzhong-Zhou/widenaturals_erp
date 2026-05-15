@@ -1,7 +1,6 @@
 import type { FC } from 'react';
-import Box from '@mui/material/Box';
-import Tooltip from '@mui/material/Tooltip';
-import CustomTypography from '@components/common/CustomTypography';
+import { Box, Tooltip } from '@mui/material';
+import { CustomTypography } from '@components/index';
 
 export type SummaryStatAlign = 'left' | 'right' | 'center';
 
@@ -62,15 +61,21 @@ const SummaryStat: FC<SummaryStatProps> = ({
   })();
 
   const content = (
-    <Box textAlign={align} minWidth={minWidth}>
+    <Box
+      sx={{
+        textAlign: align,
+        minWidth,
+      }}
+    >
       <CustomTypography
         variant="caption"
         color="text.secondary"
-        display="block"
+        sx={{ display: 'block' }}
       >
         {label}
       </CustomTypography>
-      <CustomTypography variant="body1" fontWeight={600}>
+      
+      <CustomTypography variant="body1" sx={{ fontWeight: 600 }}>
         {displayValue}
       </CustomTypography>
     </Box>

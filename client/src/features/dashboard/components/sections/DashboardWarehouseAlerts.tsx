@@ -57,7 +57,13 @@ const DashboardWarehouseAlerts: FC<Props> = ({ warehouses }) => {
 
   return (
     <Box>
-      <CustomTypography variant="subtitle1" fontWeight={700} mb={2}>
+      <CustomTypography
+        variant="subtitle1"
+        sx={{
+          fontWeight: 700,
+          mb: 2,
+        }}
+      >
         Warehouse Alerts
       </CustomTypography>
       <CustomTypography variant="caption" color="text.secondary">

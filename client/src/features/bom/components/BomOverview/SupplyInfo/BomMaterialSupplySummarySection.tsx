@@ -1,14 +1,17 @@
 import { useState, type FC } from 'react';
-import Box from '@mui/material/Box';
-import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
-import Divider from '@mui/material/Divider';
-import Collapse from '@mui/material/Collapse';
-import CustomTypography from '@components/common/CustomTypography';
-import CustomButton from '@components/common/CustomButton';
-import DetailsSection, {
-  type DetailsSectionField,
-} from '@components/common/DetailsSection';
+import {
+  Box,
+  Card,
+  CardContent,
+  Collapse,
+  Divider
+} from '@mui/material';
+import {
+  CustomButton,
+  CustomTypography,
+  DetailsSection
+} from '@components/index';
+import type { DetailsSectionField } from '@components/common/DetailsSection';
 import {
   BomSupplierBreakdownMiniTable,
   BomPartBreakdownMiniTable,
@@ -99,7 +102,7 @@ const BomMaterialSupplySummarySection: FC<
             mb: 2,
           }}
         >
-          <CustomTypography variant="h6" fontWeight={600}>
+          <CustomTypography variant="h6" sx={{ fontWeight: 600 }}>
             BOM Cost Overview
           </CustomTypography>
 
@@ -135,12 +138,12 @@ const BomMaterialSupplySummarySection: FC<
         <Collapse in={expanded} timeout="auto" unmountOnExit>
           <Divider sx={{ my: 2 }} />
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, p: 1 }}>
-            <CustomTypography variant="subtitle1" fontWeight={600}>
+            <CustomTypography variant="h6" sx={{ fontWeight: 600 }}>
               Supplier Breakdown
             </CustomTypography>
             <BomSupplierBreakdownMiniTable data={suppliers} />
-
-            <CustomTypography variant="subtitle1" fontWeight={600}>
+            
+            <CustomTypography variant="h6" sx={{ fontWeight: 600 }}>
               Part Breakdown
             </CustomTypography>
             <BomPartBreakdownMiniTable data={parts} />
