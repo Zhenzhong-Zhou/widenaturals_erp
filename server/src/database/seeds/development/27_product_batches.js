@@ -515,11 +515,106 @@ exports.seed = async function (knex) {
       quantity: 0,
       manufacturer: 'Novastown Health',
     },
-  ];
+    
+    // --- Phyto-Genious (CN) ---
+    {
+      product_name: 'Cell Revive',
+      size_label: '60 Capsules',
+      country_code: 'CN',
+      lot_number: 'PG137CI002',
+      expiry_date: '2029-01-09',
+      quantity: 87,
+      manufacturer: 'Vanpearl Natural Health Ltd.',
+    },
+    {
+      product_name: 'Seal Oil Plus',
+      size_label: '120 Softgels',
+      country_code: 'CN',
+      lot_number: 'PG136NA002',
+      expiry_date: '2029-01-27',
+      quantity: 87,
+      manufacturer: 'Canadian Phytopharmaceuticals',
+    },
+    {
+      product_name: 'Astaxanthin Plus',
+      size_label: '120 Softgels',
+      country_code: 'CN',
+      lot_number: 'PG139NA001',
+      expiry_date: '2028-08-20',
+      quantity: 68,
+      manufacturer: 'Novastown Health',
+    },
+    {
+      product_name: 'Ubiquinol 100mg CoQ10 Mega',
+      size_label: '60 Capsules',
+      country_code: 'CN',
+      lot_number: 'PG158NA001',
+      expiry_date: '2029-03-02',
+      quantity: 191,
+      manufacturer: 'Vanpearl Natural Health Ltd.',
+    },
 
+    // --- WIDE Naturals (UN) ---
+    {
+      product_name: 'New Seal Oil Omega-3 (120 Softgels)',
+      size_label: '120 Softgels',
+      country_code: 'UN',
+      lot_number: 'WC141NA001',
+      expiry_date: '2029-01-18',
+      quantity: 710,
+      manufacturer: 'Novastown Health',
+    },
+    {
+      product_name: '5 IN 1 D3 + K2 + CA + MG + ZN',
+      size_label: '120 Softgels',
+      country_code: 'UN',
+      lot_number: 'WC145NA002',
+      expiry_date: '2029-04-01',
+      quantity: 449,
+      manufacturer: 'Novastown Health',
+    },
+    {
+      product_name: 'CoQ10 + PQQ Seal Oil',
+      size_label: '120 Softgels',
+      country_code: 'UN',
+      lot_number: 'WC144CI001',
+      expiry_date: '2029-01-18',
+      quantity: 188,
+      manufacturer: 'Novastown Health',
+    },
+    {
+      product_name: 'AKK + DAG Oil',
+      size_label: '30 Cups',
+      country_code: 'UN',
+      lot_number: 'WC147CI001',
+      expiry_date: '2029-04-20',
+      quantity: 115,
+      manufacturer: 'Novastown Health',
+    },
+  ];
+  
   const parseDate = (str) => {
+    if (!str || typeof str !== 'string') return null;
+    
+    // Handle "YYYYMonDD" formats like "2029APR01"
+    const monMatch = str.match(/^(\d{4})([A-Z]{3})(\d{2})$/i);
+    if (monMatch) {
+      const [, yyyy, mon, dd] = monMatch;
+      const months = { JAN: '01', FEB: '02', MAR: '03', APR: '04', MAY: '05', JUN: '06', JUL: '07', AUG: '08', SEP: '09', OCT: '10', NOV: '11', DEC: '12' };
+      const mm = months[mon.toUpperCase()];
+      if (mm) return `${yyyy}-${mm}-${dd}`;
+    }
+    
+    // Handle "M/D/YYYY" assuming US ordering (verify with your data source!)
+    const slashMatch = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (slashMatch) {
+      const [, m, d, yyyy] = slashMatch;
+      return `${yyyy}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+    }
+    
+    // Fall back to native parser for ISO-like inputs
     const d = new Date(str);
-    return isNaN(d) ? null : d.toISOString().split('T')[0];
+    return Number.isNaN(d.getTime()) ? null : d.toISOString().split('T')[0];
   };
 
   const getSkuId = async (knex, name, size, country) => {
