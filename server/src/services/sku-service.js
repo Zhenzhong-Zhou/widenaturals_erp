@@ -219,11 +219,11 @@ const fetchSkuDetailsService = async (skuId, user) => {
 
     // 4. Fetch and filter pricing (optional — gated by access).
     const pricingAccess = await evaluatePricingViewAccessControl(user);
-    let safePricing = [];
+    let safePricingRows = [];
 
     if (pricingAccess.canViewAllValidPricing) {
       const pricingRows = await getPricingBySkuId(skuId);
-      safePricing = slicePricingForUser(pricingRows, pricingAccess);
+      safePricingRows = slicePricingForUser(pricingRows, pricingAccess);
     }
 
     // 5. Fetch and filter compliance records (optional — gated by access).
@@ -242,12 +242,12 @@ const fetchSkuDetailsService = async (skuId, user) => {
     return transformSkuDetail({
       sku: safeSku,
       images: safeImages,
-      pricing: safePricing,
+      pricing: safePricingRows,
       complianceRecords: safeComplianceRecords,
     });
   } catch (error) {
     if (error instanceof AppError) throw error;
-
+    
     throw AppError.serviceError('Unable to fetch SKU detail.', {
       context,
       meta: { error: error.message },
