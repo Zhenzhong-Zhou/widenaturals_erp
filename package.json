@@ -1,6 +1,6 @@
 {
   "name": "widenaturals-erp",
-  "version": "2.1.0",
+  "version": "4.0.0",
   "description": "Monorepo for WIDE Naturals Inc. ERP system, including client and server.",
   "keywords": [
     "erp",
