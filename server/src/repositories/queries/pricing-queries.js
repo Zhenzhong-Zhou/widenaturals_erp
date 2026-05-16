@@ -127,6 +127,7 @@ const PRICING_BY_SKU_QUERY = `
     pg.valid_from,
     pg.valid_to,
     pg.status_id,
+    s.name                        AS status_name,
     pg.status_date,
     pg.created_at,
     pg.updated_at,
@@ -139,6 +140,7 @@ const PRICING_BY_SKU_QUERY = `
   FROM pricing p
   JOIN  pricing_groups pg ON pg.id              = p.pricing_group_id
   JOIN  pricing_types  pt ON pt.id              = pg.pricing_type_id
+  LEFT JOIN status     s  ON s.id               = pg.status_id
   LEFT JOIN users      u1 ON u1.id              = pg.created_by
   LEFT JOIN users      u2 ON u2.id              = pg.updated_by
   WHERE p.sku_id = $1
