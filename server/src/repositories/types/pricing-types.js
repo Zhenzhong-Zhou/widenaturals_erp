@@ -210,3 +210,53 @@
  * @property {string} [createdBy]     - Filter by creator UUID.
  * @property {string} [updatedBy]     - Filter by updater UUID.
  */
+
+/**
+ * Nested price-type block emitted by `slicePricingForUser`.
+ *
+ * @typedef {Object} SafeSkuPricingPriceType
+ * @property {string|null} id
+ * @property {string|null} name
+ * @property {string|null} code
+ */
+
+/**
+ * SKU pricing row after slice-layer ACL filtering.
+ *
+ * Produced by `slicePricingForUser`. The `status` and `audit` fields are
+ * omitted entirely (not null) when the user lacks the corresponding access,
+ * and downstream transformers preserve that omission.
+ *
+ * @typedef {Object} SafeSkuPricingRow
+ * @property {string} id                       Pricing record UUID
+ * @property {string} skuId
+ * @property {string} pricingGroupId
+ * @property {SafeSkuPricingPriceType} priceType
+ * @property {string|null} countryCode         ISO country code or 'GLOBAL'
+ * @property {string|number|null} price        Raw DB value; numeric cast happens in transform
+ * @property {string|null} validFrom           ISO timestamp
+ * @property {string|null} validTo             ISO timestamp; null = open-ended
+ * @property {NormalizedStatus} [status]       Present only when canViewAllPricingTypes
+ * @property {AuditMeta} [audit]               Present only when canViewPricingHistory
+ */
+
+/**
+ * Pricing entry shape returned in the SKU detail response.
+ *
+ * `status` and `audit` are absent (not null) when the source row had them
+ * stripped by ACL.
+ *
+ * @typedef {Object} SkuDetailPricingDto
+ * @property {string} pricingId
+ * @property {string} skuId
+ * @property {string} pricingGroupId
+ * @property {string|null} pricingTypeId
+ * @property {string|null} pricingTypeName
+ * @property {string|null} pricingTypeCode
+ * @property {string|null} countryCode
+ * @property {number|null} price
+ * @property {string|null} validFrom
+ * @property {string|null} validTo
+ * @property {NormalizedStatus} [status]
+ * @property {AuditMeta} [audit]
+ */
