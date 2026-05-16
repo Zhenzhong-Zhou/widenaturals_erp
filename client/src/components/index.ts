@@ -44,6 +44,7 @@ export { default as SummaryStat } from './common/SummaryStat';
 export { default as StatusChip } from './common/StatusChip';
 export { default as ZoomImageDialog } from './common/ZoomImageDialog';
 export { default as ImageMetadataPopover } from './common/ImageMetadataPopover';
+export { default as InfoPopover } from './common/InfoPopover';
 export { default as ExpandableDetailSection } from './common/ExpandableDetailSection';
 export { default as DetailsGrid } from './layout/DetailsGrid';
 export { default as Section } from './layout/Section';
