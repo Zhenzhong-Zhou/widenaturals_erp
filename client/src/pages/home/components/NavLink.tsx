@@ -1,4 +1,5 @@
 import type { FC } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from '@mui/material';
 
 interface NavLinkProps {
@@ -7,16 +8,27 @@ interface NavLinkProps {
   children: string;
 }
 
-const NavLink: FC<NavLinkProps> = ({ href, children }) => {
-  const isActive = window.location.hash === href;
+const NavLink: FC<NavLinkProps> = ({ href, onClick, children }) => {
+  const [hash, setHash] = useState(
+    typeof window !== 'undefined' ? window.location.hash : ''
+  );
+
+  useEffect(() => {
+    const onHashChange = () => setHash(window.location.hash);
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
+
+  const isActive = hash === href;
 
   return (
     <Link
       href={href}
+      onClick={onClick}
       underline="none"
       sx={{
         fontWeight: 600,
-        color: isActive ? '#2f8f46' : '#475569',
+        color: isActive ? 'primary.main' : 'text.secondary',
         position: 'relative',
         transition: 'color 0.15s ease',
 
@@ -28,11 +40,12 @@ const NavLink: FC<NavLinkProps> = ({ href, children }) => {
           bottom: -6,
           height: 2,
           borderRadius: 1,
-          backgroundColor: isActive ? '#2f8f46' : 'transparent',
+          backgroundColor: isActive ? 'primary.main' : 'transparent',
+          transition: 'background-color 0.15s ease',
         },
 
         '&:hover': {
-          color: '#2f8f46',
+          color: 'primary.main',
         },
       }}
     >

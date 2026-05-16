@@ -1,6 +1,4 @@
-import { useMemo } from 'react';
 import type { LookupQuery } from '@features/lookup/state';
-import type { MultiSelectOption } from '@components/common/MultiSelectDropdown';
 
 /**
  * Utility: Create lookup parameters with defaults.
@@ -98,29 +96,10 @@ type LookupLike<T> = {
  *   onOpen={createOnOpenHandler(customerLookup)}
  * />
  */
-export const createOnOpenHandler = <T>(lookup: LookupLike<T>) => () => {
-  if (lookup.options.length === 0 && !lookup.loading) {
-    lookup.fetch();
-  }
-};
-
-/**
- * Returns a memoized copy of lookup options with formatted labels.
- *
- * Useful when display labels require transformation (e.g. title case,
- * localization, normalization) without mutating the original option objects.
- *
- * The returned array preserves option identity except for the `label` field.
- *
- * @param options - Original lookup options
- * @param formatLabel - Function to transform each option label
- * @returns Memoized options array with formatted labels
- */
-export const useFormattedOptions = (
-  options: MultiSelectOption[],
-  formatLabel: (label: string) => string
-) =>
-  useMemo(
-    () => options.map((o) => ({ ...o, label: formatLabel(o.label) })),
-    [options, formatLabel]
-  );
+export const createOnOpenHandler =
+  <T>(lookup: LookupLike<T>) =>
+  () => {
+    if (lookup.options.length === 0 && !lookup.loading) {
+      lookup.fetch();
+    }
+  };

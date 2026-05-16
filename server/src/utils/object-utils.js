@@ -81,7 +81,10 @@ const deepCleanObject = (obj) => {
     ])
     .filter(([_, value]) => {
       if (value === null || value === undefined) return false;
-      return !(isPlainObject(value) && Object.keys(/** @type {object} */ (value)).length === 0);
+      return !(
+        isPlainObject(value) &&
+        Object.keys(/** @type {object} */ (value)).length === 0
+      );
     });
 
   return Object.fromEntries(cleanedEntries);

@@ -17,13 +17,13 @@ import { resetWarehouseInventoryCreate } from '@features/warehouseInventory/stat
  */
 const useWarehouseInventoryCreate = () => {
   const dispatch = useAppDispatch();
-  
+
   const loading = useAppSelector(selectWarehouseInventoryCreateLoading);
   const error = useAppSelector(selectWarehouseInventoryCreateError);
   const createResponse = useAppSelector(selectWarehouseInventoryCreateResponse);
   const createdCount = useAppSelector(selectCreatedInventoryCount);
   const createdIds = useAppSelector(selectCreatedInventoryIds);
-  
+
   /**
    * Dispatches the thunk to create warehouse inventory records.
    * @param warehouseId - Target warehouse UUID.
@@ -35,14 +35,14 @@ const useWarehouseInventoryCreate = () => {
   ) => {
     return dispatch(createWarehouseInventoryThunk({ warehouseId, payload }));
   };
-  
+
   /**
    * Resets the warehouse inventory creation state to initial.
    */
   const resetCreateState = useCallback(() => {
     dispatch(resetWarehouseInventoryCreate());
   }, [dispatch]);
-  
+
   return {
     loading,
     error,

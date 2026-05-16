@@ -1,7 +1,7 @@
 import type { Dispatch, FC, SetStateAction } from 'react';
 import type {
   BatchLookupOption,
-  GetBatchRegistryLookupParams,
+  BatchRegistryLookupQuery,
   LookupPaginationMeta,
 } from '@features/lookup/state';
 import MultiSelectDropdown, {
@@ -13,7 +13,7 @@ interface BatchRegistryMultiSelectDropdownProps {
   batchLookupOptions: BatchLookupOption[];
   selectedOptions: MultiSelectOption[];
   onChange: (selected: MultiSelectOption[]) => void;
-  setFetchParams: Dispatch<SetStateAction<GetBatchRegistryLookupParams>>;
+  setFetchParams: Dispatch<SetStateAction<BatchRegistryLookupQuery>>;
   batchLookupMeta: LookupPaginationMeta;
   batchLookupLoading?: boolean;
   batchLookupError?: string | null;

@@ -26,6 +26,7 @@ const {
   INVENTORY_ACTIVITY_LOG_TABLE,
   INVENTORY_ACTIVITY_LOG_JOINS,
   INVENTORY_ACTIVITY_LOG_SORT_WHITELIST,
+  INVENTORY_ACTIVITY_LOG_TABLE_WITH_ALIAS,
 } = require('./queries/inventory-activity-log-queries');
 const {
   buildInventoryActivityLogFilter,
@@ -77,7 +78,7 @@ const insertInventoryActivityLogBulk = async (
 
   try {
     return await bulkInsert(
-      'inventory_activity_log',
+      INVENTORY_ACTIVITY_LOG_TABLE,
       INVENTORY_ACTIVITY_LOG_INSERT_COLUMNS,
       rows,
       [], // no conflict — logs are append-only
@@ -92,9 +93,15 @@ const insertInventoryActivityLogBulk = async (
       message: 'Failed to insert inventory activity log records.',
       meta: { entryCount: logEntries.length },
       logFn: (err) =>
-        logBulkInsertError(err, 'inventory_activity_log', rows, rows.length, {
-          context,
-        }),
+        logBulkInsertError(
+          err,
+          INVENTORY_ACTIVITY_LOG_TABLE,
+          rows,
+          rows.length,
+          {
+            context,
+          }
+        ),
     });
   }
 };
@@ -133,18 +140,20 @@ const getPaginatedInventoryActivityLog = async ({
   const queryText = buildInventoryActivityLogPaginatedQuery(whereClause);
 
   try {
-    return await paginateQuery({
-      tableName: INVENTORY_ACTIVITY_LOG_TABLE,
-      joins: INVENTORY_ACTIVITY_LOG_JOINS,
-      whereClause,
-      queryText,
-      params,
-      page,
-      limit,
-      sortBy: sortConfig.sortBy,
-      sortOrder: sortConfig.sortOrder,
-      whitelistSet: INVENTORY_ACTIVITY_LOG_SORT_WHITELIST,
-    });
+    return /** @type {PaginatedResult<InventoryActivityLogRow>} */ (
+      await paginateQuery({
+        tableName: INVENTORY_ACTIVITY_LOG_TABLE_WITH_ALIAS,
+        joins: INVENTORY_ACTIVITY_LOG_JOINS,
+        whereClause,
+        queryText,
+        params,
+        page,
+        limit,
+        sortBy: sortConfig.sortBy,
+        sortOrder: sortConfig.sortOrder,
+        whitelistSet: INVENTORY_ACTIVITY_LOG_SORT_WHITELIST,
+      })
+    );
   } catch (error) {
     throw handleDbError(error, {
       context,

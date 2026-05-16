@@ -250,6 +250,19 @@ const BATCH_CONSTANTS = {
   },
 };
 
+/**
+ * Canonical batch type values. Used by Joi validators, repositories,
+ * and frontend type unions.
+ */
+const BATCH_TYPES = Object.freeze({
+  PRODUCT: 'product',
+  PACKAGING_MATERIAL: 'packaging_material',
+});
+
+const BATCH_TYPE_VALUES = Object.freeze(Object.values(BATCH_TYPES));
+
 module.exports = {
   BATCH_CONSTANTS,
+  BATCH_TYPES,
+  BATCH_TYPE_VALUES,
 };

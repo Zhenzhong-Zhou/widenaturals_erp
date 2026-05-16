@@ -18,6 +18,11 @@ const {
   BATCH_CONSTANTS,
 } = require('../utils/constants/domain/batch-constants');
 const { applyBatchTypeVisibility } = require('./apply-batch-type-visibility');
+const {
+  assertWarehouseAccess,
+  enforceWarehouseScope,
+} = require('./warehouse-inventory-business');
+const { getStatusId } = require('../config/status-cache');
 
 const CONTEXT = 'batch-registry-business';
 
@@ -77,6 +82,10 @@ const evaluateBatchRegistryVisibility = async (user) => {
         BATCH_CONSTANTS.PERMISSIONS.VIEW_BATCH_ALL_VISIBILITY
       );
 
+    const canViewAllBatchStatus =
+      isRoot ||
+      permissions.includes(BATCH_CONSTANTS.PERMISSIONS.VIEW_BATCH_STATUSES);
+
     const canViewProductBatches =
       canViewAllBatches ||
       permissions.includes(BATCH_CONSTANTS.PERMISSIONS.VIEW_PRODUCT_BATCHES);
@@ -95,6 +104,7 @@ const evaluateBatchRegistryVisibility = async (user) => {
 
     return {
       canViewAllBatches,
+      canViewAllBatchStatus,
       canViewProductBatches,
       canViewPackagingBatches,
       canViewManufacturer,
@@ -138,6 +148,7 @@ const applyBatchRegistryVisibilityRules = (filters, acl) => {
   const adjusted = { ...filters };
   return applyBatchTypeVisibility(adjusted, {
     canViewAllBatchTypes: acl.canViewAllBatches,
+    canViewAllBatchStatus: acl.canViewAllBatchStatus,
     canViewProductBatches: acl.canViewProductBatches,
     canViewPackagingBatches: acl.canViewPackagingBatches,
     canViewManufacturer: acl.canViewManufacturer,
@@ -173,9 +184,70 @@ const sliceBatchRegistryRow = (row, access) => {
   return row;
 };
 
+/**
+ * Warehouse-inventory batch-add flow only. warehouseId is required and drives
+ * the exclusion join. Privileged users can opt out of the exclusion and the
+ * released-only status filter; the warehouseId itself is still mandatory.
+ */
+const fetchBatchRegistryForInventoryLookup = async (filters, user) => {
+  if (!filters.warehouseId) {
+    throw AppError.validationError(
+      'warehouseId is required for inventory lookup.'
+    );
+  }
+
+  const acl = await evaluateBatchRegistryVisibility(user);
+  const warehouseAccess = await assertWarehouseAccess(user);
+
+  if (!warehouseAccess.canViewAll) {
+    enforceWarehouseScope(
+      warehouseAccess.assignedWarehouseIds,
+      filters.warehouseId
+    );
+  }
+
+  const batchReleasedStatusId = getStatusId('batch_released');
+
+  const adjustedFilters = {
+    ...filters,
+    excludeFromWarehouseId: filters.warehouseId,
+    statusIds: [batchReleasedStatusId],
+  };
+
+  if (acl.canViewAllWarehouses) delete adjustedFilters.excludeFromWarehouseId;
+  if (acl.canViewAllBatchStatus) delete adjustedFilters.statusIds;
+
+  const adjusted = applyBatchRegistryVisibilityRules(adjustedFilters, acl);
+
+  // Repo expects excludeFromWarehouseId; warehouseId is business-layer only.
+  delete adjusted.warehouseId;
+  return adjusted;
+};
+
+/**
+ * General batch registry lookup for filters, dropdowns, and allocation
+ * pickers. Not coupled to a warehouse. ACL still narrows batch status and
+ * product/packaging visibility.
+ */
+const fetchBatchRegistryLookup = async (filters, user) => {
+  const acl = await evaluateBatchRegistryVisibility(user);
+  const batchReleasedStatusId = getStatusId('batch_released');
+
+  const adjustedFilters = {
+    ...filters,
+    statusIds: [batchReleasedStatusId],
+  };
+
+  if (acl.canViewAllBatchStatus) delete adjustedFilters.statusIds;
+
+  return applyBatchRegistryVisibilityRules(adjustedFilters, acl);
+};
+
 module.exports = {
   validateBatchRegistryEntryById,
   evaluateBatchRegistryVisibility,
   applyBatchRegistryVisibilityRules,
   sliceBatchRegistryRow,
+  fetchBatchRegistryForInventoryLookup,
+  fetchBatchRegistryLookup,
 };

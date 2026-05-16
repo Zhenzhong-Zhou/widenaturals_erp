@@ -26,10 +26,10 @@ const fetchPaginatedPricingTypes = async (
     'createdAfter',
     'createdBefore',
   ]);
-  
+
   const queryString = buildQueryString(flatParams);
   const url = `${API_ENDPOINTS.PRICING_TYPES.ALL_RECORDS}${queryString}`;
-  
+
   return getRequest<PaginatedPricingTypeApiResponse>(url, {
     policy: 'READ',
   });
@@ -44,7 +44,7 @@ const fetchPricingTypeDetailsById = (
   pricingTypeId: string
 ): Promise<PricingTypeDetailApiResponse> => {
   const cleanId = sanitizeString(pricingTypeId);
-  
+
   return getRequest<PricingTypeDetailApiResponse>(
     API_ENDPOINTS.PRICING_TYPES.PRICING_TYPE_DETAILS(cleanId),
     { policy: 'READ' }

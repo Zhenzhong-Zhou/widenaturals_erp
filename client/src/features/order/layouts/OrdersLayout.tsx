@@ -1,11 +1,8 @@
 import { useEffect, useMemo, type SyntheticEvent } from 'react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
-import Box from '@mui/material/Box';
-import Tabs from '@mui/material/Tabs';
-import Tab from '@mui/material/Tab';
-import Card from '@mui/material/Card';
-import CustomTypography from '@components/common/CustomTypography';
-import useVisibleOrderModes from '@features/order/hooks/useVisibleOrderModes';
+import { Box, Card, Tab, Tabs } from '@mui/material';
+import { CustomTypography } from '@components/index';
+import { useVisibleOrderModes } from '@features/order/hooks';
 
 const OrdersLayout = () => {
   const navigate = useNavigate();
@@ -45,7 +42,7 @@ const OrdersLayout = () => {
   };
 
   return (
-    <Box p={3}>
+    <Box sx={{ p: 3 }}>
       <CustomTypography variant="h4" gutterBottom>
         Orders
       </CustomTypography>
@@ -73,7 +70,13 @@ const OrdersLayout = () => {
 
       <Card elevation={1} sx={{ p: 2 }}>
         {location.pathname === '/orders' ? (
-          <Box p={2} textAlign="center" color="text.secondary">
+          <Box
+            sx={{
+              p: 2,
+              textAlign: 'center',
+              color: 'text.secondary',
+            }}
+          >
             Please select an order view from above.
           </Box>
         ) : (

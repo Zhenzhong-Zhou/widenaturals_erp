@@ -58,7 +58,7 @@ const fetchPaginatedActivityLogService = async ({
   try {
     const { assignedWarehouseIds, canViewAll } =
       await assertWarehouseAccess(user);
-    
+
     if (!canViewAll) {
       enforceWarehouseScope(assignedWarehouseIds, filters.warehouseId);
     }

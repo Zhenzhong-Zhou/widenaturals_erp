@@ -112,7 +112,7 @@ const ComplianceRecordListPage = () => {
       resetAll: () => {
         lookups.status.reset();
       },
-      
+
       onOpen: {
         status: createOnOpenHandler(lookups.status),
       },
@@ -143,14 +143,16 @@ const ComplianceRecordListPage = () => {
     <Box sx={{ px: 4, py: 3 }}>
       {/* Header */}
       <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        flexWrap="wrap"
-        mb={3}
-        gap={2}
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          mb: 3,
+          gap: 2,
+        }}
       >
-        <CustomTypography variant="h5" fontWeight={700}>
+        <CustomTypography variant="h5" sx={{ fontWeight: 700 }}>
           Compliance Records Management
         </CustomTypography>
       </Box>

@@ -7,16 +7,11 @@ import {
   useState,
 } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { Box, Card, Divider, Grid, Skeleton } from '@mui/material';
 import { ORDER_VIEW_MODES } from '@features/order/constants/orderViewModes';
 import { isValidOrderCategory } from '@features/order/utils';
-import {
-  type OrderCategory,
-  toPermissionValue,
-} from '@utils/constants/orderPermissions';
-import {
-  useHasPermission,
-  usePagePermissionState,
-} from '@features/authorize/hooks';
+import { type OrderCategory } from '@utils/constants/orderPermissions';
+import { useHasPermission } from '@features/authorize/hooks';
 import usePaginatedOrders from '@hooks/usePaginatedOrders';
 import { usePaginationHandlers } from '@utils/hooks';
 import { applyFiltersAndSorting } from '@utils/query';
@@ -37,18 +32,14 @@ import {
   OrderFiltersPanel,
   OrderSortControls,
 } from '@features/order/components/OrdersTable';
-import Box from '@mui/material/Box';
-import Divider from '@mui/material/Divider';
-import Card from '@mui/material/Card';
-import Grid from '@mui/material/Grid';
-import Skeleton from '@mui/material/Skeleton';
+import { useOrderActionPermissions } from '@features/order/hooks';
 
 const OrdersTable = lazy(
   () => import('@features/order/components/OrdersTable/OrdersTable')
 );
 
 const OrdersListPage = () => {
-  const { mode } = useParams<{ mode?: string }>();
+  const { category } = useParams<{ category?: string }>();
   const navigate = useNavigate();
 
   const [page, setPage] = useState(1);
@@ -60,17 +51,12 @@ const OrdersListPage = () => {
   );
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
 
-  // UI permissions
-  const { isAllowed: canCreateSalesOrder } = usePagePermissionState(
-    toPermissionValue('CREATE', 'sales')
-  );
+  // Action permissions for the current category.
+  // Composite categories ('all', 'allocatable') return create=false automatically.
+  const { create: canCreate } = useOrderActionPermissions(category);
 
-  const canCreateSalesOrderInSalesMode =
-    mode === 'sales' && canCreateSalesOrder;
-
-  // Config permissions
+  // Config permissions (for filter visibility, etc.)
   const hasPermission = useHasPermission();
-
   const permissionCtx = useMemo<OrderPermissionContext>(
     () => ({
       has: (perm) => hasPermission(perm) === true,
@@ -88,24 +74,21 @@ const OrdersListPage = () => {
     resetOrders,
   } = usePaginatedOrders();
 
-  const isValidMode = mode && isValidOrderCategory(mode);
-  const modeConfig = isValidMode
-    ? ORDER_VIEW_MODES[mode as OrderCategory]
+  const isValidCategory = !!category && isValidOrderCategory(category);
+  const modeConfig = isValidCategory
+    ? ORDER_VIEW_MODES[category as OrderCategory]
     : undefined;
 
   // Build base filters from config
   useEffect(() => {
     if (!modeConfig) return;
-
     let baseFilters = modeConfig.buildBaseFilters(permissionCtx);
-
     if (modeConfig.applyAllocationVisibility) {
       baseFilters = modeConfig.applyAllocationVisibility(
         permissionCtx,
         baseFilters
       );
     }
-
     setFilters(baseFilters);
   }, [modeConfig, permissionCtx]);
 
@@ -118,49 +101,52 @@ const OrdersListPage = () => {
       sortOrder,
       filters,
       fetchFn: (params: Record<string, any>) => {
-        const cleanCategory = typeof mode === 'string' ? mode.trim() : '';
-        fetchOrders(cleanCategory, params); // or sanitizeString(mode)
+        if (!isValidCategory) return; // ← guard, no empty-string fetch
+        fetchOrders(category!, params);
       },
     }),
-    [page, limit, sortBy, sortOrder, filters, fetchOrders, mode]
+    [
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+      filters,
+      fetchOrders,
+      category,
+      isValidCategory,
+    ]
   );
 
   // Fetch when dependency change
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      applyFiltersAndSorting(queryParams);
-    }, 200); // 200ms debounce
-
+    const timeout = setTimeout(() => applyFiltersAndSorting(queryParams), 200);
     return () => clearTimeout(timeout);
   }, [queryParams]);
 
-  useEffect(() => {
-    return () => {
+  useEffect(
+    () => () => {
       resetOrders();
-    };
-  }, [resetOrders]);
+    },
+    [resetOrders]
+  );
 
-  // Stable refresh handler
-  const handleRefresh = useCallback(() => {
-    applyFiltersAndSorting(queryParams);
-  }, [queryParams]);
+  const handleRefresh = useCallback(
+    () => applyFiltersAndSorting(queryParams),
+    [queryParams]
+  );
 
   const handleResetFilters = () => {
     resetOrders();
-
     if (modeConfig) {
       let baseFilters = modeConfig.buildBaseFilters(permissionCtx);
-
       if (modeConfig.applyAllocationVisibility) {
         baseFilters = modeConfig.applyAllocationVisibility(
           permissionCtx,
           baseFilters
         );
       }
-
       setFilters(baseFilters);
     }
-
     setPage(1);
   };
 
@@ -180,19 +166,21 @@ const OrdersListPage = () => {
   return (
     <Box sx={{ px: 4, py: 3 }}>
       <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        flexWrap="wrap"
-        mb={3}
-        gap={2}
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          mb: 3,
+          gap: 2,
+        }}
       >
         <CustomTypography variant="h5">Order Management</CustomTypography>
         <GoBackButton sx={{ borderRadius: 20 }} />
-        {canCreateSalesOrderInSalesMode && (
+        {canCreate && (
           <CustomButton
             variant="contained"
-            onClick={() => navigate(`/orders/${mode}/new`)}
+            onClick={() => navigate(`/orders/${category}/new`)}
           >
             Create Sales Order
           </CustomButton>
@@ -235,12 +223,15 @@ const OrdersListPage = () => {
         {!ordersLoading && ordersError && (
           <CustomTypography color="error">{ordersError}</CustomTypography>
         )}
-        
+
         {!ordersLoading && !ordersError && orders.length === 0 && (
           <NoDataFound
             message="No orders found."
             action={
-              <CustomButton onClick={handleResetFilters} sx={{ mt: 1, minWidth: 160 }}>
+              <CustomButton
+                onClick={handleResetFilters}
+                sx={{ mt: 1, minWidth: 160 }}
+              >
                 Reset Filters
               </CustomButton>
             }
@@ -250,7 +241,7 @@ const OrdersListPage = () => {
         {!ordersLoading && !ordersError && pagination && orders.length > 0 && (
           <Suspense fallback={<Skeleton height={300} />}>
             <OrdersTable
-              category={mode || 'sales'}
+              category={category || 'sales'}
               data={orders}
               loading={ordersLoading}
               page={page - 1}

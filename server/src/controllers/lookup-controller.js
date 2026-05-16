@@ -24,13 +24,13 @@ const {
   fetchCustomerLookupService,
   fetchCustomerAddressLookupService,
   fetchOrderTypeLookupService,
-  fetchPaginatedPaymentMethodLookupService,
-  fetchPaginatedDiscountLookupService,
-  fetchPaginatedTaxRateLookupService,
-  fetchPaginatedDeliveryMethodLookupService,
-  fetchPaginatedSkuLookupService,
-  fetchPaginatedPricingGroupLookupService,
-  fetchPaginatedPackagingMaterialLookupService,
+  fetchPaymentMethodLookupService,
+  fetchDiscountLookupService,
+  fetchTaxRateLookupService,
+  fetchDeliveryMethodLookupService,
+  fetchSkuLookupService,
+  fetchPricingGroupLookupService,
+  fetchPackagingMaterialLookupService,
   fetchSkuCodeBaseLookupService,
   fetchProductLookupService,
   fetchStatusLookupService,
@@ -41,6 +41,12 @@ const {
   fetchLocationTypeLookupService,
   fetchBatchStatusLookupService,
   fetchPackagingMaterialSupplierLookupService,
+  fetchBatchRegistryForInventoryLookupService,
+  fetchInventoryStatusLookupService,
+  fetchPricingTypeLookupService,
+  fetchWarehouseTypeLookupService,
+  fetchLocationLookupService,
+  fetchInventoryActionTypeLookupService,
 } = require('../services/lookup-service');
 const {
   createLookupController,
@@ -51,16 +57,35 @@ const {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Batch registry lookup.
- * Supports batchType, warehouseId, locationId, limit, offset query params.
+ * General batch registry lookup controller.
+ * Returns paginated batches for filter dropdowns, allocation pickers, and
+ * any caller that doesn't need warehouse-coupled exclusion semantics.
+ * The business layer's ACL narrows by batch status and product/packaging
+ * visibility.
  *
- * @route      GET /api/v1/lookups/batch-registry
- * @permission view_batch_registry_lookup
+ * @route      GET /lookups/batch-registry
+ * @permission LOOKUP.PERMISSIONS.VIEW_BATCH_REGISTRY
  */
 const getBatchRegistryLookupController = createLookupController({
   service: fetchBatchRegistryLookupService,
   successMessage: 'Batch registry lookup retrieved successfully.',
-  passUser: false,
+  passUser: true,
+});
+
+/**
+ * Warehouse-inventory batch-add lookup controller.
+ * Returns paginated batches scoped to a target warehouse: by default
+ * excludes batches already placed there and restricts to released status.
+ * Privileged users (canViewAllWarehouses / canViewAllBatchStatus) can opt
+ * out of those constraints. warehouseId is required.
+ *
+ * @route      GET /lookups/batch-registry/for-inventory
+ * @permission LOOKUP.PERMISSIONS.VIEW_BATCH_REGISTRY
+ */
+const getBatchRegistryForInventoryLookupController = createLookupController({
+  service: fetchBatchRegistryForInventoryLookupService,
+  successMessage: 'Batch registry lookup for inventory retrieved successfully.',
+  passUser: true,
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -84,15 +109,12 @@ const getWarehouseLookupController = createLookupController({
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Lot adjustment type lookup.
- * Supports excludeInternal query param to filter out internal-only types.
- *
  * @route      GET /api/v1/lookups/lot-adjustment-types
  * @permission view_lot_adjustment_lookup
  */
 const getLotAdjustmentLookupController = createLookupController({
   service: fetchLotAdjustmentLookupService,
-  successMessage: 'Lot adjustment lookup retrieved successfully.',
+  successMessage: 'Lot adjustment type lookup retrieved successfully.',
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -150,7 +172,7 @@ const getOrderTypeLookupController = createLookupController({
  * @permission view_payment_method_lookup
  */
 const getPaymentMethodLookupController = createLookupController({
-  service: fetchPaginatedPaymentMethodLookupService,
+  service: fetchPaymentMethodLookupService,
   successMessage: 'Payment method lookup retrieved successfully.',
 });
 
@@ -163,7 +185,7 @@ const getPaymentMethodLookupController = createLookupController({
  * @permission view_discount_lookup
  */
 const getDiscountLookupController = createLookupController({
-  service: fetchPaginatedDiscountLookupService,
+  service: fetchDiscountLookupService,
   successMessage: 'Discount lookup retrieved successfully.',
 });
 
@@ -176,7 +198,7 @@ const getDiscountLookupController = createLookupController({
  * @permission view_tax_rate_lookup
  */
 const getTaxRateLookupController = createLookupController({
-  service: fetchPaginatedTaxRateLookupService,
+  service: fetchTaxRateLookupService,
   successMessage: 'Tax rate lookup retrieved successfully.',
 });
 
@@ -189,7 +211,7 @@ const getTaxRateLookupController = createLookupController({
  * @permission view_delivery_method_lookup
  */
 const getDeliveryMethodLookupController = createLookupController({
-  service: fetchPaginatedDeliveryMethodLookupService,
+  service: fetchDeliveryMethodLookupService,
   successMessage: 'Delivery method lookup retrieved successfully.',
 });
 
@@ -202,7 +224,7 @@ const getDeliveryMethodLookupController = createLookupController({
  * @permission view_sku_lookup
  */
 const getSkuLookupController = createLookupController({
-  service: fetchPaginatedSkuLookupService,
+  service: fetchSkuLookupService,
   successMessage: 'SKU lookup retrieved successfully.',
 });
 
@@ -222,7 +244,7 @@ const getSkuLookupController = createLookupController({
  */
 const getPricingGroupLookupController = createLookupController({
   service: async (user, { filters, options, limit, offset }) => {
-    return fetchPaginatedPricingGroupLookupService(user, {
+    return fetchPricingGroupLookupService(user, {
       filters,
       limit,
       offset,
@@ -248,7 +270,7 @@ const getPricingGroupLookupController = createLookupController({
  */
 const getPackagingMaterialLookupController = createLookupController({
   service: async (user, { filters, options, limit, offset }) => {
-    return fetchPaginatedPackagingMaterialLookupService(user, {
+    return fetchPackagingMaterialLookupService(user, {
       filters,
       limit,
       offset,
@@ -389,11 +411,77 @@ const getPackagingMaterialSupplierLookupController = createLookupController({
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Inventory Status
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * @route      GET /api/v1/lookups/inventory-statuses
+ * @permission view_inventory_status_lookup
+ */
+const getInventoryStatusLookupController = createLookupController({
+  service: fetchInventoryStatusLookupService,
+  successMessage: 'Inventory status lookup retrieved successfully.',
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Pricing Type
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * @route      GET /api/v1/lookups/pricing-types
+ * @permission view_pricing_type_lookup
+ */
+const getPricingTypeLookupController = createLookupController({
+  service: fetchPricingTypeLookupService,
+  successMessage: 'Pricing type lookup retrieved successfully.',
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Warehouse Type
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * @route      GET /api/v1/lookups/warehouse-types
+ * @permission view_warehouse_type_lookup
+ */
+const getWarehouseTypeLookupController = createLookupController({
+  service: fetchWarehouseTypeLookupService,
+  successMessage: 'Warehouse type lookup retrieved successfully.',
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Location
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * @route      GET /api/v1/lookups/locations
+ * @permission view_location_lookup
+ */
+const getLocationLookupController = createLookupController({
+  service: fetchLocationLookupService,
+  successMessage: 'Location lookup retrieved successfully.',
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Inventory Action Type
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * @route      GET /api/v1/lookups/inventory-action-types
+ * @permission view_inventory_action_type_lookup
+ */
+const getInventoryActionTypeLookupController = createLookupController({
+  service: fetchInventoryActionTypeLookupService,
+  successMessage: 'Inventory action type lookup retrieved successfully.',
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Exports
 // ─────────────────────────────────────────────────────────────────────────────
 
 module.exports = {
   getBatchRegistryLookupController,
+  getBatchRegistryForInventoryLookupController,
   getWarehouseLookupController,
   getLotAdjustmentLookupController,
   getCustomerLookupController,
@@ -416,4 +504,9 @@ module.exports = {
   getLocationTypeLookupController,
   getBatchStatusLookupController,
   getPackagingMaterialSupplierLookupController,
+  getInventoryStatusLookupController,
+  getPricingTypeLookupController,
+  getWarehouseTypeLookupController,
+  getLocationLookupController,
+  getInventoryActionTypeLookupController,
 };

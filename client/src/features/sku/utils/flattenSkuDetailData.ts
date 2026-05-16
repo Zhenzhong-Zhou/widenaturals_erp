@@ -6,6 +6,7 @@ import type {
   SkuComplianceRecord,
   SkuDetail,
   SkuImageGroup,
+  SkuPricing,
 } from '@features/sku/state';
 
 /* ========================================================================== */
@@ -160,49 +161,43 @@ export const flattenComplianceRecords = (
 /* ========================================================================== */
 
 /**
- * Flatten pricing entries for table/panel display.
+ * Flatten SKU pricing records into a table-friendly row shape.
  *
- * Responsibilities:
- * - Extract location info
- * - Extract price + validity dates
- * - Handle status block
- * - Normalize audit user formatting
+ * Explodes the nested `status` and `audit` blocks into flat fields and
+ * preserves `null` for missing values so callers decide on the display
+ * fallback. Returns `[]` for non-array input.
  *
- * NOTE: Param typed as `any[]` because certain API layers return
- * slightly different shapes. Can be tightened later.
- *
- * @param records - Array of raw pricing objects
- * @returns FlattenedPricingRecord[]
+ * @param records SKU pricing records from the detail response
+ * @returns Flattened rows for tables and panels
  */
 export const flattenPricingRecords = (
-  records: any[]
+  records: SkuPricing[]
 ): FlattenedPricingRecord[] => {
   if (!Array.isArray(records)) return [];
-
+  
   return records.map((r) => ({
-    id: r.id,
+    id: r.pricingId,
+    pricingId: r.pricingId,
     skuId: r.skuId,
-    priceType: r.priceType ?? '—',
-
-    // Location
-    locationName: r.location?.name ?? '—',
-    locationType: r.location?.type ?? '—',
-
-    // Pricing
-    price: r.price ?? '—',
-
-    // Status
-    status: r.status?.name ?? '—',
+    pricingGroupId: r.pricingGroupId,
+    
+    pricingTypeId: r.pricingTypeId ?? null,
+    pricingTypeName: r.pricingTypeName ?? null,
+    pricingTypeCode: r.pricingTypeCode ?? null,
+    
+    countryCode: r.countryCode ?? null,
+    price: r.price,
+    
+    statusId: r.status?.id ?? null,
+    statusName: r.status?.name ?? null,
     statusDate: r.status?.date ?? null,
-
-    // Validity period
+    
     validFrom: r.validFrom ?? null,
     validTo: r.validTo ?? null,
-
-    // Audit
-    createdBy: r.audit?.createdBy?.name ?? '—',
+    
+    createdBy: r.audit?.createdBy?.name ?? null,
     createdAt: r.audit?.createdAt ?? null,
-    updatedBy: r.audit?.updatedBy?.name ?? '—',
+    updatedBy: r.audit?.updatedBy?.name ?? null,
     updatedAt: r.audit?.updatedAt ?? null,
   }));
 };

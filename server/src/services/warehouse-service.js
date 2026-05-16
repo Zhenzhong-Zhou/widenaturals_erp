@@ -52,18 +52,27 @@ const CONTEXT = 'warehouse-service';
  */
 const fetchPaginatedWarehousesService = async (
   user,
-  { filters = {}, page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'DESC' } = {}
+  {
+    filters = {},
+    page = 1,
+    limit = 10,
+    sortBy = 'createdAt',
+    sortOrder = 'DESC',
+  } = {}
 ) => {
   const context = `${CONTEXT}/fetchPaginatedWarehousesService`;
-  
+
   try {
     const acl = await evaluateWarehouseVisibility(user);
     const adjustedFilters = applyWarehouseVisibilityRules(filters, acl);
-    
+
     if (adjustedFilters.forceEmptyResult) {
-      return transformPaginatedWarehouseResult({ data: [], pagination: {} }, acl);
+      return transformPaginatedWarehouseResult(
+        { data: [], pagination: {} },
+        acl
+      );
     }
-    
+
     const result = await getPaginatedWarehouses({
       filters: adjustedFilters,
       page,
@@ -71,11 +80,11 @@ const fetchPaginatedWarehousesService = async (
       sortBy,
       sortOrder,
     });
-    
+
     return transformPaginatedWarehouseResult(result, acl);
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
+
     throw AppError.serviceError('Unable to fetch warehouses at this time.', {
       context,
       meta: { error: error.message },
@@ -98,22 +107,25 @@ const fetchPaginatedWarehousesService = async (
  */
 const fetchWarehouseDetailService = async (user, warehouseId) => {
   const context = `${CONTEXT}/fetchWarehouseDetailService`;
-  
+
   try {
     const row = await getWarehouseById(warehouseId);
-    
+
     if (!row) {
       throw AppError.notFoundError('Warehouse not found.');
     }
-    
+
     return transformWarehouseDetail(row);
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
-    throw AppError.serviceError('Unable to fetch warehouse detail at this time.', {
-      context,
-      meta: { error: error.message },
-    });
+
+    throw AppError.serviceError(
+      'Unable to fetch warehouse detail at this time.',
+      {
+        context,
+        meta: { error: error.message },
+      }
+    );
   }
 };
 

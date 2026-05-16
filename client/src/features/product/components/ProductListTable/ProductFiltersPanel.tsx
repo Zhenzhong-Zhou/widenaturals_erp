@@ -1,6 +1,6 @@
 import { type FC, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import Grid from '@mui/material/Grid';
+import { Grid } from '@mui/material';
 import { FilterPanelLayout } from '@components/index';
 import {
   StatusMultiSelectDropdown,
@@ -11,8 +11,6 @@ import {
   useUserLookupBinding,
 } from '@features/lookup/hooks';
 import { renderInputField } from '@utils/filters/filterUtils';
-import { useFormattedOptions } from '@features/lookup/utils/lookupUtils';
-import { formatLabel } from '@utils/textUtils';
 import type { ProductListFilters } from '@features/product/state/productTypes';
 import type { FilterField } from '@shared-types/shared';
 import type {
@@ -20,6 +18,7 @@ import type {
   LookupPaginationMeta,
   UserLookupParams,
 } from '@features/lookup/state';
+import { useFormattedOptionLabels } from '@features/lookup/utils/formatOptionLabels';
 
 interface ProductFiltersPanelProps {
   filters: ProductListFilters;
@@ -132,10 +131,7 @@ const ProductFiltersPanel: FC<ProductFiltersPanelProps> = ({
     options: statusOptions,
   });
 
-  const formattedStatusOptions = useFormattedOptions(
-    statusOptions,
-    formatLabel
-  );
+  const formattedStatusOptions = useFormattedOptionLabels(statusOptions);
 
   // -------------------------------
   // Submit / Reset

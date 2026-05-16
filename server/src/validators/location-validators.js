@@ -33,7 +33,7 @@ const {
  * - `statusIds` → array of Location Status IDs
  * - `locationTypeId` → UUID of location type
  * - `city` → partial city match
- * - `province_or_state` → partial province/state match
+ * - `provinceOrState` → partial province/state match
  * - `country` → partial country match
  * - `includeArchived` → include archived records (default false)
  * - `createdBy` → user UUID who created the record
@@ -70,7 +70,7 @@ const locationQuerySchema = paginationSchema
     // Geographic filters
     // -------------------------------------------------------------
     city: validateOptionalString('City (partial match allowed)'),
-    province_or_state: validateOptionalString(
+    provinceOrState: validateOptionalString(
       'Province or State (partial match allowed)'
     ),
     country: validateOptionalString('Country (partial match allowed)'),

@@ -38,13 +38,13 @@ const CONTEXT = 'order-number-utils';
  * @type {Record<string, string>}
  */
 const CATEGORY_TO_PREFIX = {
-  purchase:      'PO',
-  transfer:      'TO',
-  sales:         'SO',
-  return:        'RO',
+  purchase: 'PO',
+  transfer: 'TO',
+  sales: 'SO',
+  return: 'RO',
   manufacturing: 'MO',
-  adjustment:    'AO',
-  logistics:     'LO',
+  adjustment: 'AO',
+  logistics: 'LO',
 };
 
 /**
@@ -56,10 +56,11 @@ const CATEGORY_TO_PREFIX = {
  * @param {string} orderTypeName
  * @returns {string}
  */
-const generateOrderNamePrefix = (orderTypeName) => orderTypeName
-  .split(' ')
-  .map((word) => word.charAt(0).toUpperCase())
-  .join('');
+const generateOrderNamePrefix = (orderTypeName) =>
+  orderTypeName
+    .split(' ')
+    .map((word) => word.charAt(0).toUpperCase())
+    .join('');
 
 /**
  * Generates a unique order number with category prefix, order type initials,
@@ -76,29 +77,29 @@ const generateOrderNamePrefix = (orderTypeName) => orderTypeName
  */
 const generateOrderNumber = (category, orderTypeName, orderId) => {
   const context = `${CONTEXT}/generateOrderNumber`;
-  
+
   if (!orderTypeName || typeof orderTypeName !== 'string') {
     throw AppError.validationError('Invalid orderTypeName provided.', {
       context,
       meta: { orderTypeName },
     });
   }
-  
+
   const categoryPrefix = CATEGORY_TO_PREFIX[category] || 'UN';
   const orderTypePrefix = generateOrderNamePrefix(orderTypeName);
-  
+
   const timestamp = new Date()
     .toISOString()
     .replace(/[-T:.Z]/g, '')
     .slice(0, 14);
-  
+
   const baseOrderNumber = `${categoryPrefix}-${orderTypePrefix}-${timestamp}-${orderId.slice(0, 8)}`;
-  
+
   const checksum = createHash('sha256')
     .update(baseOrderNumber)
     .digest('hex')
     .slice(0, 10);
-  
+
   return `${baseOrderNumber}-${checksum}`;
 };
 
@@ -126,9 +127,9 @@ const generateOrderIdentifiers = async (
   client
 ) => {
   const context = `${CONTEXT}/generateOrderIdentifiers`;
-  
+
   const id = randomUUID();
-  
+
   const orderTypeFields = await getFieldsById(
     'order_types',
     orderTypeId,
@@ -141,9 +142,9 @@ const generateOrderIdentifiers = async (
       { context, meta: { orderTypeId } }
     );
   }
-  
+
   const { name, category } = orderTypeFields;
-  
+
   if (category?.toLowerCase() !== expectedCategory?.toLowerCase()) {
     throw AppError.validationError(
       `Order type ID does not belong to category ${expectedCategory}`,
@@ -153,9 +154,9 @@ const generateOrderIdentifiers = async (
       }
     );
   }
-  
+
   const orderNumber = generateOrderNumber(category, name, id);
-  
+
   return { id, orderNumber };
 };
 

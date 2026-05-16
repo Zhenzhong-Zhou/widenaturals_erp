@@ -1,5 +1,5 @@
 const { fetchDynamicValue } = require('../03_utils');
-const { generateChecksum } = require('../../../utils/hash-utils');
+const { computeLogChecksum } = require('../../../utils/hash-utils');
 
 /**
  * @param { import("knex").Knex } knex
@@ -525,6 +525,82 @@ exports.seed = async function (knex) {
         warehouse_quantity: 132,
         status: 'in_stock',
       },
+      
+      // --- Phyto-Genious (CN) ---
+      {
+        product: 'Cell Revive',
+        size_label: '60 Capsules',
+        country_code: 'CN',
+        lot_number: 'PG137CI002',
+        expiry_date: '2029JAN09',
+        warehouse_quantity: 87,
+        status: 'in_stock',
+      },
+      {
+        product: 'Seal Oil Plus',
+        size_label: '120 Softgels',
+        country_code: 'CN',
+        lot_number: 'PG136NA002',
+        expiry_date: '2029JAN27',
+        warehouse_quantity: 87,
+        status: 'in_stock',
+      },
+      {
+        product: 'Astaxanthin Plus',
+        size_label: '120 Softgels',
+        country_code: 'CN',
+        lot_number: 'PG139NA001',
+        expiry_date: '2028AUG20',
+        warehouse_quantity: 68,
+        status: 'in_stock',
+      },
+      {
+        product: 'Ubiquinol 100mg CoQ10 Mega',
+        size_label: '60 Capsules',
+        country_code: 'CN',
+        lot_number: 'PG158NA001',
+        expiry_date: '2029MAR02',
+        warehouse_quantity: 191,
+        status: 'in_stock',
+      },
+
+      // --- WIDE Naturals (UN) ---
+      {
+        product: 'New Seal Oil Omega-3 (120 Softgels)',
+        size_label: '120 Softgels',
+        country_code: 'UN',
+        lot_number: 'WC141NA001',
+        expiry_date: '2029JAN18',
+        warehouse_quantity: 710,
+        status: 'in_stock',
+      },
+      {
+        product: '5 IN 1 D3 + K2 + CA + MG + ZN',
+        size_label: '120 Softgels',
+        country_code: 'UN',
+        lot_number: 'WC145NA002',
+        expiry_date: '2029APR01',
+        warehouse_quantity: 449,
+        status: 'in_stock',
+      },
+      {
+        product: 'CoQ10 + PQQ Seal Oil',
+        size_label: '120 Softgels',
+        country_code: 'UN',
+        lot_number: 'WC144CI001',
+        expiry_date: '2029JAN18',
+        warehouse_quantity: 188,
+        status: 'in_stock',
+      },
+      {
+        product: 'AKK + DAG Oil',
+        size_label: '30 Cups',
+        country_code: 'UN',
+        lot_number: 'WC147CI001',
+        expiry_date: '2029APR20',
+        warehouse_quantity: 115,
+        status: 'in_stock',
+      },
     ],
   };
 
@@ -645,14 +721,23 @@ exports.seed = async function (knex) {
     return {
       id: knex.raw('uuid_generate_v4()'),
       ...logData,
-      checksum: generateChecksum(logData),
+      checksum: computeLogChecksum({
+        warehouseInventoryId: logData.warehouse_inventory_id,
+        actionTypeId: logData.inventory_action_type_id,
+        previousQuantity: logData.previous_quantity,
+        quantityChange: logData.quantity_change,
+        newQuantity: logData.new_quantity,
+        performedBy: logData.performed_by,
+        performedAt: logData.performed_at,
+        referenceId: logData.reference_id,
+      }),
     };
   });
 
   if (activityLogEntries.length > 0) {
-    await knex('inventory_activity_log').insert(activityLogEntries);
+    await knex('inventory_activity_logs').insert(activityLogEntries);
     console.log(
-      `Inserted ${activityLogEntries.length} inventory_activity_log records.`
+      `Inserted ${activityLogEntries.length} inventory_activity_logs records.`
     );
   }
 };

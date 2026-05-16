@@ -10,10 +10,10 @@ export interface PaginatedDropdownProps<TParams> {
   loading?: boolean;
   error?: string | null;
   paginationMeta?: LookupPaginationMeta;
-  fetchParams: TParams;
-  setFetchParams: Dispatch<SetStateAction<TParams>>;
+  fetchParams?: TParams;
+  setFetchParams?: Dispatch<SetStateAction<TParams>>;
   onChange: (value: string) => void;
-  onRefresh: (params: TParams) => void;
+  onRefresh?: (params: TParams) => void;
   onAddNew?: () => void;
   inputValue?: string;
   onInputChange?: (event: any, newValue: string, reason: string) => void;
@@ -57,19 +57,17 @@ const PaginatedDropdown = <TParams,>({
           ? { limit: paginationMeta.limit, offset: paginationMeta.offset }
           : undefined
       }
-      onRefresh={() => onRefresh(fetchParams)}
+      onRefresh={() => {
+        if (fetchParams !== undefined) onRefresh?.(fetchParams);
+      }}
       onAddNew={onAddNew}
       onFetchMore={() => {
+        if (!setFetchParams || !onRefresh || !fetchParams) return;
         const limit = paginationMeta?.limit || 50;
         const currentOffset = paginationMeta?.offset || 0;
         const nextOffset = currentOffset + limit;
 
-        setFetchParams((prev) => ({
-          ...prev,
-          limit,
-          offset: nextOffset,
-        }));
-
+        setFetchParams((prev) => ({ ...prev, limit, offset: nextOffset }));
         onRefresh({ ...fetchParams, limit, offset: nextOffset });
       }}
       inputValue={inputValue}

@@ -32,14 +32,36 @@ const {
   STANDARD_FLAG_MAP,
   STATUS_ONLY_FLAG_MAP,
   PRICING_GROUP_FLAG_MAP,
+  BATCH_REGISTRY_FLAG_MAP,
+  INVENTORY_STATUS_FLAG_MAP,
+  PRICING_TYPE_FLAG_MAP,
+  WAREHOUSE_TYPE_FLAG_MAP,
+  LOCATION_FLAG_MAP,
+  INVENTORY_ACTION_TYPE_FLAG_MAP,
+  LOT_ADJUSTMENT_TYPE_FLAG_MAP,
 } = require('../utils/constants/lookup-flag-maps');
+const { getExpiryMeta } = require('../utils/batch-utils');
 
 // ---------------------------------------------------------------------------
 // Batch registry
 // ---------------------------------------------------------------------------
 
-const transformBatchRegistryLookupItem = (row) =>
-  cleanObject({
+const transformBatchRegistryLookupItem = (row, userAccess) => {
+  const productExpiryMeta = row.product_batch_id
+    ? getExpiryMeta(row.product_expiry_date)
+    : null;
+
+  const packagingExpiryMeta = row.packaging_material_batch_id
+    ? getExpiryMeta(row.material_expiry_date)
+    : null;
+
+  const flagSubset = includeFlagsBasedOnAccess(
+    row,
+    userAccess,
+    BATCH_REGISTRY_FLAG_MAP
+  );
+
+  return cleanObject({
     id: row.batch_registry_id,
     type: row.batch_type,
     product: row.product_batch_id
@@ -48,6 +70,7 @@ const transformBatchRegistryLookupItem = (row) =>
           name: getProductDisplayName(row),
           lotNumber: row.product_lot_number,
           expiryDate: row.product_expiry_date,
+          ...productExpiryMeta,
         }
       : null,
     packagingMaterial: row.packaging_material_batch_id
@@ -57,12 +80,20 @@ const transformBatchRegistryLookupItem = (row) =>
           expiryDate: row.material_expiry_date,
           snapshotName: row.material_snapshot_name,
           receivedLabel: row.received_label_name,
+          ...packagingExpiryMeta,
         }
       : null,
+    ...flagSubset,
   });
+};
 
-const transformBatchRegistryPaginatedLookupResult = (paginatedResult) =>
-  transformLoadMoreResult(paginatedResult, transformBatchRegistryLookupItem);
+const transformBatchRegistryPaginatedLookupResult = (
+  paginatedResult,
+  userAccess
+) =>
+  transformLoadMoreResult(paginatedResult, (row) =>
+    transformBatchRegistryLookupItem(row, userAccess)
+  );
 
 // ---------------------------------------------------------------------------
 // Warehouse
@@ -70,7 +101,7 @@ const transformBatchRegistryPaginatedLookupResult = (paginatedResult) =>
 
 const transformWarehouseLookupRows = (rows) => {
   if (!Array.isArray(rows)) return [];
-  
+
   return rows.map((row) => ({
     value: row.warehouse_id,
     label: `${row.warehouse_name} (${row.location_name}${row.warehouse_type_name ? ' - ' + row.warehouse_type_name : ''})`,
@@ -88,15 +119,19 @@ const transformWarehouseLookupRows = (rows) => {
 // Lot adjustment
 // ---------------------------------------------------------------------------
 
-const transformLotAdjustmentLookupOptions = (rows) => {
-  if (!Array.isArray(rows)) return [];
+const transformLotAdjustmentTypeLookup = createEntityLookupTransformer({
+  labelKey: 'name',
+  subLabelKey: 'inventory_action_type_name',
+  flagMap: LOT_ADJUSTMENT_TYPE_FLAG_MAP,
+});
 
-  return rows.map((row) => ({
-    value: row.lot_adjustment_type_id,
-    label: row.name,
-    actionTypeId: row.inventory_action_type_id,
-  }));
-};
+const transformLotAdjustmentTypePaginatedLookupResult = (
+  paginatedResult,
+  acl
+) =>
+  transformLoadMoreResult(paginatedResult, (row) =>
+    transformLotAdjustmentTypeLookup(row, acl)
+  );
 
 // ---------------------------------------------------------------------------
 // Customer
@@ -422,7 +457,7 @@ const transformSkuCodeBaseLookup = (row, userAccess) => {
 
   const brand = row.brand_code || 'N/A';
   const category = row.category_code || 'N/A';
-  const base = row.base_code != null ? row.base_code : '—';
+  const base = row.base_code !== null ? row.base_code : '—';
   const label = `${brand}-${category} (${base})`;
 
   return {
@@ -633,11 +668,87 @@ const transformPackagingMaterialSupplierPaginatedLookupResult = (
   );
 
 // ---------------------------------------------------------------------------
+// Inventory status
+// ---------------------------------------------------------------------------
+
+const transformInventoryStatusLookup = createEntityLookupTransformer({
+  labelKey: 'name',
+  flagMap: INVENTORY_STATUS_FLAG_MAP,
+});
+
+const transformInventoryStatusPaginatedLookupResult = (paginatedResult, acl) =>
+  transformLoadMoreResult(paginatedResult, (row) =>
+    transformInventoryStatusLookup(row, acl)
+  );
+
+// ---------------------------------------------------------------------------
+// Pricing type
+// ---------------------------------------------------------------------------
+
+const transformPricingTypeLookup = createEntityLookupTransformer({
+  labelKey: 'name',
+  subLabelKey: 'code',
+  flagMap: PRICING_TYPE_FLAG_MAP,
+});
+
+const transformPricingTypePaginatedLookupResult = (paginatedResult, acl) =>
+  transformLoadMoreResult(paginatedResult, (row) =>
+    transformPricingTypeLookup(row, acl)
+  );
+
+// ---------------------------------------------------------------------------
+// Warehouse type
+// ---------------------------------------------------------------------------
+
+const transformWarehouseTypeLookup = createEntityLookupTransformer({
+  labelKey: 'name',
+  flagMap: WAREHOUSE_TYPE_FLAG_MAP,
+});
+
+const transformWarehouseTypePaginatedLookupResult = (paginatedResult, acl) =>
+  transformLoadMoreResult(paginatedResult, (row) =>
+    transformWarehouseTypeLookup(row, acl)
+  );
+
+// ---------------------------------------------------------------------------
+// Location
+// ---------------------------------------------------------------------------
+
+const transformLocationLookup = createEntityLookupTransformer({
+  labelKey: 'name',
+  subLabelKey: 'city',
+  flagMap: LOCATION_FLAG_MAP,
+});
+
+const transformLocationPaginatedLookupResult = (paginatedResult, acl) =>
+  transformLoadMoreResult(paginatedResult, (row) =>
+    transformLocationLookup(row, acl)
+  );
+
+// ---------------------------------------------------------------------------
+// Inventory Action Type
+// ---------------------------------------------------------------------------
+
+const transformInventoryActionTypeLookup = createEntityLookupTransformer({
+  labelKey: 'name',
+  subLabelKey: 'category',
+  flagMap: INVENTORY_ACTION_TYPE_FLAG_MAP,
+});
+
+const transformInventoryActionTypePaginatedLookupResult = (
+  paginatedResult,
+  acl
+) =>
+  transformLoadMoreResult(paginatedResult, (row) =>
+    transformInventoryActionTypeLookup(row, acl)
+  );
+
+// ---------------------------------------------------------------------------
 
 module.exports = {
   transformBatchRegistryPaginatedLookupResult,
   transformWarehouseLookupRows,
-  transformLotAdjustmentLookupOptions,
+  transformLotAdjustmentTypePaginatedLookupResult,
   transformCustomerPaginatedLookupResult,
   transformCustomerAddressesLookupResult,
   transformOrderTypeLookupResult,
@@ -659,4 +770,9 @@ module.exports = {
   transformLocationTypePaginatedLookupResult,
   transformBatchStatusPaginatedLookupResult,
   transformPackagingMaterialSupplierPaginatedLookupResult,
+  transformInventoryStatusPaginatedLookupResult,
+  transformPricingTypePaginatedLookupResult,
+  transformWarehouseTypePaginatedLookupResult,
+  transformLocationPaginatedLookupResult,
+  transformInventoryActionTypePaginatedLookupResult,
 };

@@ -19,14 +19,14 @@ import { resetInventoryActivityLog } from '@features/warehouseInventory/state/in
  */
 const useInventoryActivityLog = () => {
   const dispatch = useAppDispatch();
-  
+
   const data = useAppSelector(selectInventoryActivityLogData);
   const pagination = useAppSelector(selectInventoryActivityLogPagination);
   const loading = useAppSelector(selectInventoryActivityLogLoading);
   const error = useAppSelector(selectInventoryActivityLogError);
   const totalRecords = useAppSelector(selectInventoryActivityLogTotalRecords);
   const isEmpty = useAppSelector(selectInventoryActivityLogIsEmpty);
-  
+
   /**
    * Fetch paginated activity log records.
    * Accepts warehouseId, pagination, sorting, and filter parameters.
@@ -37,19 +37,19 @@ const useInventoryActivityLog = () => {
     },
     [dispatch]
   );
-  
+
   /**
    * Reset activity log state back to initial empty paginated state.
    */
   const resetActivityLog = useCallback(() => {
     dispatch(resetInventoryActivityLog());
   }, [dispatch]);
-  
+
   const pageInfo = useMemo(() => {
     const { page, limit } = normalizePagination(pagination);
     return { page, limit };
   }, [pagination]);
-  
+
   return {
     data,
     pagination,

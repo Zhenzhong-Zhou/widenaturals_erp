@@ -69,9 +69,7 @@ export const isExpiringSoon = (
  * Returns false for null or undefined dates. Used by the expired chip
  * and the warehouse-wide expired count.
  */
-export const isExpired = (
-  expiryDate: string | null | undefined
-): boolean => {
+export const isExpired = (expiryDate: string | null | undefined): boolean => {
   if (!expiryDate) return false;
   return new Date(expiryDate) < new Date();
 };

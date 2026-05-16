@@ -13,7 +13,7 @@ import type {
   PaginationParams,
   SortConfig,
 } from '@shared-types/api';
-import { ReduxPaginatedState } from '@shared-types/pagination';
+import type { ReduxPaginatedState } from '@shared-types/pagination';
 
 /** A single pricing group record returned from the API. */
 export type PricingGroupRecord = {
@@ -73,7 +73,8 @@ export type PricingGroupFilters = {
   productId?: string;
   /** When true, returns only groups where today falls within valid_from–valid_to. */
   currentlyValid?: boolean;
-} & CreatedUpdatedByFilter & CreatedUpdatedDateFilter;
+} & CreatedUpdatedByFilter &
+  CreatedUpdatedDateFilter;
 
 /** Full query parameter shape for the pricing group list endpoint. */
 export interface PricingGroupQueryParams extends PaginationParams, SortConfig {

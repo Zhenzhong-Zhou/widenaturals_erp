@@ -32,6 +32,10 @@ exports.seed = async function (knex) {
       status_id: discontinuedStatusId,
       status_date: '2024-11-01',
     },
+    {
+      company_name: 'Vanpearl Natural Health Ltd.',
+      city: 'Surrey',
+    },
   ];
 
   for (const [index, entry] of manufacturerLocations.entries()) {

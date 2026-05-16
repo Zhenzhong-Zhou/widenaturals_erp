@@ -12,8 +12,8 @@ const AllocationStatusSummary = ({ total, confirmed, incomplete }: Props) => {
     <Stack
       direction="row"
       spacing={3}
-      alignItems="center"
       sx={{
+        alignItems: 'center',
         p: 1.5,
         borderRadius: 2,
         backgroundColor: 'grey.100',

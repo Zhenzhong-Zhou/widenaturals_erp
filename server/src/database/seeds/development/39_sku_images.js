@@ -1,12 +1,17 @@
 const path = require('path');
 const fs = require('fs');
 const mime = require('mime-types');
-const { randomUUID } = require('crypto');
+const { v5: uuidv5 } = require('uuid');
 const { uploadSkuImageToS3 } = require('../../../utils/aws-s3-service');
 const { loadEnv } = require('../../../config/env');
 const { resizeImage } = require('../../../utils/media/sku-image-media');
 
 loadEnv();
+
+// Stable namespace for deterministic group_id generation.
+// Generate once, never change — changing it would cause re-runs to mint
+// fresh group_ids and stop being idempotent.
+const SKU_IMAGE_NAMESPACE = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
 
 /**
  * @param { import("knex").Knex } knex
@@ -24,12 +29,6 @@ exports.seed = async function (knex) {
     .where({ email: 'system@internal.local' })
     .first();
   if (!systemUser) throw new Error('System user not found');
-
-  const existingCount = await knex('sku_images').count('*').first();
-  if (parseInt(existingCount.count) > 0) {
-    console.warn('Skipping sku_images seeding: table already has data.');
-    return;
-  }
 
   const seedData = [
     {
@@ -381,7 +380,7 @@ exports.seed = async function (knex) {
       ],
     },
     {
-      sku: 'WN-MO400-S-UN',
+      sku: 'WN-MO800-S-UN', // was WN-MO400-S-UN
       images: [
         {
           url: 'src/assets/sku-images/WIDE_Collections/seal_oil_omega3_500mg_120.jpg',
@@ -393,7 +392,7 @@ exports.seed = async function (knex) {
       ],
     },
     {
-      sku: 'WN-MO401-L-UN',
+      sku: 'WN-MO801-L-UN', // was WN-MO401-L-UN
       images: [
         {
           url: 'src/assets/sku-images/WIDE_Collections/seal_oil_omega3_500mg_180.jpg',
@@ -405,7 +404,7 @@ exports.seed = async function (knex) {
       ],
     },
     {
-      sku: 'WN-MO402-S-UN',
+      sku: 'WN-MO802-S-UN', // was WN-MO402-S-UN
       images: [
         {
           url: 'src/assets/sku-images/WIDE_Collections/epa_900_60.jpg',
@@ -417,7 +416,7 @@ exports.seed = async function (knex) {
       ],
     },
     {
-      sku: 'WN-MO403-L-UN',
+      sku: 'WN-MO803-L-UN', // was WN-MO403-L-UN
       images: [
         {
           url: 'src/assets/sku-images/WIDE_Collections/epa_900_120.jpg',
@@ -429,7 +428,7 @@ exports.seed = async function (knex) {
       ],
     },
     {
-      sku: 'WN-MO404-S-UN',
+      sku: 'WN-MO804-S-UN', // was WN-MO404-S-UN
       images: [
         {
           url: 'src/assets/sku-images/WIDE_Collections/omega3_900_60.jpg',
@@ -441,7 +440,7 @@ exports.seed = async function (knex) {
       ],
     },
     {
-      sku: 'WN-MO405-L-UN',
+      sku: 'WN-MO805-L-UN', // was WN-MO405-L-UN
       images: [
         {
           url: 'src/assets/sku-images/WIDE_Collections/omega3_900_120.jpg',
@@ -453,7 +452,7 @@ exports.seed = async function (knex) {
       ],
     },
     {
-      sku: 'WN-MO406-S-UN',
+      sku: 'WN-MO806-S-UN', // was WN-MO406-S-UN
       images: [
         {
           url: 'src/assets/sku-images/WIDE_Collections/omega3_multivitamin_fish_oil_60.jpg',
@@ -465,7 +464,7 @@ exports.seed = async function (knex) {
       ],
     },
     {
-      sku: 'WN-MO407-L-UN',
+      sku: 'WN-MO807-L-UN', // was WN-MO407-L-UN
       images: [
         {
           url: 'src/assets/sku-images/WIDE_Collections/omega3_multivitamin_fish_oil_120.jpg',
@@ -477,7 +476,7 @@ exports.seed = async function (knex) {
       ],
     },
     {
-      sku: 'WN-MO408-S-UN',
+      sku: 'WN-MO808-S-UN', // was WN-MO408-S-UN
       images: [
         {
           url: 'src/assets/sku-images/WIDE_Collections/algal_oil_pure_dha_kids_30.png',
@@ -489,7 +488,7 @@ exports.seed = async function (knex) {
       ],
     },
     {
-      sku: 'WN-MO409-L-UN',
+      sku: 'WN-MO809-L-UN', // was WN-MO409-L-UN
       images: [
         {
           url: 'src/assets/sku-images/WIDE_Collections/algal_oil_pure_dha_kids_60.jpg',
@@ -501,7 +500,7 @@ exports.seed = async function (knex) {
       ],
     },
     {
-      sku: 'WN-MO410-S-UN',
+      sku: 'WN-MO810-S-UN', // was WN-MO410-S-UN
       images: [
         {
           url: 'src/assets/sku-images/WIDE_Collections/dha_algal_oil_pregnancy_breastfeeding_30.jpg',
@@ -513,7 +512,7 @@ exports.seed = async function (knex) {
       ],
     },
     {
-      sku: 'WN-MO411-L-UN',
+      sku: 'WN-MO811-L-UN', // was WN-MO411-L-UN
       images: [
         {
           url: 'src/assets/sku-images/WIDE_Collections/dha_algal_oil_pregnancy_breastfeeding_60.jpg',
@@ -524,166 +523,285 @@ exports.seed = async function (knex) {
         },
       ],
     },
+    
+    // --- Phyto-Genious (PG) new products ---
+    {
+      sku: 'PG-MO400-R-CN',
+      images: [
+        {
+          url: 'src/assets/sku-images/PG/seal_oil_plus_cn.jpg',
+          type: 'main',
+          order: 0,
+          isPrimary: true,
+          alt: 'Front view of Seal Oil Plus China version',
+        },
+      ],
+    },
+    {
+      sku: 'PG-AO500-S-CN',
+      images: [
+        {
+          url: 'src/assets/sku-images/PG/astaxanthin_plus_cn.jpg',
+          type: 'main',
+          order: 0,
+          isPrimary: true,
+          alt: 'Front view of Astaxanthin Plus China version',
+        },
+      ],
+    },
+    {
+      sku: 'PG-CL600-R-CN',
+      images: [
+        {
+          url: 'src/assets/sku-images/PG/cell_revive_cn.png',
+          type: 'main',
+          order: 0,
+          isPrimary: true,
+          alt: 'Front view of Cell Revive China version',
+        },
+      ],
+    },
+    {
+      sku: 'PG-HH700-R-CN',
+      images: [
+        {
+          url: 'src/assets/sku-images/PG/ubiquinol_100mg_coq10_mega_cn.jpg',
+          type: 'main',
+          order: 0,
+          isPrimary: true,
+          alt: 'Front view of Ubiquinol 100mg CoQ10 Mega China version',
+        },
+      ],
+    },
+    
+    // --- WIDE Naturals (WN) new products ---
+    {
+      sku: 'WN-MO812-S-UN',
+      images: [
+        {
+          url: 'src/assets/sku-images/WIDE_Collections/new_seal_oil_omega3_120.png',
+          type: 'main',
+          order: 0,
+          isPrimary: true,
+          alt: 'Front view of New Seal Oil Omega-3 120 Softgels version',
+        },
+      ],
+    },
+    {
+      sku: 'WN-BH900-S-UN',
+      images: [
+        {
+          url: 'src/assets/sku-images/WIDE_Collections/5_in_1_d3_k2_ca_mg_zn.png',
+          type: 'main',
+          order: 0,
+          isPrimary: true,
+          alt: 'Front view of 5 IN 1 D3 + K2 + Ca + Mg + Zn version',
+        },
+      ],
+    },
+    {
+      sku: 'WN-HH1000-S-UN',
+      images: [
+        {
+          url: 'src/assets/sku-images/WIDE_Collections/coq10_pqq_seal_oil.png',
+          type: 'main',
+          order: 0,
+          isPrimary: true,
+          alt: 'Front view of CoQ10 + PQQ Seal Oil version',
+        },
+      ],
+    },
+    {
+      sku: 'WN-GH1100-R-UN',
+      images: [
+        {
+          url: 'src/assets/sku-images/WIDE_Collections/akk_dag_oil.png',
+          type: 'main',
+          order: 0,
+          isPrimary: true,
+          alt: 'Front view of AKK + DAG Oil version',
+        },
+      ],
+    },
   ];
-
-  const rows = [];
-
-  for (const { sku, images } of seedData) {
-    const groupId = randomUUID();
-
-    const skuId = skuMap[sku];
-    if (!skuId) {
-      console.warn(`SKU not found: ${sku}`);
-      continue;
-    }
-
-    for (const img of images) {
-      const isLocal = !img.url.startsWith('http');
-      if (!isLocal) {
-        console.warn(`Remote images not supported for resizing: ${img.url}`);
-        continue;
-      }
-
-      const localPath = path.resolve(process.cwd(), img.url);
-      if (!fs.existsSync(localPath)) {
-        console.warn(`File not found: ${localPath}`);
-        continue;
-      }
-
-      try {
-        const baseName = path.basename(localPath, path.extname(localPath)); // e.g., focus_CA
-        const brandFolder = sku.slice(0, 2);
-
-        // Filenames
-        const mainFileName = `${baseName}_main.webp`;
-        const thumbFileName = `${baseName}_thumb.webp`;
-        const zoomFileName = `${baseName}${path.extname(localPath)}`; // original
-
-        // Temp resize folder
-        const skuFolder = path.join('temp', sku);
-        fs.mkdirSync(skuFolder, { recursive: true });
-
-        const resizedMainPath = path.join(skuFolder, mainFileName);
-        const resizedThumbPath = path.join(skuFolder, thumbFileName);
-
-        await resizeImage(localPath, resizedMainPath, 1000, 80, 5);
-        await resizeImage(localPath, resizedThumbPath, 450, 75, 4);
-
-        let s3MainUrl, s3ThumbUrl, s3ZoomUrl;
-
-        if (isProd) {
-          const keyPrefix = `sku-images/${brandFolder}`;
-          s3MainUrl = await uploadSkuImageToS3(
-            bucketName,
-            resizedMainPath,
-            keyPrefix,
-            mainFileName
-          );
-          s3ThumbUrl = await uploadSkuImageToS3(
-            bucketName,
-            resizedThumbPath,
-            keyPrefix,
-            thumbFileName
-          );
-          s3ZoomUrl = await uploadSkuImageToS3(
-            bucketName,
-            localPath,
-            keyPrefix,
-            zoomFileName
-          );
-        } else {
-          const devOutputDir = path.resolve(
-            `public/uploads/sku-images/${brandFolder}`
-          );
-          fs.mkdirSync(devOutputDir, { recursive: true });
-
-          const copiedMain = path.join(devOutputDir, mainFileName);
-          const copiedThumb = path.join(devOutputDir, thumbFileName);
-          const copiedZoom = path.join(devOutputDir, zoomFileName);
-
-          fs.copyFileSync(resizedMainPath, copiedMain);
-          fs.copyFileSync(resizedThumbPath, copiedThumb);
-          fs.copyFileSync(localPath, copiedZoom);
-
-          const publicBase = `/uploads/sku-images/${brandFolder}/${baseName}`;
-          s3MainUrl = `${publicBase}_main.webp`;
-          s3ThumbUrl = `${publicBase}_thumb.webp`;
-          s3ZoomUrl = `${publicBase}${path.extname(localPath)}`;
-        }
-
-        const mainStats = fs.statSync(resizedMainPath);
-        const thumbStats = fs.statSync(resizedThumbPath);
-        const zoomStats = fs.statSync(localPath);
-        const zoomMime = mime.lookup(localPath);
-        const zoomFormat = mime.extension(zoomMime) || 'bin';
-
-        rows.push(
-          {
-            id: knex.raw('uuid_generate_v4()'),
-            sku_id: skuId,
-            image_url: s3MainUrl,
-            image_type: 'main',
-            display_order: 0,
-            file_size_kb: Math.ceil(mainStats.size / 1024),
-            file_format: 'webp',
-            is_primary: true,
-            group_id: groupId,
-            alt_text: img.alt,
-            uploaded_at: knex.fn.now(),
-            uploaded_by: systemUser.id,
-          },
-          {
-            id: knex.raw('uuid_generate_v4()'),
-            sku_id: skuId,
-            image_url: s3ThumbUrl,
-            image_type: 'thumbnail',
-            display_order: 1,
-            file_size_kb: Math.ceil(thumbStats.size / 1024),
-            file_format: 'webp',
-            is_primary: false,
-            group_id: groupId,
-            alt_text: img.alt,
-            uploaded_at: knex.fn.now(),
-            uploaded_by: systemUser.id,
-          },
-          {
-            id: knex.raw('uuid_generate_v4()'),
-            sku_id: skuId,
-            image_url: s3ZoomUrl,
-            image_type: 'zoom',
-            display_order: 2,
-            file_size_kb: Math.ceil(zoomStats.size / 1024),
-            file_format: zoomFormat,
-            is_primary: false,
-            group_id: groupId,
-            alt_text: img.alt,
-            uploaded_at: knex.fn.now(),
-            uploaded_by: systemUser.id,
-          }
-        );
-
-        console.log(`Processed SKU ${sku} — main, thumbnail, zoom`);
-      } catch (err) {
-        console.error(`Failed to process ${img.url}:`, err.message);
-      }
-    }
-  }
-
-  if (rows.length) {
-    await knex('sku_images')
-      .insert(rows)
-      .onConflict(['sku_id', 'group_id', 'image_type'])
-      .ignore();
-
-    console.log(`Inserted ${rows.length} sku_images`);
-  } else {
-    console.warn('No sku_images to insert.');
-  }
-
-  // Cleanup temp folder
+  
+  // Preserve user-uploaded primary images: skip any SKU that already has one.
+  // Seed will only run for SKUs that have never had a primary set.
+  const existingPrimaries = await knex('sku_images')
+    .where({ is_primary: true })
+    .select('sku_id');
+  const skusWithPrimary = new Set(existingPrimaries.map((r) => r.sku_id));
+  
   const tempPath = path.resolve('temp');
-  if (fs.existsSync(tempPath)) {
-    fs.rmSync(tempPath, { recursive: true, force: true });
-    console.log('Cleaned up temp folder');
+  const rows = [];
+  
+  try {
+    for (const { sku, images } of seedData) {
+      const skuId = skuMap[sku];
+      if (!skuId) {
+        console.warn(`SKU not found: ${sku}`);
+        continue;
+      }
+      
+      // Don't overwrite user-uploaded primaries.
+      if (skusWithPrimary.has(skuId)) {
+        console.log(
+          `Skipping ${sku} — already has a primary image (likely user-uploaded)`
+        );
+        continue;
+      }
+      
+      // Deterministic group_id: same SKU always produces the same UUID.
+      // This lets onConflict.ignore() catch re-runs cleanly instead of
+      // minting a new group_id every time and tripping the partial unique.
+      const groupId = uuidv5(`sku-images:${sku}`, SKU_IMAGE_NAMESPACE);
+      
+      for (const img of images) {
+        const isLocal = !img.url.startsWith('http');
+        if (!isLocal) {
+          console.warn(`Remote images not supported for resizing: ${img.url}`);
+          continue;
+        }
+        
+        const localPath = path.resolve(process.cwd(), img.url);
+        if (!fs.existsSync(localPath)) {
+          console.warn(`File not found: ${localPath}`);
+          continue;
+        }
+        
+        try {
+          const baseName = path.basename(localPath, path.extname(localPath));
+          const brandFolder = sku.slice(0, 2);
+          
+          const mainFileName = `${baseName}_main.webp`;
+          const thumbFileName = `${baseName}_thumb.webp`;
+          const zoomFileName = `${baseName}${path.extname(localPath)}`;
+          
+          const skuFolder = path.join('temp', sku);
+          fs.mkdirSync(skuFolder, { recursive: true });
+          
+          const resizedMainPath = path.join(skuFolder, mainFileName);
+          const resizedThumbPath = path.join(skuFolder, thumbFileName);
+          
+          await resizeImage(localPath, resizedMainPath, 1000, 80, 5);
+          await resizeImage(localPath, resizedThumbPath, 450, 75, 4);
+          
+          let s3MainUrl, s3ThumbUrl, s3ZoomUrl;
+          
+          if (isProd) {
+            const keyPrefix = `sku-images/${brandFolder}`;
+            s3MainUrl = await uploadSkuImageToS3(
+              bucketName,
+              resizedMainPath,
+              keyPrefix,
+              mainFileName
+            );
+            s3ThumbUrl = await uploadSkuImageToS3(
+              bucketName,
+              resizedThumbPath,
+              keyPrefix,
+              thumbFileName
+            );
+            s3ZoomUrl = await uploadSkuImageToS3(
+              bucketName,
+              localPath,
+              keyPrefix,
+              zoomFileName
+            );
+          } else {
+            const devOutputDir = path.resolve(
+              `public/uploads/sku-images/${brandFolder}`
+            );
+            fs.mkdirSync(devOutputDir, { recursive: true });
+            
+            fs.copyFileSync(
+              resizedMainPath,
+              path.join(devOutputDir, mainFileName)
+            );
+            fs.copyFileSync(
+              resizedThumbPath,
+              path.join(devOutputDir, thumbFileName)
+            );
+            fs.copyFileSync(localPath, path.join(devOutputDir, zoomFileName));
+            
+            const publicBase = `/uploads/sku-images/${brandFolder}/${baseName}`;
+            s3MainUrl = `${publicBase}_main.webp`;
+            s3ThumbUrl = `${publicBase}_thumb.webp`;
+            s3ZoomUrl = `${publicBase}${path.extname(localPath)}`;
+          }
+          
+          const mainStats = fs.statSync(resizedMainPath);
+          const thumbStats = fs.statSync(resizedThumbPath);
+          const zoomStats = fs.statSync(localPath);
+          const zoomMime = mime.lookup(localPath);
+          const zoomFormat = mime.extension(zoomMime) || 'bin';
+          
+          rows.push(
+            {
+              id: knex.raw('uuid_generate_v4()'),
+              sku_id: skuId,
+              image_url: s3MainUrl,
+              image_type: 'main',
+              display_order: 0,
+              file_size_kb: Math.ceil(mainStats.size / 1024),
+              file_format: 'webp',
+              is_primary: true,
+              group_id: groupId,
+              alt_text: img.alt,
+              uploaded_at: knex.fn.now(),
+              uploaded_by: systemUser.id,
+            },
+            {
+              id: knex.raw('uuid_generate_v4()'),
+              sku_id: skuId,
+              image_url: s3ThumbUrl,
+              image_type: 'thumbnail',
+              display_order: 1,
+              file_size_kb: Math.ceil(thumbStats.size / 1024),
+              file_format: 'webp',
+              is_primary: false,
+              group_id: groupId,
+              alt_text: img.alt,
+              uploaded_at: knex.fn.now(),
+              uploaded_by: systemUser.id,
+            },
+            {
+              id: knex.raw('uuid_generate_v4()'),
+              sku_id: skuId,
+              image_url: s3ZoomUrl,
+              image_type: 'zoom',
+              display_order: 2,
+              file_size_kb: Math.ceil(zoomStats.size / 1024),
+              file_format: zoomFormat,
+              is_primary: false,
+              group_id: groupId,
+              alt_text: img.alt,
+              uploaded_at: knex.fn.now(),
+              uploaded_by: systemUser.id,
+            }
+          );
+          
+          console.log(`Processed SKU ${sku} — main, thumbnail, zoom`);
+        } catch (err) {
+          console.error(`Failed to process ${img.url}:`, err.message);
+        }
+      }
+    }
+    
+    if (rows.length) {
+      await knex('sku_images')
+        .insert(rows)
+        .onConflict(['sku_id', 'group_id', 'image_type'])
+        .ignore();
+      
+      console.log(`Inserted ${rows.length} sku_images (existing rows ignored)`);
+    } else {
+      console.log('No new sku_images to insert.');
+    }
+  } finally {
+    if (fs.existsSync(tempPath)) {
+      fs.rmSync(tempPath, { recursive: true, force: true });
+      console.log('Cleaned up temp folder');
+    }
   }
 };

@@ -1,5 +1,5 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import {
+import type {
   AddressByCustomerLookupResponse,
   AddressByCustomerLookupState,
 } from '@features/lookup/state/lookupTypes';

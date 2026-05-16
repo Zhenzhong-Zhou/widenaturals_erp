@@ -10,7 +10,8 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { getRawLabel } from '@utils/labelHelpers';
 
-type PricingDropdownProps = PaginatedDropdownProps<PricingGroupLookupQueryParams>;
+type PricingDropdownProps =
+  PaginatedDropdownProps<PricingGroupLookupQueryParams>;
 
 /**
  * Dropdown component for selecting a pricing record from the lookup list.
@@ -27,7 +28,10 @@ type PricingDropdownProps = PaginatedDropdownProps<PricingGroupLookupQueryParams
  * @component
  * @param {PricingDropdownProps} props - Standard dropdown props plus lookup state.
  */
-const PricingGroupDropdown = ({ options = [], ...rest }: PricingDropdownProps) => {
+const PricingGroupDropdown = ({
+  options = [],
+  ...rest
+}: PricingDropdownProps) => {
   const enrichedPricingOptions = useMemo(() => {
     return Array.from(
       new Map(

@@ -28,7 +28,7 @@ interface Props {
 const LocationTypeDetailStatusSection: FC<Props> = ({ locationType }) => {
   return (
     <Paper sx={{ p: 3, mb: 3 }} elevation={1}>
-      <CustomTypography variant="h6" fontWeight={600} gutterBottom>
+      <CustomTypography variant="h6" sx={{ fontWeight: 600 }} gutterBottom>
         Status
       </CustomTypography>
 

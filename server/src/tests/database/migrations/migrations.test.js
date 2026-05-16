@@ -33,7 +33,7 @@ describe('Database Migrations', () => {
     'sales_orders',
     'order_items',
     'return_items',
-    'inventory_activity_log',
+    'inventory_activity_logs',
   ];
 
   const knexTables = ['knex_migrations', 'knex_migrations_lock'];

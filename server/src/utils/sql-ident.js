@@ -276,7 +276,7 @@ const ALLOWED = Object.freeze({
     'discounts',
     'fulfillment_status',
     'inventory_action_types',
-    'inventory_activity_log',
+    'inventory_activity_logs',
     'inventory_allocation_status',
     'inventory_allocations',
     'inventory_status',

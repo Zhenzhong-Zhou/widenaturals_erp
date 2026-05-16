@@ -70,7 +70,7 @@ export const getCustomersTableColumns = (
         ),
     },
   ];
-  
+
   if (onDrillDownToggle) {
     base.push(
       createDrillDownColumn<CustomerListItem>(

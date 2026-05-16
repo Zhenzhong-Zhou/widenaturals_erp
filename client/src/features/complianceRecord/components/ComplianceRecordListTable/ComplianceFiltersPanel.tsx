@@ -1,7 +1,7 @@
 import { type FC, useEffect } from 'react';
 import type { Path } from 'react-hook-form';
 import { useForm } from 'react-hook-form';
-import Grid from '@mui/material/Grid';
+import { Grid } from '@mui/material';
 import { FilterPanelLayout } from '@components/index';
 import { renderDateField, renderInputField } from '@utils/filters/filterUtils';
 import type { ComplianceFilters } from '@features/complianceRecord/state';
@@ -22,8 +22,7 @@ import {
   SkuMultiSelectDropdown,
   StatusMultiSelectDropdown,
 } from '@features/lookup/components';
-import { formatLabel } from '@utils/textUtils';
-import { useFormattedOptions } from '@features/lookup/utils/lookupUtils';
+import { useFormattedOptionLabels } from '@features/lookup/utils/formatOptionLabels';
 
 interface ComplianceFiltersPanelLookups {
   product: ReturnType<typeof useProductLookup>;
@@ -93,7 +92,7 @@ const COMPLIANCE_DATE_FIELDS: ComplianceDateField[] = [
   // Issued date
   { name: 'dateRanges.issuedAfter', label: 'Issued Date ≥' },
   { name: 'dateRanges.issuedBefore', label: 'Issued Date <' },
-  
+
   // Expiry date
   { name: 'dateRanges.expiry.expiringAfter', label: 'Expiry Date ≥' },
   { name: 'dateRanges.expiry.expiringBefore', label: 'Expiry Date <' },
@@ -165,10 +164,7 @@ const ComplianceFiltersPanel: FC<Props> = ({
   // -------------------------------
   // Derived lookup options
   // -------------------------------
-  const formattedStatusOptions = useFormattedOptions(
-    status.options,
-    formatLabel
-  );
+  const formattedStatusOptions = useFormattedOptionLabels(status.options);
 
   // ----------------------------------------
   // Product lookup controller

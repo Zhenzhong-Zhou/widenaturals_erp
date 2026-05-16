@@ -75,11 +75,11 @@ router.get(
  * @route POST /:warehouseId/inventory
  * @description Bulk create warehouse inventory records for a given warehouse.
  * @access protected
- * @permission PERMISSION_KEYS.WAREHOUSE_INVENTORY.CREATE
+ * @permission PERMISSION_KEYS.WAREHOUSE_INVENTORY.CREATE_INBOUND
  */
 router.post(
   '/:warehouseId/inventory',
-  authorize([PERMISSION_KEYS.WAREHOUSE_INVENTORY.CREATE]),
+  authorize([PERMISSION_KEYS.WAREHOUSE_INVENTORY.CREATE_INBOUND]),
   validate(warehouseIdParamSchema, 'params'),
   validate(createWarehouseInventoryBulkSchema, 'body'),
   createWarehouseInventoryController
@@ -117,11 +117,11 @@ router.patch(
  * @route PATCH /:warehouseId/inventory/:inventoryId/metadata
  * @description Update inbound date and warehouse fee for a single inventory record.
  * @access protected
- * @permission PERMISSION_KEYS.WAREHOUSE_INVENTORY.ADJUST_INVENTORY
+ * @permission PERMISSION_KEYS.WAREHOUSE_INVENTORY.EDIT_METADATA
  */
 router.patch(
   '/:warehouseId/inventory/:inventoryId/metadata',
-  authorize([PERMISSION_KEYS.WAREHOUSE_INVENTORY.ADJUST_INVENTORY]),
+  authorize([PERMISSION_KEYS.WAREHOUSE_INVENTORY.EDIT_METADATA]),
   validate(inventoryIdParamSchema, 'params'),
   validate(updateWarehouseInventoryMetadataSchema, 'body'),
   updateWarehouseInventoryMetadataController
@@ -146,11 +146,11 @@ router.post(
  * @description Paginated inventory activity log scoped to a given warehouse.
  *   Filters: inventoryId, actionTypeId, performedBy, dateAfter, dateBefore.
  * @access protected
- * @permission PERMISSION_KEYS.WAREHOUSE_INVENTORY.VIEW
+ * @permission PERMISSION_KEYS.WAREHOUSE_INVENTORY.VIEW_ACTIVITY_LOG
  */
 router.get(
   '/:warehouseId/inventory/activity-log',
-  authorize([PERMISSION_KEYS.WAREHOUSE_INVENTORY.VIEW]),
+  authorize([PERMISSION_KEYS.WAREHOUSE_INVENTORY.VIEW_ACTIVITY_LOG]),
   validate(warehouseIdParamSchema, 'params'),
   validate(inventoryActivityLogQuerySchema, 'query', { allowUnknown: true }),
   createQueryNormalizationMiddleware(
@@ -170,11 +170,11 @@ router.get(
  * @description Full detail view for a single warehouse inventory record,
  *   including zone assignments and recent movement history.
  * @access protected
- * @permission PERMISSION_KEYS.WAREHOUSE_INVENTORY.VIEW
+ * @permission PERMISSION_KEYS.WAREHOUSE_INVENTORY.VIEW_DETAILS
  */
 router.get(
   '/:warehouseId/inventory/:inventoryId',
-  authorize([PERMISSION_KEYS.WAREHOUSE_INVENTORY.VIEW]),
+  authorize([PERMISSION_KEYS.WAREHOUSE_INVENTORY.VIEW_DETAILS]),
   validate(inventoryIdParamSchema, 'params'),
   getWarehouseInventoryDetailController
 );

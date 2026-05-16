@@ -17,12 +17,12 @@ import { useDashboardWarehouses } from '@features/dashboard/hooks';
 const UserDashboardPage: FC<DashboardPageProps> = () => {
   const fullName = useAppSelector(selectSelfUserFullName);
   const { warehouses, loading, error, canView } = useDashboardWarehouses();
-  
+
   return (
     <DashboardLayout
       fullName={fullName ?? undefined}
       header={
-        <CustomTypography variant="h6" fontWeight={600} gutterBottom>
+        <CustomTypography variant="h6" sx={{ fontWeight: 600 }} gutterBottom>
           Welcome
         </CustomTypography>
       }

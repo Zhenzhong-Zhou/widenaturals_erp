@@ -17,3 +17,8 @@
  * @property {boolean} canViewAllStatuses  - User may see warehouses in any status.
  * @property {boolean} canViewSummary      - User may see inventory summary stats on warehouse records.
  */
+
+/**
+ * @typedef {Object} WarehouseTypeLookupAcl
+ * @property {boolean} canViewInactive
+ */

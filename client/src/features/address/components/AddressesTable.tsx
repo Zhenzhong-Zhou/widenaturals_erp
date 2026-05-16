@@ -1,9 +1,12 @@
 import { lazy, Suspense, useCallback, useMemo, type FC } from 'react';
-import Box from '@mui/material/Box';
-import SkeletonExpandedRow from '@components/common/SkeletonExpandedRow';
-import CustomTable, { type Column } from '@components/common/CustomTable';
-import CustomTypography from '@components/common/CustomTypography';
-import CustomButton from '@components/common/CustomButton';
+import { Box } from '@mui/material';
+import {
+  CustomButton,
+  CustomTable,
+  CustomTypography,
+  SkeletonExpandedRow
+} from '@components/index';
+import { Column } from '@components/common/CustomTable';
 import type { AddressListItem } from '@features/address/state/addressTypes';
 import { formatDateTime } from '@utils/dateTimeUtils';
 import { formatLabel, toUpperCase } from '@utils/textUtils';
@@ -131,12 +134,14 @@ const AddressesTable: FC<AddressesTableProps> = ({
   return (
     <Box>
       <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        mb={2}
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          mb: 2,
+        }}
       >
-        <CustomTypography variant="h6" fontWeight={600}>
+        <CustomTypography variant="h6" sx={{ fontWeight: 600 }}>
           Customer List
         </CustomTypography>
         <CustomButton

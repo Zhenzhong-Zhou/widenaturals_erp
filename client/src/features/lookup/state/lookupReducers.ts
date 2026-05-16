@@ -1,4 +1,5 @@
 import batchRegistryLookupReducer from './batchRegistryLookupSlice';
+import batchRegistryForInventoryLookupReducer from './batchRegistryForInventoryLookupSlice';
 import warehouseLookupReducer from './warehouseLookupSlice';
 import lotAdjustmentTypeLookupReducer from './lotAdjustmentTypeLookupSlice';
 import customerLookupReducer from './customerLookupSlice';
@@ -19,6 +20,11 @@ import roleLookupReducer from './roleLookupSlice';
 import manufacturerLookupReducer from './manufacturerLookupSlice';
 import supplierLookupReducer from './supplierLookupSlice';
 import locationTypeLookupReducer from './locationTypeLookupSlice';
+import inventoryStatusLookupReducer from './inventoryStatusLookupSlice';
+import pricingTypeLookupReducer from './pricingTypeLookupSlice';
+import warehouseTypeLookupReducer from './warehouseTypeLookupSlice';
+import locationLookupReducer from './locationLookupSlice';
+import inventoryActionTypeLookupReducer from './inventoryActionTypeLookupSlice';
 
 /**
  * Reducer map for Lookup / Dropdown reference data.
@@ -42,6 +48,7 @@ import locationTypeLookupReducer from './locationTypeLookupSlice';
  */
 export const lookupReducers = {
   batchRegistryLookup: batchRegistryLookupReducer,
+  batchRegistryForInventoryLookup: batchRegistryForInventoryLookupReducer,
   warehouseLookup: warehouseLookupReducer,
   lotAdjustmentTypeLookup: lotAdjustmentTypeLookupReducer,
   customerLookup: customerLookupReducer,
@@ -62,4 +69,9 @@ export const lookupReducers = {
   manufacturerLookup: manufacturerLookupReducer,
   supplierLookup: supplierLookupReducer,
   locationTypeLookup: locationTypeLookupReducer,
+  inventoryStatusLookup: inventoryStatusLookupReducer,
+  pricingTypeLookup: pricingTypeLookupReducer,
+  warehouseTypeLookup: warehouseTypeLookupReducer,
+  locationLookup: locationLookupReducer,
+  inventoryActionTypeLookup: inventoryActionTypeLookupReducer,
 };

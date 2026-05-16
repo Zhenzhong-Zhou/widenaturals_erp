@@ -17,6 +17,7 @@ const {
 const { PERMISSIONS } = require('../utils/constants/domain/pricing-constants');
 const AppError = require('../utils/AppError');
 const { getStatusId } = require('../config/status-cache');
+const { makeStatus } = require('../utils/status-utils');
 const { compactAudit, makeAudit } = require('../utils/audit-utils');
 
 const CONTEXT = 'pricing-business';
@@ -108,11 +109,11 @@ const evaluatePricingViewAccessControl = async (user) => {
  */
 const slicePricingForUser = (pricingRows, access) => {
   if (!Array.isArray(pricingRows)) return [];
-
+  
   const ACTIVE_STATUS_ID = getStatusId('general_active');
   const now = new Date();
   const result = [];
-
+  
   for (const row of pricingRows) {
     const priceTypeName = row.price_type_name?.toUpperCase();
 
@@ -135,12 +136,13 @@ const slicePricingForUser = (pricingRows, access) => {
 
     if (!access.canViewPricingHistory && isExpired) continue;
     if (!access.canViewAllValidPricing && isNotYetValid) continue;
-
+    
     const safe = {
       id: row.pricing_id ?? row.id,
       skuId: row.sku_id,
       pricingGroupId: row.pricing_group_id,
       priceType: {
+        id: row.pricing_type_id,
         name: row.price_type_name,
         code: row.price_type_code,
       },
@@ -149,21 +151,18 @@ const slicePricingForUser = (pricingRows, access) => {
       validFrom: row.valid_from,
       validTo: row.valid_to,
     };
-
+    
     if (access.canViewAllPricingTypes) {
-      safe.status = {
-        id: row.status_id,
-        date: row.status_date,
-      };
+      safe.status = makeStatus(row);
     }
-
+    
     if (access.canViewPricingHistory) {
       safe.audit = compactAudit(makeAudit(row));
     }
-
+    
     result.push(safe);
   }
-
+  
   return result;
 };
 

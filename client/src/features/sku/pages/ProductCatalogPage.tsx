@@ -1,20 +1,22 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import Container from '@mui/material/Container';
-import Stack from '@mui/material/Stack';
-import Grid from '@mui/material/Grid';
-import Box from '@mui/material/Box';
-import Paper from '@mui/material/Paper';
-import MenuItem from '@mui/material/MenuItem';
-import CustomButton from '@components/common/CustomButton';
-import CustomPagination from '@components/common/CustomPagination';
-import CustomTypography from '@components/common/CustomTypography';
-import Loading from '@components/common/Loading';
-import ErrorMessage from '@components/common/ErrorMessage';
-import NoDataFound from '@components/common/NoDataFound';
-import GoBackButton from '@components/common/GoBackButton';
-import BaseInput from '@components/common/BaseInput';
-import useSkuProductCards from '@hooks/useSkuProductCards';
-import { applyFiltersAndSorting } from '@utils/query';
+import {
+  Box,
+  Container,
+  Grid,
+  MenuItem,
+  Paper,
+  Stack
+} from '@mui/material';
+import {
+  BaseInput,
+  CustomButton,
+  CustomPagination,
+  CustomTypography,
+  ErrorMessage,
+  GoBackButton,
+  Loading,
+  NoDataFound,
+} from '@components/index';
 import type {
   SkuProductCardFilters,
   SkuProductCardSortField,
@@ -25,6 +27,8 @@ import {
   ProductCatalogCardFilterPanel,
   ProductCatalogCardSortControls,
 } from '@features/sku/components/ProductCatalog';
+import { applyFiltersAndSorting } from '@utils/query';
+import { useSkuProductCards } from '@hooks/index';
 
 const ProductCatalogPage = () => {
   // -----------------------------
@@ -116,24 +120,36 @@ const ProductCatalogPage = () => {
 
   return (
     <Container maxWidth={false} sx={{ px: 2 }}>
-      <Stack direction="column" spacing={3} mt={3}>
+      <Stack
+        direction="column"
+        spacing={3}
+        sx={{
+          mt: 3,
+        }}
+      >
         {/* Page Title */}
         <CustomTypography
           variant="h4"
-          fontWeight={700}
-          sx={{ textAlign: 'center', mb: 1 }}
+          sx={{
+            fontWeight: 700,
+            textAlign: 'center',
+            mb: 1,
+          }}
         >
           Product Catalog
         </CustomTypography>
-
+        
         {/* Action Bar */}
         <Stack
           direction="row"
           spacing={2}
-          alignItems="center"
-          justifyContent="flex-end"
-          flexWrap="wrap"
-          sx={{ mb: 1, mt: 3 }}
+          sx={{
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            flexWrap: 'wrap',
+            mb: 1,
+            mt: 3,
+          }}
         >
           <CustomButton
             size="medium"
@@ -144,13 +160,13 @@ const ProductCatalogPage = () => {
           >
             Refresh
           </CustomButton>
-
+          
           <GoBackButton
             size="medium"
             sx={{ minWidth: 160, height: 44, borderRadius: 22, px: 3 }}
           />
         </Stack>
-
+        
         {/* Filter & Sort Panel */}
         <Paper
           elevation={0}
@@ -162,7 +178,7 @@ const ProductCatalogPage = () => {
             onApply={() => setPage(1)}
             onReset={handleResetFilters}
           />
-
+          
           <ProductCatalogCardSortControls
             sortBy={sortBy}
             sortOrder={sortOrder}
@@ -170,9 +186,15 @@ const ProductCatalogPage = () => {
             onSortOrderChange={setSortOrder}
           />
         </Paper>
-
+        
         {/* Items Per Page */}
-        <Box display="flex" justifyContent="flex-end" mb={1}>
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            mb: 1,
+          }}
+        >
           <BaseInput
             name="limit"
             label="Items per page"
@@ -192,7 +214,7 @@ const ProductCatalogPage = () => {
             ))}
           </BaseInput>
         </Box>
-
+        
         {/* Product Cards */}
         <Box>
           <Grid container spacing={{ xs: 2, md: 3, lg: 4 }}>
@@ -224,10 +246,16 @@ const ProductCatalogPage = () => {
             )}
           </Grid>
         </Box>
-
+        
         {/* Pagination */}
         {catalogPagination && (
-          <Box mt={4} display="flex" justifyContent="center">
+          <Box
+            sx={{
+              mt: 4,
+              display: 'flex',
+              justifyContent: 'center',
+            }}
+          >
             <CustomPagination
               page={page}
               itemsPerPage={limit}

@@ -9,7 +9,7 @@
  *  - fetchPaginatedActivityLogService — date range filter
  *  - fetchPaginatedActivityLogService — empty result
  *
- * Requires: existing inventory_activity_log records (run inbound test first)
+ * Requires: existing inventory_activity_logs records (run inbound test first)
  *
  * Command:
  *   node src/tests/apis/test-inventory-activity-log-service.js
@@ -52,7 +52,7 @@ const info = (label, value) => console.log(`     ${label}:`, value);
         ial.performed_by,
         ial.performed_at,
         wi.warehouse_id
-      FROM inventory_activity_log ial
+      FROM inventory_activity_logs ial
       JOIN warehouse_inventory wi ON wi.id = ial.warehouse_inventory_id
       ORDER BY ial.performed_at DESC
       LIMIT 5
@@ -60,7 +60,7 @@ const info = (label, value) => console.log(`     ${label}:`, value);
 
     if (!userRows.length || !logRows.length) {
       console.warn(
-        `${LOG} Missing test data — need users and inventory_activity_log records.`
+        `${LOG} Missing test data — need users and inventory_activity_logs records.`
       );
       console.warn(
         `${LOG} Run test-warehouse-inventory-inbound-service.js first.`

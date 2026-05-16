@@ -190,8 +190,13 @@ const AllocateInventoryDialog: FC<AllocateInventoryDialogProps> = ({
         </CustomTypography>
 
         {allocationError && <ErrorMessage message={allocationError} />}
-
-        <Stack spacing={2} mb={3}>
+        
+        <Stack
+          spacing={2}
+          sx={{
+            mb: 3,
+          }}
+        >
           <StrategyDropdown value={strategy} onChange={setStrategy} />
 
           <WarehouseDropdown
@@ -205,8 +210,12 @@ const AllocateInventoryDialog: FC<AllocateInventoryDialogProps> = ({
         </Stack>
 
         <Divider />
-
-        <CustomTypography variant="subtitle1" mt={3} gutterBottom>
+        
+        <CustomTypography
+          variant="subtitle1"
+          gutterBottom
+          sx={{ mt: 3 }}
+        >
           Manual Allocation
         </CustomTypography>
 

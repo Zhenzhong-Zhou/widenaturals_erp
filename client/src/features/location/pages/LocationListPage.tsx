@@ -1,8 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import Box from '@mui/material/Box';
-import Divider from '@mui/material/Divider';
-import Card from '@mui/material/Card';
-import Grid from '@mui/material/Grid';
+import { Box, Card, Divider, Grid } from '@mui/material';
 import {
   CustomButton,
   CustomTypography,
@@ -114,7 +111,7 @@ const LocationListPage = () => {
       resetAll: () => {
         lookups.status.reset();
       },
-      
+
       onOpen: {
         status: createOnOpenHandler(lookups.status),
       },
@@ -153,14 +150,16 @@ const LocationListPage = () => {
     <Box sx={{ px: 4, py: 3 }}>
       {/* Page Header */}
       <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        flexWrap="wrap"
-        mb={3}
-        gap={2}
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          mb: 3,
+          gap: 2,
+        }}
       >
-        <CustomTypography variant="h5" fontWeight={700}>
+        <CustomTypography variant="h5" sx={{ fontWeight: 700 }}>
           Location Management
         </CustomTypography>
       </Box>

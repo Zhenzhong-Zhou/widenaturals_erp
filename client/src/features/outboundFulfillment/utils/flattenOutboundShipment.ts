@@ -45,7 +45,7 @@ export const flattenOutboundShipment = (
 
   notes: raw.notes,
   shipmentDetails: raw.shipmentDetails,
-  
+
   createdAt: raw.audit.createdAt,
   createdBy: raw.audit?.createdBy?.name ?? '',
   updatedAt: raw.audit?.updatedAt ?? '',

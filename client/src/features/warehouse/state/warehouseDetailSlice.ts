@@ -13,15 +13,15 @@ import type {
 import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 const detailInitialState: WarehouseDetailState = {
-  data:    null,
+  data: null,
   loading: false,
-  error:   null,
+  error: null,
 };
 
 const warehouseDetailSlice = createSlice({
   name: 'warehouseDetail',
   initialState: detailInitialState,
-  
+
   reducers: {
     /**
      * Reset the warehouse detail state back to its initial empty configuration.
@@ -29,7 +29,7 @@ const warehouseDetailSlice = createSlice({
      */
     resetWarehouseDetail: () => detailInitialState,
   },
-  
+
   // ---------------------------
   // Extra reducers (async thunk lifecycle)
   // ---------------------------
@@ -41,16 +41,16 @@ const warehouseDetailSlice = createSlice({
         state.error = null;
         state.data = null;
       })
-      
+
       // ---- fulfilled ----
       .addCase(fetchWarehouseByIdThunk.fulfilled, (state, action) => {
         state.loading = false;
         state.error = null;
-        
+
         const result = action.payload as WarehouseDetailApiResponse;
         state.data = result.data;
       })
-      
+
       // ---- rejected ----
       .addCase(fetchWarehouseByIdThunk.rejected, (state, action) => {
         state.data = null;

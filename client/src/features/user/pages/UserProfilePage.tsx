@@ -1,6 +1,6 @@
 import { type FC, useCallback, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import Box from '@mui/material/Box';
+import { Box } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { useAppSelector } from '@store/storeHooks';
 import { selectLastLogin } from '@features/session/state';
@@ -186,10 +186,12 @@ const UserProfilePage: FC = () => {
       sx={{ maxWidth: 1100 }}
     >
       <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        mb={2}
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          mb: 2,
+        }}
       >
         <GoBackButton />
 

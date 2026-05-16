@@ -24,7 +24,11 @@ const FooterLinks: FC = () => {
     >
       {/* OFFICIAL PRESENCE */}
       <Box>
-        <CustomTypography variant="body2" fontWeight={700} gutterBottom>
+        <CustomTypography
+          variant="body2"
+          gutterBottom
+          sx={{ fontWeight: 700 }}
+        >
           Official Presence
         </CustomTypography>
 
@@ -36,19 +40,37 @@ const FooterLinks: FC = () => {
             href="https://www.linkedin.com/company/wide-naturals"
             external
           >
-            <Stack direction="row" spacing={1} alignItems="center">
+            <Stack
+              direction="row"
+              spacing={1}
+              sx={{
+                alignItems: 'center',
+              }}
+            >
               <LinkedInIcon sx={footerIconSx} />
               <span>LinkedIn</span>
             </Stack>
           </FooterLink>
           <FooterLink href="https://www.instagram.com/widenaturals" external>
-            <Stack direction="row" spacing={1} alignItems="center">
+            <Stack
+              direction="row"
+              spacing={1}
+              sx={{
+                alignItems: 'center',
+              }}
+            >
               <InstagramIcon sx={footerIconSx} />
               <span>Instagram</span>
             </Stack>
           </FooterLink>
           <FooterLink href="#" external>
-            <Stack direction="row" spacing={1} alignItems="center">
+            <Stack
+              direction="row"
+              spacing={1}
+              sx={{
+                alignItems: 'center',
+              }}
+            >
               <FontAwesomeIcon
                 icon={faWeixin}
                 style={footerIconSx}
@@ -62,7 +84,11 @@ const FooterLinks: FC = () => {
 
       {/* ONLINE PLATFORMS */}
       <Box>
-        <CustomTypography variant="body2" fontWeight={700} gutterBottom>
+        <CustomTypography
+          variant="body2"
+          gutterBottom
+          sx={{ fontWeight: 700 }}
+        >
           Online Platforms
         </CustomTypography>
 
@@ -71,7 +97,13 @@ const FooterLinks: FC = () => {
             href="https://www.amazon.ca/stores/WIDENaturalsInc/page/34DDF6DF-F58D-4B34-884E-A0DBF9F08144"
             external
           >
-            <Stack direction="row" spacing={1} alignItems="center">
+            <Stack
+              direction="row"
+              spacing={1}
+              sx={{
+                alignItems: 'center',
+              }}
+            >
               <FontAwesomeIcon
                 icon={faAmazon}
                 style={footerIconSx}
@@ -87,12 +119,24 @@ const FooterLinks: FC = () => {
             Canaherb®
           </FooterLink>
           <FooterLink href="https://www.tmall.com" external>
-            <Stack direction="row" spacing={1} alignItems="center">
+            <Stack
+              direction="row"
+              spacing={1}
+              sx={{
+                alignItems: 'center',
+              }}
+            >
               <span>Tmall</span>
             </Stack>
           </FooterLink>
           <FooterLink href="https://www.jd.com" external>
-            <Stack direction="row" spacing={1} alignItems="center">
+            <Stack
+              direction="row"
+              spacing={1}
+              sx={{
+                alignItems: 'center',
+              }}
+            >
               <span>JD.com</span>
             </Stack>
           </FooterLink>

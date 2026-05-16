@@ -1,7 +1,12 @@
 import { type FC } from 'react';
 import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
-import { CustomButton, CustomTypography, DetailsSection, GoBackButton } from '@components/index';
+import {
+  CustomButton,
+  CustomTypography,
+  DetailsSection,
+  GoBackButton,
+} from '@components/index';
 import { formatLabel } from '@utils/textUtils';
 import { formatDateTime } from '@utils/dateTimeUtils';
 import type { PricingTypeDetailRecord } from '@features/pricingType';
@@ -18,33 +23,44 @@ interface PricingTypeDetailPanelProps {
  * Intentionally presentational — no data fetching.
  */
 const PricingTypeDetailPanel: FC<PricingTypeDetailPanelProps> = ({
-                                                                   pricingType,
-                                                                   onEdit,
-                                                                 }) => {
+  pricingType,
+  onEdit,
+}) => {
   return (
     <>
       {/* --------------------------------------------------
        * Page Header
        * -------------------------------------------------- */}
       <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="flex-start"
-        flexWrap="wrap"
-        mb={1}
-        gap={2}
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          flexWrap: 'wrap',
+          mb: 1,
+          gap: 2,
+        }}
       >
         <Box>
-          <CustomTypography variant="h5" fontWeight={700}>
+          <CustomTypography variant="h5" sx={{ fontWeight: 700 }}>
             {pricingType.name}
           </CustomTypography>
+          
           <CustomTypography variant="body2" color="text.secondary">
-            {pricingType.code} · {pricingType.slug} · {formatLabel(pricingType.status.name)}
+            {pricingType.code} · {pricingType.slug} ·{' '}
+            {formatLabel(pricingType.status.name)}
           </CustomTypography>
         </Box>
         
-        <Box display="flex" gap={2} alignItems="center">
+        <Box
+          sx={{
+            display: 'flex',
+            gap: 2,
+            alignItems: 'center',
+          }}
+        >
           <GoBackButton />
+          
           <CustomButton
             variant="outlined"
             onClick={onEdit}
@@ -61,13 +77,13 @@ const PricingTypeDetailPanel: FC<PricingTypeDetailPanelProps> = ({
        * Description
        * -------------------------------------------------- */}
       {pricingType.description && (
-        <Box mb={3}>
+        <Box sx={{ mb: 3 }}>
           <CustomTypography variant="body1" color="text.secondary">
             {pricingType.description}
           </CustomTypography>
         </Box>
       )}
-      
+
       {/* --------------------------------------------------
        * Status
        * -------------------------------------------------- */}
@@ -86,7 +102,7 @@ const PricingTypeDetailPanel: FC<PricingTypeDetailPanelProps> = ({
           },
         ]}
       />
-      
+
       {/* --------------------------------------------------
        * Audit
        * -------------------------------------------------- */}

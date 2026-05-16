@@ -47,7 +47,10 @@ export const selectPaginatedWarehouseInventoryPagination = createSelector(
  * Selector: Returns `true` if the warehouse inventory list is loaded and empty.
  */
 export const selectPaginatedWarehouseInventoryIsEmpty = createSelector(
-  [selectPaginatedWarehouseInventoryData, selectPaginatedWarehouseInventoryLoading],
+  [
+    selectPaginatedWarehouseInventoryData,
+    selectPaginatedWarehouseInventoryLoading,
+  ],
   (data, loading) => !loading && data.length === 0
 );
 

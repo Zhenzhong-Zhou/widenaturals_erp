@@ -3,18 +3,25 @@ import { getRequest } from '@utils/http';
 import { buildQueryString } from '@utils/query';
 import type {
   AddressByCustomerLookupResponse,
+  BatchRegistryForInventoryLookupQuery,
+  BatchRegistryLookupQuery,
+  BatchRegistryLookupResponse,
   CustomerLookupQuery,
   CustomerLookupResponse,
   DeliveryMethodLookupQueryParams,
   DeliveryMethodLookupResponse,
   DiscountLookupQueryParams,
   DiscountLookupResponse,
-  GetBatchRegistryLookupParams,
-  GetBatchRegistryLookupResponse,
   GetWarehouseLookupResponse,
+  InventoryActionTypeLookupParams,
+  InventoryActionTypeLookupResponse,
+  InventoryStatusLookupParams,
+  InventoryStatusLookupResponse,
+  LocationLookupParams,
+  LocationLookupResponse,
   LocationTypeLookupParams,
   LocationTypeLookupResponse,
-  LotAdjustmentLookupQueryParams,
+  LotAdjustmentTypeLookupParams,
   LotAdjustmentTypeLookupResponse,
   ManufacturerLookupParams,
   ManufacturerLookupResponse,
@@ -26,6 +33,8 @@ import type {
   PaymentMethodLookupResponse,
   PricingGroupLookupQueryParams,
   PricingGroupLookupResponse,
+  PricingTypeLookupParams,
+  PricingTypeLookupResponse,
   ProductLookupParams,
   ProductLookupResponse,
   RoleLookupParams,
@@ -42,6 +51,8 @@ import type {
   TaxRateLookupResponse,
   UserLookupParams,
   UserLookupResponse,
+  WarehouseTypeLookupParams,
+  WarehouseTypeLookupResponse,
 } from '@features/lookup/state/lookupTypes';
 
 /* =========================================================
@@ -68,11 +79,31 @@ const getLookup = <T>(endpoint: string, params?: object): Promise<T> => {
  * Batch / Warehouse
  * ======================================================= */
 
-/** Fetch batch registry lookup items. */
+/**
+ * Fetch general batch registry lookup items.
+ *
+ * Calls GET /lookups/batch-registry. Not coupled to a warehouse — the
+ * caller's ACL narrows results by batch status and product/packaging
+ * visibility on the server. Used for filter dropdowns and allocation pickers.
+ */
 const fetchBatchRegistryLookup = (
-  params: GetBatchRegistryLookupParams = {}
-): Promise<GetBatchRegistryLookupResponse> =>
+  params: BatchRegistryLookupQuery = {}
+): Promise<BatchRegistryLookupResponse> =>
   getLookup(API_ENDPOINTS.LOOKUPS.BATCH_REGISTRY, params);
+
+/**
+ * Fetch batch registry lookup items scoped to a target warehouse.
+ *
+ * Calls GET /lookups/batch-registry/for-inventory. Used by the warehouse-
+ * inventory batch-add flow. Default behavior excludes batches already placed
+ * in the warehouse and restricts to released batches; canViewAllWarehouses /
+ * canViewAllBatchStatus privileges strip those constraints server-side.
+ * warehouseId is required at the type level, so there is no default params.
+ */
+const fetchBatchRegistryForInventoryLookup = (
+  params: BatchRegistryForInventoryLookupQuery
+): Promise<BatchRegistryLookupResponse> =>
+  getLookup(API_ENDPOINTS.LOOKUPS.BATCH_REGISTRY_FOR_INVENTORY, params);
 
 /** Fetch warehouse lookup items, optionally filtered by type. */
 const fetchWarehouseLookup = (
@@ -87,9 +118,15 @@ const fetchWarehouseLookup = (
  * Inventory / Adjustment
  * ======================================================= */
 
+/** Fetch inventory action type lookup items. */
+export const fetchInventoryActionTypeLookup = (
+  params?: InventoryActionTypeLookupParams
+): Promise<InventoryActionTypeLookupResponse> =>
+  getLookup(API_ENDPOINTS.LOOKUPS.INVENTORY_ACTION_TYPES, params);
+
 /** Fetch lot adjustment type lookup items. */
-const fetchLotAdjustmentTypeLookup = (
-  params: LotAdjustmentLookupQueryParams = {}
+export const fetchLotAdjustmentTypeLookup = (
+  params?: LotAdjustmentTypeLookupParams
 ): Promise<LotAdjustmentTypeLookupResponse> =>
   getLookup(API_ENDPOINTS.LOOKUPS.LOT_ADJUSTMENT_TYPES, params);
 
@@ -147,7 +184,7 @@ const fetchDeliveryMethodLookup = (
 const fetchPricingGroupLookup = (
   params?: PricingGroupLookupQueryParams
 ): Promise<PricingGroupLookupResponse> =>
-  getLookup(API_ENDPOINTS.LOOKUPS.PRICING_GROUP, params);
+  getLookup(API_ENDPOINTS.LOOKUPS.PRICING_GROUPS, params);
 
 /* =========================================================
  * SKU / Product / Status
@@ -212,13 +249,39 @@ export const fetchLocationTypeLookup = (
 ): Promise<LocationTypeLookupResponse> =>
   getLookup(API_ENDPOINTS.LOOKUPS.LOCATION_TYPES, params);
 
+/** Fetch inventory status lookup items. */
+export const fetchInventoryStatusLookup = (
+  params?: InventoryStatusLookupParams
+): Promise<InventoryStatusLookupResponse> =>
+  getLookup(API_ENDPOINTS.LOOKUPS.INVENTORY_STATUS, params);
+
+/** Fetch pricing type lookup items. */
+export const fetchPricingTypeLookup = (
+  params?: PricingTypeLookupParams
+): Promise<PricingTypeLookupResponse> =>
+  getLookup(API_ENDPOINTS.LOOKUPS.PRICING_TYPES, params);
+
+/** Fetch warehouse type lookup items. */
+export const fetchWarehouseTypeLookup = (
+  params?: WarehouseTypeLookupParams
+): Promise<WarehouseTypeLookupResponse> =>
+  getLookup(API_ENDPOINTS.LOOKUPS.WAREHOUSES_TYPES, params);
+
+/** Fetch location lookup items. */
+export const fetchLocationLookup = (
+  params?: LocationLookupParams
+): Promise<LocationLookupResponse> =>
+  getLookup(API_ENDPOINTS.LOOKUPS.LOCATIONS, params);
+
 /* =========================================================
  * Public API
  * ======================================================= */
 
 export const lookupService = {
   fetchBatchRegistryLookup,
+  fetchBatchRegistryForInventoryLookup,
   fetchWarehouseLookup,
+  fetchInventoryActionTypeLookup,
   fetchLotAdjustmentTypeLookup,
   fetchCustomerLookup,
   fetchAddressesByCustomerId,
@@ -238,4 +301,8 @@ export const lookupService = {
   fetchManufacturerLookup,
   fetchSupplierLookup,
   fetchLocationTypeLookup,
+  fetchInventoryStatusLookup,
+  fetchPricingTypeLookup,
+  fetchWarehouseTypeLookup,
+  fetchLocationLookup,
 };

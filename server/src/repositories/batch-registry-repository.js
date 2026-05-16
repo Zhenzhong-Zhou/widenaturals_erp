@@ -32,7 +32,6 @@ const AppError = require('../utils/AppError');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { logDbQueryError, logBulkInsertError } = require('../utils/db-logger');
 const {
-  buildBatchRegistryInventoryScopeFilter,
   buildBatchRegistryFilter,
 } = require('../utils/sql/build-batch-registry-filter');
 const { SORTABLE_FIELDS } = require('../utils/sort-field-mapping');
@@ -115,8 +114,7 @@ const getBatchRegistryById = async (batchRegistryId, client) => {
 const getBatchRegistryLookup = async ({ filters, limit = 50, offset = 0 }) => {
   const context = `${CONTEXT}/getBatchRegistryLookup`;
 
-  const { whereClause, params } =
-    buildBatchRegistryInventoryScopeFilter(filters);
+  const { whereClause, params } = buildBatchRegistryFilter(filters);
   const queryText = buildBatchRegistryLookupQuery(whereClause);
 
   try {

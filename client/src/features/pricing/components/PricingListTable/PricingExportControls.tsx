@@ -5,18 +5,15 @@
  */
 
 import { useState, useCallback } from 'react';
-import Box from '@mui/material/Box';
-import Select from '@mui/material/Select';
-import MenuItem from '@mui/material/MenuItem';
+import { Box, MenuItem, Select } from '@mui/material';
 import { CustomButton } from '@components/index';
 import { StatusDropdown } from '@features/lookup/components';
 import { useStatusLookup } from '@hooks/index';
 import { useAppDispatch } from '@store/storeHooks';
 import { exportPricingThunk } from '@features/pricing/state';
-import { useFormattedOptions } from '@features/lookup/utils/lookupUtils';
-import { formatLabel } from '@utils/textUtils';
 import type { PricingFilters } from '@features/pricing';
 import type { LookupQuery } from '@features/lookup';
+import { useFormattedOptionLabels } from '@features/lookup/utils/formatOptionLabels';
 
 interface PricingExportControlsProps {
   /** Live filter values from the filter panel — used as export filter context. */
@@ -25,45 +22,59 @@ interface PricingExportControlsProps {
 
 const PricingExportControls = ({ liveFilters }: PricingExportControlsProps) => {
   const dispatch = useAppDispatch();
-  
-  const [exportFormat, setExportFormat]   = useState<'xlsx' | 'csv' | 'txt'>('xlsx');
+
+  const [exportFormat, setExportFormat] = useState<'xlsx' | 'csv' | 'txt'>(
+    'xlsx'
+  );
   const [exportStatusId, setExportStatusId] = useState<string | undefined>();
-  const [exportStatusFetchParams, setExportStatusFetchParams] = useState<LookupQuery>({
-    offset: 0,
-    limit: 10,
-  });
-  
+  const [exportStatusFetchParams, setExportStatusFetchParams] =
+    useState<LookupQuery>({
+      offset: 0,
+      limit: 10,
+    });
+
   const exportStatus = useStatusLookup();
-  const formattedExportStatusOptions = useFormattedOptions(exportStatus.options, formatLabel);
-  
+  const formattedExportStatusOptions = useFormattedOptionLabels(
+    exportStatus.options
+  );
+
   const handleExport = useCallback(() => {
-    dispatch(exportPricingThunk({
-      filters: {
-        pricingTypeId: liveFilters.pricingTypeId,
-        countryCode:   liveFilters.countryCode,
-        brand:         liveFilters.brand,
-        productId:     liveFilters.productId,
-        statusId:      exportStatusId,
-      },
-      exportFormat,
-    }));
+    dispatch(
+      exportPricingThunk({
+        filters: {
+          pricingTypeId: liveFilters.pricingTypeId,
+          countryCode: liveFilters.countryCode,
+          brand: liveFilters.brand,
+          productId: liveFilters.productId,
+          statusId: exportStatusId,
+        },
+        exportFormat,
+      })
+    );
   }, [dispatch, liveFilters, exportFormat, exportStatusId]);
-  
+
   return (
-    <Box display="flex" gap={1} alignItems="center">
+    <Box
+      sx={{
+        display: 'flex',
+        gap: 1,
+        alignItems: 'center',
+      }}
+    >
       <StatusDropdown
         options={formattedExportStatusOptions}
         value={exportStatusId ?? null}
         onChange={setExportStatusId}
         onOpen={() => {
-          if (!exportStatus.options.length) exportStatus.fetch(exportStatusFetchParams);
+          if (!exportStatus.options.length)
+            exportStatus.fetch(exportStatusFetchParams);
         }}
         loading={exportStatus.loading}
         fetchParams={exportStatusFetchParams}
         setFetchParams={setExportStatusFetchParams}
         onRefresh={exportStatus.fetch}
       />
-      
+
       <Select
         size="small"
         value={exportFormat}
@@ -81,7 +92,7 @@ const PricingExportControls = ({ liveFilters }: PricingExportControlsProps) => {
         <MenuItem value="csv">CSV</MenuItem>
         <MenuItem value="txt">TXT</MenuItem>
       </Select>
-      
+
       <CustomButton
         onClick={handleExport}
         variant="contained"

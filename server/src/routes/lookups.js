@@ -23,7 +23,6 @@ const LOOKUP = require('../utils/constants/domain/lookup-constants');
 const {
   batchRegistryLookupQuerySchema,
   warehouseLookupQuerySchema,
-  lotAdjustmentTypeLookupSchema,
   customerAddressLookupQuerySchema,
   orderTypeLookupQuerySchema,
   skuLookupQuerySchema,
@@ -44,6 +43,13 @@ const {
   paymentMethodLookupQuerySchema,
   discountLookupQuerySchema,
   taxRateLookupQuerySchema,
+  batchRegistryForInventoryLookupQuerySchema,
+  inventoryStatusLookupQuerySchema,
+  pricingTypeLookupQuerySchema,
+  warehouseTypeLookupQuerySchema,
+  locationLookupQuerySchema,
+  lotAdjustmentTypeLookupQuerySchema,
+  inventoryActionTypeLookupQuerySchema,
 } = require('../validators/lookup-validators');
 const {
   getBatchRegistryLookupController,
@@ -69,6 +75,12 @@ const {
   getLocationTypeLookupController,
   getBatchStatusLookupController,
   getPackagingMaterialSupplierLookupController,
+  getBatchRegistryForInventoryLookupController,
+  getInventoryStatusLookupController,
+  getPricingTypeLookupController,
+  getWarehouseTypeLookupController,
+  getLocationLookupController,
+  getInventoryActionTypeLookupController,
 } = require('../controllers/lookup-controller');
 
 const router = express.Router();
@@ -78,12 +90,13 @@ const router = express.Router();
 //=========================================================
 
 /**
- * @route GET /lookups/batch-registry
- * @description Paginated batch registry records for inventory dropdowns.
- * Filters: batchType, warehouseId, locationId. No sorting.
- * Pagination: offset-based — navigates by raw offset, not page number.
- * @access protected
- * @permission LOOKUP.PERMISSIONS.VIEW_BATCH_REGISTRY
+ * @route       GET /lookups/batch-registry
+ * @description Paginated batch registry for general-purpose dropdowns —
+ *   allocation filter pickers, etc. Not coupled to a warehouse. ACL narrows
+ *   batch-status and product/packaging visibility.
+ *   Filters: batchType. No sorting. Offset-based pagination.
+ * @access      protected
+ * @permission  LOOKUP.PERMISSIONS.VIEW_BATCH_REGISTRY
  */
 registerLookupRoute(router, {
   path: '/batch-registry',
@@ -91,7 +104,31 @@ registerLookupRoute(router, {
   schema: batchRegistryLookupQuerySchema,
   controller: getBatchRegistryLookupController,
   config: {
-    filterKeysOrSchema: ['batchType', 'warehouseId', 'locationId'],
+    filterKeysOrSchema: ['batchType'],
+    passUser: true,
+  },
+});
+
+/**
+ * @route       GET /lookups/batch-registry/for-inventory
+ * @description Paginated batch registry for the warehouse-inventory batch-add
+ *   flow. warehouseId is required (validated at schema level, enforced against
+ *   assigned warehouses for non-privileged users). Excludes batches already
+ *   placed in the target warehouse and restricts to released batches by
+ *   default; canViewAllWarehouses / canViewAllBatchStatus strip these
+ *   constraints for privileged users.
+ *   Filters: batchType, warehouseId (required). No sorting. Offset-based.
+ * @access      protected
+ * @permission  LOOKUP.PERMISSIONS.VIEW_BATCH_REGISTRY
+ */
+registerLookupRoute(router, {
+  path: '/batch-registry/for-inventory',
+  permission: [LOOKUP.PERMISSIONS.VIEW_BATCH_REGISTRY],
+  schema: batchRegistryForInventoryLookupQuerySchema,
+  controller: getBatchRegistryForInventoryLookupController,
+  config: {
+    filterKeysOrSchema: ['batchType', 'warehouseId'],
+    passUser: true,
   },
 });
 
@@ -115,20 +152,17 @@ registerLookupRoute(router, {
 
 /**
  * @route GET /lookups/lot-adjustment-types
- * @description Lot adjustment types for inventory UI.
- * Filters: excludeInternal (bool), restrictToQtyAdjustment (bool).
- * No pagination — config table, bounded by definition count.
+ * @description Lot adjustment type options for inventory adjustment UI.
+ *   Keyword search + pagination. Scope is fixed to the adjustment category;
+ *   visibility of inactive and internal types is controlled by caller ACL.
  * @access protected
  * @permission LOOKUP.PERMISSIONS.VIEW_LOT_ADJUSTMENT_TYPE
  */
 registerLookupRoute(router, {
   path: '/lot-adjustment-types',
   permission: [LOOKUP.PERMISSIONS.VIEW_LOT_ADJUSTMENT_TYPE],
-  schema: lotAdjustmentTypeLookupSchema,
+  schema: lotAdjustmentTypeLookupQuerySchema,
   controller: getLotAdjustmentLookupController,
-  config: {
-    booleanKeys: ['excludeInternal', 'restrictToQtyAdjustment'],
-  },
 });
 
 /**
@@ -440,6 +474,71 @@ registerLookupRoute(router, {
   permission: [LOOKUP.PERMISSIONS.VIEW_TAX_RATE],
   schema: taxRateLookupQuerySchema,
   controller: getTaxRateLookupController,
+});
+
+/**
+ * @route GET /lookups/inventory-status
+ * @description Inventory status options for stock state dropdowns. Keyword search + pagination.
+ * @access protected
+ * @permission LOOKUP.PERMISSIONS.VIEW_INVENTORY_STATUS
+ */
+registerLookupRoute(router, {
+  path: '/inventory-status',
+  permission: [LOOKUP.PERMISSIONS.VIEW_INVENTORY_STATUS],
+  schema: inventoryStatusLookupQuerySchema,
+  controller: getInventoryStatusLookupController,
+});
+
+/**
+ * @route GET /lookups/pricing-types
+ * @description Pricing type options for price-tier dropdowns. Keyword search + pagination.
+ * @access protected
+ * @permission LOOKUP.PERMISSIONS.VIEW_PRICING_TYPE
+ */
+registerLookupRoute(router, {
+  path: '/pricing-types',
+  permission: [LOOKUP.PERMISSIONS.VIEW_PRICING_TYPE],
+  schema: pricingTypeLookupQuerySchema,
+  controller: getPricingTypeLookupController,
+});
+
+/**
+ * @route GET /lookups/warehouse-types
+ * @description Warehouse type options for warehouse classification dropdowns. Keyword search + pagination.
+ * @access protected
+ * @permission LOOKUP.PERMISSIONS.VIEW_WAREHOUSE_TYPE
+ */
+registerLookupRoute(router, {
+  path: '/warehouse-types',
+  permission: [LOOKUP.PERMISSIONS.VIEW_WAREHOUSE_TYPE],
+  schema: warehouseTypeLookupQuerySchema,
+  controller: getWarehouseTypeLookupController,
+});
+
+/**
+ * @route GET /lookups/locations
+ * @description Location options for site-selection dropdowns. Keyword search + pagination.
+ * @access protected
+ * @permission LOOKUP.PERMISSIONS.VIEW_LOCATION
+ */
+registerLookupRoute(router, {
+  path: '/locations',
+  permission: [LOOKUP.PERMISSIONS.VIEW_LOCATION],
+  schema: locationLookupQuerySchema,
+  controller: getLocationLookupController,
+});
+
+/**
+ * @route GET /lookups/inventory-action-types
+ * @description Inventory action type options for adjustment / audit selection. Keyword search + pagination.
+ * @access protected
+ * @permission LOOKUP.PERMISSIONS.VIEW_INVENTORY_ACTION_TYPE
+ */
+registerLookupRoute(router, {
+  path: '/inventory-action-types',
+  permission: [LOOKUP.PERMISSIONS.VIEW_INVENTORY_ACTION_TYPE],
+  schema: inventoryActionTypeLookupQuerySchema,
+  controller: getInventoryActionTypeLookupController,
 });
 
 module.exports = router;

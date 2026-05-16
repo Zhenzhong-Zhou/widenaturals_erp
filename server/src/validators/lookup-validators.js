@@ -7,6 +7,7 @@ const {
   validateOptionalString,
 } = require('./general-validators');
 const { CODE_RULES } = require('../utils/validation/code-rules');
+const { batchTypeField } = require('./batch-registry-validators');
 
 /**
  * Base Joi schema for validating common lookup query parameters.
@@ -29,22 +30,39 @@ const baseLookupQuerySchema = {
 };
 
 /**
- * Joi schema for validating batch registry lookup query parameters.
+ * General-purpose batch registry lookup query schema.
+ * Used by filter dropdowns, allocation pickers, and any caller that just
+ * wants a paginated list of batches. Not coupled to a warehouse — the
+ * business layer's ACL narrows by batch status and product/packaging
+ * visibility.
  *
- * Inherits base lookup options and adds:
- * - batchType: 'product' | 'packaging_material' (optional)
- * - warehouseId: UUID (optional)
- * - locationId: UUID (optional)
+ * Fields:
+ * - batchType:                'product' | 'packaging_material' (optional)
+ * - ...baseLookupQuerySchema  limit, offset
  */
 const batchRegistryLookupQuerySchema = Joi.object({
-  batchType: Joi.string()
-    .valid('product', 'packaging_material')
-    .optional()
-    .allow('', null)
-    .label('Batch Type'),
+  batchType: batchTypeField().optional().allow('', null),
 
-  warehouseId: validateUUID('Warehouse ID').optional().allow('', null),
-  locationId: validateUUID('Location ID').optional().allow('', null),
+  ...baseLookupQuerySchema,
+});
+
+/**
+ * Warehouse-inventory batch-add lookup query schema.
+ * warehouseId is required at the schema level so requests fail fast before
+ * business logic. The business layer additionally enforces warehouse-scope
+ * access against the user's assigned warehouses and applies
+ * excludeFromWarehouseId / released-only filtering by default (privileged
+ * users may opt out of both).
+ *
+ * Fields:
+ * - batchType:                'product' | 'packaging_material' (optional)
+ * - warehouseId:              UUID (required)
+ * - ...baseLookupQuerySchema  limit, offset
+ */
+const batchRegistryForInventoryLookupQuerySchema = Joi.object({
+  batchType: batchTypeField().optional().allow('', null),
+
+  warehouseId: validateUUID('Warehouse ID').required(),
 
   ...baseLookupQuerySchema,
 });
@@ -57,19 +75,27 @@ const warehouseLookupQuerySchema = Joi.object({
 });
 
 /**
- * Validation schema for querying lot adjustment types in lookup endpoints.
+ * Joi schema for validating lot adjustment type lookup query parameters.
  *
- * Supported Query Parameters:
- * - excludeInternal (boolean, optional): If true, excludes internal/system-only adjustment types.
- * - restrictToQtyAdjustment (boolean, optional): If true, only includes adjustment types that affect quantity.
+ * This schema extends the shared `baseLookupQuerySchema`, which
+ * defines the standard lookup query structure used across the API.
  *
- * These flags are typically used to customize dropdown options in inventory-related forms.
+ * Typical fields inherited from the base schema include:
+ * - keyword
+ * - limit
+ * - offset
+ *
+ * This endpoint exposes no filter knobs. Visibility is determined
+ * entirely by the caller's ACL in the business layer:
+ *  - Results are always scoped to parent action category 'adjustment'
+ *    (the semantic boundary of this lookup).
+ *  - Internal stock-management types (e.g. manual_stock_insert,
+ *    manual_stock_update) are hidden by default; VIEW_INTERNAL unlocks them.
+ *  - Inactive types are hidden by default; VIEW_ALL_STATUSES unlocks them.
  */
-const lotAdjustmentTypeLookupSchema = Joi.object({
-  excludeInternal: createBooleanFlag('Exclude Internal Types'),
-  restrictToQtyAdjustment: createBooleanFlag(
-    'Restrict to Quantity Adjustments'
-  ),
+const lotAdjustmentTypeLookupQuerySchema = Joi.object({
+  // Reuse common lookup validation rules
+  ...baseLookupQuerySchema,
 });
 
 /**
@@ -540,10 +566,110 @@ const packagingMaterialSupplierLookupQuerySchema = Joi.object({
   isPreferred: Joi.boolean().optional(),
 });
 
+/**
+ * Joi schema for validating inventory status lookup query parameters.
+ *
+ * This schema extends the shared `baseLookupQuerySchema`, which
+ * defines the standard lookup query structure used across the API.
+ *
+ * Typical fields inherited from the base schema include:
+ * - keyword
+ * - limit
+ * - offset
+ *
+ * Defining a dedicated schema per lookup endpoint keeps validation
+ * modular and allows endpoint-specific filters to be added later
+ * without modifying the shared base schema.
+ */
+const inventoryStatusLookupQuerySchema = Joi.object({
+  // Reuse common lookup validation rules
+  ...baseLookupQuerySchema,
+});
+
+/**
+ * Joi schema for validating pricing type lookup query parameters.
+ *
+ * This schema extends the shared `baseLookupQuerySchema`, which
+ * defines the standard lookup query structure used across the API.
+ *
+ * Typical fields inherited from the base schema include:
+ * - keyword
+ * - limit
+ * - offset
+ *
+ * Defining a dedicated schema per lookup endpoint keeps validation
+ * modular and allows endpoint-specific filters to be added later
+ * without modifying the shared base schema.
+ */
+const pricingTypeLookupQuerySchema = Joi.object({
+  // Reuse common lookup validation rules
+  ...baseLookupQuerySchema,
+});
+
+/**
+ * Joi schema for validating warehouse type lookup query parameters.
+ *
+ * This schema extends the shared `baseLookupQuerySchema`, which
+ * defines the standard lookup query structure used across the API.
+ *
+ * Typical fields inherited from the base schema include:
+ * - keyword
+ * - limit
+ * - offset
+ *
+ * Defining a dedicated schema per lookup endpoint keeps validation
+ * modular and allows endpoint-specific filters to be added later
+ * without modifying the shared base schema.
+ */
+const warehouseTypeLookupQuerySchema = Joi.object({
+  // Reuse common lookup validation rules
+  ...baseLookupQuerySchema,
+});
+
+/**
+ * Joi schema for validating location lookup query parameters.
+ *
+ * This schema extends the shared `baseLookupQuerySchema`, which
+ * defines the standard lookup query structure used across the API.
+ *
+ * Typical fields inherited from the base schema include:
+ * - keyword
+ * - limit
+ * - offset
+ *
+ * Defining a dedicated schema per lookup endpoint keeps validation
+ * modular and allows endpoint-specific filters to be added later
+ * without modifying the shared base schema.
+ */
+const locationLookupQuerySchema = Joi.object({
+  // Reuse common lookup validation rules
+  ...baseLookupQuerySchema,
+});
+
+/**
+ * Joi schema for validating inventory action type lookup query parameters.
+ *
+ * This schema extends the shared `baseLookupQuerySchema`, which
+ * defines the standard lookup query structure used across the API.
+ *
+ * Typical fields inherited from the base schema include:
+ * - keyword
+ * - limit
+ * - offset
+ *
+ * Visibility shaping (active-status pin) is performed by the business
+ * layer based on the caller's ACL, not by query-string flags.
+ */
+const inventoryActionTypeLookupQuerySchema = Joi.object({
+  // Reuse common lookup validation rules
+  ...baseLookupQuerySchema,
+});
+
 module.exports = {
   batchRegistryLookupQuerySchema,
+  batchRegistryForInventoryLookupQuerySchema,
   warehouseLookupQuerySchema,
-  lotAdjustmentTypeLookupSchema,
+  lotAdjustmentTypeLookupQuerySchema,
   customerLookupQuerySchema,
   customerAddressLookupQuerySchema,
   orderTypeLookupQuerySchema,
@@ -564,4 +690,9 @@ module.exports = {
   locationTypeLookupQuerySchema,
   batchStatusLookupQuerySchema,
   packagingMaterialSupplierLookupQuerySchema,
+  inventoryStatusLookupQuerySchema,
+  pricingTypeLookupQuerySchema,
+  warehouseTypeLookupQuerySchema,
+  locationLookupQuerySchema,
+  inventoryActionTypeLookupQuerySchema,
 };

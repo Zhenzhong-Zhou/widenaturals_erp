@@ -3,7 +3,7 @@ import Box from '@mui/material/Box';
 import { CustomButton, CustomTable, CustomTypography } from '@components/index';
 import {
   CustomerExpandedContent,
-  getCustomersTableColumns
+  getCustomersTableColumns,
 } from '@features/customer/components/CustomerTable';
 import type { CustomerListItem } from '@features/customer/state';
 import SkeletonExpandedRow from '@components/common/SkeletonExpandedRow';
@@ -24,27 +24,26 @@ interface CustomerTableProps {
 }
 
 const CustomerTable: FC<CustomerTableProps> = ({
-                                                 data,
-                                                 page,
-                                                 rowsPerPage,
-                                                 totalPages,
-                                                 totalRecords,
-                                                 onPageChange,
-                                                 onRowsPerPageChange,
-                                                 expandedRowId,
-                                                 onDrillDownToggle,
-                                                 selectedRowIds,
-                                                 onSelectionChange,
-                                                 onRefresh,
-                                               }) => {
-  
+  data,
+  page,
+  rowsPerPage,
+  totalPages,
+  totalRecords,
+  onPageChange,
+  onRowsPerPageChange,
+  expandedRowId,
+  onDrillDownToggle,
+  selectedRowIds,
+  onSelectionChange,
+  onRefresh,
+}) => {
   const columns = useMemo(() => {
     return getCustomersTableColumns(
       expandedRowId ?? undefined,
       onDrillDownToggle
     );
   }, [expandedRowId, onDrillDownToggle]);
-  
+
   const renderExpandedContent = useCallback(
     (row: CustomerListItem) => (
       <Suspense
@@ -62,16 +61,18 @@ const CustomerTable: FC<CustomerTableProps> = ({
     ),
     []
   );
-  
+
   return (
     <Box>
       <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        mb={2}
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          mb: 2,
+        }}
       >
-        <CustomTypography variant="h6" fontWeight={600}>
+        <CustomTypography variant="h6" sx={{ fontWeight: 600 }}>
           Customer List
         </CustomTypography>
 

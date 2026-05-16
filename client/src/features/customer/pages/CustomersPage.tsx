@@ -14,13 +14,13 @@ import {
   CustomButton,
   CustomTypography,
   Loading,
-  NoDataFound
+  NoDataFound,
 } from '@components/index';
 import CustomerCreateDialog from '@features/customer/components/CustomerCreateDialog';
 import {
   CustomerFiltersPanel,
   CustomerSortControls,
-  CustomerTable
+  CustomerTable,
 } from '@features/customer/components/CustomerTable';
 import { usePaginatedCustomers } from '@hooks/index';
 import type {
@@ -49,11 +49,11 @@ const CustomersPage: FC = () => {
     setPage,
     setLimit
   );
-  
+
   const handleDrillDownToggle = (rowId: string) => {
     setExpandedRowId((current) => (current === rowId ? null : rowId));
   };
-  
+
   const {
     customers,
     totalPages,
@@ -95,14 +95,16 @@ const CustomersPage: FC = () => {
     <Box sx={{ px: 4, py: 3 }}>
       {/* Header */}
       <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        flexWrap="wrap"
-        mb={3}
-        gap={2}
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          mb: 3,
+          gap: 2,
+        }}
       >
-        <CustomTypography variant="h5" fontWeight={700}>
+        <CustomTypography variant="h5" sx={{ fontWeight: 700 }}>
           Customer Management
         </CustomTypography>
 

@@ -1,23 +1,27 @@
 import { type FC, useEffect, useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
+import { Grid } from '@mui/material';
 import type { InventoryAllocationFilters } from '@features/inventoryAllocation/state';
-import Grid from '@mui/material/Grid';
-import useWarehouseLookup from '@hooks/useWarehouseLookup';
-import FilterPanelLayout from '@components/common/FilterPanelLayout';
 import type { MultiSelectOption } from '@components/common/MultiSelectDropdown';
-import WarehouseMultiSelectDropdown from '@features/lookup/components/WarehouseMultiSelectDropdown';
-import BatchRegistryMultiSelectDropdown from '@features/lookup/components/BatchRegistryMultiSelectDropdown';
-import { renderDateField, renderInputField } from '@utils/filters/filterUtils';
-import { toISODate } from '@utils/dateTimeUtils';
-import useBatchRegistryLookup from '@hooks/useBatchRegistryLookup';
 import type {
   BatchLookupOption,
-  GetBatchRegistryLookupParams,
+  BatchRegistryLookupQuery,
 } from '@features/lookup/state';
+import { renderDateField, renderInputField } from '@utils/filters/filterUtils';
+import { toISODate } from '@utils/dateTimeUtils';
 import { mapBatchLookupToOptions } from '@features/lookup/utils/batchRegistryUtils';
-import useOrderTypeLookup from '@hooks/useOrderTypeLookup';
-import OrderTypeDropdown from '@features/lookup/components/OrderTypesDropdown';
-import { formatLabel } from '@utils/textUtils';
+import {
+  useBatchRegistryLookup,
+  useOrderTypeLookup,
+  useWarehouseLookup,
+} from '@hooks/index';
+import {
+  BatchRegistryMultiSelectDropdown,
+  OrderTypeDropdown,
+  WarehouseMultiSelectDropdown,
+} from '@features/lookup/components';
+import { useFormattedOptionLabels } from '@features/lookup/utils/formatOptionLabels';
+import { FilterPanelLayout } from '@components/index';
 
 interface Props {
   filters: InventoryAllocationFilters;
@@ -80,8 +84,8 @@ const InventoryAllocationFiltersPanel: FC<Props> = ({
     defaultValues: filters,
   });
   const [batchLookupParams, setBatchLookupParams] =
-    useState<GetBatchRegistryLookupParams>({
-      batchType: '',
+    useState<BatchRegistryLookupQuery>({
+      batchType: undefined,
       limit: 50,
       offset: 0,
     });
@@ -125,12 +129,15 @@ const InventoryAllocationFiltersPanel: FC<Props> = ({
     ) as BatchLookupOption[];
   }, [batchRegistryOptions]);
 
-  const formattedOrderTypeOptions = useMemo(() => {
-    return orderTypeOptions.map((opt) => ({
-      ...opt,
-      label: formatLabel(opt.label, { preserveHyphen: true }),
-    }));
-  }, [orderTypeOptions]);
+  const orderTypeLabelFormatOptions = useMemo(
+    () => ({ preserveHyphen: true }),
+    []
+  );
+
+  const formattedOrderTypeOptions = useFormattedOptionLabels(
+    orderTypeOptions,
+    orderTypeLabelFormatOptions
+  );
 
   const sanitizeFilters = (
     f: InventoryAllocationFilters

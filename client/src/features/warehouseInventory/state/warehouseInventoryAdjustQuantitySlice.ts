@@ -25,20 +25,31 @@ const warehouseInventoryAdjustQuantitySlice = createSlice({
         state.error = null;
         state.data = null;
       })
-      .addCase(adjustWarehouseInventoryQuantitiesThunk.fulfilled, (state, action) => {
-        state.loading = false;
-        state.error = null;
-        
-        const result = action.payload as AdjustWarehouseInventoryQuantityResponse;
-        
-        state.data = result.data;
-        state.success = result.success;
-        state.message = result.message;
-      })
-      .addCase(adjustWarehouseInventoryQuantitiesThunk.rejected, (state, action) => {
-        state.data = null;
-        applyRejected(state, action, 'Failed to adjust warehouse inventory quantities.');
-      });
+      .addCase(
+        adjustWarehouseInventoryQuantitiesThunk.fulfilled,
+        (state, action) => {
+          state.loading = false;
+          state.error = null;
+
+          const result =
+            action.payload as AdjustWarehouseInventoryQuantityResponse;
+
+          state.data = result.data;
+          state.success = result.success;
+          state.message = result.message;
+        }
+      )
+      .addCase(
+        adjustWarehouseInventoryQuantitiesThunk.rejected,
+        (state, action) => {
+          state.data = null;
+          applyRejected(
+            state,
+            action,
+            'Failed to adjust warehouse inventory quantities.'
+          );
+        }
+      );
   },
 });
 

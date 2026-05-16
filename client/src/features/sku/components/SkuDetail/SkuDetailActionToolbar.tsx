@@ -1,8 +1,5 @@
-import type { FC, MouseEvent } from 'react';
-import { useState } from 'react';
-import Stack from '@mui/material/Stack';
-import Menu from '@mui/material/Menu';
-import MenuItem from '@mui/material/MenuItem';
+import { useState, type FC, type MouseEvent } from 'react';
+import { Menu, MenuItem, Stack } from '@mui/material';
 import { CustomButton, GoBackButton } from '@components/index';
 
 interface DialogHandlers {
@@ -94,10 +91,12 @@ const SkuDetailActionToolbar: FC<Props> = ({
     <Stack
       direction="row"
       spacing={2}
-      mt={3}
-      mb={1}
-      flexWrap="wrap"
-      justifyContent="flex-end"
+      sx={{
+        mt: 3,
+        mb: 1,
+        flexWrap: 'wrap',
+        justifyContent: 'flex-end',
+      }}
     >
       {/* EDIT MENU */}
 

@@ -53,8 +53,118 @@ const PRICING_GROUP_FLAG_MAP = {
   canViewAllValidPricing: 'isValidToday',
 };
 
+/**
+ * Flag map for batch registry lookup row visibility.
+ *
+ * Maps ACL keys from BatchRegistryLookupAcl to row fields surfaced by
+ * the batch registry lookup query. Each field is only included in the
+ * transformed output when the corresponding ACL key is true.
+ *
+ * Used with includeFlagsBasedOnAccess in transformBatchRegistryLookupRow.
+ *
+ * @type {FlagMap}
+ */
+const BATCH_REGISTRY_FLAG_MAP = {
+  canViewAllBatches: 'isExpired',
+  canViewAllBatchStatus: 'isReleased',
+};
+
+/**
+ * Flag map for inventory status lookup row visibility.
+ *
+ * Maps ACL keys from InventoryStatusLookupAcl to row fields surfaced by
+ * the inventory status lookup query. Each field is only included in the
+ * transformed output when the corresponding ACL key is true.
+ *
+ * Used with includeFlagsBasedOnAccess in transformInventoryStatusLookup.
+ *
+ * @type {FlagMap}
+ */
+const INVENTORY_STATUS_FLAG_MAP = {
+  canViewInactive: 'isActive',
+};
+
+/**
+ * Flag map for pricing type lookup row visibility.
+ *
+ * Maps ACL keys from PricingTypeLookupAcl to row fields surfaced by the
+ * pricing type lookup query. Each field is only included in the
+ * transformed output when the corresponding ACL key is true.
+ *
+ * Used with includeFlagsBasedOnAccess in transformPricingTypeLookup.
+ *
+ * @type {FlagMap}
+ */
+const PRICING_TYPE_FLAG_MAP = {
+  canViewInactive: 'isActive',
+};
+
+/**
+ * Flag map for warehouse type lookup row visibility.
+ *
+ * Maps ACL keys from WarehouseTypeLookupAcl to row fields surfaced by the
+ * warehouse type lookup query. Each field is only included in the
+ * transformed output when the corresponding ACL key is true.
+ *
+ * Used with includeFlagsBasedOnAccess in transformWarehouseTypeLookup.
+ *
+ * @type {FlagMap}
+ */
+const WAREHOUSE_TYPE_FLAG_MAP = {
+  canViewInactive: 'isActive',
+};
+
+/**
+ * Flag map for location lookup row visibility.
+ *
+ * Maps ACL keys from LocationLookupAcl to row fields surfaced by the
+ * location lookup query. Each field is only included in the
+ * transformed output when the corresponding ACL key is true.
+ *
+ * Used with includeFlagsBasedOnAccess in transformLocationLookup.
+ *
+ * @type {FlagMap}
+ */
+const LOCATION_FLAG_MAP = {
+  canViewInactive: 'isActive',
+  canViewArchived: 'isArchived',
+};
+
+/**
+ * Flag map for inventory action type lookup row visibility.
+ *
+ * Maps ACL keys from InventoryActionTypeLookupAcl to row fields surfaced
+ * by the inventory action type lookup query. Each field is only included
+ * in the transformed output when the corresponding ACL key is true.
+ *
+ * @type {FlagMap}
+ */
+const INVENTORY_ACTION_TYPE_FLAG_MAP = {
+  canViewInactive: 'isActive',
+};
+
+/**
+ * Flag map for lot adjustment type lookup row visibility.
+ *
+ * `canViewInternal` is intentionally absent — internal types are excluded
+ * via filter pinning rather than tagged on output, so there's no row
+ * field to gate visibility on.
+ *
+ * @type {FlagMap}
+ */
+const LOT_ADJUSTMENT_TYPE_FLAG_MAP = {
+  canViewInactive: 'isActive',
+};
+
 module.exports = {
   STANDARD_FLAG_MAP,
   STATUS_ONLY_FLAG_MAP,
   PRICING_GROUP_FLAG_MAP,
+  BATCH_REGISTRY_FLAG_MAP,
+  INVENTORY_STATUS_FLAG_MAP,
+  PRICING_TYPE_FLAG_MAP,
+  WAREHOUSE_TYPE_FLAG_MAP,
+  LOCATION_FLAG_MAP,
+  INVENTORY_ACTION_TYPE_FLAG_MAP,
+  LOT_ADJUSTMENT_TYPE_FLAG_MAP,
 };

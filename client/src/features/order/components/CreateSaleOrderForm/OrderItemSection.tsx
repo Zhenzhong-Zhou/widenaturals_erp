@@ -15,7 +15,7 @@ import MultiItemForm, {
 import {
   PackagingMaterialDropdown,
   PricingGroupDropdown,
-  SkuDropdown
+  SkuDropdown,
 } from '@features/lookup/components';
 import type {
   LookupBundle,
@@ -350,7 +350,7 @@ const OrderItemSection: FC<OrderItemSectionProps> = ({
           return undefined;
         },
       },
-      
+
       // Pricing (SKU only; packaging has no pricing_group_id field)
       {
         id: 'pricing_group_id',
@@ -362,15 +362,15 @@ const OrderItemSection: FC<OrderItemSectionProps> = ({
         conditional: (row) =>
           (row?.line_type ?? 'sku') === 'sku' && !row?.override_price,
         component: ({
-                      value,
-                      onChange,
-                      required,
-                      getRowValues,
-                      setRowValues,
-                    }: RowAwareComponentProps) => {
+          value,
+          onChange,
+          required,
+          getRowValues,
+          setRowValues,
+        }: RowAwareComponentProps) => {
           const row = getRowValues?.() ?? {};
           const rowSku: string | null = row.sku_id ?? null;
-          
+
           // Build an options list that always includes the currently selected pricing_group_id
           const inList = value
             ? pricingGroup.options.some((o) => o.value === value)
@@ -378,11 +378,11 @@ const OrderItemSection: FC<OrderItemSectionProps> = ({
           const mergedOptions =
             !inList && value
               ? [
-                { value, label: row.pricing_group_label || '(selected)' },
-                ...pricingGroup.options,
-              ]
+                  { value, label: row.pricing_group_label || '(selected)' },
+                  ...pricingGroup.options,
+                ]
               : pricingGroup.options;
-          
+
           return onChange ? (
             <PricingGroupDropdown
               label={'Select A Pricing Group'}
@@ -392,7 +392,9 @@ const OrderItemSection: FC<OrderItemSectionProps> = ({
               onChange={(val: string) => {
                 onChange(val);
                 // cache label in the row so it keeps displaying even if global options change later
-                const picked = pricingGroup.options.find((o) => o.value === val);
+                const picked = pricingGroup.options.find(
+                  (o) => o.value === val
+                );
                 setRowValues?.({
                   ...row,
                   pricing_group_id: val,
@@ -404,7 +406,10 @@ const OrderItemSection: FC<OrderItemSectionProps> = ({
               error={!rowSku ? 'Select a SKU first.' : pricingGroup.error}
               paginationMeta={pricingGroup.meta}
               // keep skuId bound to this row for any programmatic refresh
-              fetchParams={{ ...(pricingGroupFetchParams ?? {}), skuId: rowSku }}
+              fetchParams={{
+                ...(pricingGroupFetchParams ?? {}),
+                skuId: rowSku,
+              }}
               setFetchParams={setPricingGroupFetchParams}
               onRefresh={(params) => {
                 if (!rowSku) return;
@@ -444,7 +449,7 @@ const OrderItemSection: FC<OrderItemSectionProps> = ({
           ) : null;
         },
       },
-      
+
       // Manual price toggle
       {
         id: 'override_price',

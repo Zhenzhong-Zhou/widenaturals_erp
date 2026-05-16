@@ -7,13 +7,10 @@ const { generateSKU } = require('../../../utils/sku-generator');
  */
 exports.seed = async function (knex) {
   // Check if 'products' or 'skus' already have data
-  const existingProducts = await knex('products').count('id as count').first();
-  const existingSkus = await knex('skus').count('id as count').first();
-
-  if (
-    parseInt(existingProducts.count, 10) > 0 ||
-    parseInt(existingSkus.count, 10) > 0
-  ) {
+  const hasProducts = await knex('products').select('id').limit(1).first();
+  const hasSkus = await knex('skus').select('id').limit(1).first();
+  
+  if (hasProducts || hasSkus) {
     console.warn('Seeding skipped: products or skus already populated.');
     return;
   }
@@ -53,7 +50,7 @@ exports.seed = async function (knex) {
             height_cm: 5,
             weight_g: 250,
           },
-          status_id: activeStatusId,
+          status_id: inActiveStatusId,
         },
         {
           regionCode: 'CA',
@@ -69,7 +66,7 @@ exports.seed = async function (knex) {
             height_cm: 5,
             weight_g: 250,
           },
-          status_id: activeStatusId,
+          status_id: inActiveStatusId,
         },
       ],
     },
@@ -94,7 +91,7 @@ exports.seed = async function (knex) {
             height_cm: 5,
             weight_g: 250,
           },
-          status_id: activeStatusId,
+          status_id: inActiveStatusId,
         },
         {
           regionCode: 'CA',
@@ -110,7 +107,7 @@ exports.seed = async function (knex) {
             height_cm: 5,
             weight_g: 250,
           },
-          status_id: activeStatusId,
+          status_id: inActiveStatusId,
         },
       ],
     },
@@ -275,7 +272,7 @@ exports.seed = async function (knex) {
             height_cm: 5,
             weight_g: 250,
           },
-          status_id: activeStatusId,
+          status_id: inActiveStatusId,
         },
       ],
     },
@@ -316,7 +313,7 @@ exports.seed = async function (knex) {
             height_cm: 5,
             weight_g: 250,
           },
-          status_id: activeStatusId,
+          status_id: inActiveStatusId,
         },
       ],
     },
@@ -358,7 +355,7 @@ exports.seed = async function (knex) {
             height_cm: 5,
             weight_g: 250,
           },
-          status_id: activeStatusId,
+          status_id: inActiveStatusId,
         },
       ],
     },
@@ -425,7 +422,7 @@ exports.seed = async function (knex) {
             height_cm: 5,
             weight_g: 250,
           },
-          status_id: activeStatusId,
+          status_id: discontinuedStatusId,
         },
       ],
     },
@@ -450,7 +447,7 @@ exports.seed = async function (knex) {
             height_cm: 5,
             weight_g: 250,
           },
-          status_id: activeStatusId,
+          status_id: discontinuedStatusId,
         },
         {
           regionCode: 'CA',
@@ -466,7 +463,7 @@ exports.seed = async function (knex) {
             height_cm: 5,
             weight_g: 250,
           },
-          status_id: activeStatusId,
+          status_id: discontinuedStatusId,
         },
       ],
     },
@@ -491,7 +488,7 @@ exports.seed = async function (knex) {
             height_cm: 5,
             weight_g: 250,
           },
-          status_id: activeStatusId,
+          status_id: discontinuedStatusId,
         },
         {
           regionCode: 'CA',
@@ -507,7 +504,7 @@ exports.seed = async function (knex) {
             height_cm: 5,
             weight_g: 250,
           },
-          status_id: activeStatusId,
+          status_id: discontinuedStatusId,
         },
       ],
     },
@@ -532,7 +529,7 @@ exports.seed = async function (knex) {
             height_cm: 5,
             weight_g: 250,
           },
-          status_id: activeStatusId,
+          status_id: discontinuedStatusId,
         },
         {
           regionCode: 'CA',
@@ -548,7 +545,7 @@ exports.seed = async function (knex) {
             height_cm: 5,
             weight_g: 250,
           },
-          status_id: activeStatusId,
+          status_id: discontinuedStatusId,
         },
       ],
     },
@@ -589,7 +586,7 @@ exports.seed = async function (knex) {
             height_cm: 5,
             weight_g: 250,
           },
-          status_id: activeStatusId,
+          status_id: discontinuedStatusId,
         },
       ],
     },
@@ -635,6 +632,106 @@ exports.seed = async function (knex) {
       ],
     },
     {
+      name: 'Astaxanthin Plus',
+      brand: 'Phyto-Genious',
+      series: 'Phyto-Genious',
+      category: 'Antioxidant',
+      description: 'Powerful antioxidant support. 强效抗氧化保护。',
+      variants: [
+        {
+          regionCode: 'CN',
+          language: 'en-fr',
+          country_code: 'CN',
+          variantCode: 'S',
+          barcode: '628719706121',
+          market_region: 'China',
+          size_label: '120 Softgels',
+          dimensions: {
+            length_cm: 15,
+            width_cm: 10,
+            height_cm: 5,
+            weight_g: 250,
+          },
+          status_id: activeStatusId,
+        },
+      ],
+    },
+    {
+      name: 'Cell Revive',
+      brand: 'Phyto-Genious',
+      series: 'Phyto-Genious',
+      category: 'Cellular Health',
+      description: 'Supports cellular regeneration and vitality. 焕活细胞，焕发活力。',
+      variants: [
+        {
+          regionCode: 'CN',
+          language: 'en-fr',
+          country_code: 'CN',
+          variantCode: 'R',
+          barcode: '628719706145',
+          market_region: 'China',
+          size_label: '60 Capsules',
+          dimensions: {
+            length_cm: 15,
+            width_cm: 10,
+            height_cm: 5,
+            weight_g: 250,
+          },
+          status_id: activeStatusId,
+        },
+      ],
+    },
+    {
+      name: 'Seal Oil Plus',
+      brand: 'Phyto-Genious',
+      series: 'Phyto-Genious',
+      category: 'Marine Oil',
+      description: 'Premium seal oil with enhanced Omega-3 support. 优质海豹油，增强健康。',
+      variants: [
+        {
+          regionCode: 'CN',
+          language: 'en-fr',
+          country_code: 'CN',
+          variantCode: 'R',
+          barcode: '628719706107',
+          market_region: 'China',
+          size_label: '120 Softgels',
+          dimensions: {
+            length_cm: 15,
+            width_cm: 10,
+            height_cm: 5,
+            weight_g: 250,
+          },
+          status_id: activeStatusId,
+        },
+      ],
+    },
+    {
+      name: 'Ubiquinol 100mg CoQ10 Mega',
+      brand: 'Phyto-Genious',
+      series: 'Phyto-Genious',
+      category: 'Heart Health',
+      description: 'High-potency Ubiquinol CoQ10 for cardiovascular support. 高效辅酶Q10，呵护心血管健康。',
+      variants: [
+        {
+          regionCode: 'CN',
+          language: 'en-fr',
+          country_code: 'CN',
+          variantCode: 'R',
+          barcode: '628719706213',
+          market_region: 'China',
+          size_label: '60 Capsules',
+          dimensions: {
+            length_cm: 15,
+            width_cm: 10,
+            height_cm: 5,
+            weight_g: 250,
+          },
+          status_id: activeStatusId,
+        },
+      ],
+    },
+    {
       name: 'Seal Oil Omega-3 500mg',
       brand: 'WIDE Naturals',
       series: 'WIDE Collection',
@@ -646,7 +743,7 @@ exports.seed = async function (knex) {
           language: 'en-fr',
           country_code: 'UN',
           variantCode: 'S',
-          barcode: '628942370694',
+          barcode: 'old-628942370694',
           market_region: 'Universe',
           size_label: '120 Softgels',
           dimensions: {
@@ -883,6 +980,106 @@ exports.seed = async function (knex) {
         },
       ],
     },
+    {
+      name: '5 IN 1 D3 + K2 + CA + MG + ZN',
+      brand: 'WIDE Naturals',
+      series: 'WIDE Collection',
+      category: 'Bone Health',
+      description: 'Comprehensive support for bone strength and immunity with D3, K2, Calcium, Magnesium, and Zinc. 强健骨骼，呵护免疫，五合一全方位营养。',
+      variants: [
+        {
+          regionCode: 'UN',
+          language: 'en-fr',
+          country_code: 'UN',
+          variantCode: 'S',
+          barcode: '628719706176',
+          market_region: 'Universe',
+          size_label: '120 Softgels',
+          dimensions: {
+            length_cm: 15,
+            width_cm: 10,
+            height_cm: 5,
+            weight_g: 250,
+          },
+          status_id: activeStatusId,
+        },
+      ],
+    },
+    {
+      name: 'CoQ10 + PQQ Seal Oil',
+      brand: 'WIDE Naturals',
+      series: 'WIDE Collection',
+      category: 'Heart Health',
+      description: 'Cardiovascular and cellular energy support combining CoQ10, PQQ, and premium seal oil. 守护心血管，焕发细胞活力，融合辅酶Q10、PQQ与优质海豹油。',
+      variants: [
+        {
+          regionCode: 'UN',
+          language: 'en-fr',
+          country_code: 'UN',
+          variantCode: 'S',
+          barcode: '628719706183',
+          market_region: 'Universe',
+          size_label: '120 Softgels',
+          dimensions: {
+            length_cm: 15,
+            width_cm: 10,
+            height_cm: 5,
+            weight_g: 250,
+          },
+          status_id: activeStatusId,
+        },
+      ],
+    },
+    {
+      name: 'AKK + DAG Oil',
+      brand: 'WIDE Naturals',
+      series: 'WIDE Collection',
+      category: 'Gut Health',
+      description: 'Synergistic gut and metabolic support combining Akkermansia (AKK) with DAG oil — 30 servings, 8 chewable soft capsules per serving. 协同呵护肠道与代谢，融合AKK益生菌与DAG油，每日8粒咀嚼软胶囊，30天用量。',
+      variants: [
+        {
+          regionCode: 'UN',
+          language: 'en-fr',
+          country_code: 'UN',
+          variantCode: 'R',
+          barcode: '628719706190',
+          market_region: 'Universe',
+          size_label: '240 Chewable Soft Capsules (30 Servings)',
+          dimensions: {
+            length_cm: 15,
+            width_cm: 10,
+            height_cm: 5,
+            weight_g: 250,
+          },
+          status_id: activeStatusId,
+        },
+      ],
+    },
+    {
+      name: 'New Seal Oil Omega-3 (120 Softgels)',
+      brand: 'WIDE Naturals',
+      series: 'WIDE Collection',
+      category: 'Marine Oil',
+      description: 'Updated Seal Oil Omega-3 formulation in a 120 Softgel pack for daily Omega-3 support. 全新配方海豹油Omega-3，每日健康守护。',
+      variants: [
+        {
+          regionCode: 'UN',
+          language: 'en-fr',
+          country_code: 'UN',
+          variantCode: 'S',
+          barcode: '628942370694',
+          market_region: 'Universe',
+          size_label: '120 Softgels',
+          dimensions: {
+            length_cm: 15,
+            width_cm: 10,
+            height_cm: 5,
+            weight_g: 250,
+          },
+          status_id: activeStatusId,
+        },
+      ],
+    },
   ];
 
   const brandNameToCode = {
@@ -890,14 +1087,19 @@ exports.seed = async function (knex) {
     'Phyto-Genious': 'PG',
     'WIDE Naturals': 'WN',
   };
-
+  
   const categoryNameToCode = {
     'Herbal Natural': 'HN',
     NMN: 'NM',
     TCM: 'TCM',
     'Marine Oil': 'MO',
+    Antioxidant: 'AO',
+    'Cellular Health': 'CL',
+    'Heart Health': 'HH',
+    'Bone Health': 'BH',
+    'Gut Health': 'GH',
   };
-
+  
   let insertedCount = 0;
 
   for (const productDef of productDefs) {
@@ -935,13 +1137,14 @@ exports.seed = async function (knex) {
     for (const variant of productDef.variants) {
       const brandCode = brandNameToCode[productDef.brand];
       const categoryCode = categoryNameToCode[productDef.category];
-
+      
       const sku = await generateSKU(
         brandCode,
         categoryCode,
         variant.variantCode,
         variant.regionCode || null,
-        lastUsedCodeMap
+        lastUsedCodeMap,
+        null
       );
 
       if (variant.barcode) {

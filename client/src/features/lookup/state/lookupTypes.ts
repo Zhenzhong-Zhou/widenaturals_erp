@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+import type { IconDefinition } from '@fortawesome/free-regular-svg-icons';
 import type {
   AsyncState,
   LookupSuccessResponse,
@@ -7,6 +9,8 @@ import type {
   LookupPagination,
   PaginationLookupInfo,
 } from '@shared-types/pagination';
+import type { BatchEntityType, ExpirySeverity } from '@shared-types/batch';
+import type { OptionType } from '@components/common/Dropdown';
 
 /**
  * Represents a generic option item used in lookup components.
@@ -89,77 +93,136 @@ export type LookupItemWithSubLabelAndStatus = LookupItemWithSubLabel &
   ActiveValidFilter;
 
 /**
- * Query parameters for fetching batch registry lookup data.
+ * Query params for GET /lookups/batch-registry — the general batch registry lookup.
+ * Used by filter dropdowns, allocation pickers, and any caller that just needs a
+ * paginated list of batches without warehouse coupling.
+ *
+ * camelCase here — buildQueryString converts to snake_case before the wire.
  */
-export interface GetBatchRegistryLookupParams extends LookupPagination {
-  /**
-   * Filter by batch type (e.g., 'product', 'packaging_material').
-   */
-  batchType?: 'product' | 'packaging_material' | string;
-
-  /**
-   * Optional warehouse ID to exclude batches already present in this warehouse.
-   */
-  warehouseId?: string;
-
-  /**
-   * Optional location ID to exclude batches already present in this location.
-   */
-  locationId?: string;
+export interface BatchRegistryLookupQuery extends LookupQuery {
+  batchType?: BatchEntityType;
 }
 
 /**
- * Query parameters for fetching lot adjustment type lookup options.
+ * Query params for GET /lookups/batch-registry/for-inventory — the warehouse-
+ * inventory batch-add variant. warehouseId is required (the type enforces this);
+ * the backend uses it to exclude batches already placed in that warehouse and to
+ * enforce warehouse-scope access for non-privileged users.
+ *
+ * camelCase here — buildQueryString converts to snake_case before the wire.
  */
-export interface LotAdjustmentLookupQueryParams {
-  /**
-   * Whether to exclude internal-only adjustment types such as
-   * 'manual_stock_insert' and 'manual_stock_update'.
-   * Defaults to `true` on the server if omitted.
-   */
-  excludeInternal?: boolean;
-
-  /**
-   * Whether to restrict results to only quantity adjustment types.
-   * Useful for inventory adjustment forms where only quantity-related
-   * actions are relevant.
-   * Default to `false` if omitted.
-   */
-  restrictToQtyAdjustment?: boolean;
+export interface BatchRegistryForInventoryLookupQuery extends BatchRegistryLookupQuery {
+  warehouseId: string;
 }
 
-export interface ProductBatchLookupItem {
+/**
+ * Expiry metadata discriminated union.
+ *
+ * Mirrors the two branches of the backend `getExpiryMeta` helper:
+ * - When the source row has an expiry date, all derived fields are populated.
+ * - When it does not, only `hasExpiryDate: false` is present and the other
+ *   fields are absent (not `null`/`undefined`), so consumers must narrow on
+ *   `hasExpiryDate` before reading `daysUntilExpiry`, `expirySeverity`, etc.
+ */
+export type ExpiryMeta =
+  | {
+      hasExpiryDate: true;
+      daysUntilExpiry: number;
+      isExpired: boolean;
+      isNearExpiry: boolean;
+      expirySeverity: ExpirySeverity;
+    }
+  | { hasExpiryDate: false };
+
+/**
+ * Product-batch sub-record returned inside a batch-registry lookup item.
+ *
+ * Present only when the underlying row is a product batch
+ * (`row.product_batch_id != null`). `name` is composed server-side via
+ * `getProductDisplayName` and is always a string; lot/expiry fields may be
+ * null when not recorded on the batch.
+ *
+ * Intersected with {@link ExpiryMeta} to expose expiry-derived flags.
+ */
+export type BatchRegistryProductLookupItem = {
   id: string;
-  type: 'product';
-  product: {
-    id: string;
-    name: string;
-    lotNumber: string;
-    expiryDate: string;
-  };
-}
+  name: string;
+  lotNumber: string | null;
+  expiryDate: string | null;
+} & ExpiryMeta;
 
-export interface PackagingMaterialLookupItem {
+/**
+ * Packaging-material-batch sub-record returned inside a batch-registry lookup
+ * item.
+ *
+ * Present only when the underlying row is a packaging-material batch
+ * (`row.packaging_material_batch_id != null`). `snapshotName` and
+ * `receivedLabel` come from the material snapshot captured at receipt time.
+ *
+ * Intersected with {@link ExpiryMeta} to expose expiry-derived flags.
+ */
+export type BatchRegistryPackagingMaterialLookupItem = {
   id: string;
-  type: 'packaging_material';
-  packagingMaterial: {
-    id: string;
-    lotNumber: string;
-    expiryDate: string;
-    snapshotName: string;
-    receivedLabel: string;
-  };
+  lotNumber: string | null;
+  expiryDate: string | null;
+  snapshotName: string | null;
+  receivedLabel: string | null;
+} & ExpiryMeta;
+
+/**
+ * Permission-gated flags merged onto each lookup item by
+ * `includeFlagsBasedOnAccess` against `BATCH_REGISTRY_FLAG_MAP`.
+ *
+ * Index signature is a deliberate placeholder — replace with a concrete
+ * `Partial<{ canViewInternalLot: boolean; ... }>` once the flag map keys are
+ * finalized so the union becomes exhaustive on the frontend.
+ */
+export interface BatchRegistryLookupFlags {
+  [flag: string]: unknown;
 }
 
-export type BatchRegistryLookupItem =
-  | ProductBatchLookupItem
-  | PackagingMaterialLookupItem;
+/**
+ * Single row in a batch-registry lookup response.
+ *
+ * `product` and `packagingMaterial` are optional rather than nullable: the
+ * backend transformer pipes through `cleanObject`, which strips null entries
+ * before serialization, so exactly one of the two will be present per row
+ * (matching the `type` discriminator).
+ *
+ * Permission-gated fields are spread in via {@link BatchRegistryLookupFlags}.
+ */
+export interface BatchRegistryLookupItem extends BatchRegistryLookupFlags {
+  id: string;
+  type: BatchEntityType;
+  product?: BatchRegistryProductLookupItem;
+  packagingMaterial?: BatchRegistryPackagingMaterialLookupItem;
+}
 
-export type GetBatchRegistryLookupResponse =
+/**
+ * Full HTTP envelope for `GET /lookups/batch-registry`.
+ *
+ * Wraps a load-more paginated payload of {@link BatchRegistryLookupItem}.
+ */
+export type BatchRegistryLookupResponse =
   LookupSuccessResponse<BatchRegistryLookupItem>;
 
+/**
+ * Redux slice state shape for the batch-registry lookup feature.
+ *
+ * Built on the shared `PaginatedLookupState<T>` so it inherits the standard
+ * `items` / `pagination` / `loading` / `error` fields used across all
+ * load-more lookup slices.
+ */
 export type BatchRegistryLookupState =
   PaginatedLookupState<BatchRegistryLookupItem>;
+
+export type BatchRegistryOption = OptionType & {
+  type: BatchEntityType;
+  displayLabel: ReactNode;
+  icon: IconDefinition;
+  tooltip: string;
+  iconColor: string;
+} & ExpiryMeta;
 
 /**
  * Lookup option representing a selectable warehouse.
@@ -190,27 +253,44 @@ export type GetWarehouseLookupResponse =
 
 export type WarehouseLookupState = AsyncState<WarehouseLookupItem[]>;
 
-/**
- * Represents a single option in the lot adjustment lookup.
- */
-export interface LotAdjustmentTypeLookupItem extends LookupOption {
-  /**
-   * The unique identifier of the related inventory action type.
-   * Used for internal mapping or further logic.
-   */
-  actionTypeId: string;
-}
+// ---------------------------------------------------------------------------
+// Lot adjustment type lookup
+// ---------------------------------------------------------------------------
 
 /**
- * Typed API response for fetching lot adjustment lookup options.
+ * Lot adjustment type lookup item.
+ *
+ * Represents a specific lot-level adjustment reason (damage, loss,
+ * stolen, etc.). The parent inventory action type's name is surfaced
+ * as the secondary label so users can see which broader action the
+ * adjustment rolls up to.
  */
-export type LotAdjustmentTypeLookupResponse = LookupSuccessResponse<
-  LotAdjustmentTypeLookupItem
->;
+export type LotAdjustmentTypeLookupItem = LookupItemWithSubLabelAndStatus;
 
-export type LotAdjustmentTypeLookupState = AsyncState<
-  LotAdjustmentTypeLookupItem[]
->;
+/**
+ * Successful API response for lot adjustment type lookup requests.
+ */
+export type LotAdjustmentTypeLookupResponse =
+  LookupSuccessResponse<LotAdjustmentTypeLookupItem>;
+
+/**
+ * Query parameters for fetching lot adjustment type lookup data.
+ *
+ * The endpoint exposes only the base lookup query surface
+ * (keyword, limit, offset). All visibility shaping is applied by
+ * the business layer based on the caller's ACL: results are always
+ * scoped to the adjustment category, inactive types are hidden
+ * unless the caller holds VIEW_ALL_STATUSES, and internal stock-
+ * management types are hidden unless the caller holds VIEW_INTERNAL.
+ * None of these are caller-controllable from the query string.
+ */
+export type LotAdjustmentTypeLookupParams = LookupQuery;
+
+/**
+ * Redux state shape for the lot adjustment type lookup slice.
+ */
+export type LotAdjustmentTypeLookupState =
+  PaginatedLookupState<LotAdjustmentTypeLookupItem>;
 
 /**
  * Represents a batch option in a lookup menu, including its type (e.g., product, packaging).
@@ -344,7 +424,8 @@ export interface OrderTypeLookupItem extends LookupItemWithStatus {
  *   hasMore: boolean;
  * }
  */
-export type OrderTypeLookupResponse = LookupSuccessResponse<OrderTypeLookupItem>;
+export type OrderTypeLookupResponse =
+  LookupSuccessResponse<OrderTypeLookupItem>;
 
 /**
  * Redux state shape for the order type lookup slice.
@@ -554,12 +635,12 @@ export interface PricingGroupLookupFullItem extends LookupItemWithStatus {
    * ISO country code where the price is applicable (e.g., "CA", "US").
    */
   countryCode: string;
-  
+
   /**
    * Price value for the SKU or product.
    */
   price: number;
-  
+
   /**
    * Pricing type name (e.g., "Wholesale", "Retail").
    */
@@ -627,7 +708,8 @@ export type PricingGroupLookupItem =
  *   ]
  * }
  */
-export type PricingGroupLookupResponse = LookupSuccessResponse<PricingGroupLookupItem>;
+export type PricingGroupLookupResponse =
+  LookupSuccessResponse<PricingGroupLookupItem>;
 
 /**
  * Redux slice state for pricing group lookup dropdowns or autocomplete inputs.
@@ -641,7 +723,8 @@ export type PricingGroupLookupResponse = LookupSuccessResponse<PricingGroupLooku
  * discount selectors, or inventory pricing filters. Supports both
  * full and label-only pricing entries depending on access level and display mode.
  */
-export type PricingGroupLookupState = PaginatedLookupState<PricingGroupLookupItem>;
+export type PricingGroupLookupState =
+  PaginatedLookupState<PricingGroupLookupItem>;
 
 /**
  * Represents a full lookup bundle with results, loading/error states, pagination metadata,
@@ -1097,3 +1180,156 @@ export type LocationTypeLookupParams = LookupQuery;
  */
 export type LocationTypeLookupState =
   PaginatedLookupState<LocationTypeLookupItem>;
+
+// ---------------------------------------------------------------------------
+// Inventory Status lookup
+// ---------------------------------------------------------------------------
+
+/**
+ * Inventory Status lookup item.
+ *
+ * Represents an inventory status classification
+ * (e.g. In Stock, Out of Stock, Reserved, Damaged).
+ * Contains only label and status metadata.
+ */
+export type InventoryStatusLookupItem = LookupItemWithStatus;
+
+/**
+ * Successful API response for Inventory Status lookup requests.
+ */
+export type InventoryStatusLookupResponse =
+  LookupSuccessResponse<InventoryStatusLookupItem>;
+
+/**
+ * Query parameters for fetching Inventory Status lookup data.
+ */
+export type InventoryStatusLookupParams = LookupQuery;
+
+/**
+ * Redux state shape for the Inventory Status lookup slice.
+ */
+export type InventoryStatusLookupState =
+  PaginatedLookupState<InventoryStatusLookupItem>;
+
+// ---------------------------------------------------------------------------
+// Pricing Type lookup
+// ---------------------------------------------------------------------------
+
+/**
+ * Pricing Type lookup item.
+ *
+ * Represents a pricing classification (e.g. Wholesale, Retail, MSRP),
+ * with the pricing type code surfaced as a secondary label.
+ */
+export type PricingTypeLookupItem = LookupItemWithSubLabelAndStatus;
+
+/**
+ * Successful API response for Pricing Type lookup requests.
+ */
+export type PricingTypeLookupResponse =
+  LookupSuccessResponse<PricingTypeLookupItem>;
+
+/**
+ * Query parameters for fetching Pricing Type lookup data.
+ */
+export type PricingTypeLookupParams = LookupQuery;
+
+/**
+ * Redux state shape for the Pricing Type lookup slice.
+ */
+export type PricingTypeLookupState =
+  PaginatedLookupState<PricingTypeLookupItem>;
+
+// ---------------------------------------------------------------------------
+// Warehouse Type lookup
+// ---------------------------------------------------------------------------
+
+/**
+ * Warehouse Type lookup item.
+ *
+ * Represents a warehouse classification
+ * (e.g. Cold Storage, Dry Goods, Hazardous, Bonded).
+ * Contains only label and status metadata.
+ */
+export type WarehouseTypeLookupItem = LookupItemWithStatus;
+
+/**
+ * Successful API response for Warehouse Type lookup requests.
+ */
+export type WarehouseTypeLookupResponse =
+  LookupSuccessResponse<WarehouseTypeLookupItem>;
+
+/**
+ * Query parameters for fetching Warehouse Type lookup data.
+ */
+export type WarehouseTypeLookupParams = LookupQuery;
+
+/**
+ * Redux state shape for the Warehouse Type lookup slice.
+ */
+export type WarehouseTypeLookupState =
+  PaginatedLookupState<WarehouseTypeLookupItem>;
+
+// ---------------------------------------------------------------------------
+// Location lookup
+// ---------------------------------------------------------------------------
+
+/**
+ * Location lookup item.
+ *
+ * Represents a physical location (warehouse, office, retail site),
+ * with the city surfaced as a secondary label.
+ */
+export type LocationLookupItem = LookupItemWithSubLabelAndStatus;
+
+/**
+ * Successful API response for Location lookup requests.
+ */
+export type LocationLookupResponse = LookupSuccessResponse<LocationLookupItem>;
+
+/**
+ * Query parameters for fetching Location lookup data.
+ */
+export type LocationLookupParams = LookupQuery;
+
+/**
+ * Redux state shape for the Location lookup slice.
+ */
+export type LocationLookupState = PaginatedLookupState<LocationLookupItem>;
+
+// ---------------------------------------------------------------------------
+// Inventory action type lookup
+// ---------------------------------------------------------------------------
+
+/**
+ * Inventory action type lookup item.
+ *
+ * Represents a categorised action type (adjustment, transaction, system,
+ * conversion, hold, transfer, reservation) that drives downstream
+ * inventory movement and audit behaviour. The parent category is
+ * surfaced as the secondary label so users can disambiguate similarly
+ * named actions across categories.
+ */
+export type InventoryActionTypeLookupItem = LookupItemWithSubLabelAndStatus;
+
+/**
+ * Successful API response for inventory action type lookup requests.
+ */
+export type InventoryActionTypeLookupResponse =
+  LookupSuccessResponse<InventoryActionTypeLookupItem>;
+
+/**
+ * Query parameters for fetching inventory action type lookup data.
+ *
+ * The endpoint exposes only the base lookup query surface
+ * (keyword, limit, offset). Visibility shaping — including the
+ * active-status pin for callers without VIEW_ALL_STATUSES — is
+ * applied by the business layer and is not caller-controllable.
+ */
+export type InventoryActionTypeLookupParams = LookupQuery;
+
+/**
+ * Redux state shape for the inventory action type lookup slice.
+ */
+export type InventoryActionTypeLookupState =
+  PaginatedLookupState<InventoryActionTypeLookupItem>;

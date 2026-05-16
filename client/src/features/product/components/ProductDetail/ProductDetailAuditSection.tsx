@@ -37,7 +37,7 @@ interface Props {
 const ProductDetailAuditSection: FC<Props> = ({ product }) => {
   return (
     <Paper sx={{ p: 3 }} elevation={1}>
-      <CustomTypography variant="h6" fontWeight={600} gutterBottom>
+      <CustomTypography variant="h6" sx={{ fontWeight: 600 }} gutterBottom>
         Audit Information
       </CustomTypography>
 

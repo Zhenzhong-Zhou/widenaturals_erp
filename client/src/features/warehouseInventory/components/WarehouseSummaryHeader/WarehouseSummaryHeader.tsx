@@ -1,11 +1,6 @@
 import type { FC } from 'react';
-import Box from '@mui/material/Box';
-import Stack from '@mui/material/Stack';
-import {
-  CustomTypography,
-  StatusChip,
-  SummaryStat
-} from '@components/index';
+import { Box, Stack } from '@mui/material';
+import { CustomTypography, StatusChip, SummaryStat } from '@components/index';
 import { formatGeneralStatus } from '@utils/formatters';
 import { formatLabel } from '@utils/textUtils';
 import type {
@@ -30,11 +25,11 @@ interface Props {
  * Renders gracefully when summary data is not yet loaded.
  */
 const WarehouseSummaryHeader: FC<Props> = ({
-                                                   warehouseInfo,
-                                                   totals,
-                                                   byBatchType,
-                                                   byStatus,
-                                                 }) => {
+  warehouseInfo,
+  totals,
+  byBatchType,
+  byStatus,
+}) => {
   const breadcrumb = [
     warehouseInfo?.code,
     warehouseInfo?.typeName && formatLabel(warehouseInfo.typeName),
@@ -43,20 +38,30 @@ const WarehouseSummaryHeader: FC<Props> = ({
     .join(' · ');
   
   return (
-    <Box mb={3}>
+    <Box sx={{ mb: 3 }}>
       <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="flex-start"
-        flexWrap="wrap"
-        gap={3}
-        mb={2}
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          flexWrap: 'wrap',
+          gap: 3,
+          mb: 2,
+        }}
       >
         <Box>
-          <Box display="flex" alignItems="center" gap={1} mb={0.5}>
-            <CustomTypography variant="h5" fontWeight={700}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              mb: 0.5,
+            }}
+          >
+            <CustomTypography variant="h5" sx={{ fontWeight: 700 }}>
               {warehouseInfo?.name ?? '—'}
             </CustomTypography>
+            
             {formatGeneralStatus(warehouseInfo?.status?.name)}
           </Box>
           
@@ -79,18 +84,31 @@ const WarehouseSummaryHeader: FC<Props> = ({
         </Box>
         
         {totals && (
-          <Box display="flex" gap={4} flexWrap="wrap">
+          <Box
+            sx={{
+              display: 'flex',
+              gap: 4,
+              flexWrap: 'wrap',
+            }}
+          >
             <SummaryStat label="Available" value={totals.available} />
-            <SummaryStat label="Reserved"  value={totals.reserved} />
-            <SummaryStat label="Total"     value={totals.quantity} />
-            <SummaryStat label="Batches"   value={totals.batches} />
-            <SummaryStat label="SKUs"      value={totals.productSkus} />
+            <SummaryStat label="Reserved" value={totals.reserved} />
+            <SummaryStat label="Total" value={totals.quantity} />
+            <SummaryStat label="Batches" value={totals.batches} />
+            <SummaryStat label="SKUs" value={totals.productSkus} />
           </Box>
         )}
       </Box>
       
       {byStatus && byStatus.length > 0 && (
-        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+        <Stack
+          direction="row"
+          spacing={1}
+          useFlexGap
+          sx={{
+            flexWrap: 'wrap',
+          }}
+        >
           {byStatus.map((s) => (
             <StatusChip
               key={s.statusId}

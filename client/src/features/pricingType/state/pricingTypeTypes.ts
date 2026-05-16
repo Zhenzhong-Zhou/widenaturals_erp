@@ -35,11 +35,11 @@ export type PaginatedPricingTypeApiResponse =
 /** Filters available for querying the pricing type list. */
 export type PricingTypeFilters = {
   /** Full-text search across name, code, and slug. */
-  search?: string;
+  keyword?: string;
   /** Filter by status ID (UUID). */
   statusId?: string;
-} & CreatedUpdatedByFilter
-  & Pick<CreatedUpdatedDateFilter, 'createdAfter' | 'createdBefore'>;
+} & CreatedUpdatedByFilter &
+  Pick<CreatedUpdatedDateFilter, 'createdAfter' | 'createdBefore'>;
 
 /** Full query parameter shape for the pricing type list endpoint. */
 export interface PricingTypeQueryParams extends PaginationParams, SortConfig {
@@ -72,7 +72,8 @@ export type PricingTypeDetailRecord = {
 };
 
 /** API response for a single pricing type detail. */
-export type PricingTypeDetailApiResponse = ApiSuccessResponse<PricingTypeDetailRecord>;
+export type PricingTypeDetailApiResponse =
+  ApiSuccessResponse<PricingTypeDetailRecord>;
 
 /** Redux slice state shape for the pricing type detail view. */
 export type PricingTypeDetailState = AsyncState<PricingTypeDetailRecord | null>;

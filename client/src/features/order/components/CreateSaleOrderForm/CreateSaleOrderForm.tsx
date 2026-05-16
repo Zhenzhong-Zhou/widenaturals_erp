@@ -12,7 +12,6 @@ import type {
   CreateSalesOrderForm,
   CreateSalesOrderInput,
 } from '@features/order/state';
-import useSalesOrderLookups from '@features/order/hooks/useSalesOrderLookups';
 import type {
   AddressByCustomerLookup,
   CustomerLookupQuery,
@@ -29,9 +28,12 @@ import {
   OrderDetailsSection,
   OrderItemSection,
 } from '@features/order/components/CreateSaleOrderForm/index';
-import useSalesOrderSubmission from '@features/order/hooks/useSalesOrderSubmission';
-import useAllSalesOrderSearchHandlers from '@features/order/hooks/useAllSalesOrderSearchHandlers';
-import useSkuPricingEffects from '@features/order/hooks/useSkuPricingEffects';
+import {
+  useAllSalesOrderSearchHandlers,
+  useSalesOrderLookups,
+  useSalesOrderSubmission,
+  useSkuPricingEffects,
+} from '@features/order/hooks';
 import {
   createDropdownBundle,
   fetchLookups,
@@ -130,10 +132,11 @@ const CreateSaleOrderForm: FC = () => {
   const skuDropdown = createDropdownBundle<SkuLookupQueryParams>({
     includeBarcode: true,
   });
-  const pricingGroupDropdown = createDropdownBundle<PricingGroupLookupQueryParams>({
-    skuId: selectedSkuId ?? null,
-    labelOnly: false,
-  });
+  const pricingGroupDropdown =
+    createDropdownBundle<PricingGroupLookupQueryParams>({
+      skuId: selectedSkuId ?? null,
+      labelOnly: false,
+    });
   // packaging dropdown state (default to salesDropdown mode so server enforces visible-only/active/unarchived)
   const packagingMaterialDropdown =
     createDropdownBundle<PackagingMaterialLookupQueryParams>({
@@ -373,11 +376,7 @@ const CreateSaleOrderForm: FC = () => {
         '& .MuiAlert-root': { mb: 2 },
       }}
     >
-      {orderError && (
-        <Alert severity="error">
-          {orderError}
-        </Alert>
-      )}
+      {orderError && <Alert severity="error">{orderError}</Alert>}
 
       {orderId && (
         <Alert severity="success">

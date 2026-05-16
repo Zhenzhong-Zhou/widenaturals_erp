@@ -24,10 +24,10 @@ const {
 } = require('../services/permission-service');
 const {
   WAREHOUSE_INVENTORY_CONSTANTS,
-} = require('../utils/constants/domain/warehouse-inventory');
+} = require('../utils/constants/domain/warehouse-inventory-constants');
 const {
   INVENTORY_ALLOCATION_CONSTANTS,
-} = require('../utils/constants/domain/inventory-allocation');
+} = require('../utils/constants/domain/inventory-allocation-constants');
 const {
   getWarehouseIdsByUserId,
 } = require('../repositories/user-warehouse-assignment-repository');
@@ -114,7 +114,7 @@ const applyInventoryAllocationVisibilityRules = (filters, acl) => {
     adjusted.forceEmptyResult = true;
     return adjusted;
   }
-  
+
   if (adjusted.warehouseIds?.length) {
     // Intersect requested warehouses with user's assigned ones.
     const allowed = adjusted.warehouseIds.filter((id) =>

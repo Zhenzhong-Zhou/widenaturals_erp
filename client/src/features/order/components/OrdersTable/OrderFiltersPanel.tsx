@@ -1,14 +1,13 @@
 import { type FC, useEffect } from 'react';
-import Box from '@mui/material/Box';
-import Grid from '@mui/material/Grid';
-import CustomButton from '@components/common/CustomButton';
 import { useForm } from 'react-hook-form';
+import { Box, Grid } from '@mui/material';
+import { CustomButton } from '@components/index';
 import type { OrderListFilters } from '@features/order/state';
 import { toISODate } from '@utils/dateTimeUtils';
 import {
   renderDateField,
   renderInputField,
-  renderSelectField
+  renderSelectField,
 } from '@utils/filters/filterUtils';
 import { CUSTOMER_TYPE_OPTIONS } from '@features/customer/components/SingleCustomerForm';
 
@@ -36,11 +35,11 @@ const emptyFilters: OrderListFilters = {
 };
 
 const OrderFiltersPanel: FC<Props> = ({
-                                        filters,
-                                        onChange,
-                                        onApply,
-                                        onReset,
-                                      }) => {
+  filters,
+  onChange,
+  onApply,
+  onReset,
+}) => {
   const { control, handleSubmit, reset } = useForm<OrderListFilters>({
     defaultValues: filters,
   });
@@ -83,7 +82,14 @@ const OrderFiltersPanel: FC<Props> = ({
   ];
 
   return (
-    <Box mb={2} p={2} border="1px solid #ccc" borderRadius={2}>
+    <Box
+      sx={{
+        mb: 2,
+        p: 2,
+        border: '1px solid #ccc',
+        borderRadius: 2,
+      }}
+    >
       <form onSubmit={handleSubmit(submitFilters)}>
         <Grid container spacing={2} sx={{ minHeight: 160 }}>
           {textFields.map(({ name, label, placeholder }) =>
@@ -93,11 +99,23 @@ const OrderFiltersPanel: FC<Props> = ({
           {dateFields.map(({ name, label }) =>
             renderDateField(control, name, label)
           )}
-          
-          {renderSelectField(control, 'customerType', 'Customer Type', CUSTOMER_TYPE_OPTIONS)}
-        </Grid>
 
-        <Box display="flex" flexWrap="wrap" gap={2} mt={3}>
+          {renderSelectField(
+            control,
+            'customerType',
+            'Customer Type',
+            CUSTOMER_TYPE_OPTIONS
+          )}
+        </Grid>
+        
+        <Box
+          sx={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 2,
+            mt: 3,
+          }}
+        >
           <CustomButton type="submit" variant="contained">
             Apply
           </CustomButton>

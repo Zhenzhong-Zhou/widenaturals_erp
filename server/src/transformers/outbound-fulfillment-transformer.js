@@ -76,18 +76,18 @@ const transformFulfillmentResult = ({
  * @returns {Object}
  */
 const transformAdjustedFulfillmentResult = ({
-                                              orderId,
-                                              orderNumber,
-                                              fulfillments,
-                                              shipmentId,
-                                              warehouseInventoryIds,
-                                              orderStatusRow,
-                                              orderItemStatusRow,
-                                              inventoryAllocationStatusRow,
-                                              orderFulfillmentStatusRow,
-                                              shipmentStatusRow,
-                                              logMetadata,
-                                            }) => ({
+  orderId,
+  orderNumber,
+  fulfillments,
+  shipmentId,
+  warehouseInventoryIds,
+  orderStatusRow,
+  orderItemStatusRow,
+  inventoryAllocationStatusRow,
+  orderFulfillmentStatusRow,
+  shipmentStatusRow,
+  logMetadata,
+}) => ({
   order: {
     id: orderId,
     number: orderNumber,
@@ -199,18 +199,20 @@ const transformShipmentDetailsRows = (rows) => {
     expectedDeliveryDate: first.expected_delivery_date,
     notes: first.shipment_notes,
     details: first.shipment_details,
-    audit: compactAudit(makeAudit(first, {
-      map: {
-        createdAt: 'created_at',
-        createdById: 'created_by',
-        createdByFirstName: 'shipment_created_by_firstname',
-        createdByLastName: 'shipment_created_by_lastname',
-        updatedAt: 'updated_at',
-        updatedById: 'updated_by',
-        updatedByFirstName: 'shipment_updated_by_firstname',
-        updatedByLastName: 'shipment_updated_by_lastname',
-      },
-    })),
+    audit: compactAudit(
+      makeAudit(first, {
+        map: {
+          createdAt: 'created_at',
+          createdById: 'created_by',
+          createdByFirstName: 'shipment_created_by_firstname',
+          createdByLastName: 'shipment_created_by_lastname',
+          updatedAt: 'updated_at',
+          updatedById: 'updated_by',
+          updatedByFirstName: 'shipment_updated_by_firstname',
+          updatedByLastName: 'shipment_updated_by_lastname',
+        },
+      })
+    ),
     tracking: first.tracking_id
       ? {
           id: first.tracking_id,
@@ -240,12 +242,12 @@ const transformShipmentDetailsRows = (rows) => {
         quantityFulfilled: row.quantity_fulfilled,
         fulfilledBy: row.fulfilled_by
           ? {
-            id: row.fulfilled_by,
-            name: getFullName(
-              row.fulfillment_fulfilled_by_firstname,
-              row.fulfillment_fulfilled_by_lastname
-            ),
-          }
+              id: row.fulfilled_by,
+              name: getFullName(
+                row.fulfillment_fulfilled_by_firstname,
+                row.fulfillment_fulfilled_by_lastname
+              ),
+            }
           : null,
         fulfilledAt: row.fulfilled_at,
         notes: row.fulfillment_notes,

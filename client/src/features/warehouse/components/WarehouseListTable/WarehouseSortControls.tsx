@@ -12,39 +12,39 @@ interface WarehouseSortControlsProps {
 
 const warehouseSortOptions: { label: string; value: WarehouseSortField }[] = [
   // ── Warehouse fields ──────────────────────────────────────────
-  { label: 'Name',             value: 'warehouseName' },
-  { label: 'Code',             value: 'warehouseCode' },
+  { label: 'Name', value: 'warehouseName' },
+  { label: 'Code', value: 'warehouseCode' },
   { label: 'Storage Capacity', value: 'storageCapacity' },
-  { label: 'Default Fee',      value: 'defaultFee' },
-  
+  { label: 'Default Fee', value: 'defaultFee' },
+
   // ── Type & location ───────────────────────────────────────────
-  { label: 'Warehouse Type',   value: 'warehouseTypeName' },
-  { label: 'Location',         value: 'locationName' },
-  { label: 'City',             value: 'city' },
+  { label: 'Warehouse Type', value: 'warehouseTypeName' },
+  { label: 'Location', value: 'locationName' },
+  { label: 'City', value: 'city' },
   { label: 'Province / State', value: 'provinceOrState' },
-  { label: 'Country',          value: 'country' },
-  
+  { label: 'Country', value: 'country' },
+
   // ── Status ────────────────────────────────────────────────────
-  { label: 'Status',           value: 'statusName' },
-  { label: 'Status Date',      value: 'statusDate' },
-  
+  { label: 'Status', value: 'statusName' },
+  { label: 'Status Date', value: 'statusDate' },
+
   // ── Inventory summary ─────────────────────────────────────────
-  { label: 'Total Quantity',   value: 'totalQuantity' },
-  
+  { label: 'Total Quantity', value: 'totalQuantity' },
+
   // ── Audit ─────────────────────────────────────────────────────
-  { label: 'Created At',       value: 'createdAt' },
-  { label: 'Updated At',       value: 'updatedAt' },
-  
+  { label: 'Created At', value: 'createdAt' },
+  { label: 'Updated At', value: 'updatedAt' },
+
   // ── Default ───────────────────────────────────────────────────
   { label: 'Default (Natural Sort)', value: 'defaultNaturalSort' },
 ];
 
 const WarehouseSortControls: FC<WarehouseSortControlsProps> = ({
-                                                                 sortBy,
-                                                                 sortOrder,
-                                                                 onSortByChange,
-                                                                 onSortOrderChange,
-                                                               }) => {
+  sortBy,
+  sortOrder,
+  onSortByChange,
+  onSortOrderChange,
+}) => {
   return (
     <SortControls
       sortBy={sortBy}

@@ -1,43 +1,51 @@
 import { createSelector } from '@reduxjs/toolkit';
 import type { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
-import type { LotAdjustmentTypeLookupItem } from './lookupTypes';
+import {
+  createLookupMetaSelector,
+  mapLookupItems,
+} from '@features/lookup/utils/lookupSelectorUtils';
+import type {
+  LotAdjustmentTypeLookupItem,
+  LookupOption,
+} from '@features/lookup/state';
 
-/**
- * Root selector to access the lot adjustment type lookup state slice.
- *
- * @param state - The root Redux store state.
- * @returns The lot adjustment type lookup state.
- */
+// -----------------------------
+// Base Selector
+// -----------------------------
 const selectLotAdjustmentTypeLookupState = (state: RootState) =>
   selectRuntime(state).lotAdjustmentTypeLookup;
 
-/**
- * Selector to retrieve the list of lot adjustment type lookup items.
- *
- * @returns Array of lot adjustment lookup options.
- */
-export const selectLotAdjustmentTypeItems = createSelector(
+// -----------------------------
+// Basic Selectors
+// -----------------------------
+export const selectLotAdjustmentTypeLookupItems = createSelector(
   [selectLotAdjustmentTypeLookupState],
-  (lookupState): LotAdjustmentTypeLookupItem[] => lookupState.data
+  (state) => state.data
 );
 
-/**
- * Selector to retrieve the loading status of the lot adjustment lookup.
- *
- * @returns `true` if loading, otherwise `false`.
- */
-export const selectLotAdjustmentTypeLoading = createSelector(
+export const selectLotAdjustmentTypeLookupLoading = createSelector(
   [selectLotAdjustmentTypeLookupState],
-  (lookupState): boolean => lookupState.loading
+  (state) => state.loading
 );
 
-/**
- * Selector to retrieve any error message from the lot adjustment lookup state.
- *
- * @returns The error message string, or `null` if no error.
- */
-export const selectLotAdjustmentTypeError = createSelector(
+export const selectLotAdjustmentTypeLookupError = createSelector(
   [selectLotAdjustmentTypeLookupState],
-  (lookupState): string | null => lookupState.error?.message ?? null
+  (state): string | null => state.error?.message ?? null
+);
+
+// -----------------------------
+// Pagination Meta
+// -----------------------------
+export const selectLotAdjustmentTypeLookupMeta = createLookupMetaSelector(
+  selectLotAdjustmentTypeLookupState
+);
+
+// -----------------------------
+// Options Mapping
+// -----------------------------
+export const selectLotAdjustmentTypeLookupOptions = createSelector(
+  [selectLotAdjustmentTypeLookupItems],
+  (items: LotAdjustmentTypeLookupItem[]): LookupOption[] =>
+    mapLookupItems(items, ['isActive'])
 );

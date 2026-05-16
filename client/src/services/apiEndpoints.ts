@@ -89,9 +89,8 @@ export const API_ENDPOINTS = {
     ALL_RECORDS: '/packaging-material-batches',
   },
   WAREHOUSES: {
-    ALL_RECORDS:   '/warehouses',
-    DETAIL: (warehouseId: string) =>
-      `/warehouses/${warehouseId}/details`,
+    ALL_RECORDS: '/warehouses',
+    DETAIL: (warehouseId: string) => `/warehouses/${warehouseId}/details`,
   },
   WAREHOUSE_INVENTORY: {
     ALL_RECORDS: (warehouseId: string) =>
@@ -117,6 +116,7 @@ export const API_ENDPOINTS = {
   },
   LOOKUPS: {
     BATCH_REGISTRY: '/lookups/batch-registry',
+    BATCH_REGISTRY_FOR_INVENTORY: '/lookups/batch-registry/for-inventory',
     WAREHOUSES: '/lookups/warehouses',
     LOT_ADJUSTMENT_TYPES: '/lookups/lot-adjustment-types',
     CUSTOMERS: '/lookups/customers',
@@ -127,7 +127,7 @@ export const API_ENDPOINTS = {
     TAX_RATES: '/lookups/tax-rates',
     DELIVERY_METHODS: '/lookups/delivery-methods',
     SKUS: '/lookups/skus',
-    PRICING_GROUP: '/lookups/pricing-groups',
+    PRICING_GROUPS: '/lookups/pricing-groups',
     PACKAGING_MATERIALS: '/lookups/packaging-materials',
     SKU_CODE_BASES: '/lookups/sku-code-bases',
     PRODUCTS: '/lookups/products',
@@ -137,6 +137,11 @@ export const API_ENDPOINTS = {
     MANUFACTURERS: '/lookups/manufacturers',
     SUPPLIERS: '/lookups/suppliers',
     LOCATION_TYPES: '/lookups/location-types',
+    INVENTORY_STATUS: '/lookups/inventory-status',
+    PRICING_TYPES: '/lookups/pricing-types',
+    WAREHOUSES_TYPES: '/lookups/warehouse-types',
+    LOCATIONS: '/lookups/locations',
+    INVENTORY_ACTION_TYPES: '/lookups/inventory-action-types',
   },
   REPORTS: {
     INVENTORY_ACTIVITY_LOGS: 'reports/inventory-activity-logs',

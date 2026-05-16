@@ -68,20 +68,20 @@ const info = (label, value) => console.log(`     ${label}:`, value);
       results.failed++;
     }
 
-    // ─── 3. getPricingGroupList — pricingTypeId filter ────────────────────────
+    // ─── 3. getPaginatedPricingGroups — pricingTypeId filter ────────────────────────
     try {
-      console.log(`\n${LOG} [getPricingGroupList] pricingTypeId filter`);
-      const result = await getPricingGroupList({
+      console.log(`\n${LOG} [getPaginatedPricingGroups] pricingTypeId filter`);
+      const result = await getPaginatedPricingGroups({
         filters: { pricingTypeId: testPricingTypeId },
         page: 1,
         limit: 5,
       });
       info('Total records', result.pagination.totalRecords);
       console.dir(result.data, { depth: null, colors: true });
-      pass('getPricingGroupList — pricingTypeId filter');
+      pass('getPaginatedPricingGroups — pricingTypeId filter');
       results.passed++;
     } catch (error) {
-      fail('getPricingGroupList — pricingTypeId filter', error);
+      fail('getPaginatedPricingGroups — pricingTypeId filter', error);
       results.failed++;
     }
 

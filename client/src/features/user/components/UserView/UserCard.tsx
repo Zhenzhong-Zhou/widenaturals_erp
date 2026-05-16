@@ -47,7 +47,12 @@ const UserCard: FC<UserCardProps> = ({ user }) => {
       {/* ===============================
        * Card Layout (Vertical)
        * =============================== */}
-      <Stack spacing={2.5} alignItems="center">
+      <Stack
+        spacing={2.5}
+        sx={{
+          alignItems: 'center',
+        }}
+      >
         {/* --------------------------------
          * Avatar
          * -------------------------------- */}
@@ -72,8 +77,17 @@ const UserCard: FC<UserCardProps> = ({ user }) => {
         {/* --------------------------------
          * Name + Job Title
          * -------------------------------- */}
-        <Stack spacing={0.5} alignItems="center">
-          <CustomTypography variant="h6" fontWeight={700} align="center">
+        <Stack
+          spacing={0.5}
+          sx={{
+            alignItems: 'center',
+          }}
+        >
+          <CustomTypography
+            variant="h6"
+            align="center"
+            sx={{ fontWeight: 700 }}
+          >
             {formatLabel(user.fullName)}
           </CustomTypography>
 

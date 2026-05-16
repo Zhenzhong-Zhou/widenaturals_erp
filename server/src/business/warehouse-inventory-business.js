@@ -49,8 +49,8 @@ const {
 } = require('../repositories/user-warehouse-assignment-repository');
 const { applyBatchTypeVisibility } = require('./apply-batch-type-visibility');
 const {
-  PERMISSIONS,
-} = require('../utils/constants/domain/warehouse-inventory');
+  WAREHOUSE_INVENTORY_CONSTANTS,
+} = require('../utils/constants/domain/warehouse-inventory-constants');
 const {
   validateBatchRegistryIds,
 } = require('../repositories/batch-registry-repository');
@@ -89,7 +89,10 @@ const evaluateWarehouseInventoryVisibility = async (user) => {
     // ─── Warehouse scope ───────────────────────────────────────────────────────
 
     const canViewAllWarehouses =
-      isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_WAREHOUSES);
+      isRoot ||
+      permissions.includes(
+        WAREHOUSE_INVENTORY_CONSTANTS.PERMISSIONS.VIEW_ALL_WAREHOUSES
+      );
 
     let assignedWarehouseIds = null;
 
@@ -100,28 +103,41 @@ const evaluateWarehouseInventoryVisibility = async (user) => {
     // ─── Batch-type visibility ─────────────────────────────────────────────────
 
     const canViewAllBatchTypes =
-      isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_BATCH_TYPES);
+      isRoot ||
+      permissions.includes(
+        WAREHOUSE_INVENTORY_CONSTANTS.PERMISSIONS.VIEW_ALL_BATCH_TYPES
+      );
 
     const canViewProductBatches =
       canViewAllBatchTypes ||
-      permissions.includes(PERMISSIONS.VIEW_PRODUCT_INVENTORY);
+      permissions.includes(
+        WAREHOUSE_INVENTORY_CONSTANTS.PERMISSIONS.VIEW_PRODUCT_INVENTORY
+      );
 
     const canViewPackagingBatches =
       canViewAllBatchTypes ||
-      permissions.includes(PERMISSIONS.VIEW_PACKAGING_INVENTORY);
+      permissions.includes(
+        WAREHOUSE_INVENTORY_CONSTANTS.PERMISSIONS.VIEW_PACKAGING_INVENTORY
+      );
 
-    // ─── Field-level visibility ────────────────────────────────────────────────
-
+    // Field-level visibility
     const canViewFinancials =
-      isRoot || permissions.includes(PERMISSIONS.VIEW_INVENTORY_FINANCIALS);
+      isRoot ||
+      permissions.includes(
+        WAREHOUSE_INVENTORY_CONSTANTS.PERMISSIONS.VIEW_INVENTORY_FINANCIALS
+      );
 
     const canViewManufacturer =
       canViewAllBatchTypes ||
-      permissions.includes(PERMISSIONS.VIEW_INVENTORY_MANUFACTURER);
+      permissions.includes(
+        WAREHOUSE_INVENTORY_CONSTANTS.PERMISSIONS.VIEW_INVENTORY_MANUFACTURER
+      );
 
     const canViewSupplier =
       canViewAllBatchTypes ||
-      permissions.includes(PERMISSIONS.VIEW_INVENTORY_SUPPLIER);
+      permissions.includes(
+        WAREHOUSE_INVENTORY_CONSTANTS.PERMISSIONS.VIEW_INVENTORY_SUPPLIER
+      );
 
     return {
       // Warehouse scope
@@ -149,10 +165,7 @@ const evaluateWarehouseInventoryVisibility = async (user) => {
     logSystemException(
       err,
       'Failed to evaluate warehouse inventory visibility',
-      {
-        context,
-        userId: user?.id,
-      }
+      { context, userId: user?.id }
     );
 
     throw AppError.businessError(
@@ -178,7 +191,7 @@ const applyWarehouseInventoryVisibilityRules = (filters, acl) => {
   const adjusted = { ...filters };
 
   // ─── 1. Warehouse scope ──────────────────────────────────────────────────────
-  
+
   if (
     !acl.canViewAllWarehouses &&
     acl.assignedWarehouseIds &&
@@ -209,15 +222,21 @@ const assertWarehouseAccess = async (user) => {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
 
     const canViewAll =
-      isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_WAREHOUSES);
-    
+      isRoot ||
+      permissions.includes(
+        WAREHOUSE_INVENTORY_CONSTANTS.PERMISSIONS.VIEW_ALL_WAREHOUSES
+      );
+
     const canAdjustReserved =
-      isRoot || permissions.includes(PERMISSIONS.FORCE_ADJUST_RESERVED);
-    
+      isRoot ||
+      permissions.includes(
+        WAREHOUSE_INVENTORY_CONSTANTS.PERMISSIONS.FORCE_ADJUST_RESERVED
+      );
+
     if (canViewAll) {
       return { assignedWarehouseIds: null, canViewAll, canAdjustReserved };
     }
-    
+
     const assignedIds = await getWarehouseIdsByUserId(user.id);
     return { assignedWarehouseIds: assignedIds, canViewAll, canAdjustReserved };
   } catch (err) {
@@ -426,7 +445,7 @@ const buildInboundActivityLogEntries = (
  */
 const validateQuantityAdjustments = (updates, canAdjustReserved) => {
   const invalidIndices = [];
-  
+
   updates.forEach((update, index) => {
     if (
       update.warehouseQuantity == null ||
@@ -436,24 +455,24 @@ const validateQuantityAdjustments = (updates, canAdjustReserved) => {
       invalidIndices.push(index);
       return;
     }
-    
+
     const reserved = update.reservedQuantity ?? 0;
     if (reserved < 0 || !Number.isInteger(reserved)) {
       invalidIndices.push(index);
       return;
     }
-    
+
     if (reserved > update.warehouseQuantity) {
       invalidIndices.push(index);
       return;
     }
-    
+
     // Non-admin trying to adjust reserved
     if (!canAdjustReserved && update.reservedQuantity != null) {
       invalidIndices.push(index);
     }
   });
-  
+
   if (invalidIndices.length > 0) {
     throw AppError.validationError(
       'Invalid quantity values. Warehouse quantity must be a non-negative integer and reserved must not exceed warehouse quantity.',

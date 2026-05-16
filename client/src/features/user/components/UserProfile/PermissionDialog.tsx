@@ -1,14 +1,8 @@
 import type { FC } from 'react';
-import { useTheme } from '@mui/material/styles';
-import Box from '@mui/material/Box';
-import Divider from '@mui/material/Divider';
-import Grid from '@mui/material/Grid';
-import List from '@mui/material/List';
-import ListItem from '@mui/material/ListItem';
-import ListItemText from '@mui/material/ListItemText';
-import useMediaQuery from '@mui/material/useMediaQuery';
-import CustomDialog from '@components/common/CustomDialog';
-import CustomTypography from '@components/common/CustomTypography';
+import { Box, Divider, Grid, List, ListItem, ListItemText, useMediaQuery, useTheme } from '@mui/material';
+import { CustomDialog, CustomTypography } from '@components/index';
+
+
 
 interface PermissionDialogProps {
   open: boolean;
@@ -68,7 +62,9 @@ const PermissionDialog: FC<PermissionDialogProps> = ({
                           primary: {
                             variant: 'body2',
                             color: 'text.secondary',
-                            fontFamily: 'monospace',
+                            sx: {
+                              fontFamily: 'monospace',
+                            },
                           },
                         }}
                       />

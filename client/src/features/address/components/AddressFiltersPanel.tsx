@@ -11,7 +11,11 @@ import type {
   LookupPaginationMeta,
 } from '@features/lookup/state';
 import { toISODate } from '@utils/dateTimeUtils';
-import { renderDateField, renderInputField, renderSelectField } from '@utils/filters/filterUtils';
+import {
+  renderDateField,
+  renderInputField,
+  renderSelectField,
+} from '@utils/filters/filterUtils';
 import { CUSTOMER_TYPE_OPTIONS } from '@features/customer/components/SingleCustomerForm';
 
 interface Props {
@@ -44,18 +48,18 @@ const emptyFilters: AddressFilterConditions = {
 };
 
 const AddressFiltersPanel: FC<Props> = ({
-                                          filters,
-                                          onChange,
-                                          onApply,
-                                          onReset,
-                                          customerDropdownOptions,
-                                          fetchCustomerDropdownOptions,
-                                          customerLookupLoading,
-                                          customerLookupError,
-                                          customerLookupMeta,
-                                          fetchParams,
-                                          setFetchParams,
-                                        }) => {
+  filters,
+  onChange,
+  onApply,
+  onReset,
+  customerDropdownOptions,
+  fetchCustomerDropdownOptions,
+  customerLookupLoading,
+  customerLookupError,
+  customerLookupMeta,
+  fetchParams,
+  setFetchParams,
+}) => {
   const textFields: {
     name: keyof AddressFilterConditions;
     label: string;
@@ -104,7 +108,14 @@ const AddressFiltersPanel: FC<Props> = ({
   };
 
   return (
-    <Box mb={2} p={2} border="1px solid #ccc" borderRadius={2}>
+    <Box
+      sx={{
+        mb: 2,
+        p: 2,
+        border: '1px solid #ccc',
+        borderRadius: 2,
+      }}
+    >
       <form onSubmit={handleSubmit(submitFilters)}>
         <Grid container spacing={2} sx={{ minHeight: 160 }}>
           <Grid size={{ xs: 12, sm: 9 }}>
@@ -136,9 +147,14 @@ const AddressFiltersPanel: FC<Props> = ({
               )}
             />
           </Grid>
-          
-          {renderSelectField(control, 'customerType', 'Customer Type', CUSTOMER_TYPE_OPTIONS)}
-          
+
+          {renderSelectField(
+            control,
+            'customerType',
+            'Customer Type',
+            CUSTOMER_TYPE_OPTIONS
+          )}
+
           {textFields.map(({ name, label, placeholder }) =>
             renderInputField(control, name, label, placeholder)
           )}
@@ -147,8 +163,15 @@ const AddressFiltersPanel: FC<Props> = ({
             renderDateField(control, name, label)
           )}
         </Grid>
-
-        <Box display="flex" flexWrap="wrap" gap={2} mt={3}>
+        
+        <Box
+          sx={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 2,
+            mt: 3,
+          }}
+        >
           <CustomButton type="submit" variant="contained">
             Apply
           </CustomButton>

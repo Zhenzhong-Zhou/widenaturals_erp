@@ -6,24 +6,35 @@ import {
   useRef,
   useState,
 } from 'react';
-import Box from '@mui/material/Box';
-import Card from '@mui/material/Card';
-import Grid from '@mui/material/Grid';
-import Divider from '@mui/material/Divider';
-import CustomTypography from '@components/common/CustomTypography';
-import CustomButton from '@components/common/CustomButton';
-import AddressCreateDialog from '@features/address/components/AddressCreateDialog';
-import AddressesTable from '@features/address/components/AddressesTable';
-import NoDataFound from '@components/common/NoDataFound';
-import Loading from '@components/common/Loading';
-import AddressFiltersPanel from '@features/address/components/AddressFiltersPanel';
-import AddressSortControls from '@features/address/components/AddressSortControls';
-import usePaginateAddresses from '@hooks/usePaginateAddresses';
-import type { AddressFilterConditions, AddressSortField } from '../state';
-import { useDialogFocusHandlers, usePaginationHandlers } from '@utils/hooks';
+import {
+  Box,
+  Card,
+  Divider,
+  Grid
+} from '@mui/material';
+import {
+  CustomButton,
+  CustomTypography,
+  Loading,
+  NoDataFound
+} from '@components/index';
+import {
+  AddressCreateDialog,
+  AddressesTable,
+  AddressFiltersPanel,
+  AddressSortControls,
+} from '@features/address/components';
+import {
+  useDialogFocusHandlers,
+  usePaginationHandlers
+} from '@utils/hooks';
+import {
+  useCustomerLookup,
+  usePaginateAddresses
+} from '@hooks/index';
 import type { SortOrder } from '@shared-types/api';
-import useCustomerLookup from '@hooks/useCustomerLookup';
 import type { CustomerLookupQuery } from '@features/lookup/state';
+import type { AddressFilterConditions, AddressSortField } from '@features/address';
 import { applyFiltersAndSorting } from '@utils/query';
 
 const AddressesPage: FC = () => {
@@ -101,14 +112,16 @@ const AddressesPage: FC = () => {
   return (
     <Box sx={{ px: 4, py: 3 }}>
       <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        flexWrap="wrap"
-        mb={3}
-        gap={2}
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          mb: 3,
+          gap: 2,
+        }}
       >
-        <CustomTypography variant="h5" fontWeight={700}>
+        <CustomTypography variant="h5" sx={{ fontWeight: 700 }}>
           Address Management
         </CustomTypography>
         <CustomButton
@@ -174,7 +187,10 @@ const AddressesPage: FC = () => {
           <NoDataFound
             message="No addresses found."
             action={
-              <CustomButton onClick={handleResetFilters} sx={{ mt: 1, minWidth: 160 }}>
+              <CustomButton
+                onClick={handleResetFilters}
+                sx={{ mt: 1, minWidth: 160 }}
+              >
                 Reset Filters
               </CustomButton>
             }

@@ -7,7 +7,7 @@
  * sort fields, and Redux state types.
  */
 
-import {
+import type {
   ApiSuccessResponse,
   GenericAudit,
   PaginatedResponse,
@@ -19,7 +19,7 @@ import {
 } from '@shared-types/api';
 import type { ReduxPaginatedState } from '@shared-types/pagination';
 import type { NullableNumber, NullableString } from '@shared-types/shared';
-import { WarehouseSummaryAlerts } from '@features/warehouseInventory';
+import type { WarehouseSummaryAlerts } from '@features/warehouseInventory';
 
 // =============================================================================
 // Shared Sub-types
@@ -69,7 +69,7 @@ export interface WarehouseRecord {
   warehouseType: WarehouseType | null;
   status: WarehouseStatus;
   summary: WarehouseInventorySummary;
-  alerts: WarehouseSummaryAlerts,
+  alerts: WarehouseSummaryAlerts;
   audit: GenericAudit;
 }
 
@@ -108,23 +108,26 @@ export interface WarehouseDetailRecord {
 // API Response Types
 // =============================================================================
 
-export type PaginatedWarehouseListApiResponse = PaginatedResponse<WarehouseRecord>;
+export type PaginatedWarehouseListApiResponse =
+  PaginatedResponse<WarehouseRecord>;
 
-export type WarehouseDetailApiResponse = ApiSuccessResponse<WarehouseDetailRecord>;
+export type WarehouseDetailApiResponse =
+  ApiSuccessResponse<WarehouseDetailRecord>;
 
 // =============================================================================
 // Filters
 // =============================================================================
 
-export type WarehouseFilters = CreatedUpdatedDateFilter & CreatedUpdatedByFilter & {
-  statusId?: string;
-  isArchived?: boolean;
-  warehouseTypeId?: string;
-  locationId?: string;
-  name?: string;
-  code?: string;
-  keyword?: string;
-};
+export type WarehouseFilters = CreatedUpdatedDateFilter &
+  CreatedUpdatedByFilter & {
+    statusId?: string;
+    isArchived?: boolean;
+    warehouseTypeId?: string;
+    locationId?: string;
+    name?: string;
+    code?: string;
+    keyword?: string;
+  };
 
 // =============================================================================
 // Query Params

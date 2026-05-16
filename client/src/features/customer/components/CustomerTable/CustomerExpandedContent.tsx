@@ -16,21 +16,23 @@ const CustomerExpandedContent: FC<CustomerExpandedContentProps> = ({ row }) => {
     { label: 'Updated At', value: formatDateTime(row.updatedAt) },
     { label: 'Updated By', value: row.updatedBy },
   ];
-  
+
   return (
     <Box sx={{ px: 3, py: 2 }}>
-      <CustomTypography variant="subtitle1" fontWeight={600} gutterBottom>
+      <CustomTypography variant="subtitle1" sx={{ fontWeight: 600 }} gutterBottom>
         Customer Details
       </CustomTypography>
-      
+
       <Grid container spacing={2}>
         {fields.map(({ label, value }, idx) => (
           <Grid key={idx} size={{ xs: 12, sm: 6 }}>
             <Box>
               <CustomTypography
                 variant="body2"
-                fontWeight={600}
-                sx={{ color: 'text.primary' }}
+                sx={{
+                  fontWeight: 600,
+                  color: 'text.primary'
+              }}
               >
                 {label}:
               </CustomTypography>

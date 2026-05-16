@@ -15,24 +15,22 @@ interface PricingTypeExpandedContentProps {
 }
 
 const PricingTypeExpandedContent: FC<PricingTypeExpandedContentProps> = ({
-                                                                           row,
-                                                                         }) => {
+  row,
+}) => {
   return (
     <Box sx={{ px: 3, py: 2 }}>
       <CustomTypography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
         Pricing Type Details
       </CustomTypography>
-      
+
       {/* --------------------------------------------------
        * Description
        * -------------------------------------------------- */}
       <DetailsSection
         sectionTitle="Description"
-        fields={[
-          { label: 'Description', value: row.description ?? '—' },
-        ]}
+        fields={[{ label: 'Description', value: row.description ?? '—' }]}
       />
-      
+
       {/* --------------------------------------------------
        * Audit
        * -------------------------------------------------- */}
@@ -46,7 +44,7 @@ const PricingTypeExpandedContent: FC<PricingTypeExpandedContentProps> = ({
           },
           {
             label: 'Created By',
-            value: row.audit.createdBy?.name ?? '—' ,
+            value: row.audit.createdBy?.name ?? '—',
           },
           {
             label: 'Last Updated At',

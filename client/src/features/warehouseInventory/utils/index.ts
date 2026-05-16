@@ -6,3 +6,7 @@ export {
   isExpired,
   isExpiringSoon,
 } from './inventoryStatus';
+export {
+  detailRecordToUpdateStatusItem,
+  flattenedToUpdateStatusItem,
+} from './updateStatusItemUtils';

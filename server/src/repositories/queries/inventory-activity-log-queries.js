@@ -1,18 +1,29 @@
 /**
  * @file inventory-activity-log-queries.js
- * @description SQL column configuration for inventory-activity-log-repository.js.
+ * @description SQL configuration and query builder for inventory-activity-log-repository.js.
  *
  * Exports:
- *  - INVENTORY_ACTIVITY_LOG_COLUMNS        — ordered column list for activity log insert
- *  - INVENTORY_ACTIVITY_AUDIT_LOG_COLUMNS  — ordered column list for audit log insert
- *  - INVENTORY_ACTIVITY_LOG_CONFLICT_COLUMNS      — empty — append-only
- *  - INVENTORY_ACTIVITY_AUDIT_WAREHOUSE_CONFLICT_COLUMNS — conflict target for warehouse-scope audit
- *  - INVENTORY_ACTIVITY_AUDIT_LOCATION_CONFLICT_COLUMNS  — conflict target for location-scope audit
+ *  - INVENTORY_ACTIVITY_LOG_TABLE              — base table name
+ *  - INVENTORY_ACTIVITY_LOG_TABLE_WITH_ALIAS   — table name with alias `ial` for joins
+ *  - INVENTORY_ACTIVITY_LOG_INSERT_COLUMNS     — ordered column list for activity log insert
+ *  - INVENTORY_ACTIVITY_LOG_JOINS              — JOIN clauses for the paginated list query
+ *  - INVENTORY_ACTIVITY_LOG_SORT_WHITELIST     — Set of sortable raw columns for paginateQuery
+ *  - buildInventoryActivityLogPaginatedQuery   — builds the SELECT SQL given a composed WHERE clause
  */
 
 'use strict';
 
 const { SORTABLE_FIELDS } = require('../../utils/sort-field-mapping');
+
+// ── Table identifiers ───────────────────────────────────────────────
+
+const INVENTORY_ACTIVITY_LOG_TABLE = 'inventory_activity_logs';
+
+const INVENTORY_ACTIVITY_LOG_ALIAS = 'ial';
+
+const INVENTORY_ACTIVITY_LOG_TABLE_WITH_ALIAS = `${INVENTORY_ACTIVITY_LOG_TABLE} ${INVENTORY_ACTIVITY_LOG_ALIAS}`;
+
+// ── Insert columns ──────────────────────────────────────────────────
 
 const INVENTORY_ACTIVITY_LOG_INSERT_COLUMNS = [
   'warehouse_inventory_id',
@@ -33,8 +44,6 @@ const INVENTORY_ACTIVITY_LOG_INSERT_COLUMNS = [
 ];
 
 // ── Paginated list ──────────────────────────────────────────────────
-
-const INVENTORY_ACTIVITY_LOG_TABLE = 'inventory_activity_log ial';
 
 const INVENTORY_ACTIVITY_LOG_JOINS = [
   'JOIN warehouse_inventory wi             ON wi.id  = ial.warehouse_inventory_id',
@@ -93,14 +102,15 @@ const buildInventoryActivityLogPaginatedQuery = (whereClause) => `
     u_performed.firstname         AS performed_by_firstname,
     u_performed.lastname          AS performed_by_lastname,
     wi.warehouse_id
-  FROM ${INVENTORY_ACTIVITY_LOG_TABLE}
+  FROM ${INVENTORY_ACTIVITY_LOG_TABLE_WITH_ALIAS}
   ${_INVENTORY_ACTIVITY_LOG_JOINS_SQL}
   WHERE ${whereClause}
 `;
 
 module.exports = {
-  INVENTORY_ACTIVITY_LOG_INSERT_COLUMNS,
   INVENTORY_ACTIVITY_LOG_TABLE,
+  INVENTORY_ACTIVITY_LOG_INSERT_COLUMNS,
+  INVENTORY_ACTIVITY_LOG_TABLE_WITH_ALIAS,
   INVENTORY_ACTIVITY_LOG_JOINS,
   INVENTORY_ACTIVITY_LOG_SORT_WHITELIST,
   buildInventoryActivityLogPaginatedQuery,

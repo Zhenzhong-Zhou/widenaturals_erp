@@ -30,15 +30,15 @@ const pricingTypeSortOptions: {
   { label: 'Name', value: 'pricingTypeName' },
   { label: 'Code', value: 'pricingTypeCode' },
   { label: 'Slug', value: 'pricingTypeSlug' },
-  
+
   // ---- Status ----
   { label: 'Status', value: 'statusName' },
   { label: 'Status Date', value: 'statusDate' },
-  
+
   // ---- Audit ----
   { label: 'Created At', value: 'createdAt' },
   { label: 'Last Updated At', value: 'updatedAt' },
-  
+
   // ---- Default fallback ----
   { label: 'Default (Natural Sort)', value: 'defaultNaturalSort' },
 ];
@@ -50,11 +50,11 @@ const pricingTypeSortOptions: {
  * Keeps pricing type–specific sort semantics isolated and explicit.
  */
 const PricingTypeSortControls: FC<PricingTypeSortControlsProps> = ({
-                                                                     sortBy,
-                                                                     sortOrder,
-                                                                     onSortByChange,
-                                                                     onSortOrderChange,
-                                                                   }) => {
+  sortBy,
+  sortOrder,
+  onSortByChange,
+  onSortOrderChange,
+}) => {
   return (
     <SortControls
       sortBy={sortBy}

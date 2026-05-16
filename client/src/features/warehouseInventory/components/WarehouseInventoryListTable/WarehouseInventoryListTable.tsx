@@ -1,5 +1,11 @@
-import { Suspense, useCallback, useMemo, useState } from 'react';
-import Box from '@mui/material/Box';
+import {
+  startTransition,
+  Suspense,
+  useCallback,
+  useMemo,
+  useState,
+} from 'react';
+import { Alert, Box, Snackbar } from '@mui/material';
 import {
   CustomButton,
   CustomTable,
@@ -11,6 +17,11 @@ import {
   getWarehouseInventoryColumns,
   WarehouseInventoryExpandedContent,
 } from '@features/warehouseInventory/components/WarehouseInventoryListTable';
+import {
+  AdjustQuantitiesModal,
+  UpdateStatusModal,
+  CreateInventoryModal,
+} from '@features/warehouseInventory/components/operations';
 
 interface WarehouseInventoryListTableProps {
   data: FlattenedWarehouseInventory[];
@@ -19,13 +30,23 @@ interface WarehouseInventoryListTableProps {
   rowsPerPage: number;
   totalPages: number;
   totalRecords: number;
+  warehouseId: string;
   onPageChange: (page: number) => void;
   onRowsPerPageChange: (rowsPerPage: number) => void;
   onRefresh: () => void;
+  // Selection — controlled from page
+  selectedRowIds: string[];
+  selectedItems: FlattenedWarehouseInventory[];
+  onSelectionChange: (ids: string[]) => void;
+  // Permissions
   canViewDetail?: boolean;
   canAdjust?: boolean;
   canUpdateStatus?: boolean;
+  canCreate?: boolean;
+  canAdjustReserved?: boolean;
 }
+
+const SELECTION_LIMIT = 25;
 
 /**
  * Warehouse Inventory List Table Component
@@ -36,44 +57,97 @@ interface WarehouseInventoryListTableProps {
  * for adjust / update-status actions.
  */
 const WarehouseInventoryListTable = ({
-                                       data,
-                                       loading,
-                                       page,
-                                       totalPages,
-                                       totalRecords,
-                                       rowsPerPage,
-                                       onPageChange,
-                                       onRowsPerPageChange,
-                                       onRefresh,
-                                       canViewDetail = false,
-                                       canAdjust = false,
-                                       canUpdateStatus = false,
-                                     }: WarehouseInventoryListTableProps) => {
-  // -------------------------------------------------------
-  // Drill-down state
-  // -------------------------------------------------------
+  data,
+  loading,
+  page,
+  totalPages,
+  totalRecords,
+  rowsPerPage,
+  warehouseId,
+  onPageChange,
+  onRowsPerPageChange,
+  onRefresh,
+  selectedRowIds,
+  selectedItems,
+  onSelectionChange,
+  canViewDetail = false,
+  canAdjust = false,
+  canUpdateStatus = false,
+  canCreate = false,
+  canAdjustReserved = false,
+}: WarehouseInventoryListTableProps) => {
+  // ── Drill-down ────────────────────────────────────────────────────────────
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
-  
   const handleDrillDownToggle = (rowId: string) => {
     setExpandedRowId((prev) => (prev === rowId ? null : rowId));
   };
-  
-  // -------------------------------------------------------
-  // Memoize Column Definitions
-  // -------------------------------------------------------
+
+  // ── Modal state ───────────────────────────────────────────────────────────
+  const [createOpen, setCreateOpen] = useState(false);
+  const [adjustOpen, setAdjustOpen] = useState(false);
+  const [updateStatusOpen, setUpdateStatusOpen] = useState(false);
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    message: string;
+    severity: 'success' | 'error';
+  } | null>(null);
+  const [singleActionRow, setSingleActionRow] =
+    useState<FlattenedWarehouseInventory | null>(null);
+
+  const handleRowAdjust = useCallback((row: FlattenedWarehouseInventory) => {
+    setSingleActionRow(row);
+    startTransition(() => setAdjustOpen(true));
+  }, []);
+
+  const handleRowUpdateStatus = useCallback(
+    (row: FlattenedWarehouseInventory) => {
+      setSingleActionRow(row);
+      startTransition(() => setUpdateStatusOpen(true));
+    },
+    []
+  );
+
+  const modalItems = useMemo<FlattenedWarehouseInventory[]>(
+    () => (singleActionRow ? [singleActionRow] : selectedItems),
+    [singleActionRow, selectedItems]
+  );
+
+  const handleAdjustClose = useCallback(() => {
+    setAdjustOpen(false);
+    setSingleActionRow(null);
+  }, []);
+
+  const handleUpdateStatusClose = useCallback(() => {
+    setUpdateStatusOpen(false);
+    setSingleActionRow(null);
+  }, []);
+
+  const handleSuccess = useCallback(
+    (message?: string) => {
+      setSnackbar({
+        open: true,
+        message: message || 'Operation completed',
+        severity: 'success',
+      });
+      setSingleActionRow(null);
+      onSelectionChange([]);
+      onRefresh();
+    },
+    [onRefresh, onSelectionChange]
+  );
+
+  // ── Columns ───────────────────────────────────────────────────────────────
   const columns = useMemo(
     () =>
-      getWarehouseInventoryColumns({
+      getWarehouseInventoryColumns(warehouseId, {
         canViewDetail,
         expandedRowId,
         handleDrillDownToggle,
       }),
     [canViewDetail, expandedRowId]
   );
-  
-  // -------------------------------------------------------
-  // Expanded Row Content
-  // -------------------------------------------------------
+
+  // ── Expanded row ──────────────────────────────────────────────────────────
   const renderExpandedContent = useCallback(
     (row: FlattenedWarehouseInventory) => (
       <Suspense
@@ -90,28 +164,84 @@ const WarehouseInventoryListTable = ({
           row={row}
           canAdjust={canAdjust}
           canUpdateStatus={canUpdateStatus}
+          onAdjustQuantity={handleRowAdjust}
+          onUpdateStatus={handleRowUpdateStatus}
         />
       </Suspense>
     ),
-    [canAdjust, canUpdateStatus]
+    [canAdjust, canUpdateStatus, handleRowAdjust, handleRowUpdateStatus]
   );
-  
+
+  const hasSelection = selectedRowIds.length > 0;
+
   return (
     <Box>
-      {/* ----------------------------------------- */}
-      {/* TABLE HEADER                              */}
-      {/* ----------------------------------------- */}
+      {/* ── Table header ─────────────────────────────────────────── */}
       <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        mb={2}
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          mb: 2,
+        }}
       >
-        <CustomTypography variant="h6" fontWeight={600}>
+        <CustomTypography variant="h6" sx={{ fontWeight: 600 }}>
           Inventory
+          
+          {hasSelection && (
+            <CustomTypography
+              component="span"
+              variant="body2"
+              color="text.secondary"
+              sx={{ ml: 1 }}
+            >
+              ({selectedRowIds.length} selected)
+            </CustomTypography>
+          )}
         </CustomTypography>
         
-        <Box display="flex" gap={2} alignItems="center">
+        <Box
+          sx={{
+            display: 'flex',
+            gap: 1,
+            alignItems: 'center',
+          }}
+        >
+          {hasSelection && canUpdateStatus && (
+            <CustomButton
+              variant="outlined"
+              onClick={() => startTransition(() => setUpdateStatusOpen(true))}
+            >
+              {selectedRowIds.length === 1
+                ? 'Update Status'
+                : 'Update Statuses'}
+            </CustomButton>
+          )}
+          {hasSelection &&
+            canAdjust &&
+            selectedRowIds.length <= SELECTION_LIMIT && (
+              <CustomButton
+                variant="outlined"
+                onClick={() => startTransition(() => setAdjustOpen(true))}
+              >
+                {selectedRowIds.length === 1
+                  ? 'Adjust Quantity'
+                  : 'Adjust Quantities'}
+              </CustomButton>
+            )}
+          {hasSelection && selectedRowIds.length > SELECTION_LIMIT && (
+            <CustomTypography variant="caption" color="text.secondary">
+              Reduce selection to {SELECTION_LIMIT} or fewer to bulk-adjust.
+            </CustomTypography>
+          )}
+          {canCreate && (
+            <CustomButton
+              variant="contained"
+              onClick={() => startTransition(() => setCreateOpen(true))}
+            >
+              + Add Inventory
+            </CustomButton>
+          )}
           <CustomButton
             onClick={onRefresh}
             variant="outlined"
@@ -121,10 +251,8 @@ const WarehouseInventoryListTable = ({
           </CustomButton>
         </Box>
       </Box>
-      
-      {/* ----------------------------------------- */}
-      {/* MAIN TABLE                                */}
-      {/* ----------------------------------------- */}
+
+      {/* ── Main table ───────────────────────────────────────────── */}
       <CustomTable
         data={data}
         columns={columns}
@@ -141,7 +269,52 @@ const WarehouseInventoryListTable = ({
         expandedContent={renderExpandedContent}
         getRowId={(row) => row.id}
         emptyMessage="No inventory records found"
+        showCheckboxes={canAdjust || canUpdateStatus}
+        selectedRowIds={selectedRowIds}
+        onSelectionChange={onSelectionChange}
       />
+
+      {/* ── Modals ───────────────────────────────────────────────── */}
+      {canCreate && (
+        <CreateInventoryModal
+          open={createOpen}
+          onClose={() => setCreateOpen(false)}
+          warehouseId={warehouseId}
+          onSuccess={handleSuccess}
+        />
+      )}
+
+      {canAdjust && (
+        <AdjustQuantitiesModal
+          open={adjustOpen}
+          onClose={handleAdjustClose}
+          warehouseId={warehouseId}
+          selectedItems={modalItems}
+          canAdjustReserved={canAdjustReserved}
+          onSuccess={handleSuccess}
+        />
+      )}
+
+      {canUpdateStatus && (
+        <UpdateStatusModal
+          open={updateStatusOpen}
+          onClose={handleUpdateStatusClose}
+          warehouseId={warehouseId}
+          selectedItems={modalItems}
+          onSuccess={handleSuccess}
+        />
+      )}
+
+      <Snackbar
+        open={snackbar?.open ?? false}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert severity={snackbar?.severity ?? 'info'} variant="filled">
+          {snackbar?.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

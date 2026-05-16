@@ -37,22 +37,33 @@ const DashboardWarehouseAlerts: FC<Props> = ({ warehouses }) => {
       { lowStock: 0, expiringSoon: 0, expired: 0 }
     );
   }, [warehouses]);
-  
+
   // If no alerts at all, render nothing — let WarehouseInventoryAlertSummary handle the empty case
-  if (!aggregated || (aggregated.lowStock === 0 && aggregated.expiringSoon === 0 && aggregated.expired === 0)) {
+  if (
+    !aggregated ||
+    (aggregated.lowStock === 0 &&
+      aggregated.expiringSoon === 0 &&
+      aggregated.expired === 0)
+  ) {
     return null;
   }
-  
+
   const scopeLabel = useMemo(() => {
     if (!warehouses || warehouses.length === 0) return null;
     const count = warehouses.length;
     if (count === 1) return `For ${warehouses[0]?.name ?? 'this warehouse'}`;
     return `Across ${count} warehouses`;
   }, [warehouses]);
-  
+
   return (
     <Box>
-      <CustomTypography variant="subtitle1" fontWeight={700} mb={2}>
+      <CustomTypography
+        variant="subtitle1"
+        sx={{
+          fontWeight: 700,
+          mb: 2,
+        }}
+      >
         Warehouse Alerts
       </CustomTypography>
       <CustomTypography variant="caption" color="text.secondary">

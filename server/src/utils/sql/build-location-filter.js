@@ -1,9 +1,13 @@
 /**
  * @file build-location-filter.js
- * @description SQL WHERE clause builder for location queries.
+ * @description SQL WHERE clause builder for locations queries.
  *
  * Pure function — no DB access, no logging, no side effects on inputs.
- * Joi middleware validates inputs upstream; no defensive try/catch needed here.
+ *
+ * Status and archive enforcement is NOT defaulted here. Restricted
+ * callers are pinned by the business resolver (statusId pinned to
+ * active, includeArchived forced false); this builder applies WHERE
+ * clauses only when the relevant inputs are explicitly set.
  *
  * Exports:
  *  - buildLocationFilter
@@ -15,46 +19,24 @@ const {
   normalizeDateRangeFilters,
   applyDateRangeConditions,
 } = require('./date-range-utils');
-
-// ─── Filter Builder ───────────────────────────────────────────────────────────
+const { applyAuditConditions } = require('./build-audit-filter');
 
 /**
- * Builds a parameterised SQL WHERE clause for location queries.
+ * Builds a parameterised SQL WHERE clause for locations queries.
  *
- * Normalizes date range filters to UTC ISO boundaries before applying conditions.
- * Archived locations are excluded by default — pass includeArchived: true to include them.
+ * Column anchor:
+ *  l. — locations
  *
- * Status resolution priority:
- *  1. statusIds (array)   — explicit multi-status filter
- *  2. status_id (scalar)  — explicit single-status filter
- *  3. _activeStatusId     — server-injected fallback for visibility enforcement
+ * Status priority:
+ *  - statusIds (array) takes precedence over statusId (scalar).
  *
- * Location type resolution follows the same priority pattern:
- *  1. locationTypeIds (array) — multiple type filter
- *  2. locationTypeId (scalar) — single type filter
+ * Location type priority:
+ *  - locationTypeIds (array) takes precedence over locationTypeId (scalar).
  *
- * @param {Object}   [filters={}]
- * @param {boolean}  [filters.includeArchived]     - If true, include archived locations.
- * @param {string[]} [filters.statusIds]           - Filter by status UUIDs (array takes priority).
- * @param {string}   [filters.status_id]           - Filter by status UUID (scalar fallback).
- * @param {string}   [filters._activeStatusId]     - Server-injected status fallback.
- * @param {string[]} [filters.locationTypeIds]     - Filter by location type UUIDs (array takes priority).
- * @param {string}   [filters.locationTypeId]      - Filter by location type UUID (scalar fallback).
- * @param {string}   [filters.city]                - ILIKE filter on city.
- * @param {string}   [filters.province_or_state]   - ILIKE filter on province or state.
- * @param {string}   [filters.country]             - ILIKE filter on country.
- * @param {string}   [filters.createdBy]           - Filter by creator user UUID.
- * @param {string}   [filters.updatedBy]           - Filter by updater user UUID.
- * @param {string}   [filters.createdAfter]        - Lower bound for created_at (inclusive, UTC).
- * @param {string}   [filters.createdBefore]       - Upper bound for created_at (exclusive, UTC).
- * @param {string}   [filters.updatedAfter]        - Lower bound for updated_at (inclusive, UTC).
- * @param {string}   [filters.updatedBefore]       - Upper bound for updated_at (exclusive, UTC).
- * @param {string}   [filters.keyword]             - ILIKE search across name, address, city, region, postal, country.
- *
- * @returns {{ whereClause: string, params: Array }} Parameterised WHERE clause and bound values.
+ * @param {LocationFilters} [filters={}]
+ * @returns {{ whereClause: string, params: Array }}
  */
 const buildLocationFilter = (filters = {}) => {
-  // Normalize all date ranges — handles both raw strings and Joi-coerced Date objects.
   const normalizedFilters = normalizeDateRangeFilters(
     normalizeDateRangeFilters(filters, 'createdAfter', 'createdBefore'),
     'updatedAfter',
@@ -65,84 +47,70 @@ const buildLocationFilter = (filters = {}) => {
   const params = [];
   const paramIndexRef = { value: 1 };
 
-  // ─── Archive ─────────────────────────────────────────────────────────────────
+  const {
+    includeArchived,
+    statusId,
+    statusIds,
+    locationTypeId,
+    locationTypeIds,
+    city,
+    provinceOrState,
+    country,
+    keyword,
+  } = normalizedFilters;
 
-  // Exclude archived by default — caller must explicitly opt in.
-  if (!normalizedFilters.includeArchived) {
+  // ─── Archive ───────────────────────────────────────────────────────────────
+
+  if (!includeArchived) {
     conditions.push(`l.is_archived = false`);
   }
 
-  // ─── Status ──────────────────────────────────────────────────────────────────
+  // ─── Status ────────────────────────────────────────────────────────────────
 
-  // Priority: statusIds (array) → status_id (scalar) → _activeStatusId (server fallback)
-  const statusFilterValue = normalizedFilters.statusIds?.length
-    ? normalizedFilters.statusIds
-    : normalizedFilters.status_id
-      ? normalizedFilters.status_id
-      : normalizedFilters._activeStatusId;
+  const statusValue = statusIds?.length ? statusIds : statusId;
 
-  if (statusFilterValue != null) {
+  if (statusValue !== null && statusValue !== undefined) {
     conditions.push(
-      Array.isArray(statusFilterValue)
-        ? `l.status_id = ANY($${paramIndexRef.value}::uuid[])`
-        : `l.status_id = $${paramIndexRef.value}`
+      Array.isArray(statusValue)
+        ? `l.status_id = ANY($${paramIndexRef.value++}::uuid[])`
+        : `l.status_id = $${paramIndexRef.value++}`
     );
-    params.push(statusFilterValue);
-    paramIndexRef.value++;
+    params.push(statusValue);
   }
 
-  // ─── Location Type ────────────────────────────────────────────────────────────
+  // ─── Location type ─────────────────────────────────────────────────────────
 
-  // Priority: locationTypeIds (array) → locationTypeId (scalar)
-  const locationTypeFilterValue = normalizedFilters.locationTypeIds?.length
-    ? normalizedFilters.locationTypeIds
-    : normalizedFilters.locationTypeId;
+  const locationTypeValue = locationTypeIds?.length
+    ? locationTypeIds
+    : locationTypeId;
 
-  if (locationTypeFilterValue != null) {
+  if (locationTypeValue !== null && locationTypeValue !== undefined) {
     conditions.push(
-      Array.isArray(locationTypeFilterValue)
-        ? `l.location_type_id = ANY($${paramIndexRef.value}::uuid[])`
-        : `l.location_type_id = $${paramIndexRef.value}`
+      Array.isArray(locationTypeValue)
+        ? `l.location_type_id = ANY($${paramIndexRef.value++}::uuid[])`
+        : `l.location_type_id = $${paramIndexRef.value++}`
     );
-    params.push(locationTypeFilterValue);
-    paramIndexRef.value++;
+    params.push(locationTypeValue);
   }
 
-  // ─── Geography ───────────────────────────────────────────────────────────────
+  // ─── Geography ─────────────────────────────────────────────────────────────
 
-  if (normalizedFilters.city) {
-    conditions.push(`l.city ILIKE $${paramIndexRef.value}`);
-    params.push(`%${normalizedFilters.city}%`);
-    paramIndexRef.value++;
+  if (city) {
+    conditions.push(`l.city ILIKE $${paramIndexRef.value++}`);
+    params.push(`%${city}%`);
   }
 
-  if (normalizedFilters.province_or_state) {
-    conditions.push(`l.province_or_state ILIKE $${paramIndexRef.value}`);
-    params.push(`%${normalizedFilters.province_or_state}%`);
-    paramIndexRef.value++;
+  if (provinceOrState) {
+    conditions.push(`l.province_or_state ILIKE $${paramIndexRef.value++}`);
+    params.push(`%${provinceOrState}%`);
   }
 
-  if (normalizedFilters.country) {
-    conditions.push(`l.country ILIKE $${paramIndexRef.value}`);
-    params.push(`%${normalizedFilters.country}%`);
-    paramIndexRef.value++;
+  if (country) {
+    conditions.push(`l.country ILIKE $${paramIndexRef.value++}`);
+    params.push(`%${country}%`);
   }
 
-  // ─── Audit ──────────────────────────────────────────────────────────────────
-
-  if (normalizedFilters.createdBy) {
-    conditions.push(`l.created_by = $${paramIndexRef.value}`);
-    params.push(normalizedFilters.createdBy);
-    paramIndexRef.value++;
-  }
-
-  if (normalizedFilters.updatedBy) {
-    conditions.push(`l.updated_by = $${paramIndexRef.value}`);
-    params.push(normalizedFilters.updatedBy);
-    paramIndexRef.value++;
-  }
-
-  // ─── Date Range ─────────────────────────────────────────────────────────────
+  // ─── Audit ─────────────────────────────────────────────────────────────────
 
   applyDateRangeConditions({
     conditions,
@@ -162,10 +130,18 @@ const buildLocationFilter = (filters = {}) => {
     paramIndexRef,
   });
 
-  // ─── Keyword (must remain last) ──────────────────────────────────────────────
+  applyAuditConditions(
+    conditions,
+    params,
+    paramIndexRef,
+    normalizedFilters,
+    'l'
+  );
 
-  // Same $N referenced across all search fields — single param covers all columns.
-  if (normalizedFilters.keyword) {
+  // ─── Keyword ───────────────────────────────────────────────────────────────
+
+  if (keyword) {
+    const idx = paramIndexRef.value++;
     const searchFields = [
       'l.name',
       'l.address_line1',
@@ -175,14 +151,10 @@ const buildLocationFilter = (filters = {}) => {
       'l.postal_code',
       'l.country',
     ];
-
     conditions.push(
-      `(${searchFields
-        .map((f) => `${f} ILIKE $${paramIndexRef.value}`)
-        .join(' OR ')})`
+      `(${searchFields.map((f) => `${f} ILIKE $${idx}`).join(' OR ')})`
     );
-    params.push(`%${normalizedFilters.keyword}%`);
-    paramIndexRef.value++;
+    params.push(`%${keyword}%`);
   }
 
   return {

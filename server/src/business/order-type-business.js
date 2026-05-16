@@ -125,35 +125,74 @@ const evaluateOrderTypeLookupAccessControl = async (
 };
 
 /**
- * Applies ACL-driven visibility rules to an order type lookup filter object.
+ * Applies ACL-driven and context-driven visibility rules to an order type lookup filter object.
  *
  * Rules applied:
- * - Category restriction: if the user lacks full category access, restrict to
- *   their accessible categories. Throws if they have none.
- * - Keyword restriction: injects `_restrictKeywordToValidOnly` for unpermitted users.
- * - Status restriction: removes `statusId` and pins to `_activeStatusId` for
- *   users who cannot view all statuses.
+ * - Category scope:
+ *   - If `options.categoryScope` is provided, it is treated as the business-context scope
+ *     for the lookup, such as `sales` for the Sales Order form.
+ *   - Otherwise, `filters.category` is treated as the requested category scope.
+ *   - If the user lacks full category access, the requested category is validated against
+ *     `access.accessibleCategories` instead of being overwritten by all accessible categories.
+ *   - If no category is requested and the user lacks full category access, the lookup is
+ *     restricted to `access.accessibleCategories`.
+ * - Keyword restriction:
+ *   - Injects `_restrictKeywordToValidOnly` when keyword searching is requested by a user
+ *     who cannot search all order type keywords.
+ * - Status restriction:
+ *   - Removes client-provided `statusId` and pins the lookup to `_activeStatusId` for users
+ *     who cannot view all order type statuses.
  *
  * @param {object} filters - Base filter object from the request.
  * @param {OrderTypeLookupAcl} access - Resolved ACL from `evaluateOrderTypeLookupAccessControl`.
- * @param {object} [options={}]
- * @param {string} [options.activeStatusId] - UUID of the active status record.
+ * @param {object} [options={}] - Additional service-level visibility options.
+ * @param {string} [options.activeStatusId] - UUID of the active order type status record.
+ * @param {string|string[]} [options.categoryScope] - Business-context category scope forced by the caller.
  * @returns {object} Adjusted copy of `filters` with visibility rules applied.
- * @throws {AppError} authorizationError if the user has no accessible categories.
+ * @throws {AppError} authorizationError if the user has no accessible categories or cannot access the requested category.
  */
 const enforceOrderTypeLookupVisibilityRules = (
-  filters,
+  filters = {},
   access,
   options = {}
 ) => {
   const adjusted = { ...filters };
 
-  if (access.accessibleCategories && !access.canViewAllCategories) {
-    if (access.accessibleCategories.length === 0) {
+  const requestedCategory = options.categoryScope ?? filters.category;
+
+  if (requestedCategory) {
+    const requestedCategories = Array.isArray(requestedCategory)
+      ? requestedCategory
+      : [requestedCategory];
+
+    if (!access.canViewAllCategories) {
+      const allowedCategories = requestedCategories.filter((category) =>
+        access.accessibleCategories?.includes(category)
+      );
+
+      if (allowedCategories.length === 0) {
+        throw AppError.authorizationError(
+          'User is not authorized to view the requested order category.'
+        );
+      }
+
+      adjusted.category =
+        allowedCategories.length === 1
+          ? allowedCategories[0]
+          : allowedCategories;
+    } else {
+      adjusted.category =
+        requestedCategories.length === 1
+          ? requestedCategories[0]
+          : requestedCategories;
+    }
+  } else if (!access.canViewAllCategories) {
+    if (!access.accessibleCategories?.length) {
       throw AppError.authorizationError(
         'User is not authorized to view any order categories.'
       );
     }
+
     adjusted.category = access.accessibleCategories;
   }
 
@@ -163,6 +202,7 @@ const enforceOrderTypeLookupVisibilityRules = (
 
   if (!access.canViewAllStatuses) {
     delete adjusted.statusId;
+
     if (options.activeStatusId) {
       adjusted._activeStatusId = options.activeStatusId;
     }

@@ -124,18 +124,20 @@ export const fetchPaginatedInventoryAllocationsThunk = createAsyncThunk<
   { rejectValue: UiErrorPayload }
 >(
   'inventoryAllocations/fetchPaginated',
-    async (params, { rejectWithValue }) => {
-      try {
-        const response =
-          await inventoryAllocationService.fetchPaginatedInventoryAllocations(params);
-        return {
-          ...response,
-          data: response.data.map(flattenInventoryAllocationSummary),
-        };
-      } catch (error: unknown) {
-        return rejectWithValue(extractUiErrorPayload(error));
-      }
+  async (params, { rejectWithValue }) => {
+    try {
+      const response =
+        await inventoryAllocationService.fetchPaginatedInventoryAllocations(
+          params
+        );
+      return {
+        ...response,
+        data: response.data.map(flattenInventoryAllocationSummary),
+      };
+    } catch (error: unknown) {
+      return rejectWithValue(extractUiErrorPayload(error));
     }
+  }
 );
 
 /**

@@ -4,13 +4,16 @@ import {
   createLookupParams,
 } from '@features/lookup/utils/lookupUtils';
 import { useStatusSearchHandlers } from '@features/lookup/hooks';
-import { formatLabel } from '@utils/textUtils';
 import type {
   StatusLookupParams,
   LookupPaginationMeta,
   StatusLookupOption,
 } from '@features/lookup/state';
 import type { FieldConfig } from '@components/common/CustomForm';
+import {
+  formatOptionLabel,
+  formatOptionLabels,
+} from '@features/lookup/utils/formatOptionLabels';
 
 export interface StatusLookupController {
   options: StatusLookupOption[];
@@ -41,23 +44,22 @@ const useStatusFieldController = ({
 }: UseStatusFieldControllerArgs) => {
   const { options, loading, error, meta, fetch, reset } = lookup;
 
-  const formattedStatusOptions = useMemo(() => {
-    const formatted = options.map((opt) => ({
-      ...opt,
-      label: formatLabel(opt.label),
-    }));
+  const formattedStatusOptions = useMemo<StatusLookupOption[]>(() => {
+    const formatted = formatOptionLabels(options);
 
     // ensure current value exists in list
     if (
       currentStatusId &&
       currentStatusName &&
-      !formatted.some((o) => o.value === currentStatusId)
+      !formatted.some((option) => option.value === currentStatusId)
     ) {
-      formatted.unshift({
+      const currentStatusOption: StatusLookupOption = {
         value: currentStatusId,
-        label: formatLabel(currentStatusName),
+        label: currentStatusName,
         isActive: true,
-      });
+      };
+
+      formatted.unshift(formatOptionLabel(currentStatusOption));
     }
 
     return formatted;

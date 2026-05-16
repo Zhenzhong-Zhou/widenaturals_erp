@@ -1,9 +1,12 @@
 import type { FC } from 'react';
-import Box from '@mui/material/Box';
-import CircularProgress from '@mui/material/CircularProgress';
-import LinearProgress from '@mui/material/LinearProgress';
-import { alpha, useTheme } from '@mui/material';
 import type { Theme, SxProps } from '@mui/material/styles';
+import {
+  alpha,
+  Box,
+  CircularProgress,
+  LinearProgress,
+  useTheme
+} from '@mui/material';
 
 interface LoadingProps {
   /** Size for circular or dotted loaders */
@@ -119,8 +122,8 @@ const Loading: FC<LoadingProps> = ({
 
       {message && (
         <Box
-          mt={2}
           sx={{
+            mt: 2,
             fontSize: theme.typography.body2.fontSize,
             color: theme.palette.text.secondary,
             textAlign: 'center',

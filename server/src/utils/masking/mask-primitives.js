@@ -24,7 +24,7 @@ const EMAIL_MASK_RE = /(?<=.{2})([^@]+)(?=@)/;
  * @returns {*} Masked email string, or the original value if not a non-empty string.
  */
 const maskEmail = (val) => {
-  if (val == null || typeof val !== 'string') return val;
+  if (val === null || typeof val !== 'string') return val;
   return val.replace(EMAIL_MASK_RE, '***');
 };
 
@@ -39,7 +39,7 @@ const maskEmail = (val) => {
  * @returns {*} Masked UUID string, or the original value if not a non-empty string.
  */
 const maskUUID = (val) => {
-  if (val == null || typeof val !== 'string') return val;
+  if (val === null || typeof val !== 'string') return val;
   return `${val.slice(0, 8)}-****-****-****-${val.slice(-4)}`;
 };
 
@@ -54,7 +54,7 @@ const maskUUID = (val) => {
  * @returns {*} Masked ID string, or the original value if not a non-empty string.
  */
 const maskId = (val) => {
-  if (val == null || typeof val !== 'string') return val;
+  if (val === null || typeof val !== 'string') return val;
   return `${val.slice(0, 4)}****${val.slice(-4)}`;
 };
 
@@ -74,7 +74,7 @@ const maskId = (val) => {
  * @returns {string | string[] | *} Masked table name(s), or original value if not a string/array.
  */
 const maskTableName = (input) => {
-  if (input == null) return input;
+  if (input === null) return input;
 
   if (Array.isArray(input)) {
     return input.map(maskTableName);

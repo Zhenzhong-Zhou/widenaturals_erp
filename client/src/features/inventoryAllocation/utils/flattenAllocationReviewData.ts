@@ -6,6 +6,7 @@ import type {
   OrderHeaderReview,
 } from '@features/inventoryAllocation';
 import { isPackagingBatch, isProductBatch } from '@utils/batchTypeGuards';
+import type { BatchTypeFilter } from '@shared-types/batch';
 
 /**
  * Flattens the allocation order header into a UI-safe structure.
@@ -42,7 +43,7 @@ export const parseBatch = (
   batchLotNumber: string | null;
   batchExpiryDate: string | null;
   manufactureDate: string | null;
-  batchType: 'product' | 'packaging_material' | 'unknown';
+  batchType: BatchTypeFilter;
 } => {
   // --- No batch provided ---
   if (!batch) {
@@ -50,7 +51,7 @@ export const parseBatch = (
       batchLotNumber: null,
       batchExpiryDate: null,
       manufactureDate: null,
-      batchType: 'unknown',
+      batchType: 'all',
     };
   }
 
@@ -69,7 +70,7 @@ export const parseBatch = (
     batchLotNumber: null,
     batchExpiryDate: null,
     manufactureDate: null,
-    batchType: 'unknown',
+    batchType: 'all',
   };
 };
 

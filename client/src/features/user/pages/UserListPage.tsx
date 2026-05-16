@@ -1,5 +1,5 @@
-import useUserPageController from '@features/user/hooks/useUserPageController';
-import UserListLayout from '@features/user/layouts/UserListLayout';
+import { useUserPageController } from '@features/user/hooks';
+import { UserListLayout } from '@features/user/layouts';
 
 /**
  * Users page rendered in list (table) view.

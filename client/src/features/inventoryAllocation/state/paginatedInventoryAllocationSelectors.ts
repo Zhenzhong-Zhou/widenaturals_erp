@@ -46,7 +46,10 @@ export const selectPaginatedInventoryAllocationPagination = createSelector(
  * Selects `true` if the allocation list is loaded and empty.
  */
 export const selectPaginatedInventoryAllocationIsEmpty = createSelector(
-  [selectPaginatedInventoryAllocationData, selectPaginatedInventoryAllocationLoading],
+  [
+    selectPaginatedInventoryAllocationData,
+    selectPaginatedInventoryAllocationLoading,
+  ],
   (data, loading) => !loading && data.length === 0
 );
 

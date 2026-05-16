@@ -145,14 +145,14 @@ export interface AddressFilterConditions
 
   /** Filter by region or province name */
   region?: string;
-  
+
   customerType?: string;
 
   /** Filter by associated customer ID (UUID v4) */
   customerId?: string;
-  
+
   createdBy?: string;
-  
+
   updatedBy?: string;
 
   /** Keyword search across label, recipient name, email, phone, city */
@@ -211,7 +211,7 @@ export interface AddressListItem {
 
   /** Associated customer ID */
   customerId: string;
-  
+
   customerType: string;
 
   /** Customer's display name */
@@ -219,7 +219,7 @@ export interface AddressListItem {
 
   /** Customer's email address */
   customerEmail: string;
-  
+
   companyName?: string | null;
 
   /** Label for the address (e.g. "Home", "Office") */

@@ -1,9 +1,7 @@
 import { type FC, type ReactNode } from 'react';
-import Box from '@mui/material/Box';
-import Card from '@mui/material/Card';
-import Grid from '@mui/material/Grid';
+import { Box, Card, Grid } from '@mui/material';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
-import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import ErrorOutlinedIcon from '@mui/icons-material/ErrorOutlined';
 import { CustomTypography } from '@components/index';
 import type { WarehouseSummaryAlerts } from '@features/warehouseInventory';
 
@@ -30,7 +28,13 @@ const AlertCard: FC<AlertCardProps> = ({ icon, label, count, color }) => (
   >
     <Box sx={{ color }}>{icon}</Box>
     <Box>
-      <CustomTypography variant="h6" fontWeight={700} sx={{ color }}>
+      <CustomTypography
+        variant="h6"
+        sx={{
+          fontWeight: 700,
+          color,
+        }}
+      >
         {count}
       </CustomTypography>
       <CustomTypography variant="body2" color="text.secondary">
@@ -57,17 +61,17 @@ interface WarehouseInventoryAlertSummaryProps {
  *
  * Hides itself entirely when no alerts exist, so it is safe to always render.
  */
-const WarehouseInventoryAlertSummary: FC<WarehouseInventoryAlertSummaryProps> = ({
-                                                                                   alerts,
-                                                                                 }) => {
+const WarehouseInventoryAlertSummary: FC<
+  WarehouseInventoryAlertSummaryProps
+> = ({ alerts }) => {
   if (!alerts) return null;
-  
+
   const { lowStock, expiringSoon, expired } = alerts;
-  
+
   if (!lowStock && !expiringSoon && !expired) return null;
-  
+
   return (
-    <Box mb={3}>
+    <Box sx={{ mb: 3 }}>
       <Grid container spacing={2}>
         {lowStock > 0 && (
           <Grid size={{ xs: 12, sm: 4 }}>
@@ -92,7 +96,7 @@ const WarehouseInventoryAlertSummary: FC<WarehouseInventoryAlertSummaryProps> = 
         {expired > 0 && (
           <Grid size={{ xs: 12, sm: 4 }}>
             <AlertCard
-              icon={<ErrorOutlineIcon />}
+              icon={<ErrorOutlinedIcon />}
               label="Expired Batches"
               count={expired}
               color="error.main"

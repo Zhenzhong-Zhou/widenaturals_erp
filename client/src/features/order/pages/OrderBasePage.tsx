@@ -1,10 +1,7 @@
 import type { SyntheticEvent } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import CustomTypography from '@components/common/CustomTypography';
-import Box from '@mui/material/Box';
-import Tabs from '@mui/material/Tabs';
-import Tab from '@mui/material/Tab';
-import Card from '@mui/material/Card';
+import { Box, Card, Tab, Tabs } from '@mui/material';
+import { CustomTypography } from '@components/index';
 import { CreateSaleOrderForm } from '@features/order/components/CreateSaleOrderForm';
 
 const tabs = [
@@ -30,7 +27,7 @@ const OrderBasePage = () => {
   };
 
   return (
-    <Box p={3}>
+    <Box sx={{ p: 3 }}>
       <CustomTypography variant="h4" gutterBottom>
         Orders
       </CustomTypography>

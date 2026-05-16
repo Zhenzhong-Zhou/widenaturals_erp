@@ -1,5 +1,5 @@
 import type { FC } from 'react';
-import Box from '@mui/material/Box';
+import { Box } from '@mui/material';
 import ErrorIcon from '@mui/icons-material/Error';
 import {
   CustomDialog,
@@ -93,7 +93,10 @@ const SkuImageUploadErrorDialog: FC<Props> = ({
                         <Box>
                           <ErrorMessage message={r.error.message} />
                           {r.error.traceId && (
-                            <CustomTypography variant="caption" display="block">
+                            <CustomTypography
+                              variant="caption"
+                              sx={{ display: 'block' }}
+                            >
                               Ref: {r.error.traceId}
                             </CustomTypography>
                           )}

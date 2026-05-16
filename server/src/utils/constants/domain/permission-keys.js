@@ -58,10 +58,10 @@ const PERMISSION_KEYS = {
     VIEW: 'view_locations',
   },
   WAREHOUSES: {
-    VIEW:         'view_warehouses',
+    VIEW: 'view_warehouses',
     VIEW_DETAILS: 'view_warehouse_details',
-    CREATE:       'create_warehouse',
-    UPDATE:       'update_warehouse',
+    CREATE: 'create_warehouse',
+    UPDATE: 'update_warehouse',
   },
   BATCH_REGISTRY: {
     VIEW_LIST: 'view_batch_registry',
@@ -88,12 +88,15 @@ const PERMISSION_KEYS = {
   },
   WAREHOUSE_INVENTORY: {
     VIEW: 'view_warehouse_inventory',
+    VIEW_DETAILS: 'view_warehouse_inventory_details',
     CREATE_INBOUND: 'create_warehouse_inbound',
     CREATE_OUTBOUND: 'create_warehouse_outbound',
     ADJUST_INVENTORY: 'adjust_warehouse_inventory',
     UPDATE_INVENTORY_STATUS: 'update_warehouse_inventory_status',
+    EDIT_METADATA: 'update_warehouse_inventory_metadata',
     VIEW_SUMMARY: 'view_warehouse_inventory_summary',
     VIEW_SUMMARY_ITEM_DETAILS: 'view_warehouse_inventory_summary_item_details',
+    VIEW_ACTIVITY_LOG: 'view_warehouse_inventory_activity_log',
   },
   CUSTOMERS: {
     CREATE: 'create_customers',

@@ -13,6 +13,7 @@ import {
   SkuExpandedContent,
 } from '@features/sku/components/SkuListTable';
 import type { FlattenedSkuRecord, SelectedSku } from '@features/sku/state';
+import { PERMISSION_KEYS } from '@features/authorize/constants/permissionKeys';
 
 interface SkuListTableProps extends Omit<
   CustomTableProps<FlattenedSkuRecord>,
@@ -63,7 +64,9 @@ const SkuListTable = ({
 }: SkuListTableProps) => {
   // Shared logic used for permission checks (e.g. canCreateSku)
   const shared = useCreateSkuSharedLogic();
-  const { isAllowed } = usePagePermissionState(['create_skus_images']);
+  const { isAllowed } = usePagePermissionState([
+    PERMISSION_KEYS.SKUS.UPLOAD_IMAGE,
+  ]);
 
   const getSelectedSkuCount = (
     selectedSkus?: Record<string, SelectedSku>
@@ -121,16 +124,23 @@ const SkuListTable = ({
       {/* TABLE HEADER */}
       {/* ----------------------------------------- */}
       <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        mb={2}
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          mb: 2,
+        }}
       >
-        <CustomTypography variant="h6" fontWeight={600}>
+        <CustomTypography variant="h6" sx={{ fontWeight: 600 }}>
           SKU List
         </CustomTypography>
-
-        <Box display="flex" gap={2}>
+        
+        <Box
+          sx={{
+            display: 'flex',
+            gap: 2,
+          }}
+        >
           {/* Only show Add New if user has permission */}
           {shared.canCreateSku && (
             <CustomButton

@@ -1,16 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import Box from '@mui/material/Box';
-import Stack from '@mui/material/Stack';
-import Loading from '@components/common/Loading';
-import ErrorMessage from '@components/common/ErrorMessage';
-import GoBackButton from '@components/common/GoBackButton';
-import CustomTypography from '@components/common/CustomTypography';
-import CustomButton from '@components/common/CustomButton';
-import NoDataFound from '@components/common/NoDataFound';
+import { Box, Stack } from '@mui/material';
+import {
+  CustomButton,
+  CustomTypography,
+  ErrorMessage,
+  GoBackButton,
+  Loading,
+  NoDataFound
+} from '@components/index';
 import { NotFoundPage } from '@pages/system';
-import useProductDetail from '@hooks/useProductDetail';
-import useStatusLookup from '@hooks/useStatusLookup';
+import { useProductDetail, useStatusLookup } from '@hooks/index';
 import { usePagePermissionState } from '@features/authorize/hooks';
 import { useDialogFocusHandlers } from '@utils/hooks';
 import { flattenProductDetail } from '@features/product/utils';
@@ -23,6 +23,7 @@ import {
   ProductUpdateInfoDialog,
   UpdateProductStatusDialog,
 } from '@features/product/components/UpdateProductForm';
+import { PERMISSION_KEYS } from '@features/authorize/constants/permissionKeys';
 
 const ProductDetailPage = () => {
   // --------------------------------------
@@ -51,8 +52,12 @@ const ProductDetailPage = () => {
   // --------------------------------------
   // 3. Permission Hooks
   // --------------------------------------
-  const canUpdateStatus = usePagePermissionState(['update_product_status']);
-  const canUpdateInfo = usePagePermissionState(['update_product_info']);
+  const canUpdateStatus = usePagePermissionState([
+    PERMISSION_KEYS.PRODUCTS.UPDATE_STATUS,
+  ]);
+  const canUpdateInfo = usePagePermissionState([
+    PERMISSION_KEYS.PRODUCTS.UPDATE_INFO,
+  ]);
 
   // --------------------------------------
   // 4. UI State (Dialogs)
@@ -117,17 +122,25 @@ const ProductDetailPage = () => {
       {/* --------------------------------------------- */}
       <Stack
         direction="row"
-        justifyContent="space-between"
-        alignItems="center"
-        mb={4}
+        sx={{
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          mb: 4,
+        }}
       >
         {/* LEFT: Back Navigation + Product Title */}
-        <Stack direction="row" spacing={2} alignItems="center">
+        <Stack
+          direction="row"
+          spacing={2}
+          sx={{
+            alignItems: 'center',
+          }}
+        >
           <GoBackButton label="Back to Product List" fallbackTo="/products" />
 
           {/* Render product name when detail is loaded */}
           {flattenProductDetails && (
-            <CustomTypography variant="h5" fontWeight={700}>
+            <CustomTypography variant="h5" sx={{ fontWeight: 700 }}>
               {flattenProductDetails.name}
             </CustomTypography>
           )}

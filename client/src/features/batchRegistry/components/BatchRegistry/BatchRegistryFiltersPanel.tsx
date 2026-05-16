@@ -1,9 +1,8 @@
 import { type FC, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import Grid from '@mui/material/Grid';
+import { Grid } from '@mui/material';
 import { FilterPanelLayout } from '@components/index';
 import { renderDateField, renderInputField } from '@utils/filters/filterUtils';
-import { formatLabel } from '@utils/textUtils';
 import { toISODate } from '@utils/dateTimeUtils';
 import type { BatchRegistryFilters } from '@features/batchRegistry/state';
 import {
@@ -25,7 +24,7 @@ import {
   useProductSearchHandlers,
   useSkuSearchHandlers,
 } from '@features/lookup/hooks';
-import { useFormattedOptions } from '@features/lookup/utils/lookupUtils';
+import { useFormattedOptionLabels } from '@features/lookup/utils/formatOptionLabels';
 
 interface BatchRegistryFiltersPanelLookups {
   product: ReturnType<typeof useProductLookup>;
@@ -160,7 +159,7 @@ const BatchRegistryFiltersPanel: FC<Props> = ({
       registeredBefore: toISODate(data.registeredBefore),
       keyword: data.keyword || undefined,
     };
-    
+
     onChange(adjusted);
     onApply();
   };
@@ -191,10 +190,7 @@ const BatchRegistryFiltersPanel: FC<Props> = ({
   // -------------------------------
   // Derived lookup options
   // -------------------------------
-  const formattedStatusOptions = useFormattedOptions(
-    status.options,
-    formatLabel
-  );
+  const formattedStatusOptions = useFormattedOptionLabels(status.options);
 
   // ----------------------------------------
   // Render

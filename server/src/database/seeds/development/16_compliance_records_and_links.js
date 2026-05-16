@@ -81,6 +81,14 @@ exports.seed = async function (knex) {
       '80111182',
     'DHA Algal Oil for Pregnancy and Breastfeeding::60 Softgels::UN':
       '80111182',
+    'Astaxanthin Plus::120 Softgels::CN': '80141523',
+    'Seal Oil Plus::120 Softgels::CN': '80131699',
+    'Ubiquinol 100mg CoQ10 Mega::60 Capsules::CN': '80147346',
+    '5 IN 1 D3 + K2 + CA + MG + ZN::120 Softgels::UN': '80146314',
+    'New Seal Oil Omega-3 (120 Softgels)::120 Softgels::UN': '80142838',
+    'Cell Revive::60 Capsules::CN': 'PLACEHOLDER-00000001',
+    'CoQ10 + PQQ Seal Oil::120 Softgels::UN': 'PLACEHOLDER-00000002',
+    'AKK + DAG Oil::30 Cups::UN': 'PLACEHOLDER-00000003',
   };
 
   //
@@ -136,17 +144,20 @@ exports.seed = async function (knex) {
 
   //
   // --------------------------------------------------------
-  // 5. Prepare sku_compliance_links
+  // 5. Prepare sku_compliance_links + track matched npnMap entries
   // --------------------------------------------------------
   //
   const linkRows = [];
-
+  const matchedKeys = new Set();
+  
   for (const row of rows) {
     const key = `${row.name}::${row.size_label}::${row.country_code}`;
     const complianceId = npnMap[key];
-
+    
     if (!complianceId) continue;
-
+    
+    matchedKeys.add(key);
+    
     linkRows.push({
       id: knex.raw('uuid_generate_v4()'),
       sku_id: row.sku_id,
@@ -156,6 +167,21 @@ exports.seed = async function (knex) {
     });
   }
 
+  //
+  // --------------------------------------------------------
+  // 5b. Warn about npnMap entries with no matching SKU
+  // --------------------------------------------------------
+  //
+  const unmatchedKeys = Object.keys(npnMap).filter(
+    (k) => !matchedKeys.has(k)
+  );
+  
+  if (unmatchedKeys.length > 0) {
+    console.warn(
+      `NPN seed: ${unmatchedKeys.length} entry/entries in npnMap had no matching SKU — verify product name, size_label, and country_code match the DB exactly:\n  - ${unmatchedKeys.join('\n  - ')}`
+    );
+  }
+  
   //
   // --------------------------------------------------------
   // 6. Insert sku_compliance_links (idempotent)

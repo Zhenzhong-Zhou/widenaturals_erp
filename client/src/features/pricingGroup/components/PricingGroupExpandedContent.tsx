@@ -15,14 +15,14 @@ interface PricingGroupExpandedContentProps {
 }
 
 const PricingGroupExpandedContent: FC<PricingGroupExpandedContentProps> = ({
-                                                                             row,
-                                                                           }) => {
+  row,
+}) => {
   return (
     <Box sx={{ px: 3, py: 2 }}>
       <CustomTypography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
         Pricing Group Details
       </CustomTypography>
-      
+
       {/* --------------------------------------------------
        * Pricing Type
        * -------------------------------------------------- */}
@@ -33,7 +33,7 @@ const PricingGroupExpandedContent: FC<PricingGroupExpandedContentProps> = ({
           { label: 'Code', value: row.pricingTypeCode },
         ]}
       />
-      
+
       {/* --------------------------------------------------
        * Audit
        * -------------------------------------------------- */}

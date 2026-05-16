@@ -1,29 +1,21 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { fetchBatchRegistryLookupThunk } from '@features/lookup/state';
+import {
+  type BatchRegistryLookupItem,
+  fetchBatchRegistryLookupThunk,
+} from '@features/lookup/state';
 import type { BatchRegistryLookupState } from '@features/lookup/state';
 import { applyRejected } from '@features/shared/async/asyncReducerUtils';
+import { createInitialOffsetPaginatedState } from '@store/pagination';
 
-const initialState: BatchRegistryLookupState = {
-  loading: false,
-  error: null,
-  data: [],
-  hasMore: false,
-  limit: 50,
-  offset: 0,
-};
+const initialState: BatchRegistryLookupState =
+  createInitialOffsetPaginatedState<BatchRegistryLookupItem>();
 
 const batchRegistryLookupSlice = createSlice({
   name: 'batchRegistryLookup',
   initialState,
   reducers: {
-    resetBatchRegistryLookup: (state) => {
-      state.loading = false;
-      state.error = null;
-      state.data = [];
-      state.hasMore = false;
-      state.limit = 50;
-      state.offset = 0;
-    },
+    resetBatchRegistryLookup: () =>
+      createInitialOffsetPaginatedState<BatchRegistryLookupItem>(),
   },
   extraReducers: (builder) => {
     builder

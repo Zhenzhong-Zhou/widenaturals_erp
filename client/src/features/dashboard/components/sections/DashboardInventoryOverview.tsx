@@ -37,20 +37,40 @@ const DashboardInventoryOverview: FC<Props> = ({ warehouses }) => {
       { warehouseCount: 0, batches: 0, quantity: 0, reserved: 0, available: 0 }
     );
   }, [warehouses]);
-  
+
   if (!totals || totals.warehouseCount === 0) return null;
-  
+
   return (
     <Box>
-      <CustomTypography variant="subtitle1" fontWeight={700} mb={2}>
+      <CustomTypography
+        variant="subtitle1"
+        sx={{
+          fontWeight: 700,
+          mb: 2,
+        }}
+      >
         Inventory Overview
       </CustomTypography>
-      <Stack direction="row" spacing={4} flexWrap="wrap">
-        <SummaryStat label="Warehouses" value={totals.warehouseCount} minWidth={90} />
+      <Stack
+        direction="row"
+        spacing={4}
+        sx={{
+          flexWrap: 'wrap',
+        }}
+      >
+        <SummaryStat
+          label="Warehouses"
+          value={totals.warehouseCount}
+          minWidth={90}
+        />
         <SummaryStat label="Batches" value={totals.batches} minWidth={90} />
         <SummaryStat label="Total" value={totals.quantity} minWidth={100} />
         <SummaryStat label="Reserved" value={totals.reserved} minWidth={100} />
-        <SummaryStat label="Available" value={totals.available} minWidth={100} />
+        <SummaryStat
+          label="Available"
+          value={totals.available}
+          minWidth={100}
+        />
       </Stack>
     </Box>
   );

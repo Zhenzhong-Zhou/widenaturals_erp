@@ -56,6 +56,8 @@ const buildWarehouseInventoryFilter = (filters = {}) => {
   const params = [];
   const paramIndexRef = { value: 1 };
 
+  const hasValue = (value) => value !== null && value !== undefined;
+
   // ─── Warehouse scope ────────────────────────────────────────────────────────
 
   if (normalizedFilters.warehouseId) {
@@ -71,35 +73,35 @@ const buildWarehouseInventoryFilter = (filters = {}) => {
     conditions.push(`wi.status_id = ANY($${paramIndexRef.value++}::uuid[])`);
     params.push(normalizedFilters.statusIds);
   }
-  
+
   if (normalizedFilters.batchType) {
     conditions.push(`br.batch_type = $${paramIndexRef.value++}`);
     params.push(normalizedFilters.batchType);
   }
-  
+
   if (normalizedFilters.skuIds?.length) {
     conditions.push(`pb.sku_id = ANY($${paramIndexRef.value++}::uuid[])`);
     params.push(normalizedFilters.skuIds);
   }
-  
+
   if (normalizedFilters.productIds?.length) {
     conditions.push(`s.product_id = ANY($${paramIndexRef.value++}::uuid[])`);
     params.push(normalizedFilters.productIds);
   }
-  
+
   if (normalizedFilters.packagingMaterialIds?.length) {
     conditions.push(`pm.id = ANY($${paramIndexRef.value++}::uuid[])`);
     params.push(normalizedFilters.packagingMaterialIds);
   }
-  
-  if (normalizedFilters.lowStockThreshold != null) {
+
+  if (hasValue(normalizedFilters.lowStockThreshold)) {
     conditions.push(
       `(wi.warehouse_quantity - wi.reserved_quantity) <= $${paramIndexRef.value++}`
     );
     params.push(normalizedFilters.lowStockThreshold);
   }
 
-  if (normalizedFilters.expiringWithinDays != null) {
+  if (hasValue(normalizedFilters.expiringWithinDays)) {
     conditions.push(
       `COALESCE(pb.expiry_date, pmb.expiry_date) <= (CURRENT_DATE + $${paramIndexRef.value++} * INTERVAL '1 day')`
     );

@@ -1,6 +1,6 @@
 import { type FC, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import Grid from '@mui/material/Grid';
+import { Grid } from '@mui/material';
 import { FilterPanelLayout } from '@components/index';
 import {
   StatusMultiSelectDropdown,
@@ -25,9 +25,8 @@ import type {
   UserLookupParams,
 } from '@features/lookup';
 import type { useLocationTypeLookup, useStatusLookup } from '@hooks/index';
-import { formatLabel } from '@utils/textUtils';
 import { toISODate } from '@utils/dateTimeUtils';
-import { useFormattedOptions } from '@features/lookup/utils/lookupUtils';
+import { useFormattedOptionLabels } from '@features/lookup/utils/formatOptionLabels';
 
 /* =========================================================
  * Types
@@ -192,10 +191,7 @@ const LocationFiltersPanel: FC<Props> = ({
     options: status.options,
   });
 
-  const formattedStatusOptions = useFormattedOptions(
-    status.options,
-    formatLabel
-  );
+  const formattedStatusOptions = useFormattedOptionLabels(status.options);
 
   /* -----------------------------
    * Submit / Reset

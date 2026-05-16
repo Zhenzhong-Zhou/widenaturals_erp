@@ -1,6 +1,6 @@
 import type { FC } from 'react';
 import { useMemo } from 'react';
-import { NavLink } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 import { useTheme } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
@@ -46,25 +46,25 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
   const menuItems = useMemo(() => {
     return navigationItems.filter((item) => {
       const { requiredPermission } = item;
-      
+
       if (!requiredPermission) return true;
-      
+
       if (typeof requiredPermission === 'string') {
         return hasPermission(requiredPermission);
       }
-      
+
       if (requiredPermission.any?.length) {
         return requiredPermission.any.some((permission) =>
           hasPermission(permission)
         );
       }
-      
+
       if (requiredPermission.all?.length) {
         return requiredPermission.all.every((permission) =>
           hasPermission(permission)
         );
       }
-      
+
       return true;
     });
   }, [hasPermission]);
@@ -102,12 +102,22 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
               alignItems: 'center',
             }}
           >
-            <img
-              src={logo}
-              alt="WIDE Naturals Inc."
-              loading="eager"
-              style={{ height: 50, objectFit: 'contain' }}
-            />
+            <Link
+              to="/dashboard"
+              style={{ display: 'flex', alignItems: 'center' }}
+            >
+              <img
+                src={logo}
+                alt="Wide Naturals"
+                loading="eager"
+                style={{
+                  height: 50,
+                  width: 'auto',
+                  objectFit: 'contain',
+                  filter: theme.palette.mode === 'dark' ? 'invert(1)' : 'none',
+                }}
+              />
+            </Link>
           </Box>
 
           {isOpen && (

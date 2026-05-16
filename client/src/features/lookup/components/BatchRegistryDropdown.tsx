@@ -1,17 +1,33 @@
 import { useMemo } from 'react';
-import type { GetBatchRegistryLookupParams } from '../state';
+import type {
+  BatchRegistryLookupItem,
+  BatchRegistryLookupQuery,
+  BatchRegistryOption,
+} from '@features/lookup';
 import type { PaginatedDropdownProps } from '@components/common/PaginatedDropdown';
-import PaginatedDropdown from '@components/common/PaginatedDropdown';
-import CustomTypography from '@components/common/CustomTypography';
 import {
   faBoxOpen,
   faPills,
   faQuestionCircle,
 } from '@fortawesome/free-solid-svg-icons';
-import { getRawLabel } from '@utils/labelHelpers';
+import {
+  composeBatchLabel,
+  expirySeverityToChipColor,
+  expirySeverityToColor,
+  getBatchExpiryMeta,
+} from '@features/lookup/utils/batchRegistryUtils';
+import {
+  CustomTypography,
+  PaginatedDropdown,
+  StatusChip,
+} from '@components/index';
+import Box from '@mui/material/Box';
 
-type BatchRegistryDropdownProps =
-  PaginatedDropdownProps<GetBatchRegistryLookupParams>;
+export type BatchRegistryDropdownProps<
+  TQuery extends BatchRegistryLookupQuery = BatchRegistryLookupQuery,
+> = Omit<PaginatedDropdownProps<TQuery>, 'options'> & {
+  options: BatchRegistryLookupItem[];
+};
 
 /**
  * Dropdown component for selecting a batch from the batch registry.
@@ -29,45 +45,72 @@ type BatchRegistryDropdownProps =
  * @component
  * @param {BatchRegistryDropdownProps} props - Props controlling dropdown behavior.
  */
-const BatchRegistryDropdown = ({
+const BatchRegistryDropdown = <
+  TQuery extends BatchRegistryLookupQuery = BatchRegistryLookupQuery,
+>({
   options = [],
   ...rest
-}: BatchRegistryDropdownProps) => {
-  const enrichedBatchRegistryOptions = useMemo(() => {
+}: BatchRegistryDropdownProps<TQuery>) => {
+  const enrichedBatchRegistryOptions: BatchRegistryOption[] = useMemo(() => {
     return Array.from(
       new Map(
         options.map((opt) => {
           const isProduct = opt.type === 'product';
           const isPackaging = opt.type === 'packaging_material';
 
-          // Keep plain string for Autocomplete input
-          const rawLabel = getRawLabel(opt.label);
+          const rawLabel = composeBatchLabel(opt);
+          const expiryMeta = getBatchExpiryMeta(opt);
 
-          // JSX for rendering
+          // Severity overrides the type-based color when an expiry exists
+          const iconColor = expiryMeta.hasExpiryDate
+            ? expirySeverityToColor(expiryMeta.expirySeverity)
+            : isProduct
+              ? 'green'
+              : isPackaging
+                ? 'blue'
+                : 'gray';
+
           const displayLabel = (
-            <CustomTypography color={isProduct ? 'inherit' : 'primary'}>
-              {rawLabel}
-            </CustomTypography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <CustomTypography color={isProduct ? 'inherit' : 'primary'}>
+                {rawLabel}
+              </CustomTypography>
+
+              {expiryMeta.hasExpiryDate &&
+                expiryMeta.expirySeverity !== 'normal' && (
+                  <StatusChip
+                    label={
+                      expiryMeta.isExpired
+                        ? 'Expired'
+                        : `Expires in ${expiryMeta.daysUntilExpiry}d`
+                    }
+                    color={expirySeverityToChipColor(expiryMeta.expirySeverity)}
+                    size="small"
+                  />
+                )}
+            </Box>
           );
 
           return [
-            opt.value,
+            opt.id,
             {
-              ...opt,
+              value: opt.id,
               label: rawLabel,
+              type: opt.type,
               displayLabel,
               icon: isProduct
-                ? faPills // icon for product batches
+                ? faPills
                 : isPackaging
-                  ? faBoxOpen // icon for packaging material batches
-                  : faQuestionCircle, // fallback
+                  ? faBoxOpen
+                  : faQuestionCircle,
               tooltip: isProduct
                 ? 'Product Batch'
                 : isPackaging
                   ? 'Packaging Material Batch'
                   : 'Unknown Batch Type',
-              iconColor: isProduct ? 'green' : isPackaging ? 'blue' : 'gray',
-            },
+              iconColor,
+              ...expiryMeta,
+            } satisfies BatchRegistryOption,
           ];
         })
       ).values()
@@ -75,7 +118,7 @@ const BatchRegistryDropdown = ({
   }, [options]);
 
   return (
-    <PaginatedDropdown
+    <PaginatedDropdown<TQuery>
       label="Select Batch"
       options={enrichedBatchRegistryOptions}
       {...rest}

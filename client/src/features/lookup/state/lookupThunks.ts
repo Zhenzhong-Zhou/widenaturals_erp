@@ -25,18 +25,25 @@ import { extractUiErrorPayload } from '@utils/error';
 import type { UiErrorPayload } from '@utils/error/uiErrorUtils';
 import type {
   AddressByCustomerLookupResponse,
+  BatchRegistryForInventoryLookupQuery,
+  BatchRegistryLookupQuery,
+  BatchRegistryLookupResponse,
   CustomerLookupQuery,
   CustomerLookupResponse,
   DeliveryMethodLookupQueryParams,
   DeliveryMethodLookupResponse,
   DiscountLookupQueryParams,
   DiscountLookupResponse,
-  GetBatchRegistryLookupParams,
-  GetBatchRegistryLookupResponse,
   GetWarehouseLookupResponse,
+  InventoryActionTypeLookupParams,
+  InventoryActionTypeLookupResponse,
+  InventoryStatusLookupParams,
+  InventoryStatusLookupResponse,
+  LocationLookupParams,
+  LocationLookupResponse,
   LocationTypeLookupParams,
   LocationTypeLookupResponse,
-  LotAdjustmentLookupQueryParams,
+  LotAdjustmentTypeLookupParams,
   LotAdjustmentTypeLookupResponse,
   ManufacturerLookupParams,
   ManufacturerLookupResponse,
@@ -48,6 +55,8 @@ import type {
   PaymentMethodLookupResponse,
   PricingGroupLookupQueryParams,
   PricingGroupLookupResponse,
+  PricingTypeLookupParams,
+  PricingTypeLookupResponse,
   ProductLookupParams,
   ProductLookupResponse,
   RoleLookupParams,
@@ -64,13 +73,15 @@ import type {
   TaxRateLookupResponse,
   UserLookupParams,
   UserLookupResponse,
+  WarehouseTypeLookupParams,
+  WarehouseTypeLookupResponse,
 } from '@features/lookup/state/lookupTypes';
 
 /* ------------------------- Core Lookups ------------------------- */
 
 export const fetchBatchRegistryLookupThunk = createAsyncThunk<
-  GetBatchRegistryLookupResponse,
-  GetBatchRegistryLookupParams,
+  BatchRegistryLookupResponse,
+  BatchRegistryLookupQuery,
   { rejectValue: UiErrorPayload }
 >('lookup/fetchBatchRegistryLookup', async (params, { rejectWithValue }) => {
   try {
@@ -79,6 +90,21 @@ export const fetchBatchRegistryLookupThunk = createAsyncThunk<
     return rejectWithValue(extractUiErrorPayload(error));
   }
 });
+
+export const fetchBatchRegistryForInventoryLookupThunk = createAsyncThunk<
+  BatchRegistryLookupResponse,
+  BatchRegistryForInventoryLookupQuery,
+  { rejectValue: UiErrorPayload }
+>(
+  'lookup/batchRegistryForInventoryLookup',
+  async (params, { rejectWithValue }) => {
+    try {
+      return await lookupService.fetchBatchRegistryForInventoryLookup(params);
+    } catch (error) {
+      return rejectWithValue(extractUiErrorPayload(error));
+    }
+  }
+);
 
 export const fetchWarehouseLookupThunk = createAsyncThunk<
   GetWarehouseLookupResponse,
@@ -92,15 +118,19 @@ export const fetchWarehouseLookupThunk = createAsyncThunk<
   }
 });
 
+// ---------------------------------------------------------------------------
+// Lot adjustment type
+// ---------------------------------------------------------------------------
+
 export const fetchLotAdjustmentTypeLookupThunk = createAsyncThunk<
   LotAdjustmentTypeLookupResponse,
-  LotAdjustmentLookupQueryParams | undefined,
+  LotAdjustmentTypeLookupParams | undefined,
   { rejectValue: UiErrorPayload }
 >(
   'lookup/fetchLotAdjustmentTypeLookup',
-  async (filters = {}, { rejectWithValue }) => {
+  async (params, { rejectWithValue }) => {
     try {
-      return await lookupService.fetchLotAdjustmentTypeLookup(filters);
+      return await lookupService.fetchLotAdjustmentTypeLookup(params);
     } catch (error) {
       return rejectWithValue(extractUiErrorPayload(error));
     }
@@ -333,3 +363,86 @@ export const fetchLocationTypeLookupThunk = createAsyncThunk<
     return rejectWithValue(extractUiErrorPayload(error));
   }
 });
+
+// ---------------------------------------------------------------------------
+// Inventory Status
+// ---------------------------------------------------------------------------
+
+export const fetchInventoryStatusLookupThunk = createAsyncThunk<
+  InventoryStatusLookupResponse,
+  InventoryStatusLookupParams | undefined,
+  { rejectValue: UiErrorPayload }
+>('lookup/fetchInventoryStatusLookup', async (params, { rejectWithValue }) => {
+  try {
+    return await lookupService.fetchInventoryStatusLookup(params);
+  } catch (error) {
+    return rejectWithValue(extractUiErrorPayload(error));
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Pricing Type
+// ---------------------------------------------------------------------------
+
+export const fetchPricingTypeLookupThunk = createAsyncThunk<
+  PricingTypeLookupResponse,
+  PricingTypeLookupParams | undefined,
+  { rejectValue: UiErrorPayload }
+>('lookup/fetchPricingTypeLookup', async (params, { rejectWithValue }) => {
+  try {
+    return await lookupService.fetchPricingTypeLookup(params);
+  } catch (error) {
+    return rejectWithValue(extractUiErrorPayload(error));
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Warehouse Type
+// ---------------------------------------------------------------------------
+
+export const fetchWarehouseTypeLookupThunk = createAsyncThunk<
+  WarehouseTypeLookupResponse,
+  WarehouseTypeLookupParams | undefined,
+  { rejectValue: UiErrorPayload }
+>('lookup/fetchWarehouseTypeLookup', async (params, { rejectWithValue }) => {
+  try {
+    return await lookupService.fetchWarehouseTypeLookup(params);
+  } catch (error) {
+    return rejectWithValue(extractUiErrorPayload(error));
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Location
+// ---------------------------------------------------------------------------
+
+export const fetchLocationLookupThunk = createAsyncThunk<
+  LocationLookupResponse,
+  LocationLookupParams | undefined,
+  { rejectValue: UiErrorPayload }
+>('lookup/fetchLocationLookup', async (params, { rejectWithValue }) => {
+  try {
+    return await lookupService.fetchLocationLookup(params);
+  } catch (error) {
+    return rejectWithValue(extractUiErrorPayload(error));
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Inventory action type
+// ---------------------------------------------------------------------------
+
+export const fetchInventoryActionTypeLookupThunk = createAsyncThunk<
+  InventoryActionTypeLookupResponse,
+  InventoryActionTypeLookupParams | undefined,
+  { rejectValue: UiErrorPayload }
+>(
+  'lookup/fetchInventoryActionTypeLookup',
+  async (params, { rejectWithValue }) => {
+    try {
+      return await lookupService.fetchInventoryActionTypeLookup(params);
+    } catch (error) {
+      return rejectWithValue(extractUiErrorPayload(error));
+    }
+  }
+);

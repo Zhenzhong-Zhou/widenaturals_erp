@@ -25,16 +25,23 @@ const warehouseInventoryDetailSlice = createSlice({
         state.error = null;
         state.data = null;
       })
-      .addCase(fetchWarehouseInventoryDetailThunk.fulfilled, (state, action) => {
-        state.loading = false;
-        state.error = null;
-        
-        const result = action.payload as WarehouseInventoryDetailResponse;
-        state.data = result.data;
-      })
+      .addCase(
+        fetchWarehouseInventoryDetailThunk.fulfilled,
+        (state, action) => {
+          state.loading = false;
+          state.error = null;
+
+          const result = action.payload as WarehouseInventoryDetailResponse;
+          state.data = result.data;
+        }
+      )
       .addCase(fetchWarehouseInventoryDetailThunk.rejected, (state, action) => {
         state.data = null;
-        applyRejected(state, action, 'Failed to fetch warehouse inventory detail.');
+        applyRejected(
+          state,
+          action,
+          'Failed to fetch warehouse inventory detail.'
+        );
       });
   },
 });

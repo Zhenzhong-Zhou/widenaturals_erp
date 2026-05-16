@@ -12,6 +12,7 @@ import {
 } from '@features/user/components/UserView';
 import { usePagePermissionState } from '@features/authorize/hooks';
 import type { FlattenedUserRecord } from '@features/user/state';
+import { PERMISSION_KEYS } from '@features/authorize/constants/permissionKeys';
 
 interface UserListTableProps extends Omit<
   CustomTableProps<FlattenedUserRecord>,
@@ -49,7 +50,9 @@ const UserListTable = ({
   onRefresh,
 }: UserListTableProps) => {
   // Permission state (UI-only decision)
-  const { isAllowed } = usePagePermissionState(['create_users']);
+  const { isAllowed } = usePagePermissionState([
+    PERMISSION_KEYS.USERS.CREATE_USER,
+  ]);
 
   /* -------------------------------------------------------
    * Memoize column definitions
@@ -87,16 +90,23 @@ const UserListTable = ({
       {/* TABLE HEADER */}
       {/* ----------------------------------------- */}
       <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        mb={2}
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          mb: 2,
+        }}
       >
-        <CustomTypography variant="h6" fontWeight={600}>
+        <CustomTypography variant="h6" sx={{ fontWeight: 600 }}>
           User List
         </CustomTypography>
-
-        <Box display="flex" gap={2}>
+        
+        <Box
+          sx={{
+            display: 'flex',
+            gap: 2,
+          }}
+        >
           {isAllowed && (
             <CustomButton
               component={Link}

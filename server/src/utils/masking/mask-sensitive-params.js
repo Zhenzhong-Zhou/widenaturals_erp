@@ -81,7 +81,7 @@ const deepMask = (value, ctx) => {
   if (depth > maxDepth) return '[MaxDepth]';
 
   // Primitives and null — fast exit before object-specific checks
-  if (value == null || typeof value !== 'object') return maskPrimitive(value);
+  if (value === null || typeof value !== 'object') return maskPrimitive(value);
 
   // Circular reference guard — must come before any recursion
   if (seen.has(value)) return '[Circular]';

@@ -1,4 +1,4 @@
-import { PricingExportFilters } from '@features/pricing';
+import type { PricingExportFilters } from '@features/pricing';
 
 /**
  * Builds a human-readable filename suffix from active pricing export filters.
@@ -17,9 +17,11 @@ import { PricingExportFilters } from '@features/pricing';
  * buildExportFileSuffix({})
  * // → ''
  */
-export const buildExportFileSuffix = (filters: PricingExportFilters): string => {
+export const buildExportFileSuffix = (
+  filters: PricingExportFilters
+): string => {
   const parts: string[] = [];
-  if (filters.brand)       parts.push(filters.brand);
+  if (filters.brand) parts.push(filters.brand);
   if (filters.countryCode) parts.push(filters.countryCode);
   return parts.length ? `_${parts.join('_')}` : '';
 };

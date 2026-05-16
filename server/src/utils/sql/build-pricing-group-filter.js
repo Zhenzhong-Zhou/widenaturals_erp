@@ -86,12 +86,18 @@ const buildPricingGroupFilters = (filters = {}) => {
     params.push(normalizedFilters.sizeLabel);
   }
 
-  if (normalizedFilters.priceMin != null) {
+  if (
+    normalizedFilters.priceMin !== null &&
+    normalizedFilters.priceMin !== undefined
+  ) {
     conditions.push(`pg.price >= $${paramIndexRef.value++}`);
     params.push(normalizedFilters.priceMin);
   }
 
-  if (normalizedFilters.priceMax != null) {
+  if (
+    normalizedFilters.priceMax !== null &&
+    normalizedFilters.priceMax !== undefined
+  ) {
     conditions.push(`pg.price <= $${paramIndexRef.value++}`);
     params.push(normalizedFilters.priceMax);
   }

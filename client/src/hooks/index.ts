@@ -171,6 +171,7 @@ export { default as useWarehouseItemSummary } from './useWarehouseItemSummary';
  * ===================================================== */
 
 export { default as useBatchRegistryLookup } from './useBatchRegistryLookup';
+export { default as useBatchRegistryForInventoryLookup } from './useBatchRegistryForInventoryLookup';
 export { default as useWarehouseLookup } from './useWarehouseLookup';
 export { default as useProductLookup } from './useProductLookup';
 export { default as usePackagingMaterialLookup } from './usePackagingMaterialLookup';
@@ -186,6 +187,11 @@ export { default as useRoleLookup } from './useRoleLookup';
 export { default as useManufacturerLookup } from './useManufacturerLookup';
 export { default as useSupplierLookup } from './useSupplierLookup';
 export { default as useLocationTypeLookup } from './useLocationTypeLookup';
+export { default as useInventoryStatusLookup } from './useInventoryStatusLookup';
+export { default as usePricingTypeLookup } from './usePricingTypeLookup';
+export { default as useWarehouseTypeLookup } from './useWarehouseTypeLookup';
+export { default as useLocationLookup } from './useLocationLookup';
+export { default as useInventoryActionTypeLookup } from './useInventoryActionTypeLookup';
 
 /* =====================================================
  * Misc

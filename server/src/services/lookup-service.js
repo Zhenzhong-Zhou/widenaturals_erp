@@ -23,7 +23,6 @@ const { getWarehouseLookup } = require('../repositories/warehouse-repository');
 const {
   transformBatchRegistryPaginatedLookupResult,
   transformWarehouseLookupRows,
-  transformLotAdjustmentLookupOptions,
   transformCustomerPaginatedLookupResult,
   transformCustomerAddressesLookupResult,
   transformOrderTypeLookupResult,
@@ -45,6 +44,12 @@ const {
   transformLocationTypePaginatedLookupResult,
   transformBatchStatusPaginatedLookupResult,
   transformPackagingMaterialSupplierPaginatedLookupResult,
+  transformInventoryStatusPaginatedLookupResult,
+  transformPricingTypePaginatedLookupResult,
+  transformWarehouseTypePaginatedLookupResult,
+  transformLocationPaginatedLookupResult,
+  transformInventoryActionTypePaginatedLookupResult,
+  transformLotAdjustmentTypePaginatedLookupResult,
 } = require('../transformers/lookup-transformer');
 const {
   getLotAdjustmentTypeLookup,
@@ -64,7 +69,9 @@ const {
   resolveWarehouseFiltersByPermission,
 } = require('../business/warehouse-business');
 const {
-  enforceExternalAccessPermission,
+  evaluateLotAdjustmentTypeLookupVisibility,
+  resolveLotAdjustmentTypeLookupFilters,
+  enrichLotAdjustmentTypeLookupRow,
 } = require('../business/lot-adjustment-type-business');
 const { getOrderTypeLookup } = require('../repositories/order-type-repository');
 const {
@@ -117,7 +124,7 @@ const {
   enrichPricingGroupRow,
 } = require('../business/pricing-group-business');
 const {
-  getPaginatedPricingGroupLookup,
+  getPricingGroupLookup,
 } = require('../repositories/pricing-group-repository');
 const {
   evaluatePackagingMaterialLookupAccessControl,
@@ -144,7 +151,6 @@ const { getProductLookup } = require('../repositories/product-repository');
 const {
   evaluateStatusLookupAccessControl,
   enforceStatusLookupVisibilityRules,
-  enrichStatusLookupOption,
 } = require('../business/status-business');
 const { getStatusLookup } = require('../repositories/status-repository');
 const {
@@ -199,20 +205,67 @@ const {
   enforcePackagingMaterialSupplierLookupVisibilityRules,
   enrichPackagingMaterialSupplierLookupWithActiveFlag,
 } = require('../business/packaging-material-supplier-business');
+const {
+  fetchBatchRegistryForInventoryLookup,
+  fetchBatchRegistryLookup,
+} = require('../business/batch-registry-business');
+const {
+  evaluateInventoryStatusLookupVisibility,
+  resolveInventoryStatusLookupFilters,
+} = require('../business/inventory-status-business');
+const {
+  getInventoryStatusLookup,
+} = require('../repositories/inventory-status-repository');
+const {
+  getPricingTypeLookup,
+} = require('../repositories/pricing-type-repository');
+const {
+  evaluatePricingTypeLookupVisibility,
+  resolvePricingTypeLookupFilters,
+  enrichPricingTypeLookupWithActiveFlag,
+} = require('../business/pricing-type-business');
+const {
+  getWarehouseTypeLookup,
+} = require('../repositories/warehouse-type-repository');
+const {
+  evaluateWarehouseTypeLookupVisibility,
+  resolveWarehouseTypeLookupFilters,
+} = require('../business/warehouse-type-business');
+const { getLocationLookup } = require('../repositories/location-repository');
+const {
+  evaluateLocationLookupVisibility,
+  resolveLocationLookupFilters,
+  enrichLocationLookupRow,
+} = require('../business/location-business');
+const {
+  enrichStatusLookupOption,
+} = require('../utils/lookup/enrich-status-lookup-option');
+const {
+  getInventoryActionTypeLookup,
+} = require('../repositories/inventory-action-type-repository');
+const {
+  evaluateInventoryActionTypeLookupVisibility,
+  resolveInventoryActionTypeLookupFilters,
+  enrichInventoryActionTypeLookupRow,
+} = require('../business/inventory-action-type-business');
 
 const CONTEXT = 'lookup-service';
 
 // ---------------------------------------------------------------------------
 
-const fetchBatchRegistryLookupService = async ({
-  filters = {},
-  limit,
-  offset = 0,
-}) => {
+const fetchBatchRegistryLookupService = async (
+  user,
+  { filters = {}, limit = 50, offset = 0 }
+) => {
   const context = `${CONTEXT}/fetchBatchRegistryLookupService`;
 
   try {
-    const rawResult = await getBatchRegistryLookup({ filters, limit, offset });
+    const preparedFilters = await fetchBatchRegistryLookup(filters, user);
+    const rawResult = await getBatchRegistryLookup({
+      filters: preparedFilters,
+      limit,
+      offset,
+    });
     return transformBatchRegistryPaginatedLookupResult(rawResult);
   } catch (error) {
     if (error instanceof AppError) throw error;
@@ -221,6 +274,33 @@ const fetchBatchRegistryLookupService = async ({
       context,
       meta: { error: error.message },
     });
+  }
+};
+
+const fetchBatchRegistryForInventoryLookupService = async (
+  user,
+  { filters = {}, limit = 50, offset = 0 }
+) => {
+  const context = `${CONTEXT}/fetchBatchRegistryForInventoryLookupService`;
+
+  try {
+    const preparedFilters = await fetchBatchRegistryForInventoryLookup(
+      filters,
+      user
+    );
+    const rawResult = await getBatchRegistryLookup({
+      filters: preparedFilters,
+      limit,
+      offset,
+    });
+    return transformBatchRegistryPaginatedLookupResult(rawResult);
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+
+    throw AppError.serviceError(
+      'Unable to fetch batch registry lookup list for inventory.',
+      { context, meta: { error: error.message } }
+    );
   }
 };
 
@@ -252,29 +332,32 @@ const fetchWarehouseLookupService = async (user, { filters = {} } = {}) => {
 
 // ---------------------------------------------------------------------------
 
-const fetchLotAdjustmentLookupService = async (user, filters = {}) => {
+const fetchLotAdjustmentLookupService = async (
+  user,
+  { filters = {}, limit = 50, offset = 0 }
+) => {
   const context = `${CONTEXT}/fetchLotAdjustmentLookupService`;
 
   try {
-    const includeExternal = !!filters.includeExternal;
-    await enforceExternalAccessPermission(user, includeExternal);
-
-    const rows = await getLotAdjustmentTypeLookup(filters);
-
-    return {
-      items: transformLotAdjustmentLookupOptions(rows),
-      hasMore: false,
-    };
+    return await executeLookupWorkflow({
+      user,
+      filters,
+      limit,
+      offset,
+      repository: getLotAdjustmentTypeLookup,
+      aclEvaluator: evaluateLotAdjustmentTypeLookupVisibility,
+      aclFilterApplier: resolveLotAdjustmentTypeLookupFilters,
+      transformer: transformLotAdjustmentTypePaginatedLookupResult,
+      rowEnricher: enrichLotAdjustmentTypeLookupRow,
+      enrichmentCondition: (acl) => acl.canViewInactive,
+    });
   } catch (error) {
     if (error instanceof AppError) throw error;
 
-    throw AppError.serviceError(
-      'Unable to fetch lot adjustment lookup options.',
-      {
-        context,
-        meta: { error: error.message },
-      }
-    );
+    throw AppError.serviceError('Unable to fetch lot adjustment lookup.', {
+      context,
+      meta: { error: error.message },
+    });
   }
 };
 
@@ -402,11 +485,11 @@ const fetchOrderTypeLookupService = async (
 
 // ---------------------------------------------------------------------------
 
-const fetchPaginatedPaymentMethodLookupService = async (
+const fetchPaymentMethodLookupService = async (
   user,
   { filters = {}, limit = 50, offset = 0 }
 ) => {
-  const context = `${CONTEXT}/fetchPaginatedPaymentMethodLookupService`;
+  const context = `${CONTEXT}/fetchPaymentMethodLookupService`;
 
   try {
     const userAccess = await evaluatePaymentMethodLookupAccessControl(user);
@@ -442,11 +525,11 @@ const fetchPaginatedPaymentMethodLookupService = async (
 
 // ---------------------------------------------------------------------------
 
-const fetchPaginatedDiscountLookupService = async (
+const fetchDiscountLookupService = async (
   user,
   { filters = {}, limit = 50, offset = 0 }
 ) => {
-  const context = `${CONTEXT}/fetchPaginatedDiscountLookupService`;
+  const context = `${CONTEXT}/fetchDiscountLookupService`;
 
   try {
     const userAccess = await evaluateDiscountLookupAccessControl(user);
@@ -488,11 +571,11 @@ const fetchPaginatedDiscountLookupService = async (
 
 // ---------------------------------------------------------------------------
 
-const fetchPaginatedTaxRateLookupService = async (
+const fetchTaxRateLookupService = async (
   user,
   { filters = {}, limit = 50, offset = 0 }
 ) => {
-  const context = `${CONTEXT}/fetchPaginatedTaxRateLookupService`;
+  const context = `${CONTEXT}/fetchTaxRateLookupService`;
 
   try {
     const userAccess = await evaluateTaxRateLookupAccessControl(user);
@@ -529,11 +612,11 @@ const fetchPaginatedTaxRateLookupService = async (
 
 // ---------------------------------------------------------------------------
 
-const fetchPaginatedDeliveryMethodLookupService = async (
+const fetchDeliveryMethodLookupService = async (
   user,
   { filters = {}, limit = 50, offset = 0 }
 ) => {
-  const context = `${CONTEXT}/fetchPaginatedDeliveryMethodLookupService`;
+  const context = `${CONTEXT}/fetchDeliveryMethodLookupService`;
 
   try {
     const userAccess = await evaluateDeliveryMethodLookupAccessControl(user);
@@ -573,11 +656,11 @@ const fetchPaginatedDeliveryMethodLookupService = async (
 
 // ---------------------------------------------------------------------------
 
-const fetchPaginatedSkuLookupService = async (
+const fetchSkuLookupService = async (
   user,
   { filters = {}, options = {}, limit = 50, offset = 0 }
 ) => {
-  const context = `${CONTEXT}/fetchPaginatedSkuLookupService`;
+  const context = `${CONTEXT}/fetchSkuLookupService`;
 
   try {
     const { includeBarcode = false } = options || {};
@@ -641,11 +724,11 @@ const fetchPaginatedSkuLookupService = async (
 
 // ---------------------------------------------------------------------------
 
-const fetchPaginatedPricingGroupLookupService = async (
+const fetchPricingGroupLookupService = async (
   user,
   { filters = {}, limit = 50, offset = 0, displayOptions = {} }
 ) => {
-  const context = `${CONTEXT}/fetchPaginatedPricingGroupLookupService`;
+  const context = `${CONTEXT}/fetchPricingGroupLookupService`;
 
   try {
     const activeStatusId = getStatusId('pricing_active');
@@ -661,13 +744,11 @@ const fetchPaginatedPricingGroupLookupService = async (
       activeStatusId
     );
 
-    const { data = [], pagination = {} } = await getPaginatedPricingGroupLookup(
-      {
-        filters: queryFilters,
-        limit,
-        offset,
-      }
-    );
+    const { data = [], pagination = {} } = await getPricingGroupLookup({
+      filters: queryFilters,
+      limit,
+      offset,
+    });
 
     const enrichedRows = data.map((row) =>
       enrichPricingGroupRow(row, activeStatusId)
@@ -693,11 +774,11 @@ const fetchPaginatedPricingGroupLookupService = async (
 
 // ---------------------------------------------------------------------------
 
-const fetchPaginatedPackagingMaterialLookupService = async (
+const fetchPackagingMaterialLookupService = async (
   user,
   { filters = {}, limit = 50, offset = 0, mode = 'generic' } = {}
 ) => {
-  const context = `${CONTEXT}/fetchPaginatedPackagingMaterialLookupService`;
+  const context = `${CONTEXT}/fetchPackagingMaterialLookupService`;
 
   try {
     const isSales = mode === 'salesDropdown';
@@ -1099,18 +1180,29 @@ const fetchBatchStatusLookupService = async (
   user,
   { filters = {}, limit = 50, offset = 0 }
 ) => {
-  return executeLookupWorkflow({
-    user,
-    filters,
-    limit,
-    offset,
-    repository: getBatchStatusLookup,
-    aclEvaluator: evaluateBatchStatusVisibilityAccessControl,
-    aclFilterApplier: applyBatchStatusLookupVisibilityRules,
-    transformer: transformBatchStatusPaginatedLookupResult,
-    rowEnricher: enrichBatchStatusLookupWithActiveFlag,
-    enrichmentCondition: (acl) => acl.canViewAllStatuses,
-  });
+  const context = `${CONTEXT}/fetchBatchStatusLookupService`;
+
+  try {
+    return await executeLookupWorkflow({
+      user,
+      filters,
+      limit,
+      offset,
+      repository: getBatchStatusLookup,
+      aclEvaluator: evaluateBatchStatusVisibilityAccessControl,
+      aclFilterApplier: applyBatchStatusLookupVisibilityRules,
+      transformer: transformBatchStatusPaginatedLookupResult,
+      rowEnricher: enrichBatchStatusLookupWithActiveFlag,
+      enrichmentCondition: (acl) => acl.canViewAllStatuses,
+    });
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+
+    throw AppError.serviceError('Unable to fetch batch status lookup.', {
+      context,
+      meta: { error: error.message },
+    });
+  }
 };
 
 // ---------------------------------------------------------------------------
@@ -1119,39 +1211,219 @@ const fetchPackagingMaterialSupplierLookupService = async (
   user,
   { filters = {}, limit = 50, offset = 0 }
 ) => {
+  const context = `${CONTEXT}/fetchPackagingMaterialSupplierLookupService`;
   const activeStatusId = getStatusId('general_active');
 
-  return executeLookupWorkflow({
-    user,
-    filters,
-    limit,
-    offset,
-    repository: getPackagingMaterialSupplierLookup,
-    aclEvaluator: evaluatePackagingMaterialSupplierLookupAccessControl,
-    aclFilterApplier: enforcePackagingMaterialSupplierLookupVisibilityRules,
-    transformer: transformPackagingMaterialSupplierPaginatedLookupResult,
-    rowEnricher: (row) =>
-      enrichPackagingMaterialSupplierLookupWithActiveFlag(row, activeStatusId),
-    enrichmentCondition: (acl) => acl.canViewAllStatuses,
-  });
+  try {
+    return await executeLookupWorkflow({
+      user,
+      filters,
+      limit,
+      offset,
+      repository: getPackagingMaterialSupplierLookup,
+      aclEvaluator: evaluatePackagingMaterialSupplierLookupAccessControl,
+      aclFilterApplier: enforcePackagingMaterialSupplierLookupVisibilityRules,
+      transformer: transformPackagingMaterialSupplierPaginatedLookupResult,
+      rowEnricher: (row) =>
+        enrichPackagingMaterialSupplierLookupWithActiveFlag(
+          row,
+          activeStatusId
+        ),
+      enrichmentCondition: (acl) => acl.canViewAllStatuses,
+    });
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+
+    throw AppError.serviceError(
+      'Unable to fetch packaging material supplier lookup.',
+      { context, meta: { error: error.message } }
+    );
+  }
+};
+
+// ---------------------------------------------------------------------------
+
+const fetchInventoryStatusLookupService = async (
+  user,
+  { filters = {}, limit = 50, offset = 0 }
+) => {
+  const context = `${CONTEXT}/fetchInventoryStatusLookupService`;
+
+  try {
+    return await executeLookupWorkflow({
+      user,
+      filters,
+      limit,
+      offset,
+      repository: getInventoryStatusLookup,
+      aclEvaluator: evaluateInventoryStatusLookupVisibility,
+      aclFilterApplier: resolveInventoryStatusLookupFilters,
+      transformer: transformInventoryStatusPaginatedLookupResult,
+      rowEnricher: (row) => enrichStatusLookupOption(row),
+      enrichmentCondition: (acl) => acl.canViewInactive,
+    });
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+
+    throw AppError.serviceError('Unable to fetch inventory status lookup.', {
+      context,
+      meta: { error: error.message },
+    });
+  }
+};
+
+// ---------------------------------------------------------------------------
+
+const fetchPricingTypeLookupService = async (
+  user,
+  { filters = {}, limit = 50, offset = 0 }
+) => {
+  const context = `${CONTEXT}/fetchPricingTypeLookupService`;
+  const activeStatusId = getStatusId('general_active');
+
+  try {
+    return await executeLookupWorkflow({
+      user,
+      filters,
+      limit,
+      offset,
+      repository: getPricingTypeLookup,
+      aclEvaluator: evaluatePricingTypeLookupVisibility,
+      aclFilterApplier: (filters, acl) =>
+        resolvePricingTypeLookupFilters(filters, acl, activeStatusId),
+      transformer: transformPricingTypePaginatedLookupResult,
+      rowEnricher: (row) =>
+        enrichPricingTypeLookupWithActiveFlag(row, activeStatusId),
+      enrichmentCondition: (acl) => acl.canViewInactive,
+    });
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+
+    throw AppError.serviceError('Unable to fetch pricing type lookup.', {
+      context,
+      meta: { error: error.message },
+    });
+  }
+};
+
+// ---------------------------------------------------------------------------
+
+const fetchWarehouseTypeLookupService = async (
+  user,
+  { filters = {}, limit = 50, offset = 0 }
+) => {
+  const context = `${CONTEXT}/fetchWarehouseTypeLookupService`;
+
+  try {
+    return await executeLookupWorkflow({
+      user,
+      filters,
+      limit,
+      offset,
+      repository: getWarehouseTypeLookup,
+      aclEvaluator: evaluateWarehouseTypeLookupVisibility,
+      aclFilterApplier: resolveWarehouseTypeLookupFilters,
+      transformer: transformWarehouseTypePaginatedLookupResult,
+      rowEnricher: enrichStatusLookupOption,
+      enrichmentCondition: (acl) => acl.canViewInactive,
+    });
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+
+    throw AppError.serviceError('Unable to fetch warehouse type lookup.', {
+      context,
+      meta: { error: error.message },
+    });
+  }
+};
+
+// ---------------------------------------------------------------------------
+
+const fetchLocationLookupService = async (
+  user,
+  { filters = {}, limit = 50, offset = 0 }
+) => {
+  const context = `${CONTEXT}/fetchLocationLookupService`;
+  const activeStatusId = getStatusId('general_active');
+
+  try {
+    return await executeLookupWorkflow({
+      user,
+      filters,
+      limit,
+      offset,
+      repository: getLocationLookup,
+      aclEvaluator: evaluateLocationLookupVisibility,
+      aclFilterApplier: (filters, acl) =>
+        resolveLocationLookupFilters(filters, acl, activeStatusId),
+      transformer: transformLocationPaginatedLookupResult,
+      rowEnricher: (row) => enrichLocationLookupRow(row, activeStatusId),
+      enrichmentCondition: (acl) => acl.canViewInactive || acl.canViewArchived,
+    });
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+
+    throw AppError.serviceError('Unable to fetch location lookup.', {
+      context,
+      meta: { error: error.message },
+    });
+  }
+};
+
+// ---------------------------------------------------------------------------
+
+const fetchInventoryActionTypeLookupService = async (
+  user,
+  { filters = {}, limit = 50, offset = 0 }
+) => {
+  const context = `${CONTEXT}/fetchInventoryActionTypeLookupService`;
+  const activeStatusId = getStatusId('general_active');
+
+  try {
+    return await executeLookupWorkflow({
+      user,
+      filters,
+      limit,
+      offset,
+      repository: getInventoryActionTypeLookup,
+      aclEvaluator: evaluateInventoryActionTypeLookupVisibility,
+      aclFilterApplier: (filters, acl) =>
+        resolveInventoryActionTypeLookupFilters(filters, acl, activeStatusId),
+      transformer: transformInventoryActionTypePaginatedLookupResult,
+      rowEnricher: (row) =>
+        enrichInventoryActionTypeLookupRow(row, activeStatusId),
+      enrichmentCondition: (acl) => acl.canViewInactive,
+    });
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+
+    throw AppError.serviceError(
+      'Unable to fetch inventory action type lookup.',
+      {
+        context,
+        meta: { error: error.message },
+      }
+    );
+  }
 };
 
 // ---------------------------------------------------------------------------
 
 module.exports = {
   fetchBatchRegistryLookupService,
+  fetchBatchRegistryForInventoryLookupService,
   fetchWarehouseLookupService,
   fetchLotAdjustmentLookupService,
   fetchCustomerLookupService,
   fetchCustomerAddressLookupService,
   fetchOrderTypeLookupService,
-  fetchPaginatedPaymentMethodLookupService,
-  fetchPaginatedDiscountLookupService,
-  fetchPaginatedTaxRateLookupService,
-  fetchPaginatedDeliveryMethodLookupService,
-  fetchPaginatedSkuLookupService,
-  fetchPaginatedPricingGroupLookupService,
-  fetchPaginatedPackagingMaterialLookupService,
+  fetchPaymentMethodLookupService,
+  fetchDiscountLookupService,
+  fetchTaxRateLookupService,
+  fetchDeliveryMethodLookupService,
+  fetchSkuLookupService,
+  fetchPricingGroupLookupService,
+  fetchPackagingMaterialLookupService,
   fetchSkuCodeBaseLookupService,
   fetchProductLookupService,
   fetchStatusLookupService,
@@ -1162,4 +1434,9 @@ module.exports = {
   fetchLocationTypeLookupService,
   fetchBatchStatusLookupService,
   fetchPackagingMaterialSupplierLookupService,
+  fetchInventoryStatusLookupService,
+  fetchPricingTypeLookupService,
+  fetchWarehouseTypeLookupService,
+  fetchLocationLookupService,
+  fetchInventoryActionTypeLookupService,
 };

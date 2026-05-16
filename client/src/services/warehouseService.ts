@@ -25,7 +25,7 @@ const fetchPaginatedWarehouses = async (
   const flatParams = flattenListQueryParams(params, []);
   const queryString = buildQueryString(flatParams);
   const url = `${API_ENDPOINTS.WAREHOUSES.ALL_RECORDS}${queryString}`;
-  
+
   return getRequest<PaginatedWarehouseListApiResponse>(url, {
     policy: 'READ',
   });
@@ -40,7 +40,7 @@ const fetchWarehouseById = async (
   warehouseId: string
 ): Promise<WarehouseDetailApiResponse> => {
   const url = API_ENDPOINTS.WAREHOUSES.DETAIL(warehouseId);
-  
+
   return getRequest<WarehouseDetailApiResponse>(url, {
     policy: 'READ',
   });

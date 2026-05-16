@@ -35,7 +35,10 @@ const OutboundShipmentHeaderSection: FC<OutboundShipmentHeaderSectionProps> = ({
                     formatLabel(flattened.statusName) ?? ''
                   ),
               },
-              { label: 'Shipped At', value: formatDate(flattened.shippedAt || '—') },
+              {
+                label: 'Shipped At',
+                value: formatDate(flattened.shippedAt || '—'),
+              },
               {
                 label: 'Delivery Methode',
                 value: flattened.deliveryMethodName || '—',
@@ -79,7 +82,10 @@ const OutboundShipmentHeaderSection: FC<OutboundShipmentHeaderSectionProps> = ({
                   ? `${flattened.trackingCarrier} (${flattened.trackingService || '—'})`
                   : '—',
               },
-              { label: 'Updated At', value: formatDateTime(flattened.updatedAt || '—')},
+              {
+                label: 'Updated At',
+                value: formatDateTime(flattened.updatedAt || '—'),
+              },
               { label: 'Updated By', value: flattened.updatedByName || '—' },
             ]}
           />

@@ -1,14 +1,19 @@
 import { type FC, useState } from 'react';
-import Box from '@mui/material/Box';
-import Tab from '@mui/material/Tab';
-import Tabs from '@mui/material/Tabs';
-import { CustomTypography, ErrorMessage, Loading } from '@components/index';
+import { Box, Tab, Tabs } from '@mui/material';
+import {
+  CustomTypography,
+  ErrorMessage,
+  Loading
+} from '@components/index';
 import {
   WarehousePackagingSummaryCard,
   WarehouseProductSummaryCard,
 } from '@features/warehouseInventory/components/WarehouseItemSummary/index';
-import type { WarehousePackagingSummary, WarehouseProductSummary } from '@features/warehouseInventory';
-import { BatchEntityType } from '@shared-types/batch';
+import type {
+  WarehousePackagingSummary,
+  WarehouseProductSummary,
+} from '@features/warehouseInventory';
+import type { BatchEntityType } from '@shared-types/batch';
 
 interface Props {
   products: WarehouseProductSummary[];
@@ -26,30 +31,28 @@ interface Props {
  * filtering logic — current implementation passes raw lists through.
  */
 const WarehouseItemSummaryPanel: FC<Props> = ({
-                                                products,
-                                                packagingMaterials,
-                                                loading = false,
-                                                error = null,
-                                              }) => {
+  products,
+  packagingMaterials,
+  loading = false,
+  error = null,
+}) => {
   const [activeTab, setActiveTab] = useState<BatchEntityType>('product');
-  
+
   if (error) {
-    return (
-      <ErrorMessage message={error}/>
-    );
+    return <ErrorMessage message={error} />;
   }
-  
+
   if (loading) {
     return <Loading variant="dotted" />;
   }
-  
+
   const hasProducts = products.length > 0;
   const hasPackaging = packagingMaterials.length > 0;
   if (!hasProducts && !hasPackaging) return null;
-  
+
   return (
-    <Box mt={4}>
-      <CustomTypography variant="h6" fontWeight={700} mb={2}>
+    <Box sx={{ mt: 4 }}>
+      <CustomTypography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
         Item Summary
       </CustomTypography>
       
@@ -67,12 +70,12 @@ const WarehouseItemSummaryPanel: FC<Props> = ({
       
       {/* ── Column headers ──────────────────────────────────────── */}
       <Box
-        display="flex"
-        alignItems="center"
-        px={2}
-        py={1}
-        gap={3}
         sx={{
+          display: 'flex',
+          alignItems: 'center',
+          px: 2,
+          py: 1,
+          gap: 3,
           borderBottom: 1,
           borderColor: 'divider',
           fontWeight: 600,
@@ -82,16 +85,27 @@ const WarehouseItemSummaryPanel: FC<Props> = ({
           letterSpacing: 0.5,
         }}
       >
-        <Box flex={1} >Name</Box>
-        <Box minWidth={80} textAlign="right">Total</Box>
-        <Box minWidth={80} textAlign="right">Reserved</Box>
-        <Box minWidth={80} textAlign="right">Available</Box>
-        <Box minWidth={75}/>
-        <Box minWidth={200} >Earliest Expiry</Box>
+        <Box sx={{ flex: 1 }}>Name</Box>
+        
+        <Box sx={{ minWidth: 80, textAlign: 'right' }}>
+          Total
+        </Box>
+        
+        <Box sx={{ minWidth: 80, textAlign: 'right' }}>
+          Reserved
+        </Box>
+        
+        <Box sx={{ minWidth: 80, textAlign: 'right' }}>
+          Available
+        </Box>
+        
+        <Box sx={{ minWidth: 75 }} />
+        
+        <Box sx={{ minWidth: 200 }}>Earliest Expiry</Box>
       </Box>
       
       {/* ── Tab content ─────────────────────────────────────────── */}
-      <Box mt={1}>
+      <Box sx={{ mt: 1 }}>
         {activeTab === 'product' &&
           products.map((product) => (
             <WarehouseProductSummaryCard

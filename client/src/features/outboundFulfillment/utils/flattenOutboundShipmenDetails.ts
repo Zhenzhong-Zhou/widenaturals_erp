@@ -106,7 +106,7 @@ export const flattenFulfillments = (
 
   return fulfillments.map((f) => {
     const isPackagingMaterial = !!f.orderItem?.packagingMaterial;
-    
+
     return {
       fulfillmentId: f.fulfillmentId,
       fulfillmentStatusCode: f.status?.code ?? null,

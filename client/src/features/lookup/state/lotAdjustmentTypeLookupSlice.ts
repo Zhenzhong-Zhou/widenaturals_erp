@@ -1,19 +1,36 @@
-import { createSlice } from '@reduxjs/toolkit';
-import type { LotAdjustmentTypeLookupState } from '@features/lookup/state/lookupTypes';
-import { fetchLotAdjustmentTypeLookupThunk } from '@features/lookup/state/lookupThunks';
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import type {
+  LotAdjustmentTypeLookupItem,
+  LotAdjustmentTypeLookupResponse,
+  LotAdjustmentTypeLookupState,
+} from '@features/lookup/state';
+import { createInitialOffsetPaginatedState } from '@store/pagination';
+import { fetchLotAdjustmentTypeLookupThunk } from '@features/lookup/state';
+import { applyPaginatedFulfilled } from '@features/lookup/utils/lookupReducers';
 import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
-const initialState: LotAdjustmentTypeLookupState = {
-  data: [],
-  loading: false,
-  error: null,
-};
+// -----------------------------
+// Initial State
+// -----------------------------
+const initialState: LotAdjustmentTypeLookupState =
+  createInitialOffsetPaginatedState<LotAdjustmentTypeLookupItem>();
 
+// -----------------------------
+// Slice
+// -----------------------------
 const lotAdjustmentTypeLookupSlice = createSlice({
   name: 'lotAdjustmentTypeLookup',
   initialState,
   reducers: {
-    resetLotAdjustmentTypeLookup: () => initialState,
+    /**
+     * Reset lot adjustment type lookup to clean initial pagination state.
+     */
+    resetLotAdjustmentTypeLookup: (state) => {
+      Object.assign(
+        state,
+        createInitialOffsetPaginatedState<LotAdjustmentTypeLookupItem>()
+      );
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -21,17 +38,26 @@ const lotAdjustmentTypeLookupSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchLotAdjustmentTypeLookupThunk.fulfilled, (state, action) => {
-        state.loading = false;
-        state.error = null;
-        state.data = action.payload.items;
-      })
+      .addCase(
+        fetchLotAdjustmentTypeLookupThunk.fulfilled,
+        (state, action: PayloadAction<LotAdjustmentTypeLookupResponse>) => {
+          applyPaginatedFulfilled(state, action.payload);
+        }
+      )
       .addCase(fetchLotAdjustmentTypeLookupThunk.rejected, (state, action) => {
-        applyRejected(state, action, 'Failed to fetch lot adjustment types');
+        applyRejected(
+          state,
+          action,
+          'Failed to fetch lot adjustment type lookup'
+        );
       });
   },
 });
 
+// -----------------------------
+// Exports
+// -----------------------------
 export const { resetLotAdjustmentTypeLookup } =
   lotAdjustmentTypeLookupSlice.actions;
+
 export default lotAdjustmentTypeLookupSlice.reducer;

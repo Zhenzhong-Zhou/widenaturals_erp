@@ -1,9 +1,6 @@
 import { useNavigate } from 'react-router-dom';
-import Box from '@mui/material/Box';
-import Container from '@mui/material/Container';
-import Stack from '@mui/material/Stack';
-import CustomTypography from '@components/common/CustomTypography';
-import CustomButton from '@components/common/CustomButton';
+import { Box, Container, Stack } from '@mui/material';
+import { CustomButton, CustomTypography } from '@components/index';
 
 const AccessDeniedPage = () => {
   const navigate = useNavigate();
@@ -20,8 +17,13 @@ const AccessDeniedPage = () => {
           py: 8,
         }}
       >
-        <Stack spacing={3} alignItems="center">
-          <CustomTypography variant="h3" color="error" fontWeight={600}>
+        <Stack
+          spacing={3}
+          sx={{
+            alignItems: 'center',
+          }}
+        >
+          <CustomTypography variant="h3" color="error" sx={{ fontWeight: 600 }}>
             Access Denied
           </CustomTypography>
           <CustomTypography variant="body1">

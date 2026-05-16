@@ -24,12 +24,12 @@ interface Props {
  * section components can stay pure and the role pages stay declarative.
  */
 const DashboardSectionGate: FC<Props> = ({
-                                           canView,
-                                           loading,
-                                           error,
-                                           skeletonHeight = 120,
-                                           children,
-                                         }) => {
+  canView,
+  loading,
+  error,
+  skeletonHeight = 120,
+  children,
+}) => {
   if (!canView) return null;
   if (error) return null;
   if (loading) {

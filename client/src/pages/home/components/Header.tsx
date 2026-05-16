@@ -3,6 +3,7 @@ import { AppBar, Toolbar, Box, Stack, useTheme } from '@mui/material';
 import { CustomButton, CustomTypography } from '@components/index';
 import { NavLink } from '@pages/home/components/index';
 import logoLight from '@assets/wide-logo-light.png';
+import logoDark from '@assets/wide-logo-dark.png';
 
 export interface HeaderProps {
   onStaffLogin?: () => void;
@@ -10,6 +11,7 @@ export interface HeaderProps {
 
 const Header: FC<HeaderProps> = ({ onStaffLogin }) => {
   const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
 
   return (
     <AppBar
@@ -17,7 +19,7 @@ const Header: FC<HeaderProps> = ({ onStaffLogin }) => {
       elevation={0}
       sx={{
         zIndex: theme.zIndex.appBar,
-        backgroundColor: '#ffffff',
+        backgroundColor: 'background.paper',
         borderBottom: '1px solid',
         borderColor: 'divider',
       }}
@@ -36,27 +38,58 @@ const Header: FC<HeaderProps> = ({ onStaffLogin }) => {
         }}
       >
         {/* Brand */}
-        <Stack direction="row" spacing={2} alignItems="center">
-          {/* Logo mark placeholder */}
-          <Box>
+        <Stack
+          direction="row"
+          spacing={2}
+          sx={{
+            alignItems: 'center',
+          }}
+        >
+          {/* Logo */}
+          <Box
+            component="a"
+            href="/"
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              flexShrink: 0,
+            }}
+          >
             <img
-              src={logoLight}
+              src={isDark ? logoDark : logoLight}
               alt="WIDE Naturals Inc."
               loading="eager"
-              style={{
-                height: 50,
-                objectFit: 'contain',
-              }}
+              style={{ height: 44, objectFit: 'contain', display: 'block' }}
             />
           </Box>
 
-          <Box sx={{ lineHeight: 1.1 }}>
-            <CustomTypography variant="h6" fontWeight={700} color="#0f172a">
+          {/* Text block */}
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              minHeight: 44, // matches logo height for clean centering
+            }}
+          >
+            <CustomTypography
+              variant="h6"
+              sx={{
+                fontWeight: 700,
+                color: 'text.primary',
+                m: 0,
+              }}
+            >
               WIDE Naturals
             </CustomTypography>
             <CustomTypography
               variant="caption"
-              sx={{ color: '#475569', whiteSpace: 'nowrap' }}
+              sx={{
+                color: 'text.secondary',
+                whiteSpace: 'nowrap',
+                m: 0,
+                mt: 0.25,
+              }}
             >
               Natural Health Products • Canadian cGMP • Global Distribution
             </CustomTypography>
@@ -67,8 +100,8 @@ const Header: FC<HeaderProps> = ({ onStaffLogin }) => {
         <Stack
           direction="row"
           spacing={3}
-          alignItems="center"
           sx={{
+            alignItems: 'center',
             display: { xs: 'none', md: 'flex' },
           }}
         >
@@ -80,6 +113,7 @@ const Header: FC<HeaderProps> = ({ onStaffLogin }) => {
           {onStaffLogin ? (
             <CustomButton
               variant="contained"
+              color="primary"
               size="small"
               onClick={onStaffLogin}
               sx={{

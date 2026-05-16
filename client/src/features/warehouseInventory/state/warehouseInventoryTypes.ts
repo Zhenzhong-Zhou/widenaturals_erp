@@ -60,7 +60,7 @@ interface Product {
   name: string;
   /** Brand name (e.g. "WIDE Naturals"). */
   brand: string;
-  
+
   displayName: string;
 }
 
@@ -168,7 +168,7 @@ export type FlattenedWarehouseInventory = {
   statusId: string;
   statusName: string;
   statusDate: string;
-  
+
   // Product fields (null when batchType === 'packaging_material')
   productBatchId: NullableString;
   productLotNumber: NullableString;
@@ -185,7 +185,7 @@ export type FlattenedWarehouseInventory = {
   displayName: NullableString;
   manufacturerId: NullableString;
   manufacturerName: NullableString;
-  
+
   // Packaging fields (null when batchType === 'product')
   packagingBatchId: NullableString;
   packagingLotNumber: NullableString;
@@ -212,40 +212,41 @@ export type WarehouseInventoryListState =
 export type WarehouseInventoryFilters = {
   /** Filter by batch type (product or packaging material). */
   batchType?: BatchEntityType;
-  
+
   /** Filter by one or more inventory status IDs (UUID). */
   statusIds?: string[];
-  
+
   /** Filter by one or more SKU IDs (UUID). */
   skuIds?: string[];
-  
+
   /** Filter by one or more product IDs (UUID). */
   productIds?: string[];
-  
+
   /** Filter by one or more packaging material IDs (UUID). */
   packagingMaterialIds?: string[];
-  
+
   /** Show items at or below this on-hand quantity threshold. */
   lowStockThreshold?: number;
-  
+
   /** Show items expiring within this many days from today. */
   expiringWithinDays?: number;
-  
+
   /** Filter inbound date on or after this ISO 8601 date (YYYY-MM-DD). */
   inboundDateAfter?: string;
-  
+
   /** Filter inbound date on or before this ISO 8601 date (YYYY-MM-DD). */
   inboundDateBefore?: string;
-  
+
   /** When true, show only items with a non-zero reserved quantity. */
   hasReserved?: boolean;
-  
+
   /** Full-text search across lot number, product name, SKU, and material code. */
   search?: string;
 };
 
 /** Full query parameter shape for the warehouse inventory list endpoint. */
-export interface WarehouseInventoryQueryParams extends PaginationParams, SortConfig {
+export interface WarehouseInventoryQueryParams
+  extends PaginationParams, SortConfig {
   /** Warehouse UUID — path parameter, included here for thunk convenience. */
   warehouseId: string;
   filters?: WarehouseInventoryFilters;
@@ -263,7 +264,6 @@ export type WarehouseInventorySortField =
   | 'statusDate'
   | 'warehouseQuantity'
   | 'reservedQuantity'
-  | 'availableQuantity'
   | 'warehouseFee'
   | 'statusName'
   | 'batchType'
@@ -358,6 +358,27 @@ export type UpdateWarehouseInventoryStatusRequest = {
   updates: UpdateWarehouseInventoryStatusItem[];
 };
 
+/**
+ * Normalized input shape for the single-record update-status form.
+ *
+ * Both the list-page row (FlattenedWarehouseInventory) and the detail-page
+ * record (WarehouseInventoryDetailRecord) feed the same form, but their
+ * source shapes differ (flat columns vs nested objects). Each is adapted
+ * into this type — via flattenedToUpdateStatusItem and
+ * detailRecordToUpdateStatusItem — before reaching the form or payload
+ * builder, so neither needs to know which source the item came from.
+ */
+export interface UpdateStatusFormItem {
+  /** Inventory record UUID. */
+  id: string;
+  /** Current inventory status UUID. */
+  currentStatusId: string;
+  /** Current inventory status name. */
+  currentStatusName: string;
+  /** Pre-formatted human-readable label (lot · sku · product, etc.). */
+  label: string;
+}
+
 /** Data returned after updating warehouse inventory statuses. */
 export type UpdateWarehouseInventoryStatusData = {
   count: number;
@@ -438,7 +459,7 @@ export type WarehouseInventoryOutboundState =
 // =============================================================================
 
 /** Product batch details for detail view (extended from list shape). */
-interface ProductBatchDetail {
+export interface ProductBatchDetail {
   id: string;
   lotNumber: string;
   expiryDate: NullableString;
@@ -448,7 +469,7 @@ interface ProductBatchDetail {
 }
 
 /** SKU details for detail view. */
-interface ProductSkuDetail {
+export interface ProductSkuDetail {
   id: string;
   sku: string;
   barcode: string;
@@ -458,7 +479,7 @@ interface ProductSkuDetail {
 }
 
 /** Product details for detail view (extended from list shape). */
-interface ProductDetail {
+export interface ProductDetail {
   id: string;
   name: string;
   brand: string;
@@ -468,13 +489,13 @@ interface ProductDetail {
 }
 
 /** Manufacturer details for detail view. */
-interface ProductManufacturerDetail {
+export interface ProductManufacturerDetail {
   id: string;
   name: string;
 }
 
 /** Nested product info for detail view. */
-interface ProductInfoDetail {
+export interface ProductInfoDetail {
   batch: ProductBatchDetail;
   sku: ProductSkuDetail;
   product: ProductDetail;
@@ -506,7 +527,7 @@ interface PackagingSupplierDetail {
 }
 
 /** Nested packaging info for detail view. */
-interface PackagingInfoDetail {
+export interface PackagingInfoDetail {
   batch: PackagingBatchDetail;
   material: PackagingMaterialDetail;
   supplier: PackagingSupplierDetail;
@@ -605,12 +626,12 @@ export type InventoryActivityLogRecord = {
   metadata: Record<string, unknown> | null;
   performedAt: string;
   performedByName: NullableString;
-  
+
   // Product context (null when batchType === 'packaging_material')
   productLotNumber: NullableString;
   productName: NullableString;
   sku: NullableString;
-  
+
   // Packaging context (null when batchType === 'product')
   packagingLotNumber: NullableString;
   packagingDisplayName: NullableString;
@@ -640,7 +661,8 @@ export type InventoryActivityLogFilters = {
 };
 
 /** Full query parameter shape for the activity log endpoint. */
-export interface InventoryActivityLogQueryParams extends PaginationParams, SortConfig {
+export interface InventoryActivityLogQueryParams
+  extends PaginationParams, SortConfig {
   /** Warehouse UUID — path parameter, included here for thunk convenience. */
   warehouseId: string;
   filters?: InventoryActivityLogFilters;

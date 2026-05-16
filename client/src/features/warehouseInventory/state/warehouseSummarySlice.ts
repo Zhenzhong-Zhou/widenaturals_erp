@@ -28,7 +28,7 @@ const warehouseSummarySlice = createSlice({
       .addCase(fetchWarehouseSummaryThunk.fulfilled, (state, action) => {
         state.loading = false;
         state.error = null;
-        
+
         const result = action.payload as WarehouseSummaryResponse;
         state.data = result.data;
       })

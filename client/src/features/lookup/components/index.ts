@@ -3,6 +3,8 @@ export { default as BatchRegistryDropdown } from './BatchRegistryDropdown';
 export { default as BatchRegistryMultiSelectDropdown } from './BatchRegistryMultiSelectDropdown';
 export { default as LotAdjustmentTypeDropdown } from './LotAdjustmentTypeDropdown';
 export { default as LotAdjustmentTypeMultiSelectDropdown } from './LotAdjustmentTypeMultiSelectDropdown';
+export { default as InventoryActionTypeDropdown } from './InventoryActionTypeDropdown';
+export { default as InventoryActionTypeMultiSelectDropdown } from './InventoryActionTypeMultiSelectDropdown';
 
 // Customer / User
 export { default as CustomerDropdown } from './CustomerDropdown';
@@ -21,7 +23,7 @@ export { default as PricingGroupDropdown } from './PricingGroupDropdown';
 export { default as DiscountDropdown } from './DiscountDropdown';
 
 // Order / Payment / Delivery
-export { default as OrderTypesDropdown } from './OrderTypesDropdown';
+export { default as OrderTypeDropdown } from './OrderTypeDropdown';
 export { default as PaymentMethodDropdown } from './PaymentMethodDropdown';
 export { default as DeliveryMethodDropdown } from './DeliveryMethodDropdown';
 export { default as TaxRateDropdown } from './TaxRateDropdown';
@@ -41,3 +43,11 @@ export { default as SupplierDropdown } from './SupplierDropdown';
 export { default as SupplierMultiSelectDropdown } from './SupplierMultiSelectDropdown';
 export { default as LocationTypeDropdown } from './LocationTypeDropdown';
 export { default as LocationTypeMultiSelectDropdown } from './LocationTypeMultiSelectDropdown';
+export { default as InventoryStatusDropdown } from './InventoryStatusDropdown';
+export { default as InventoryStatusMultiSelectDropdown } from './InventoryStatusMultiSelectDropdown';
+export { default as PricingTypeDropdown } from './PricingTypeDropdown';
+export { default as PricingTypeMultiSelectDropdown } from './PricingTypeMultiSelectDropdown';
+export { default as WarehouseTypeDropdown } from './WarehouseTypeDropdown';
+export { default as WarehouseTypeMultiSelectDropdown } from './WarehouseTypeMultiSelectDropdown';
+export { default as LocationDropdown } from './LocationDropdown';
+export { default as LocationMultiSelectDropdown } from './LocationMultiSelectDropdown';

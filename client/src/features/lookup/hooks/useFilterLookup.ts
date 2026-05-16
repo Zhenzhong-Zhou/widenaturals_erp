@@ -38,6 +38,24 @@ interface UseFilterLookupParams<TLookupBundle> {
   useSearchHandlers?: (lookup: TLookupBundle) => {
     handleSearch: (value: string) => void;
   };
+
+  /**
+   * Optional per-option formatter applied at the binding layer.
+   *
+   * Runs once over `lookup.options` and the result is reused for both
+   * dropdown rendering and `selectedOptions` derivation, keeping menu
+   * items and selected chips visually in sync.
+   *
+   * Define at module scope or wrap with useCallback to keep the
+   * reference stable across renders.
+   *
+   * Example:
+   *   const formatInactiveOption = (opt) =>
+   *     opt.isActive === false
+   *       ? { ...opt, label: `${opt.label} (Inactive)` }
+   *       : opt;
+   */
+  formatOption?: (option: MultiSelectOption) => MultiSelectOption;
 }
 
 /**
@@ -46,15 +64,22 @@ interface UseFilterLookupParams<TLookupBundle> {
  * Responsibilities:
  * - Binds lookup options to react-hook-form multi-select fields
  * - Manages lookup keyword state via useLookupController
- * - Supports lazy loading on open
- * - Supports incremental pagination
+ * - Supports lazy loading on open and incremental pagination
  * - Optionally integrates debounced search handlers
+ * - Optionally applies a per-option formatter (e.g. label casing,
+ *   inactive markers) once at the binding layer
  *
  * Design principles:
  * - Composes smaller hooks instead of reimplementing logic
  * - Does NOT manage selected values directly
  * - Does NOT debounce internally
  * - Safe to reuse across all filter panels
+ *
+ * Important: the returned `options` array reflects the formatted list
+ * when `formatOption` is provided. Callsites should bind the dropdown's
+ * `options` prop to this returned value rather than to the raw
+ * `lookup.options`, so dropdown items and selected chips stay
+ * visually in sync.
  *
  * Typical usage:
  * ```
@@ -64,7 +89,15 @@ interface UseFilterLookupParams<TLookupBundle> {
  *   watch,
  *   setValue,
  *   useSearchHandlers: useProductSearchHandlers,
+ *   formatOption: formatInactiveOption, // optional
  * });
+ *
+ * <ProductMultiSelectDropdown
+ *   options={productLookup.options}
+ *   selectedOptions={productLookup.selectedOptions}
+ *   onChange={productLookup.handleSelect}
+ *   ...
+ * />
  * ```
  */
 const useFilterLookup = <TLookup>({
@@ -73,6 +106,7 @@ const useFilterLookup = <TLookup>({
   watch,
   setValue,
   useSearchHandlers,
+  formatOption,
 }: UseFilterLookupParams<TLookup>) => {
   // Low-level lookup state (keyword, pagination, open)
   const controller = useLookupController({
@@ -96,16 +130,17 @@ const useFilterLookup = <TLookup>({
     [controller.handleInputChange, searchHandlers]
   );
 
-  // RHF ↔ lookup multi-select binding
+  // RHF ↔ lookup multi-select binding (applies optional formatter)
   const multiSelect = useMultiSelectBinding({
     watch,
     setValue,
     fieldName,
     options: lookup.options,
+    formatOption,
   });
 
   return {
-    // Selected values + onSelect handler
+    // Selected values, onSelect handler, and formatted options
     ...multiSelect,
 
     // Lookup control API

@@ -12,35 +12,35 @@ interface PricingSortControlsProps {
 
 const pricingSortOptions: { label: string; value: PricingSortField }[] = [
   // ---- Product fields ----
-  { label: 'Product Name',  value: 'productName' },
-  { label: 'Brand',         value: 'brand' },
-  { label: 'Category',      value: 'category' },
-  
+  { label: 'Product Name', value: 'productName' },
+  { label: 'Brand', value: 'brand' },
+  { label: 'Category', value: 'category' },
+
   // ---- SKU fields ----
-  { label: 'SKU',           value: 'sku' },
-  { label: 'Barcode',       value: 'barcode' },
-  { label: 'Size Label',    value: 'sizeLabel' },
-  { label: 'SKU Country',   value: 'skuCountryCode' },
-  
+  { label: 'SKU', value: 'sku' },
+  { label: 'Barcode', value: 'barcode' },
+  { label: 'Size Label', value: 'sizeLabel' },
+  { label: 'SKU Country', value: 'skuCountryCode' },
+
   // ---- Pricing fields ----
-  { label: 'Price',         value: 'price' },
-  { label: 'Country Code',  value: 'countryCode' },
-  { label: 'Valid From',    value: 'validFrom' },
-  { label: 'Valid To',      value: 'validTo' },
-  
+  { label: 'Price', value: 'price' },
+  { label: 'Country Code', value: 'countryCode' },
+  { label: 'Valid From', value: 'validFrom' },
+  { label: 'Valid To', value: 'validTo' },
+
   // ---- Status fields ----
-  { label: 'Status',        value: 'statusName' },
-  
+  { label: 'Status', value: 'statusName' },
+
   // ---- Default natural sort ----
   { label: 'Default (Natural Sort)', value: 'defaultNaturalSort' },
 ];
 
 const PricingSortControls: FC<PricingSortControlsProps> = ({
-                                                             sortBy,
-                                                             sortOrder,
-                                                             onSortByChange,
-                                                             onSortOrderChange,
-                                                           }) => {
+  sortBy,
+  sortOrder,
+  onSortByChange,
+  onSortOrderChange,
+}) => {
   return (
     <SortControls
       sortBy={sortBy}

@@ -1,6 +1,9 @@
 import { type FC } from 'react';
 import Chip from '@mui/material/Chip';
-import { isExpired, isExpiringSoon } from '@features/warehouseInventory/utils/inventoryStatus';
+import {
+  isExpired,
+  isExpiringSoon,
+} from '@features/warehouseInventory/utils/inventoryStatus';
 
 interface Props {
   date: string | null | undefined;

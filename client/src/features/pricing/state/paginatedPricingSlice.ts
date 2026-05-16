@@ -19,7 +19,7 @@ const initialState: PricingListState =
 const paginatedPricingSlice = createSlice({
   name: 'paginatedPricing',
   initialState,
-  
+
   reducers: {
     /**
      * Reset the entire paginated pricing state back to its
@@ -32,7 +32,7 @@ const paginatedPricingSlice = createSlice({
      */
     resetPaginatedPricing: () => initialState,
   },
-  
+
   // ---------------------------
   // Extra reducers (async thunk lifecycle)
   // ---------------------------
@@ -43,16 +43,16 @@ const paginatedPricingSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      
+
       // ---- fulfilled ----
       .addCase(
         fetchPaginatedPricingThunk.fulfilled,
         (state, action: PayloadAction<PaginatedPricingListUiResponse>) => {
           const payload = action.payload;
-          
+
           state.loading = false;
           state.data = payload.data;
-          
+
           state.pagination = {
             page: payload.pagination.page,
             limit: payload.pagination.limit,
@@ -61,7 +61,7 @@ const paginatedPricingSlice = createSlice({
           };
         }
       )
-      
+
       // ---- rejected ----
       .addCase(fetchPaginatedPricingThunk.rejected, (state, action) => {
         state.loading = false;

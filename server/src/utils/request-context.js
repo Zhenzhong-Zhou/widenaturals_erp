@@ -184,14 +184,14 @@ const extractRequestContext = (req) => {
       filters: rawFilters,
     } = req.normalizedQuery;
 
-    if (page != null && limit != null) {
+    if (page !== null && limit !== null) {
       pagination = {
         page: String(page),
         limit: String(limit),
       };
     }
 
-    if (sortBy != null && sortOrder != null) {
+    if (sortBy !== null && sortOrder !== null) {
       sorting = {
         sortBy: String(sortBy),
         // sortOrder is always 'asc' | 'desc' — safe to log as-is

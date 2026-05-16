@@ -210,7 +210,7 @@ const SkuImageBulkUploadPage = () => {
       >
         <GoBackButton sx={{ mb: 2 }} />
 
-        <CustomTypography variant="h5" fontWeight={700}>
+        <CustomTypography variant="h5" sx={{ fontWeight: 700 }}>
           Bulk Upload SKU Images
         </CustomTypography>
 

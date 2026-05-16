@@ -16,7 +16,7 @@ const OutboundFulfillmentExpandedSection: FC<
   OutboundFulfillmentExpandedSectionProps
 > = ({ row }) => {
   const isPackagingMaterial = row.itemType === 'packaging_material';
-console.log(row)
+  console.log(row);
   const itemInfoFields = isPackagingMaterial
     ? [
         {

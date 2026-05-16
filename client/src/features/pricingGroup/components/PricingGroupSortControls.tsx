@@ -15,28 +15,36 @@ const pricingGroupSortOptions = (
   showPricingType = true
 ): { label: string; value: PricingGroupSortField }[] => [
   // ---- Identity ----
-  ...(showPricingType ? [
-    { label: 'Pricing Type', value: 'pricingTypeName' as PricingGroupSortField },
-    { label: 'Code',         value: 'pricingTypeCode' as PricingGroupSortField },
-  ] : []),
+  ...(showPricingType
+    ? [
+        {
+          label: 'Pricing Type',
+          value: 'pricingTypeName' as PricingGroupSortField,
+        },
+        { label: 'Code', value: 'pricingTypeCode' as PricingGroupSortField },
+      ]
+    : []),
   { label: 'Country', value: 'countryCode' as PricingGroupSortField },
-  
+
   // ---- Pricing ----
-  { label: 'Price',      value: 'price'    as PricingGroupSortField },
+  { label: 'Price', value: 'price' as PricingGroupSortField },
   { label: 'Valid From', value: 'validFrom' as PricingGroupSortField },
-  
+
   // ---- Status ----
   { label: 'Status', value: 'statusName' as PricingGroupSortField },
-  
+
   // ---- Counts ----
-  { label: 'SKU Count',     value: 'skuCount'     as PricingGroupSortField },
+  { label: 'SKU Count', value: 'skuCount' as PricingGroupSortField },
   { label: 'Product Count', value: 'productCount' as PricingGroupSortField },
-  
+
   // ---- Audit ----
   { label: 'Last Updated', value: 'updatedAt' as PricingGroupSortField },
-  
+
   // ---- Default fallback ----
-  { label: 'Default (Natural Sort)', value: 'defaultNaturalSort' as PricingGroupSortField },
+  {
+    label: 'Default (Natural Sort)',
+    value: 'defaultNaturalSort' as PricingGroupSortField,
+  },
 ];
 
 /**
@@ -46,12 +54,12 @@ const pricingGroupSortOptions = (
  * Keeps pricing group–specific sort semantics isolated and explicit.
  */
 const PricingGroupSortControls: FC<PricingGroupSortControlsProps> = ({
-                                                                       sortBy,
-                                                                       sortOrder,
-                                                                       onSortByChange,
-                                                                       onSortOrderChange,
-                                                                       showPricingType = true,
-                                                                     }) => {
+  sortBy,
+  sortOrder,
+  onSortByChange,
+  onSortOrderChange,
+  showPricingType = true,
+}) => {
   return (
     <SortControls
       sortBy={sortBy}

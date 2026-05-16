@@ -7,10 +7,12 @@
  *   - transformPaginatedSkuListResults       – paginated SKU table list
  *   - transformSkuRecord                     – bulk insert result records
  *   - transformSkuDetail                     – full SKU detail with images, pricing, compliance
+ *   - transformSkuDetailPricing              – pricing rows for the SKU detail view
  *
  * Internal helpers (not exported):
- *   - transformSkuProductCardRow – per-row transformer for product card view
- *   - transformSkuListRecord     – per-row transformer for table list view
+ *   - transformSkuProductCardRow    – per-row transformer for product card view
+ *   - transformSkuListRecord        – per-row transformer for table list view
+ *   - transformSkuDetailPricingRow  – per-row transformer for SKU detail pricing
  *
  * All functions are pure — no logging, no AppError, no side effects.
  */
@@ -21,7 +23,7 @@ const { getProductDisplayName } = require('../utils/display-name-utils');
 const { transformPageResult } = require('../utils/transformer-utils');
 const { cleanObject } = require('../utils/object-utils');
 const { transformSkuImageGroupsForDetail } = require('./sku-image-transformer');
-const { transformPricingSkuList } = require('./pricing-transformer');
+const { transformSkuDetailPricing } = require('./pricing-transformer');
 const {
   transformComplianceRecord,
 } = require('./compliance-record-transformer');
@@ -166,12 +168,22 @@ const transformSkuRecord = (skuRows, generatedSkus = []) => {
  *
  * Returns `null` if `sku` is falsy.
  *
- * @param {{ sku: SkuDetailRow, images: Array, pricing: Array, complianceRecords: Array }} params
+ * @param {{
+ *  sku: SkuDetailRow,
+ *  images: Array,
+ *  pricing: Array,
+ *  complianceRecords: Array
+ * }} params
  * @returns {Object|null}
  */
-const transformSkuDetail = ({ sku, images, pricing, complianceRecords }) => {
+const transformSkuDetail = ({
+                              sku,
+                              images = [],
+                              pricing = [],
+                              complianceRecords = [],
+                            }) => {
   if (!sku) return null;
-
+  
   return {
     id: sku.sku_id,
     sku: sku.sku,
@@ -181,7 +193,7 @@ const transformSkuDetail = ({ sku, images, pricing, complianceRecords }) => {
     sizeLabel: sku.size_label,
     countryCode: sku.country_code,
     marketRegion: sku.market_region,
-
+    
     product: {
       id: sku.product_id,
       name: sku.product_name,
@@ -190,14 +202,14 @@ const transformSkuDetail = ({ sku, images, pricing, complianceRecords }) => {
       category: sku.product_category,
       displayName: getProductDisplayName({
         product_name: sku.product_name,
-        brand: sku.brand,
-        sku: sku.sku_code,
+        brand: sku.product_brand,
+        sku: sku.sku,
         country_code: sku.country_code,
         size_label: sku.size_label,
         display_name: sku.display_name,
       }),
     },
-
+    
     dimensions: {
       cm: {
         length: sku.length_cm,
@@ -214,17 +226,17 @@ const transformSkuDetail = ({ sku, images, pricing, complianceRecords }) => {
         lb: sku.weight_lb,
       },
     },
-
+    
     status: makeStatus(sku, {
       id: 'sku_status_id',
       name: 'sku_status_name',
       date: 'sku_status_date',
     }),
-
+    
     audit: compactAudit(makeAudit(sku)),
-
+    
     images: transformSkuImageGroupsForDetail(images ?? []),
-    pricing: pricing?.map(transformPricingSkuList) ?? [],
+    pricing: transformSkuDetailPricing(pricing ?? []),
     complianceRecords: complianceRecords?.map(transformComplianceRecord) ?? [],
   };
 };

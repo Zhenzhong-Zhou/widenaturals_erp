@@ -1,5 +1,5 @@
 import { Suspense, useCallback, useMemo } from 'react';
-import Box from '@mui/material/Box';
+import { Box } from '@mui/material';
 import {
   CustomButton,
   CustomTable,
@@ -36,30 +36,27 @@ interface PricingTypeListTableProps {
  * - refresh support
  */
 const PricingTypeListTable = ({
-                                data,
-                                loading,
-                                page,
-                                totalPages,
-                                totalRecords,
-                                rowsPerPage,
-                                onPageChange,
-                                onRowsPerPageChange,
-                                expandedRowId,
-                                onDrillDownToggle,
-                                onRefresh,
-                              }: PricingTypeListTableProps) => {
+  data,
+  loading,
+  page,
+  totalPages,
+  totalRecords,
+  rowsPerPage,
+  onPageChange,
+  onRowsPerPageChange,
+  expandedRowId,
+  onDrillDownToggle,
+  onRefresh,
+}: PricingTypeListTableProps) => {
   // ----------------------------------------
   // Column definitions
   // ----------------------------------------
   const columns = useMemo(
     () =>
-      getPricingTypeTableColumns(
-        expandedRowId ?? undefined,
-        onDrillDownToggle
-      ),
+      getPricingTypeTableColumns(expandedRowId ?? undefined, onDrillDownToggle),
     [expandedRowId, onDrillDownToggle]
   );
-  
+
   // ----------------------------------------
   // Expanded row renderer (lazy)
   // ----------------------------------------
@@ -80,7 +77,7 @@ const PricingTypeListTable = ({
     ),
     []
   );
-  
+
   // ----------------------------------------
   // Render
   // ----------------------------------------
@@ -88,15 +85,17 @@ const PricingTypeListTable = ({
     <Box>
       {/* Table Header */}
       <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        mb={2}
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          mb: 2,
+        }}
       >
-        <CustomTypography variant="h6" fontWeight={600}>
+        <CustomTypography variant="h6" sx={{ fontWeight: 600 }}>
           Pricing Types
         </CustomTypography>
-        
+
         <CustomButton
           onClick={onRefresh}
           variant="outlined"
@@ -105,7 +104,7 @@ const PricingTypeListTable = ({
           Refresh
         </CustomButton>
       </Box>
-      
+
       <CustomTable
         data={data}
         columns={columns}

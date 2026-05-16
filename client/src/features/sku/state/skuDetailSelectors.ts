@@ -111,10 +111,25 @@ export const selectSkuThumbnailImages = createSelector(
 );
 
 /**
- * Selector: Active pricing rows (those with valid status info).
+ * Selector: pricing rows within their active validity window.
  *
- * @returns {SkuPricing[]}
+ * A row is active when `now` falls within `[validFrom, validTo)`. Open-ended
+ * bounds are permissive: missing `validFrom` is treated as `-∞`, missing
+ * `validTo` as `+∞`. Unparseable date strings also pass through as active
+ * — the filter favors visibility over strictness.
  */
-export const selectActivePricing = createSelector(selectSkuPricing, (pricing) =>
-  pricing.filter((p: SkuPricing) => p.status?.id)
+export const selectActivePricing =
+  createSelector(selectSkuPricing, (pricing) =>
+    pricing.filter((p: SkuPricing) => {
+      const now = Date.now();
+      const validFromTime = p.validFrom
+        ? new Date(p.validFrom).getTime()
+        : Number.NEGATIVE_INFINITY;
+      
+      const validToTime = p.validTo
+        ? new Date(p.validTo).getTime()
+        : Number.POSITIVE_INFINITY;
+      
+      return validFromTime <= now && validToTime > now;
+  })
 );

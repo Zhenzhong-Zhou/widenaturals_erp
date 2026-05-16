@@ -88,4 +88,4 @@ ORDER BY t.event_object_table;
 --
 -- auth_action_status    — lookup table, status set explicitly
 -- auth_action_types     — lookup table, status set explicitly
--- inventory_activity_log — append-only log, no default status needed
+-- inventory_activity_logs — append-only log, no default status needed

@@ -19,7 +19,7 @@ const initialState: PaginatedWarehouseListState =
 const paginatedWarehouseSlice = createSlice({
   name: 'paginatedWarehouses',
   initialState,
-  
+
   reducers: {
     /**
      * Reset the entire paginated warehouse state back to its
@@ -32,7 +32,7 @@ const paginatedWarehouseSlice = createSlice({
      */
     resetPaginatedWarehouses: () => initialState,
   },
-  
+
   // ---------------------------
   // Extra reducers (async thunk lifecycle)
   // ---------------------------
@@ -43,25 +43,25 @@ const paginatedWarehouseSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      
+
       // ---- fulfilled ----
       .addCase(
         fetchPaginatedWarehousesThunk.fulfilled,
         (state, action: PayloadAction<PaginatedWarehouseListApiResponse>) => {
           const payload = action.payload;
-          
+
           state.loading = false;
           state.data = payload.data;
-          
+
           state.pagination = {
-            page:         payload.pagination.page,
-            limit:        payload.pagination.limit,
+            page: payload.pagination.page,
+            limit: payload.pagination.limit,
             totalRecords: payload.pagination.totalRecords,
-            totalPages:   payload.pagination.totalPages,
+            totalPages: payload.pagination.totalPages,
           };
         }
       )
-      
+
       // ---- rejected ----
       .addCase(fetchPaginatedWarehousesThunk.rejected, (state, action) => {
         state.loading = false;

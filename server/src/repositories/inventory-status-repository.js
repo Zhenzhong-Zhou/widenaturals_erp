@@ -14,9 +14,21 @@ const { query } = require('../database/db');
 const {
   VALIDATE_INVENTORY_STATUS_IDS_QUERY,
   GET_INVENTORY_STATUS_BY_ID_QUERY,
+  buildInventoryStatusLookupQuery,
+  INVENTORY_STATUS_LOOKUP_TABLE,
+  INVENTORY_STATUS_LOOKUP_JOINS,
+  INVENTORY_STATUS_LOOKUP_ADDITIONAL_SORTS,
+  INVENTORY_STATUS_LOOKUP_SORT_WHITELIST,
 } = require('./queries/inventory-status-queries');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { logDbQueryError } = require('../utils/db-logger');
+const {
+  buildInventoryStatusFilters,
+} = require('../utils/sql/build-inventory-status-filter');
+const {
+  paginateQueryByOffset,
+} = require('../utils/db/pagination/pagination-helpers');
+
 const CONTEXT = 'inventory-status-repository';
 
 // ── Validate inventory status IDs ───────────────────────────────────
@@ -89,7 +101,60 @@ const getInventoryStatusById = async (statusId, client) => {
   }
 };
 
+/**
+ * Fetches offset-paginated inventory statuses for dropdown/lookup use.
+ *
+ * Defaults:
+ *  - sort: name ASC, with id ASC as a stable tie-breaker
+ *  - limit: 50, offset: 0
+ *
+ * @param {GetInventoryStatusLookupOptions} options
+ * @returns {Promise<PaginatedOffsetResult<InventoryStatusLookupRow>>}
+ * @throws  {AppError} Normalized database error if the query fails.
+ */
+const getInventoryStatusLookup = async ({
+  filters = {},
+  limit = 50,
+  offset = 0,
+}) => {
+  const context = `${CONTEXT}/getInventoryStatusLookup`;
+  const { whereClause, params } = buildInventoryStatusFilters(filters);
+  const queryText = buildInventoryStatusLookupQuery(whereClause);
+
+  try {
+    return /** @type {PaginatedOffsetResult<InventoryStatusLookupRow>} */ (
+      await paginateQueryByOffset({
+        tableName: INVENTORY_STATUS_LOOKUP_TABLE,
+        joins: INVENTORY_STATUS_LOOKUP_JOINS,
+        whereClause,
+        queryText,
+        params,
+        offset,
+        limit,
+        sortBy: 'ist.name',
+        sortOrder: 'ASC',
+        additionalSorts: INVENTORY_STATUS_LOOKUP_ADDITIONAL_SORTS,
+        whitelistSet: INVENTORY_STATUS_LOOKUP_SORT_WHITELIST,
+      })
+    );
+  } catch (error) {
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to fetch inventory status lookup.',
+      meta: { filters, limit, offset },
+      logFn: (err) =>
+        logDbQueryError(queryText, params, err, {
+          context,
+          filters,
+          limit,
+          offset,
+        }),
+    });
+  }
+};
+
 module.exports = {
   validateInventoryStatusIds,
   getInventoryStatusById,
+  getInventoryStatusLookup,
 };

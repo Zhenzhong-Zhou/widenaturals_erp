@@ -11,9 +11,7 @@ import {
 } from '@features/inventoryAllocation/state';
 import type { InventoryAllocationQueryParams } from '@features/inventoryAllocation';
 import { normalizePagination } from '@utils/pagination/normalizePagination';
-import {
-  resetPaginatedInventoryAllocation
-} from '@features/inventoryAllocation/state/paginatedInventoryAllocationSlice';
+import { resetPaginatedInventoryAllocation } from '@features/inventoryAllocation/state/paginatedInventoryAllocationSlice';
 
 /**
  * Custom hook to access memoized paginated inventory allocation state and actions.
@@ -21,14 +19,18 @@ import {
  */
 const usePaginatedInventoryAllocations = () => {
   const dispatch = useAppDispatch();
-  
+
   const data = useAppSelector(selectPaginatedInventoryAllocationData);
-  const pagination = useAppSelector(selectPaginatedInventoryAllocationPagination);
+  const pagination = useAppSelector(
+    selectPaginatedInventoryAllocationPagination
+  );
   const loading = useAppSelector(selectPaginatedInventoryAllocationLoading);
   const error = useAppSelector(selectPaginatedInventoryAllocationError);
-  const totalRecords = useAppSelector(selectPaginatedInventoryAllocationTotalRecords);
+  const totalRecords = useAppSelector(
+    selectPaginatedInventoryAllocationTotalRecords
+  );
   const isEmpty = useAppSelector(selectPaginatedInventoryAllocationIsEmpty);
-  
+
   /**
    * Fetch paginated inventory allocation summaries.
    * Accepts pagination, sorting, and filter parameters.
@@ -39,19 +41,19 @@ const usePaginatedInventoryAllocations = () => {
     },
     [dispatch]
   );
-  
+
   /**
    * Reset allocation list state back to initial empty paginated state.
    */
   const resetAllocations = useCallback(() => {
     dispatch(resetPaginatedInventoryAllocation());
   }, [dispatch]);
-  
+
   const pageInfo = useMemo(() => {
     const { page, limit } = normalizePagination(pagination);
     return { page, limit };
   }, [pagination]);
-  
+
   return {
     data,
     pagination,

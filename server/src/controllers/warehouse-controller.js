@@ -12,7 +12,7 @@
 
 'use strict';
 
-const { wrapAsyncHandler }                  = require('../middlewares/async-handler');
+const { wrapAsyncHandler } = require('../middlewares/async-handler');
 const {
   fetchPaginatedWarehousesService,
   fetchWarehouseDetailService,
@@ -23,7 +23,7 @@ const {
 const getPaginatedWarehousesController = wrapAsyncHandler(async (req, res) => {
   const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
   const user = req.auth.user;
-  
+
   const { data, pagination } = await fetchPaginatedWarehousesService(user, {
     filters,
     page,
@@ -31,7 +31,7 @@ const getPaginatedWarehousesController = wrapAsyncHandler(async (req, res) => {
     sortBy,
     sortOrder,
   });
-  
+
   res.status(200).json({
     success: true,
     message: 'Warehouses retrieved successfully.',
@@ -46,9 +46,9 @@ const getPaginatedWarehousesController = wrapAsyncHandler(async (req, res) => {
 const getWarehouseDetailController = wrapAsyncHandler(async (req, res) => {
   const { warehouseId } = req.params;
   const user = req.auth.user;
-  
+
   const result = await fetchWarehouseDetailService(user, warehouseId);
-  
+
   res.status(200).json({
     success: true,
     message: 'Warehouse retrieved successfully.',

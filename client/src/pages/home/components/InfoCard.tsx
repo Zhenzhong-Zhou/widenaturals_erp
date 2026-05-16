@@ -18,10 +18,10 @@ const InfoCard: FC<InfoCardProps> = ({ title, body, bullets }) => {
         borderRadius: 3,
         p: 2.25,
         backgroundColor: 'background.paper',
-        boxShadow: '0 10px 30px rgba(15,23,42,0.04)',
+        boxShadow: (t) => t.customShadows.card,
       }}
     >
-      <CustomTypography variant="subtitle2" fontWeight={800}>
+      <CustomTypography variant="subtitle2" sx={{ fontWeight: 800 }}>
         {title}
       </CustomTypography>
 

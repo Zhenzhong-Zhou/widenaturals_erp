@@ -32,14 +32,14 @@ export const useFilterFormSync = <T>(
   // Tracks the last serialised form state to avoid firing onFilterChange
   // on re-renders where values have not actually changed.
   const prevWatchedRef = useRef<string>('');
-  
+
   useEffect(() => {
     const serialized = JSON.stringify(watchedValues);
     if (serialized === prevWatchedRef.current) return;
     prevWatchedRef.current = serialized;
     onFilterChange?.(watchedValues);
   }, [watchedValues, onFilterChange]);
-  
+
   // Syncs external filter changes back into the form — covers the case where
   // the parent resets filters via setFilters({}) without going through onReset.
   useEffect(() => {

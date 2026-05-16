@@ -114,9 +114,60 @@ const transformPricingBySkuRow = (row) =>
  */
 const transformPricingBySku = (rows) => rows.map(transformPricingBySkuRow);
 
+/**
+ * Transforms a single ACL-filtered SKU pricing row into the SKU-detail
+ * pricing DTO shape.
+ *
+ * Accepts both the slice-layer shape (nested `priceType: { id, name, code }`)
+ * and an already-flat shape, falling back across the two.
+ *
+ * `status` and `audit` are emitted only when present on the input row. The
+ * slice layer omits them when ACL denies the corresponding access, and this
+ * transformer preserves that decision rather than synthesizing empty objects.
+ *
+ * @param {SafeSkuPricingRow} row
+ * @returns {SkuDetailPricingDto}
+ */
+const transformSkuDetailPricingRow = (row) => {
+  const out = cleanObject({
+    pricingId: row.pricingId ?? row.id,
+    skuId: row.skuId,
+    pricingGroupId: row.pricingGroupId,
+    
+    pricingTypeId: row.priceType?.id ?? row.pricingTypeId ?? null,
+    pricingTypeName: row.priceType?.name ?? row.pricingTypeName ?? null,
+    pricingTypeCode: row.priceType?.code ?? row.pricingTypeCode ?? null,
+    
+    countryCode: row.countryCode ?? null,
+    price: row.price != null ? parseFloat(row.price) : null,
+    
+    validFrom: row.validFrom ?? null,
+    validTo: row.validTo ?? null,
+  });
+  
+  if (row.status) out.status = row.status;
+  if (row.audit) out.audit = row.audit;
+  
+  return out;
+};
+
+/**
+ * Transforms an array of ACL-filtered SKU pricing rows into pricing DTOs
+ * for the SKU detail response. Returns an empty array for non-array input.
+ *
+ * @param {SafeSkuPricingRow[]} [rows]
+ * @returns {SkuDetailPricingDto[]}
+ */
+const transformSkuDetailPricing = (rows = []) => {
+  if (!Array.isArray(rows)) return [];
+  
+  return rows.map(transformSkuDetailPricingRow);
+};
+
 module.exports = {
   transformPricingJoinList,
   transformPricingExport,
   transformPricingBySkuRow,
   transformPricingBySku,
+  transformSkuDetailPricing,
 };

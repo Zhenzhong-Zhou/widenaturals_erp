@@ -1,5 +1,6 @@
 import type { FC } from 'react';
-import { Box, Stack, Paper } from '@mui/material';
+import { Box, Stack, Paper, useTheme } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import { CustomButton, CustomTypography } from '@components/index';
 import { HeroListItem, MetaPill } from '@pages/home/components';
 
@@ -9,21 +10,26 @@ export interface HeroProps {
 }
 
 const Hero: FC<HeroProps> = ({ onPrimary, onSecondary }) => {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
+
+  const heroBackground = isDark
+    ? `
+        radial-gradient(ellipse 90% 60% at 15% 0%, ${alpha(theme.palette.primary.main, 0.22)}, transparent 60%),
+        linear-gradient(180deg, ${theme.palette.background.default} 0%, ${theme.palette.background.paper} 100%)
+      `
+    : `
+        radial-gradient(ellipse 90% 60% at 15% 0%, ${alpha(theme.palette.primary.light, 0.22)}, transparent 60%),
+        linear-gradient(180deg, ${alpha(theme.palette.primary.light, 0.06)} 0%, ${theme.palette.background.default} 100%)
+      `;
+
   return (
     <Box
       component="section"
       sx={{
         borderBottom: '1px solid',
         borderColor: 'divider',
-        background: `
-          linear-gradient(
-            180deg,
-            #1f2937 0%,
-            rgba(47,143,70,0.45) 35%,
-            rgba(226,232,240,0.45) 55%,
-            #ffffff 80%
-          )
-        `,
+        background: heroBackground,
       }}
     >
       <Box
@@ -43,9 +49,7 @@ const Hero: FC<HeroProps> = ({ onPrimary, onSecondary }) => {
           {/* Overline */}
           <CustomTypography
             variant="overline"
-            sx={{
-              color: 'rgba(255,255,255,0.85)',
-            }}
+            sx={{ color: 'primary.main', fontWeight: 600 }}
           >
             WIDE Naturals Inc.
           </CustomTypography>
@@ -58,7 +62,7 @@ const Hero: FC<HeroProps> = ({ onPrimary, onSecondary }) => {
               fontWeight: 700,
               letterSpacing: -0.6,
               lineHeight: 1.1,
-              color: '#ffffff',
+              color: 'text.primary',
             }}
           >
             Crafted Natural Health Products, Built for Global Markets
@@ -70,7 +74,7 @@ const Hero: FC<HeroProps> = ({ onPrimary, onSecondary }) => {
             sx={{
               mt: 2,
               maxWidth: 640,
-              color: 'rgba(255,255,255,0.85)',
+              color: 'text.secondary',
               lineHeight: 1.6,
             }}
           >
@@ -79,7 +83,6 @@ const Hero: FC<HeroProps> = ({ onPrimary, onSecondary }) => {
             execution.
           </CustomTypography>
 
-          {/* Actions */}
           <Stack
             direction="row"
             spacing={1.5}
@@ -87,34 +90,20 @@ const Hero: FC<HeroProps> = ({ onPrimary, onSecondary }) => {
           >
             <CustomButton
               variant="contained"
+              color="primary"
               size="medium"
               onClick={onPrimary}
-              sx={{
-                fontWeight: 600,
-                backgroundColor: '#2f8f46',
-                color: '#ffffff',
-                '&:hover': {
-                  backgroundColor: '#1f5f32',
-                },
-              }}
+              sx={{ fontWeight: 600 }}
             >
               Contact Us
             </CustomButton>
 
             <CustomButton
               variant="outlined"
+              color="primary"
               size="medium"
               onClick={onSecondary}
-              sx={{
-                fontWeight: 600,
-                color: '#2f8f46',
-                borderColor: 'rgba(47,143,70,0.6)',
-                backgroundColor: 'rgba(255,255,255,0.9)',
-                '&:hover': {
-                  backgroundColor: 'rgba(47,143,70,0.08)',
-                  borderColor: '#2f8f46',
-                },
-              }}
+              sx={{ fontWeight: 600 }}
             >
               Explore Capabilities
             </CustomButton>
@@ -135,26 +124,28 @@ const Hero: FC<HeroProps> = ({ onPrimary, onSecondary }) => {
             elevation={0}
             sx={{
               border: '1px solid',
-              borderColor: 'rgba(255,255,255,0.12)',
+              borderColor: 'divider',
               borderRadius: 3,
               p: 2.5,
-              backgroundColor: 'rgba(15,23,42,0.85)',
-              boxShadow: '0 10px 30px rgba(15,23,42,0.35)',
+              backgroundColor: 'background.paper',
+              boxShadow: (t) =>
+                t.palette.mode === 'dark'
+                  ? '0 10px 30px rgba(0,0,0,0.45)'
+                  : '0 10px 30px rgba(15,23,42,0.08)',
             }}
           >
             <CustomTypography
               variant="subtitle2"
-              fontWeight={800}
-              sx={{ color: '#ffffff' }}
+              sx={{
+                fontWeight: 800,
+                color: 'text.primary'
+            }}
               gutterBottom
             >
               Capabilities Snapshot
             </CustomTypography>
 
-            <Box
-              component="ul"
-              sx={{ pl: 2, mt: 1, color: 'rgba(255,255,255,0.85)' }}
-            >
+            <Box component="ul" sx={{ pl: 2, mt: 1, m: 0 }}>
               <HeroListItem>Capsules • Tablets • Gummies</HeroListItem>
               <HeroListItem>Softgels • Tinctures</HeroListItem>
               <HeroListItem>QA/QC and compliance alignment</HeroListItem>

@@ -28,17 +28,21 @@ import { normalizePagination } from '@utils/pagination/normalizePagination';
  */
 const usePaginatedWarehouseInventory = () => {
   const dispatch = useAppDispatch();
-  
+
   // ---------------------------
   // Selectors
   // ---------------------------
-  const data         = useAppSelector(selectPaginatedWarehouseInventoryData);
-  const pagination   = useAppSelector(selectPaginatedWarehouseInventoryPagination);
-  const loading      = useAppSelector(selectPaginatedWarehouseInventoryLoading);
-  const error        = useAppSelector(selectPaginatedWarehouseInventoryError);
-  const totalRecords = useAppSelector(selectPaginatedWarehouseInventoryTotalRecords);
-  const isEmpty      = useAppSelector(selectPaginatedWarehouseInventoryIsEmpty);
-  
+  const data = useAppSelector(selectPaginatedWarehouseInventoryData);
+  const pagination = useAppSelector(
+    selectPaginatedWarehouseInventoryPagination
+  );
+  const loading = useAppSelector(selectPaginatedWarehouseInventoryLoading);
+  const error = useAppSelector(selectPaginatedWarehouseInventoryError);
+  const totalRecords = useAppSelector(
+    selectPaginatedWarehouseInventoryTotalRecords
+  );
+  const isEmpty = useAppSelector(selectPaginatedWarehouseInventoryIsEmpty);
+
   // ---------------------------
   // Actions
   // ---------------------------
@@ -52,14 +56,14 @@ const usePaginatedWarehouseInventory = () => {
     },
     [dispatch]
   );
-  
+
   /**
    * Reset warehouse inventory list state back to initial empty paginated state.
    */
   const resetWarehouseInventory = useCallback(() => {
     dispatch(resetPaginatedWarehouseInventory());
   }, [dispatch]);
-  
+
   // ---------------------------
   // Derived memoized values
   // ---------------------------
@@ -67,7 +71,7 @@ const usePaginatedWarehouseInventory = () => {
     const { page, limit } = normalizePagination(pagination);
     return { page, limit };
   }, [pagination]);
-  
+
   return {
     data,
     pagination,
@@ -75,9 +79,9 @@ const usePaginatedWarehouseInventory = () => {
     error,
     totalRecords,
     isEmpty,
-    
+
     pageInfo,
-    
+
     fetchWarehouseInventory,
     resetWarehouseInventory,
   };

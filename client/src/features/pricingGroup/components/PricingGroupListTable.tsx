@@ -1,5 +1,5 @@
 import { Suspense, useCallback, useMemo } from 'react';
-import Box from '@mui/material/Box';
+import { Box } from '@mui/material';
 import {
   CustomButton,
   CustomTable,
@@ -9,7 +9,7 @@ import {
 import type { PricingGroupRecord } from '@features/pricingGroup';
 import {
   getPricingGroupTableColumns,
-  PricingGroupExpandedContent
+  PricingGroupExpandedContent,
 } from '@features/pricingGroup/components';
 
 interface PricingGroupListTableProps {
@@ -27,30 +27,31 @@ interface PricingGroupListTableProps {
 }
 
 const PricingGroupListTable = ({
-                                 data,
-                                 loading,
-                                 page,
-                                 totalPages,
-                                 totalRecords,
-                                 rowsPerPage,
-                                 onPageChange,
-                                 onRowsPerPageChange,
-                                 expandedRowId,
-                                 onDrillDownToggle,
-                                 onRefresh,
-                               }: PricingGroupListTableProps) => {
+  data,
+  loading,
+  page,
+  totalPages,
+  totalRecords,
+  rowsPerPage,
+  onPageChange,
+  onRowsPerPageChange,
+  expandedRowId,
+  onDrillDownToggle,
+  onRefresh,
+}: PricingGroupListTableProps) => {
   // ----------------------------------------
   // Column definitions
   // ----------------------------------------
   const columns = useMemo(
-    () => getPricingGroupTableColumns(
-      false,
-      expandedRowId ?? undefined,
-      onDrillDownToggle
-    ),
+    () =>
+      getPricingGroupTableColumns(
+        false,
+        expandedRowId ?? undefined,
+        onDrillDownToggle
+      ),
     [expandedRowId, onDrillDownToggle]
   );
-  
+
   // ----------------------------------------
   // Expanded row renderer (lazy)
   // ----------------------------------------
@@ -71,7 +72,7 @@ const PricingGroupListTable = ({
     ),
     []
   );
-  
+
   // ----------------------------------------
   // Render
   // ----------------------------------------
@@ -79,15 +80,17 @@ const PricingGroupListTable = ({
     <Box>
       {/* Table Header */}
       <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        mb={2}
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          mb: 2,
+        }}
       >
-        <CustomTypography variant="h6" fontWeight={600}>
+        <CustomTypography variant="h6" sx={{ fontWeight: 600 }}>
           Pricing Groups
         </CustomTypography>
-        
+
         <CustomButton
           onClick={onRefresh}
           variant="outlined"
@@ -96,7 +99,7 @@ const PricingGroupListTable = ({
           Refresh
         </CustomButton>
       </Box>
-      
+
       <CustomTable
         data={data}
         columns={columns}

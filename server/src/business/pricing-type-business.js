@@ -1,16 +1,24 @@
 /**
  * @file pricing-type-business.js
- * @description Business logic layer for pricing type access control.
+ * @description Business logic layer for pricing type access control and
+ * lookup-row decoration.
  *
- * Owns ACL evaluation and visibility rule enforcement for pricing types.
- * Contains no orchestration — service layer owns query execution and transformation.
+ * Owns ACL evaluation, visibility rule enforcement, and active-flag
+ * enrichment for pricing types — across both the management/list
+ * endpoints and the lookup endpoint. Contains no orchestration; the
+ * service layer owns query execution, transformation, and cache
+ * resolution.
  *
- * Base read access (VIEW_PRICING) is enforced by route-level authorize middleware.
- * This layer only resolves scope-level flags that affect filter behaviour.
+ * Base read access (VIEW_PRICING / VIEW_PRICING_TYPE_LOOKUP) is enforced
+ * by route-level authorize middleware. This layer only resolves
+ * scope-level flags and applies the filter shaping they imply.
  *
  * Exports:
- *  - evaluatePricingTypeVisibility    — resolves ACL flags from user permissions
- *  - applyPricingTypeVisibilityRules  — injects server-side filter constraints from ACL
+ *  - evaluatePricingTypeVisibility          — ACL for management/list endpoints
+ *  - applyPricingTypeVisibilityRules        — injects scope flags into management filters
+ *  - evaluatePricingTypeLookupVisibility    — ACL for the lookup endpoint
+ *  - resolvePricingTypeLookupFilters        — pins active status for restricted lookup callers
+ *  - enrichPricingTypeLookupWithActiveFlag  — decorates a lookup row with isActive
  */
 
 'use strict';
@@ -21,6 +29,7 @@ const {
 const PRICING_CONSTANTS = require('../utils/constants/domain/pricing-constants');
 const { logSystemException } = require('../utils/logging/system-logger');
 const AppError = require('../utils/AppError');
+const { enrichWithActiveFlag } = require('./lookup-visibility');
 
 const CONTEXT = 'pricing-type-business';
 
@@ -82,7 +91,84 @@ const applyPricingTypeVisibilityRules = (filters, acl) => {
   return adjusted;
 };
 
+/**
+ * Resolves the ACL for the pricing type lookup endpoint.
+ *
+ * Returns scope flags consumed downstream by the lookup workflow:
+ *  - `canViewInactive` — true for root or holders of VIEW_ALL_TYPES;
+ *    bypasses the active-status pin in the resolver and enables the
+ *    transformer to surface (and tag) inactive rows.
+ *
+ * Throws AppError.businessError if permission resolution fails.
+ *
+ * @param {Object} user - Authenticated user from req.auth.user.
+ * @returns {Promise<PricingTypeLookupAcl>}
+ */
+const evaluatePricingTypeLookupVisibility = async (user) => {
+  const context = `${CONTEXT}/evaluatePricingTypeLookupVisibility`;
+
+  try {
+    const { permissions, isRoot } = await resolveUserPermissionContext(user);
+
+    const canViewInactive =
+      isRoot ||
+      permissions.includes(PRICING_CONSTANTS.PERMISSIONS.VIEW_ALL_TYPES);
+
+    return {
+      canViewInactive,
+    };
+  } catch (err) {
+    logSystemException(
+      err,
+      'Failed to evaluate pricing type lookup visibility',
+      {
+        context,
+        userId: user?.id,
+      }
+    );
+
+    throw AppError.businessError(
+      'Unable to evaluate pricing type lookup visibility.'
+    );
+  }
+};
+
+/**
+ * Applies pricing_types lookup ACL to caller-supplied filters.
+ *
+ * Pure function — no side effects on inputs. Regular callers are pinned
+ * to the supplied active status id (which overrides any caller-supplied
+ * value). Privileged callers (root or holders of VIEW_ALL_TYPES, exposed
+ * as `canViewInactive`) bypass the pin and see all statuses.
+ *
+ * @param {PricingTypeFilters}   filters
+ * @param {PricingTypeLookupAcl} acl
+ * @param {string}               activeStatusId - Cached id for the active status (resolved by the service).
+ * @returns {PricingTypeFilters}
+ */
+const resolvePricingTypeLookupFilters = (filters, acl, activeStatusId) =>
+  acl.canViewInactive ? filters : { ...filters, statusId: activeStatusId };
+
+/**
+ * Decorates a pricing type lookup row with an `isActive` boolean derived
+ * from the cached active status id.
+ *
+ * Thin wrapper over the shared `enrichWithActiveFlag` utility — kept as
+ * a domain-named export for symmetry with the rest of the lookup
+ * pipeline (resolver, transformer, enricher) and so the workflow
+ * `rowEnricher` reads in domain terms.
+ *
+ * @param {PricingTypeLookupRow} row
+ * @param {string}               activeStatusId - Cached id for the active status (resolved by the service).
+ * @returns {PricingTypeLookupRow & { isActive: boolean }}
+ */
+const enrichPricingTypeLookupWithActiveFlag = (row, activeStatusId) =>
+  enrichWithActiveFlag(row, activeStatusId);
+
 module.exports = {
   evaluatePricingTypeVisibility,
   applyPricingTypeVisibilityRules,
+  evaluatePricingTypeLookupVisibility,
+  resolvePricingTypeLookupFilters,
+  enrichPricingTypeLookupWithActiveFlag,
 };

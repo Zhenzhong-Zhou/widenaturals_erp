@@ -1,32 +1,20 @@
 import {
   forwardRef,
   type ReactNode,
+  useCallback,
   useEffect,
   useImperativeHandle,
   useMemo,
 } from 'react';
-import { v4 as uuidv4 } from 'uuid';
 import {
   useForm,
-  Controller,
   useFieldArray,
   type Control,
-  type FieldArrayWithId,
+  useFormState,
 } from 'react-hook-form';
-import Box from '@mui/material/Box';
-import IconButton from '@mui/material/IconButton';
-import Grid from '@mui/material/Grid';
-import Add from '@mui/icons-material/Add';
-import ReplayIcon from '@mui/icons-material/Replay';
-import Delete from '@mui/icons-material/Delete';
-import FormControl from '@mui/material/FormControl';
-import InputLabel from '@mui/material/InputLabel';
-import FormHelperText from '@mui/material/FormHelperText';
-import Dropdown from '@components/common/Dropdown';
-import BaseInput from '@components/common/BaseInput';
-import CustomButton from '@components/common/CustomButton';
-import CustomDatePicker from '@components/common/CustomDatePicker';
-import CustomPhoneInput from '@components/common/CustomPhoneInput';
+import { v4 as uuidv4 } from 'uuid';
+import { Box, Grid } from '@mui/material';
+import { MultiItemRow } from '@components/index';
 
 export interface RowAwareComponentProps<T = any> {
   value: T;
@@ -79,7 +67,7 @@ export interface MultiItemFormRef {
 }
 
 interface MultiItemFormProps {
-  getItemTitle?: (index: number, item: Record<string, any>) => string;
+  getItemTitle?: (index: number, item: Record<string, any>) => ReactNode;
   fields: MultiItemFieldConfig[];
   onSubmit?: (formData: Record<string, any>[]) => void;
   defaultValues?: Record<string, any>[];
@@ -92,6 +80,8 @@ interface MultiItemFormProps {
   onItemsChange?: (items: Record<string, any>[]) => void;
   makeNewRow?: () => Record<string, any>;
   itemsPerRow?: number;
+  showAddButton?: boolean;
+  showResetButton?: boolean;
 }
 
 const MultiItemForm = forwardRef<MultiItemFormRef, MultiItemFormProps>(
@@ -105,6 +95,8 @@ const MultiItemForm = forwardRef<MultiItemFormRef, MultiItemFormProps>(
       loading,
       renderBeforeFields,
       showSubmitButton = true,
+      showAddButton = true,
+      showResetButton = true,
       itemsPerRow = 1,
     } = props;
 
@@ -134,7 +126,9 @@ const MultiItemForm = forwardRef<MultiItemFormRef, MultiItemFormProps>(
         defaultValues: { items: initialItems },
       });
 
-    const allFields = watch('items');
+    const { isValid } = useFormState({ control });
+
+    // const allFields = useWatch({ control, name: 'items' }) as Record<string, any>[];
 
     useImperativeHandle(ref, () => ({
       getItems: () => (getValues('items') ?? []).map((r) => ({ ...r })),
@@ -164,7 +158,33 @@ const MultiItemForm = forwardRef<MultiItemFormRef, MultiItemFormProps>(
       insert,
     } = useFieldArray({ control, name: 'items', keyName: 'fieldKey' });
 
-    const groupFieldsByRow = (fields: MultiItemFieldConfig[]) => {
+    const handleResetItem = useCallback(
+      (index: number) => {
+        remove(index);
+        insert(index, makeNewRowInternal());
+      },
+      [remove, insert, makeNewRowInternal]
+    );
+
+    const handleRemoveItem = useCallback(
+      (id: string) => {
+        const i = fieldArray.findIndex((item) => item.id === id);
+        if (i !== -1) remove(i);
+      },
+      [fieldArray, remove]
+    );
+
+    const handleAddItem = useCallback(
+      () => append(makeNewRowInternal()),
+      [append, makeNewRowInternal]
+    );
+
+    const handleResetForm = useCallback(
+      () => reset({ items: [makeNewRowInternal()] }),
+      [reset, makeNewRowInternal]
+    );
+
+    const groupedFields = useMemo(() => {
       const groups: Record<string, MultiItemFieldConfig[]> = {};
       fields.forEach((field) => {
         const groupKey = field.group ?? `__single__${field.id}`;
@@ -172,30 +192,7 @@ const MultiItemForm = forwardRef<MultiItemFormRef, MultiItemFormProps>(
         groups[groupKey].push(field);
       });
       return Object.values(groups);
-    };
-
-    const canSubmit = allFields.every((row) => {
-      const visibleFields = fields.filter(
-        (f) => !f.conditional || f.conditional(row ?? {})
-      );
-      return visibleFields.every((f) => {
-        if (!f.required) return true;
-        const v = row?.[f.id];
-        return v !== undefined && v !== null && v !== '';
-      });
-    });
-
-    const resetItem = (index: number) => {
-      remove(index);
-      insert(index, makeNewRowInternal());
-    };
-
-    const handleRemove = (id: string) => {
-      const index = fieldArray.findIndex((item) => item.id === id);
-      if (index !== -1) {
-        remove(index); // Remove the correct item using its index
-      }
-    };
+    }, [fields]);
 
     const prepareFormDataForSubmit = (formData: {
       items: Record<string, any>[];
@@ -203,7 +200,7 @@ const MultiItemForm = forwardRef<MultiItemFormRef, MultiItemFormProps>(
       return {
         ...formData,
         items: formData.items.map(
-          ({ line_type, show_barcode_toggle, ...rest }) => rest
+          ({ line_type, show_barcode_toggle, label, ...rest }) => rest
         ),
       };
     };
@@ -224,325 +221,12 @@ const MultiItemForm = forwardRef<MultiItemFormRef, MultiItemFormProps>(
 
     const validationRules = validation ? validation(watch) : {};
 
-    const resetForm = () => {
-      reset({ items: [makeNewRowInternal()] }); // Reset form state with one empty row
-    };
-
-    const renderItem = (
-      field: FieldArrayWithId<
-        { items: Record<string, any>[] },
-        'items',
-        'fieldKey'
-      >,
-      index: number
-    ) => (
-      <Grid
-        key={field.fieldKey}
-        sx={{
-          padding: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 2,
-        }}
-      >
-        {/* Item Header */}
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            padding: '4px',
-          }}
-        >
-          <strong>
-            {getItemTitle?.(index, allFields[index] ?? {}) ??
-              `Item ${index + 1}`}
-          </strong>
-          <IconButton
-            onClick={() => resetItem(index)}
-            color="primary"
-            title="Reset this item"
-          >
-            <ReplayIcon />
-          </IconButton>
-
-          {fieldArray.length > 1 && (
-            <IconButton onClick={() => handleRemove(field.id)} color="error">
-              <Delete />
-            </IconButton>
-          )}
-        </Box>
-
-        {renderBeforeFields?.(allFields[index] ?? {}, index)}
-
-        {/* Form Fields (Stacked in Vertical Layout Inside Each Form) */}
-        {groupFieldsByRow(fields).map((group, gIdx) => (
-          <Grid container spacing={2} key={`group-${gIdx}`}>
-            {group.map((field) => {
-              // current row snapshot
-              const rowData = getValues(`items.${index}`) ?? {};
-
-              // respect conditional visibility if provided
-              if (
-                typeof field.conditional === 'function' &&
-                !field.conditional(rowData)
-              ) {
-                return null;
-              }
-
-              const grid = field.grid || {
-                xs: 12,
-                sm: group.length === 1 ? 12 : 6,
-              };
-
-              return (
-                <Grid
-                  key={field.id}
-                  size={{
-                    xs: grid.xs,
-                    sm: grid.sm,
-                    md: grid.md,
-                    lg: grid.lg,
-                  }}
-                >
-                  <Controller
-                    name={`items.${index}.${field.id}` as const}
-                    control={control}
-                    defaultValue={
-                      defaultValues?.[index]?.[field.id] ??
-                      getValues(`items.${index}.${field.id}`) ??
-                      (field.type === 'checkbox' ? false : '')
-                    }
-                    render={({ field: { onChange, value } }) => {
-                      const {
-                        disabled,
-                        required,
-                        placeholder,
-                        defaultHelperText,
-                      } = field;
-                      const validateFn = validationRules[field.id];
-                      const errorMessage = validateFn?.(value);
-                      const helperText =
-                        errorMessage || defaultHelperText || '';
-
-                      if (field.type === 'custom' && field.component) {
-                        const CustomComponent = field.component;
-
-                        // Provide row helpers (optional; backward-compatible)
-                        const getRowValues = () =>
-                          getValues(`items.${index}`) ?? {};
-                        const setRowValues = (next: Record<string, any>) =>
-                          setValue(`items.${index}`, next, {
-                            shouldValidate: true,
-                            shouldDirty: true,
-                          });
-
-                        // Always return a ReactElement
-                        return (
-                          <>
-                            {CustomComponent({
-                              value,
-                              onChange,
-                              control: control as Control<any>,
-                              disabled,
-                              placeholder,
-                              error: errorMessage,
-                              helperText,
-                              required,
-                              rowIndex: index,
-                              getRowValues,
-                              setRowValues,
-                            }) ?? null}
-                          </>
-                        );
-                      }
-
-                      if (field.type === 'select') {
-                        return (
-                          <Dropdown
-                            label={field.label}
-                            options={field.options || []}
-                            value={value}
-                            onChange={onChange}
-                            sx={{ width: '250px' }}
-                            disabled={disabled}
-                            placeholder={placeholder}
-                            error={errorMessage}
-                            helperText={helperText}
-                          />
-                        );
-                      }
-
-                      if (field.type === 'date') {
-                        return (
-                          <CustomDatePicker
-                            label={field.label}
-                            value={value ? new Date(value) : null}
-                            onChange={(date) =>
-                              onChange(date ? date.toISOString() : '')
-                            }
-                            disabled={disabled}
-                            helperText={helperText}
-                            required={required}
-                          />
-                        );
-                      }
-
-                      if (field.type === 'phone') {
-                        const errorMessage = validateFn?.(value);
-                        const helperText =
-                          errorMessage || field.defaultHelperText || '';
-
-                        return (
-                          <FormControl fullWidth error={!!errorMessage}>
-                            {field.label && (
-                              <InputLabel shrink required={field.required}>
-                                {field.label}
-                              </InputLabel>
-                            )}
-                            <CustomPhoneInput
-                              value={value}
-                              onChange={onChange}
-                              country={field.country || 'ca'}
-                              required={field.required}
-                            />
-                            <FormHelperText>{helperText}</FormHelperText>
-                          </FormControl>
-                        );
-                      }
-
-                      if (field.type === 'email') {
-                        return (
-                          <BaseInput
-                            label={field.label}
-                            type="email"
-                            value={value || ''}
-                            onChange={onChange}
-                            fullWidth
-                            error={!!errorMessage}
-                            helperText={helperText}
-                            disabled={disabled}
-                            required={required}
-                            placeholder={placeholder}
-                          />
-                        );
-                      }
-
-                      if (field.type === 'textarea') {
-                        return (
-                          <BaseInput
-                            label={field.label}
-                            value={value || ''}
-                            onChange={onChange}
-                            fullWidth
-                            multiline
-                            minRows={3}
-                            maxRows={6}
-                            error={!!errorMessage}
-                            helperText={helperText}
-                            disabled={disabled}
-                            required={required}
-                            placeholder={placeholder}
-                          />
-                        );
-                      }
-
-                      if (field.type === 'text') {
-                        return (
-                          <BaseInput
-                            label={field.label}
-                            type="text"
-                            value={value || ''}
-                            onChange={onChange}
-                            fullWidth
-                            error={!!errorMessage}
-                            helperText={helperText}
-                            disabled={disabled}
-                            required={required}
-                            placeholder={placeholder}
-                          />
-                        );
-                      }
-
-                      // number / fallback
-                      return (
-                        <BaseInput
-                          label={field.label}
-                          type={field.type}
-                          value={value || ''}
-                          onChange={onChange}
-                          fullWidth
-                          sx={{ width: '100%' }}
-                          error={!!errorMessage}
-                          helperText={helperText}
-                          disabled={disabled}
-                          required={required}
-                          placeholder={placeholder}
-                        />
-                      );
-                    }}
-                  />
-                </Grid>
-              );
-            })}
-          </Grid>
-        ))}
-
-        {/* Buttons shown only after the last item */}
-        {index === fieldArray.length - 1 && (
-          <Box
-            sx={{
-              display: 'flex',
-              gap: 2,
-              justifyContent: 'flex-start',
-              marginTop: 2,
-            }}
-          >
-            <CustomButton
-              type="button"
-              variant="outlined"
-              onClick={() => append(makeNewRowInternal())}
-              disabled={!canSubmit || loading}
-            >
-              <Add /> Add Another
-            </CustomButton>
-
-            {showSubmitButton && (
-              <CustomButton
-                type="submit"
-                variant="contained"
-                color="primary"
-                disabled={!canSubmit || loading} // keep submit protection
-                loading={loading}
-              >
-                Submit All
-              </CustomButton>
-            )}
-
-            <CustomButton
-              type="button"
-              variant="outlined"
-              color="secondary"
-              onClick={resetForm}
-              disabled={loading}
-            >
-              Reset Form
-            </CustomButton>
-          </Box>
-        )}
-      </Grid>
-    );
-
     return (
       <Box
         component="form"
         onSubmit={handleSubmit(handleFormSubmit)}
-        sx={{
-          maxWidth: '95vw',
-          margin: 'auto',
-        }}
+        sx={{ maxWidth: '95vw', margin: 'auto' }}
       >
-        {/* Parent Grid for multiple items */}
         {itemsPerRow > 1 ? (
           <Grid container spacing={4}>
             {fieldArray.map((field, index) => (
@@ -550,13 +234,60 @@ const MultiItemForm = forwardRef<MultiItemFormRef, MultiItemFormProps>(
                 key={field.fieldKey}
                 size={{ xs: 12, md: 12 / itemsPerRow }}
               >
-                {renderItem(field, index)}
+                <MultiItemRow
+                  index={index}
+                  fieldArrayItem={field}
+                  isLast={index === fieldArray.length - 1}
+                  fieldArrayLength={fieldArray.length}
+                  groupedFields={groupedFields}
+                  defaultValues={defaultValues}
+                  validationRules={validationRules}
+                  control={control}
+                  getValues={getValues}
+                  setValue={setValue}
+                  onResetItem={handleResetItem}
+                  onRemoveItem={handleRemoveItem}
+                  onAddItem={handleAddItem}
+                  onResetForm={handleResetForm}
+                  getItemTitle={getItemTitle}
+                  renderBeforeFields={renderBeforeFields}
+                  showAddButton={showAddButton}
+                  showSubmitButton={showSubmitButton}
+                  showResetButton={showResetButton}
+                  canSubmit={isValid}
+                  loading={loading}
+                />
               </Grid>
             ))}
           </Grid>
         ) : (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {fieldArray.map((field, index) => renderItem(field, index))}
+            {fieldArray.map((field, index) => (
+              <MultiItemRow
+                key={field.fieldKey}
+                index={index}
+                fieldArrayItem={field}
+                isLast={index === fieldArray.length - 1}
+                fieldArrayLength={fieldArray.length}
+                groupedFields={groupedFields}
+                defaultValues={defaultValues}
+                validationRules={validationRules}
+                control={control}
+                getValues={getValues}
+                setValue={setValue}
+                onResetItem={handleResetItem}
+                onRemoveItem={handleRemoveItem}
+                onAddItem={handleAddItem}
+                onResetForm={handleResetForm}
+                getItemTitle={getItemTitle}
+                renderBeforeFields={renderBeforeFields}
+                showAddButton={showAddButton}
+                showSubmitButton={showSubmitButton}
+                showResetButton={showResetButton}
+                canSubmit={isValid}
+                loading={loading}
+              />
+            ))}
           </Box>
         )}
       </Box>

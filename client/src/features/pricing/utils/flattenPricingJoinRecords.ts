@@ -21,50 +21,50 @@ export const flattenPricingJoinRecords = (
   records: PricingJoinRecord[]
 ): FlattenedPricingJoinRecord[] => {
   if (!Array.isArray(records)) return [];
-  
+
   return records.map((record) => {
     const status = record.status ?? { name: '—', date: null };
-    
+
     return {
       // ------------------------------
       // Pricing
       // ------------------------------
-      pricingId:      record.pricingId      ?? null,
+      pricingId: record.pricingId ?? null,
       pricingGroupId: record.pricingGroupId ?? null,
-      price:          record.price          ?? 0,
-      validFrom:      record.validFrom      ?? '',
-      validTo:        record.validTo        ?? null,
-      
+      price: record.price ?? 0,
+      validFrom: record.validFrom ?? '',
+      validTo: record.validTo ?? null,
+
       // ------------------------------
       // Pricing Type
       // ------------------------------
-      pricingTypeId:   record.pricingTypeId   ?? null,
+      pricingTypeId: record.pricingTypeId ?? null,
       pricingTypeName: record.pricingTypeName ?? '—',
       pricingTypeCode: record.pricingTypeCode ?? '—',
-      
+
       // ------------------------------
       // Geography
       // ------------------------------
       countryCode: record.countryCode ?? '—',
-      
+
       // ------------------------------
       // SKU
       // ------------------------------
-      skuId:          record.skuId          ?? null,
-      sku:            record.sku            ?? '—',
-      barcode:        record.barcode        ?? '—',
-      sizeLabel:      record.sizeLabel      ?? '—',
+      skuId: record.skuId ?? null,
+      sku: record.sku ?? '—',
+      barcode: record.barcode ?? '—',
+      sizeLabel: record.sizeLabel ?? '—',
       skuCountryCode: record.skuCountryCode ?? '—',
-      
+
       // ------------------------------
       // Product
       // ------------------------------
-      productId:   record.productId   ?? null,
+      productId: record.productId ?? null,
       productName: record.productName ?? '—',
-      brand:       record.brand       ?? '—',
-      category:    record.category    ?? '—',
+      brand: record.brand ?? '—',
+      category: record.category ?? '—',
       displayName: record.displayName ?? '—',
-      
+
       // ------------------------------
       // Status
       // ------------------------------

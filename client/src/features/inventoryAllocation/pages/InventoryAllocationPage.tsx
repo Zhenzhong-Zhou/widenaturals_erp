@@ -1,8 +1,5 @@
 import { type FC, useCallback, useEffect, useMemo, useState } from 'react';
-import Box from '@mui/material/Box';
-import Grid from '@mui/material/Grid';
-import Card from '@mui/material/Card';
-import Divider from '@mui/material/Divider';
+import { Box, Card, Divider, Grid } from '@mui/material';
 import { CustomTypography, Loading, NoDataFound } from '@components/index';
 import InventoryAllocationTable, {
   InventoryAllocationFiltersPanel,
@@ -20,7 +17,7 @@ const InventoryAllocationPage: FC = () => {
     useState<InventoryAllocationSortField>('defaultNaturalSort');
   const [sortOrder, setSortOrder] = useState<'' | 'ASC' | 'DESC'>('');
   const [filters, setFilters] = useState<InventoryAllocationFilters>({});
-  
+
   const {
     data: inventoryAllocations,
     loading: allocationsLoading,
@@ -32,7 +29,7 @@ const InventoryAllocationPage: FC = () => {
     resetAllocations: resetInventoryAllocations,
     fetchAllocations: fetchInventoryAllocations,
   } = usePaginatedInventoryAllocations();
-  
+
   const queryParams = useMemo<InventoryAllocationQueryParams>(
     () => ({
       page: allocationPageInfo.page,
@@ -41,35 +38,41 @@ const InventoryAllocationPage: FC = () => {
       sortOrder,
       filters,
     }),
-    [allocationPageInfo.page, allocationPageInfo.limit, sortBy, sortOrder, filters]
+    [
+      allocationPageInfo.page,
+      allocationPageInfo.limit,
+      sortBy,
+      sortOrder,
+      filters,
+    ]
   );
-  
+
   useEffect(() => {
     fetchInventoryAllocations(queryParams);
-    
+
     return () => {
       resetInventoryAllocations();
     };
   }, [queryParams, fetchInventoryAllocations, resetInventoryAllocations]);
-  
+
   const handlePageChange = useCallback(
     (newPage: number) => {
       fetchInventoryAllocations({ ...queryParams, page: newPage + 1 });
     },
     [queryParams, fetchInventoryAllocations]
   );
-  
+
   const handleRowsPerPageChange = useCallback(
     (newLimit: number) => {
       fetchInventoryAllocations({ ...queryParams, page: 1, limit: newLimit });
     },
     [queryParams, fetchInventoryAllocations]
   );
-  
+
   const handleRefresh = useCallback(() => {
     fetchInventoryAllocations(queryParams);
   }, [queryParams, fetchInventoryAllocations]);
-  
+
   const handleResetFilters = useCallback(() => {
     resetInventoryAllocations();
     setFilters({});
@@ -79,14 +82,16 @@ const InventoryAllocationPage: FC = () => {
     <Box sx={{ px: 4, py: 3 }}>
       {/* Header */}
       <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        flexWrap="wrap"
-        mb={3}
-        gap={2}
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          mb: 3,
+          gap: 2,
+        }}
       >
-        <CustomTypography variant="h5" fontWeight={700}>
+        <CustomTypography variant="h5" sx={{ fontWeight: 700 }}>
           Inventory Allocation Management
         </CustomTypography>
       </Box>
@@ -100,7 +105,9 @@ const InventoryAllocationPage: FC = () => {
             <InventoryAllocationFiltersPanel
               filters={filters}
               onChange={setFilters}
-              onApply={() => fetchInventoryAllocations({ ...queryParams, page: 1 })}
+              onApply={() =>
+                fetchInventoryAllocations({ ...queryParams, page: 1 })
+              }
               onReset={handleResetFilters}
             />
           </Grid>
