@@ -10,6 +10,7 @@ import type {
   UpdateStatusIdRequest,
 } from '@shared-types/api';
 import type { ReduxPaginatedState } from '@shared-types/pagination';
+import type { NullableNumber, NullableString } from '@shared-types/shared';
 
 /**
  * Root API response for fetching paginated SKU product cards.
@@ -60,10 +61,10 @@ export interface SkuProductCard {
   /** Primary display image for the product card */
   image: {
     /** Relative or absolute URL to the image; `null` when not available */
-    url: string | null;
+    url: NullableString;
 
     /** Alternative text for accessibility; may be `null` */
-    alt: string | null;
+    alt: NullableString;
   };
 }
 
@@ -79,8 +80,8 @@ export type SkuProductStatus =
   | null
   | string
   | {
-      product: string | null;
-      sku: string | null;
+      product: NullableString;
+      sku: NullableString;
     };
 
 /** Compliance metadata (e.g., Canadian NPN number or FDA code) */
@@ -98,7 +99,7 @@ export interface SkuCompliance {
  */
 export interface SkuCardPrice {
   /** MSRP for display purposes; may be null if pricing is not available */
-  msrp: number | null;
+  msrp: NullableNumber;
 }
 
 /**
@@ -229,13 +230,13 @@ export interface SkuProductCardViewItem {
   category: string;
 
   /** Product barcode (UPC/EAN); may be null when unavailable */
-  barcode: string | null;
+  barcode: NullableString;
 
   /** Compliance type (e.g., NPN, FDA); null if no compliance is recorded */
-  complianceType: string | null;
+  complianceType: NullableString;
 
   /** Compliance registration number; null when compliance does not apply */
-  complianceNumber: string | null;
+  complianceNumber: NullableString;
 
   /**
    * Unified product/SKU status string.
@@ -244,19 +245,19 @@ export interface SkuProductCardViewItem {
    * Present only if product-level and SKU-level statuses are identical.
    * Otherwise, the UI uses productStatus and skuStatus instead.
    */
-  unifiedStatus: string | null;
+  unifiedStatus: NullableString;
 
   /** Product-level status when different from SKU-level; null otherwise */
-  productStatus: string | null;
+  productStatus: NullableString;
 
   /** SKU-level status when different from product-level; null otherwise */
-  skuStatus: string | null;
+  skuStatus: NullableString;
 
   /** MSRP value used for catalog display; null when not available */
-  msrp: number | null;
+  msrp: NullableNumber;
 
   /** Absolute or relative URL to the primary display image; null if absent */
-  imageUrl: string | null;
+  imageUrl: NullableString;
 
   /** Alternative text for product image, guaranteed to be a string */
   imageAlt: string;
@@ -411,13 +412,13 @@ export interface SkuImageVariant {
   /** Optional derived metadata */
   metadata?: {
     /** File size in KB */
-    sizeKb?: number | null;
+    sizeKb?: NullableNumber;
 
     /** MIME format (e.g., "image/webp") */
-    format?: string | null;
+    format?: NullableString;
 
     /** Display order (for sorting inside group) */
-    displayOrder?: number | null;
+    displayOrder?: NullableNumber;
   };
 }
 
@@ -451,7 +452,7 @@ export interface SkuImageGroup {
   /** Image-specific audit fields */
   audit?: {
     /** Timestamp when uploaded */
-    uploadedAt: string | null;
+    uploadedAt: NullableString;
 
     /** User who uploaded the image */
     uploadedBy: AuditUser | null;
@@ -463,44 +464,48 @@ export interface SkuImageGroup {
 /* -------------------------------------------------------------------------- */
 
 /**
- * Pricing information for a SKU.
+ * Pricing information assigned to a SKU through a pricing group.
  *
- * Uses GenericAudit because it only requires created/updated timestamps
- * and users — no image-style custom audit fields.
+ * One pricing entry — pricing type, country scope, validity period,
+ * optional status, and optional audit metadata. `status` and `audit` are
+ * omitted from the response when ACL denies the corresponding visibility.
  */
 export interface SkuPricing {
-  /** Pricing UUID */
-  id: string;
-
+  /** Pricing record UUID */
+  pricingId: string;
+  
   /** SKU UUID */
   skuId: string;
-
-  /** Pricing type (MSRP, Retail, Wholesale, etc.) */
-  priceType: string;
-
-  /** Location where the pricing applies */
-  location: {
-    name: string;
-    type: string;
-  };
-
-  /** Price value (stored as string for precision consistency) */
-  price: string;
-
+  
+  /** Pricing group UUID */
+  pricingGroupId: string;
+  
+  /** Pricing type UUID */
+  pricingTypeId: NullableString;
+  
+  /** Pricing type display name, such as MSRP, Retail, Wholesale, etc. */
+  pricingTypeName: NullableString;
+  
+  /** Pricing type code */
+  pricingTypeCode: NullableString;
+  
+  /** Country/region scope for this price; null or GLOBAL means global pricing */
+  countryCode: NullableString;
+  
+  /** Numeric price value returned from the backend */
+  price: number;
+  
   /** When the pricing becomes effective */
   validFrom: string;
-
-  /** When the pricing expires (null = active) */
-  validTo: string | null;
-
-  /** Pricing status (active, archived, scheduled, etc.) */
-  status: {
-    id: string;
-    date: string;
-  };
-
-  /** Standard audit: createdAt, createdBy, updatedAt, updatedBy */
-  audit: GenericAudit;
+  
+  /** When the pricing expires; null means open-ended */
+  validTo: NullableString;
+  
+  /** Pricing status — absent when the user lacks status visibility */
+  status?: GenericStatus;
+  
+  /** Standard audit metadata — absent when the user lacks audit visibility */
+  audit?: GenericAudit;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -526,20 +531,11 @@ export interface SkuComplianceRecord {
   issuedDate: string;
 
   /** Expiry date (null = permanent / non-expiring) */
-  expiryDate: string | null;
+  expiryDate: NullableString;
 
   /** Extra metadata (status, description, etc.) */
   metadata: {
-    status: {
-      /** Status ID */
-      id: string;
-
-      /** Status name (Active, Expired, Pending) */
-      name: string;
-
-      /** Date status was applied */
-      date: string;
-    };
+    status:GenericStatus;
 
     /** Freeform description / notes */
     description: string;
@@ -589,27 +585,27 @@ export interface FlattenedImageMetadata {
   /**
    * Display order within the image group
    */
-  displayOrder: number | null;
+  displayOrder: NullableNumber;
 
   /**
    * File size in KB (variant-level metadata)
    */
-  sizeKb: number | null;
+  sizeKb: NullableNumber;
 
   /**
    * File format (e.g., "webp", "jpg")
    */
-  format: string | null;
+  format: NullableString;
 
   /**
    * Timestamp when the image group was uploaded
    */
-  uploadedAt: string | null;
+  uploadedAt: NullableString;
 
   /**
    * Full name of user who uploaded the image group
    */
-  uploadedBy: string | null;
+  uploadedBy: NullableString;
 }
 
 /**
@@ -680,8 +676,8 @@ export interface FlattenedSkuInfo {
   createdBy: string;
 
   /** Updated metadata (nullable for never-updated entries) */
-  updatedAt: string | null;
-  updatedBy: string | null;
+  updatedAt: NullableString;
+  updatedBy: NullableString;
 }
 
 /**
@@ -701,10 +697,10 @@ export interface FlattenedComplianceRecord {
   complianceId: string;
 
   /** Date issued */
-  issuedDate: string | null;
+  issuedDate: NullableString;
 
   /** Expiry date (nullable if non-expiring) */
-  expiryDate: string | null;
+  expiryDate: NullableString;
 
   /** Description or certification notes */
   description: string;
@@ -713,53 +709,72 @@ export interface FlattenedComplianceRecord {
   status: string;
 
   /** Timestamp of status change */
-  statusDate: string | null;
+  statusDate: NullableString;
 
   /** Audit fields */
   createdAt: string;
   createdBy: string;
-  updatedAt: string | null;
-  updatedBy: string | null;
+  updatedAt: NullableString;
+  updatedBy: NullableString;
 }
 
 /**
  * Flattened pricing entry for a SKU.
  *
- * Represents normalized pricing data across price types,
- * regions, and validity periods with linked audit fields.
+ * Represents pricing-group-based SKU pricing in a table-friendly shape,
+ * including pricing type, country scope, validity period, status, and audit fields.
  */
 export interface FlattenedPricingRecord {
-  /** Pricing UUID */
+  /** Pricing record UUID */
+  pricingId: string;
+  
+  /**
+   * Row ID alias for table components that expect an `id` field.
+   * Usually the same value as pricingId.
+   */
   id: string;
-
+  
   /** Linked SKU UUID */
   skuId: string;
-
-  /** Pricing type (MSRP, Retail, Wholesale, etc.) */
-  priceType: string;
-
-  /** Optional location info */
-  locationName: string | null;
-  locationType: string | null;
-
-  /** Price value */
-  price: string;
-
-  /** Pricing status (e.g., "active", "expired") */
-  status: string | null;
-
+  
+  /** Linked pricing group UUID */
+  pricingGroupId: string;
+  
+  /** Pricing type UUID */
+  pricingTypeId: NullableString;
+  
+  /** Pricing type display name, such as MSRP, Retail, Wholesale, etc. */
+  pricingTypeName: NullableString;
+  
+  /** Pricing type code */
+  pricingTypeCode: NullableString;
+  
+  /** Country/region scope for this price; null or GLOBAL means global pricing */
+  countryCode: NullableString;
+  
+  /** Numeric price value returned from the backend */
+  price: number;
+  
+  /** Pricing status UUID */
+  statusId: NullableString;
+  
+  /** Pricing status display name */
+  statusName: NullableString;
+  
   /** When the pricing status was applied */
-  statusDate: string | null;
-
-  /** Pricing effective period */
-  validFrom: string | null;
-  validTo: string | null;
-
+  statusDate: NullableString;
+  
+  /** When the pricing becomes effective */
+  validFrom: NullableString;
+  
+  /** When the pricing expires; null means open-ended */
+  validTo: NullableString;
+  
   /** Audit fields */
-  createdBy: string | null;
-  createdAt: string | null;
-  updatedBy: string | null;
-  updatedAt: string | null;
+  createdBy: NullableString;
+  createdAt: NullableString;
+  updatedBy: NullableString;
+  updatedAt: NullableString;
 }
 
 /**
@@ -805,7 +820,7 @@ export interface SkuListItem {
    * Primary or "best" image URL (from LATERAL join).
    * Null when the SKU has no images.
    */
-  primaryImageUrl: string | null;
+  primaryImageUrl: NullableString;
 
   /** Related product information */
   product: SkuListProduct;
@@ -851,18 +866,18 @@ export interface SkuListFilters {
   // ------------------------------
   // PRODUCT-LEVEL FILTERS
   // ------------------------------
-  productName?: string | null;
-  brand?: string | null;
-  category?: string | null;
+  productName?: NullableString;
+  brand?: NullableString;
+  category?: NullableString;
 
   // ------------------------------
   // SKU-LEVEL FILTERS
   // ------------------------------
-  sku?: string | null;
-  skuIds?: string[] | string | null;
-  sizeLabel?: string | null;
-  countryCode?: string | null;
-  marketRegion?: string | null;
+  sku?: NullableString;
+  skuIds?: string[] | NullableString;
+  sizeLabel?: NullableString;
+  countryCode?: NullableString;
+  marketRegion?: NullableString;
 
   /** Filter by one or more SKU status IDs */
   statusIds?: string[] | null;
@@ -871,45 +886,45 @@ export interface SkuListFilters {
   productIds?: string[] | null;
 
   /** Filter by single SKU status ID */
-  skuStatusId?: string | null;
+  skuStatusId?: NullableString;
 
   /** Filter by product status ID */
-  productStatusId?: string | null;
+  productStatusId?: NullableString;
 
   // ------------------------------
   // COMPLIANCE FILTERS
   // ------------------------------
   /** Filter by compliance ID linked to the SKU */
-  complianceId?: string | null;
+  complianceId?: NullableString;
 
   // ------------------------------
   // DIMENSIONAL FILTERS
   // ------------------------------
-  minLengthCm?: number | null;
-  maxLengthCm?: number | null;
-  minLengthIn?: number | null;
-  maxLengthIn?: number | null;
+  minLengthCm?: NullableNumber;
+  maxLengthCm?: NullableNumber;
+  minLengthIn?: NullableNumber;
+  maxLengthIn?: NullableNumber;
 
-  minWidthCm?: number | null;
-  maxWidthCm?: number | null;
-  minWidthIn?: number | null;
-  maxWidthIn?: number | null;
+  minWidthCm?: NullableNumber;
+  maxWidthCm?: NullableNumber;
+  minWidthIn?: NullableNumber;
+  maxWidthIn?: NullableNumber;
 
-  minHeightCm?: number | null;
-  maxHeightCm?: number | null;
-  minHeightIn?: number | null;
-  maxHeightIn?: number | null;
+  minHeightCm?: NullableNumber;
+  maxHeightCm?: NullableNumber;
+  minHeightIn?: NullableNumber;
+  maxHeightIn?: NullableNumber;
 
-  minWeightG?: number | null;
-  maxWeightG?: number | null;
-  minWeightLb?: number | null;
-  maxWeightLb?: number | null;
+  minWeightG?: NullableNumber;
+  maxWeightG?: NullableNumber;
+  minWeightLb?: NullableNumber;
+  maxWeightLb?: NullableNumber;
 
   // ------------------------------
   // AUDIT FILTERS
   // ------------------------------
-  createdBy?: string | null;
-  updatedBy?: string | null;
+  createdBy?: NullableString;
+  updatedBy?: NullableString;
   createdAfter?: string | Date | null;
   createdBefore?: string | Date | null;
   updatedAfter?: string | Date | null;
@@ -919,7 +934,7 @@ export interface SkuListFilters {
   // KEYWORD SEARCH
   // ------------------------------
   /** Matches across SKU code, product name, brand, category (ILIKE fuzzy match) */
-  keyword?: string | null;
+  keyword?: NullableString;
 }
 
 /**
@@ -987,7 +1002,7 @@ export interface FlattenedSkuRecord {
   // --------------------------
 
   /** Unique identifier of the parent product; may be null if product is missing. */
-  productId: string | null;
+  productId: NullableString;
 
   /** Human-friendly product name from the Product table. */
   productName: string;
@@ -1012,7 +1027,7 @@ export interface FlattenedSkuRecord {
   // --------------------------
 
   /** SKU unique identifier. */
-  skuId: string | null;
+  skuId: NullableString;
 
   /** SKU code (e.g., "WN-MO411-L-UN"). */
   skuCode: string;
@@ -1042,7 +1057,7 @@ export interface FlattenedSkuRecord {
    * Primary or "best" image for this SKU.
    * Null when no image exists.
    */
-  primaryImageUrl: string | null;
+  primaryImageUrl: NullableString;
 
   // --------------------------
   // Status
@@ -1100,27 +1115,27 @@ export interface CreateSkuInput {
   region_code: string;
 
   /** Optional barcode (string or empty). */
-  barcode: string | null;
+  barcode: NullableString;
 
   /** Optional language tag (e.g., "en-fr"). */
-  language: string | null;
+  language: NullableString;
 
   /** Market region (e.g., "Canada"), nullable. */
-  market_region: string | null;
+  market_region: NullableString;
 
   /** Display size label (e.g., "60 Softgels"). */
-  size_label: string | null;
+  size_label: NullableString;
 
   /** Optional SKU description. */
-  description: string | null;
+  description: NullableString;
 
   /** Dimensions (optional, positive numbers). */
-  length_cm: number | null;
-  width_cm: number | null;
-  height_cm: number | null;
+  length_cm: NullableNumber;
+  width_cm: NullableNumber;
+  height_cm: NullableNumber;
 
   /** Weight (grams), optional. */
-  weight_g: number | null;
+  weight_g: NullableNumber;
 }
 
 /**
