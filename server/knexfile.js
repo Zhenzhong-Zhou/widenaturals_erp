@@ -2,29 +2,51 @@
  * @file knexfile.js
  * @description Knex.js CLI configuration for database migrations and seeds.
  *
- * Consumed by the `knex` CLI (not by application runtime) to execute schema
- * migrations and seed scripts per environment. Connection and pool settings
- * are sourced from the same modules used by the application runtime so CLI
- * operations and the running server agree on how to reach the database.
+ * Exports four environment-keyed configs: `development`, `test`, `staging`,
+ * `production`. Each is an `import('knex').Knex.Config` object built by
+ * {@link buildEnvConfig}.
  *
- * Environments:
- * - development: Local development.
- * - test:        Automated test runs.
- * - staging:     Pre-production verification.
- * - production:  Production deployments.
+ * Consumed by the `knex` CLI (not by the application runtime). Migration
+ * and seed commands resolve their config from this file. Connection and
+ * pool settings are read from the same modules used by the running server
+ * so CLI operations and the running application agree on how to reach the
+ * database.
  *
- * Environment variables are loaded here explicitly because the knex CLI
- * does not go through the application's normal startup path.
+ * --- Migrations ---
+ * A single migrations directory is shared across every environment. The
+ * schema must migrate forward identically in development, test, staging,
+ * and production; per-environment migrations would defeat their purpose.
+ *
+ * --- Seeds ---
+ * Seeds are split into categorized subdirectories under `src/database/seeds`:
+ *
+ *   01_reference  Lookup tables (status, roles, types, methods, permissions).
+ *                 Runs first; has no dependencies on business data.
+ *   02_core       Business data (system user, products, customers, batches).
+ *                 Depends on reference data being populated.
+ *
+ * The `01_` / `02_` numeric folder prefix is intentional and load-bearing:
+ * Knex sorts seed files by full path, not basename, so without these
+ * prefixes "core/" would lexicographically precede "reference/" and seeds
+ * would execute in the wrong dependency order — silently failing with FK
+ * violations or NULL constraint errors on the second-run-after-reset.
+ *
+ * --- Environment loading ---
+ * `loadEnv()` is invoked at module load because the Knex CLI bypasses the
+ * application's normal startup path and therefore does not pre-populate
+ * `process.env`. Both `getConnectionConfig` and `getPoolConfig` rely on
+ * env vars being present.
  *
  * @example
- * # Run migrations for the current NODE_ENV
- * npx knex --knexfile knexfile.js migrate:latest
+ * # Run migrations using the current NODE_ENV (defaults to "development")
+ * npx knex migrate:latest
  *
- * # Seed the database
- * npx knex --knexfile knexfile.js seed:run
+ * # Roll back the latest migration in production
+ * NODE_ENV=production npx knex migrate:rollback
  *
- * # Override environment explicitly
- * NODE_ENV=staging npx knex --knexfile knexfile.js migrate:latest
+ * # Seed the database against staging
+ * NODE_ENV=staging npx knex seed:run
+ *
  */
 
 'use strict';
@@ -36,38 +58,74 @@ const {
   getConnectionConfig,
 } = require('./src/config/db-config');
 
-// Knex CLI bypasses the application bootstrap, so env must be loaded here
-// before getConnectionConfig / getPoolConfig read process.env.
+// The Knex CLI does not load env vars on its own. Load them now, before
+// any code below reads from process.env.
 loadEnv();
 
-// Migrations live in a single shared directory regardless of environment —
-// the same schema migrates forward across dev, test, staging, and production.
+// ─────────────────────────────────────────────────────────────────────────
+// Paths
+// ─────────────────────────────────────────────────────────────────────────
+
+/**
+ * Absolute path to the single shared migrations directory.
+ *
+ * @type {string}
+ */
 const MIGRATIONS_DIR = path.resolve(__dirname, './src/database/migrations');
 
 /**
- * Resolves the seeds directory for a given environment.
+ * Absolute path to the root seeds directory. Seed category folders live
+ * directly under this path (e.g. `01_reference/`, `02_core/`).
  *
- * Seeds are environment-specific (dev fixtures differ from staging/production
- * reference data) so each environment gets its own directory.
- *
- * @param {'development'|'test'|'staging'|'production'} env
- * @returns {string} Absolute path to the environment's seeds directory.
+ * @type {string}
  */
-const seedsDirectory = (env) =>
-  path.resolve(__dirname, `./src/database/seeds/${env}`);
+const SEEDS_ROOT = path.resolve(__dirname, './src/database/seeds');
 
 /**
- * Builds a complete Knex configuration for a single environment.
+ * Resolves an absolute path for a seed category subdirectory.
  *
- * Calls `getConnectionConfig` and `getPoolConfig` per environment (rather
- * than sharing a single object across all four) so that any future
- * environment-specific overrides can be introduced without accidentally
- * mutating shared state.
+ * @param {string} category - Category folder name with its order prefix
+ *   (e.g. `'01_reference'`, `'02_core'`).
+ * @returns {string} Absolute path to the category directory.
+ */
+const seedDir = (category) => path.join(SEEDS_ROOT, category);
+
+/**
+ * Seed directories Knex will execute, in their intended execution order.
  *
- * @param {'development'|'test'|'staging'|'production'} env
+ * Knex sorts seed files by full path across all configured directories.
+ * The numeric folder prefixes guarantee that every reference seed runs
+ * before any core seed, regardless of the file numbering inside each
+ * folder.
+ *
+ * @type {string[]}
+ */
+const SEED_DIRECTORIES = [seedDir('01_reference'), seedDir('02_core')];
+
+// ─────────────────────────────────────────────────────────────────────────
+// Per-environment config
+// ─────────────────────────────────────────────────────────────────────────
+
+/**
+ * Builds a Knex configuration object for one environment.
+ *
+ * `getConnectionConfig` and `getPoolConfig` are invoked fresh on each call
+ * so each environment receives its own distinct config object instance.
+ * The underlying values are identical today, but distinct instances
+ * prevent any future per-environment override from accidentally mutating
+ * a shared reference — a class of bug that's hard to debug if it ever
+ * arises.
+ *
+ * The `_env` parameter is currently unused. It exists to support future
+ * per-environment overrides (e.g. enabling `disableTransactions` for test
+ * only, or pointing test seeds at a fixtures directory) without changing
+ * the call signature.
+ *
+ * @param {'development'|'test'|'staging'|'production'} _env
+ *   Reserved for future per-environment overrides.
  * @returns {import('knex').Knex.Config}
  */
-const buildEnvConfig = (env) => ({
+const buildEnvConfig = (_env) => ({
   client: 'postgresql',
   connection: getConnectionConfig(),
   pool: getPoolConfig(),
@@ -76,10 +134,20 @@ const buildEnvConfig = (env) => ({
     tableName: 'knex_migrations',
   },
   seeds: {
-    directory: seedsDirectory(env),
+    directory: SEED_DIRECTORIES,
   },
 });
 
+/**
+ * Knex configurations keyed by environment.
+ *
+ * @type {{
+ *   development: import('knex').Knex.Config,
+ *   test:        import('knex').Knex.Config,
+ *   staging:     import('knex').Knex.Config,
+ *   production:  import('knex').Knex.Config,
+ * }}
+ */
 module.exports = {
   development: buildEnvConfig('development'),
   test: buildEnvConfig('test'),
