@@ -75,17 +75,18 @@ const {
  *
  * @param {string} brandCode    - Brand portion of the SKU prefix (e.g. 'CH').
  * @param {string} categoryCode - Category portion of the SKU prefix (e.g. 'HN').
+ * @param {PoolClient}  client  - Active pg transaction client.
  *
  * @returns {Promise<string|null>} Most recent matching SKU code, or null.
  * @throws  {AppError}            Normalized database error if the query fails.
  */
-const getLastSku = async (brandCode, categoryCode) => {
+const getLastSku = async (brandCode, categoryCode, client) => {
   const context = 'sku-repository/getLastSku';
   const pattern = `${brandCode}-${categoryCode}%`;
   const params = [pattern];
 
   try {
-    const result = await query(GET_LAST_SKU_QUERY, params);
+    const result = await query(GET_LAST_SKU_QUERY, params, client);
     return result.rows[0]?.sku ?? null;
   } catch (error) {
     throw handleDbError(error, {
