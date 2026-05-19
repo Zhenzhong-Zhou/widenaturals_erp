@@ -75,7 +75,7 @@ const assertFormat = (value, regex, label) => {
  * @param {string}              regionCode      - ISO 3166-1 country/market code (e.g. `'CA'`).
  * @param {Map<string, number>} lastUsedCodeMap - In-memory map of `'brand-category'` →
  *   last used numeric suffix. Mutated in-place by this function.
- * @param {object}              client          - Active pg transaction client.
+ * @param {PoolClient}              client          - Active pg transaction client.
  * @returns {Promise<string>} Generated SKU string (e.g. `'PG-NM101-R-CA'`).
  * @throws {AppError} If any parameter is missing, malformed, or DB lookups fail.
  *
@@ -135,7 +135,7 @@ const generateSKU = async (
       );
     }
 
-    const lastSku = await getLastSku(brandCode, categoryCode);
+    const lastSku = await getLastSku(brandCode, categoryCode, client);
 
     // Extract the numeric suffix from the last SKU for this brand/category.
     // Pattern: {BRAND}-{CATEGORY}{NNN}-{VARIANT}-{REGION}
