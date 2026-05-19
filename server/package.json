@@ -27,7 +27,7 @@
     "start": "node src/index.js",
     "dev": "NODE_ENV=development nodemon src/index.js",
     "dev:trace": "NODE_ENV=development nodemon --trace-warnings src/index.js",
-    "create-db": "node src/database/create-db.js",
+    "create-db": "node src/system/startup/initialize-database.js",
     "migrate": "knex migrate:latest",
     "rollback": "knex migrate:rollback",
     "seed": "knex seed:run",
