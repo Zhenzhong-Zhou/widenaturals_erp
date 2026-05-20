@@ -52,10 +52,9 @@ const resizeImage = async (
  * Processes a local image file and generates three SKU image variants:
  * main (1000px WebP), thumbnail (450px WebP), and zoom (original format).
  *
- * Hashes the source file for deterministic storage paths, resizes variants
- * via Sharp, computes file sizes, then either uploads to S3 (production)
- * or copies to the local public directory (development). Temp files are
- * cleaned up in all cases via finally.
+ * Stores files at identical relative paths in S3 (production) and on local
+ * disk under `public/uploads/` (development), so the same DB-stored key
+ * resolves to a working URL in both environments.
  *
  * @param {string} localPath - Absolute path to the source image file on disk
  * @param {string} skuCode - SKU code used to derive the brand folder namespace
@@ -63,9 +62,9 @@ const resizeImage = async (
  * @param {string} bucketName - Target S3 bucket name; used only when isProd is true
  *
  * @returns {Promise<{
- *   mainUrl: string,
- *   thumbUrl: string,
- *   zoomUrl: string,
+ *   mainKey: string,
+ *   thumbKey: string,
+ *   zoomKey: string,
  *   mainSizeKb: number,
  *   thumbSizeKb: number,
  *   zoomSizeKb: number,
@@ -76,86 +75,74 @@ const resizeImage = async (
  */
 const processImageFile = async (localPath, skuCode, isProd, bucketName) => {
   const context = 'sku-image-media/processImageFile';
-
+  
   const resizedMain = `${localPath}_main.webp`;
   const resizedThumb = `${localPath}_thumb.webp`;
-
+  
   try {
     const brandFolder = skuCode.slice(0, 2).toUpperCase();
     const hash = await getFileHashStream(localPath);
     const ext = path.extname(localPath).replace('.', '').toLowerCase();
     const baseName = path.basename(localPath, path.extname(localPath));
-
+    
     // Resize main and thumbnail variants in parallel
     await Promise.all([
       resizeImage(localPath, resizedMain, 1000, 80, 5),
       resizeImage(localPath, resizedThumb, 450, 75, 4),
     ]);
-
+    
     // Stat all three variants in parallel (bytes → KB)
     const [mainStats, thumbStats, zoomStats] = await Promise.all([
       fsp.stat(resizedMain),
       fsp.stat(resizedThumb),
       fsp.stat(localPath),
     ]);
-
+    
     const mainSizeKb = Math.round(mainStats.size / 1024);
     const thumbSizeKb = Math.round(thumbStats.size / 1024);
     const zoomSizeKb = Math.round(zoomStats.size / 1024);
-
+    
+    // Identical key shape in dev and prod — read-time URL resolution
+    // handles the dev vs S3 routing
     const keyPrefix = `sku-images/${brandFolder}/${hash}`;
-
-    let mainUrl, thumbUrl, zoomUrl;
-
+    const mainFileName = `${baseName}_main.webp`;
+    const thumbFileName = `${baseName}_thumb.webp`;
+    const zoomFileName = path.basename(localPath);
+    
+    const mainKey = `${keyPrefix}/${mainFileName}`;
+    const thumbKey = `${keyPrefix}/${thumbFileName}`;
+    const zoomKey = `${keyPrefix}/${zoomFileName}`;
+    
     if (isProd) {
-      [mainUrl, thumbUrl, zoomUrl] = await Promise.all([
-        uploadSkuImageToS3(
-          bucketName,
-          resizedMain,
-          keyPrefix,
-          `${baseName}_main.webp`
-        ),
-        uploadSkuImageToS3(
-          bucketName,
-          resizedThumb,
-          keyPrefix,
-          `${baseName}_thumb.webp`
-        ),
-        uploadSkuImageToS3(
-          bucketName,
-          localPath,
-          keyPrefix,
-          path.basename(localPath)
-        ),
+      // S3 upload — return shape from uploadSkuImageToS3 is { key, contentType }
+      // but we already know the key (computed above), so we discard the return
+      await Promise.all([
+        uploadSkuImageToS3(bucketName, resizedMain, keyPrefix, mainFileName),
+        uploadSkuImageToS3(bucketName, resizedThumb, keyPrefix, thumbFileName),
+        uploadSkuImageToS3(bucketName, localPath, keyPrefix, zoomFileName),
       ]);
     } else {
+      // Mirror the S3 key structure under public/uploads/ so the same
+      // DB-stored key maps to a static-served URL in dev
       const devDir = path.resolve(
         __dirname,
-        '../../../public/uploads/sku-images',
-        brandFolder
+        '../../../public/uploads',
+        keyPrefix
       );
-
+      
       await fsp.mkdir(devDir, { recursive: true });
-
-      const zoomFileName = path.basename(localPath);
-
+      
       await Promise.all([
-        fsp.copyFile(resizedMain, path.join(devDir, `${baseName}_main.webp`)),
-        fsp.copyFile(resizedThumb, path.join(devDir, `${baseName}_thumb.webp`)),
+        fsp.copyFile(resizedMain, path.join(devDir, mainFileName)),
+        fsp.copyFile(resizedThumb, path.join(devDir, thumbFileName)),
         fsp.copyFile(localPath, path.join(devDir, zoomFileName)),
       ]);
-
-      const base = `/uploads/sku-images/${brandFolder}/${baseName}`;
-
-      mainUrl = `${base}_main.webp`;
-      thumbUrl = `${base}_thumb.webp`;
-      zoomUrl = `/uploads/sku-images/${brandFolder}/${zoomFileName}`;
     }
-
+    
     return {
-      mainUrl,
-      thumbUrl,
-      zoomUrl,
+      mainKey,
+      thumbKey,
+      zoomKey,
       mainSizeKb,
       thumbSizeKb,
       zoomSizeKb,
@@ -167,7 +154,7 @@ const processImageFile = async (localPath, skuCode, isProd, bucketName) => {
       skuCode,
       localPath,
     });
-
+    
     throw AppError.fileSystemError('Failed to process image file', {
       cause: error,
     });
