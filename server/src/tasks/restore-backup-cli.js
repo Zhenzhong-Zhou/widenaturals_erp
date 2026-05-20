@@ -10,7 +10,7 @@
  *
  * Environment variables required:
  *   DB_NAME, DB_USER, DB_PASSWORD, BACKUP_ENCRYPTION_KEY
- *   AWS_S3_BUCKET_NAME — required when running in production mode
+ *   AWS_S3_BACKUPS_BUCKET — required when running in production mode
  */
 
 const path = require('node:path');
@@ -65,9 +65,9 @@ const printAvailableBackups = async (bucketName) => {
     context: 'restore-cli',
     bucket: bucketName,
   });
-
+  
   const backups = await listBackupsFromS3(bucketName, 'backups/');
-
+  
   if (backups.length === 0) {
     logSystemError('No backups found in S3 bucket', {
       context: 'restore-cli',
@@ -75,7 +75,7 @@ const printAvailableBackups = async (bucketName) => {
     });
     process.exit(1);
   }
-
+  
   // Print directly to stdout so the operator sees the list regardless of
   // whether logSystemInfo routes to a file or structured log sink
   console.log('\nAvailable backups:');
@@ -86,12 +86,12 @@ const printAvailableBackups = async (bucketName) => {
 (async () => {
   try {
     const isProduction = args.production;
-    const bucketName = process.env.AWS_S3_BUCKET_NAME;
+    const bucketName = process.env.AWS_S3_BACKUPS_BUCKET;
     const databaseName = process.env.DB_NAME;
     const encryptionKey = process.env.BACKUP_ENCRYPTION_KEY;
     const dbUser = process.env.DB_USER;
     const dbPassword = process.env.DB_PASSWORD;
-
+    
     // Validate required env vars up front — log exactly which ones are absent
     const missingVars = [
       'DB_NAME',
@@ -99,7 +99,7 @@ const printAvailableBackups = async (bucketName) => {
       'DB_USER',
       'DB_PASSWORD',
     ].filter((key) => !process.env[key]);
-
+    
     if (missingVars.length > 0) {
       logSystemError('Missing required environment variables', {
         context: 'restore-cli',
@@ -107,41 +107,41 @@ const printAvailableBackups = async (bucketName) => {
       });
       process.exit(1);
     }
-
+    
     if (isProduction && !bucketName) {
       logSystemError(
-        'Missing required environment variable: AWS_S3_BUCKET_NAME',
+        'Missing required environment variable: AWS_S3_BACKUPS_BUCKET',
         {
           context: 'restore-cli',
         }
       );
       process.exit(1);
     }
-
+    
     // If no s3KeyEnc was passed, and we are in production, list available
     // backups from S3 so the operator can identify the correct key
     if (!args.s3KeyEnc && isProduction && bucketName) {
       await printAvailableBackups(bucketName);
     }
-
+    
     // Resolve the encrypted backup key — from CLI arg or interactive prompt
     const s3KeyEnc =
       args.s3KeyEnc || (await prompt('Enter encrypted backup path (s3KeyEnc)'));
-
+    
     if (!s3KeyEnc) {
       logSystemError('No encrypted backup path provided', {
         context: 'restore-cli',
       });
       process.exit(1);
     }
-
+    
     logSystemInfo('Starting restore', {
       context: 'restore-cli',
       s3KeyEnc: path.basename(s3KeyEnc),
       isProduction,
       databaseName,
     });
-
+    
     // IV and SHA256 sidecar paths are derived inside restoreBackup from s3KeyEnc —
     // the operator only needs to supply the .enc key
     await restoreBackupCli({
@@ -152,7 +152,7 @@ const printAvailableBackups = async (bucketName) => {
       dbPassword,
       isProduction,
     });
-
+    
     logSystemInfo('Database restore completed successfully', {
       context: 'restore-cli',
     });

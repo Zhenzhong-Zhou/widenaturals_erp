@@ -29,7 +29,7 @@ const DailyRotateFile = require('winston-daily-rotate-file');
 const isProduction = process.env.NODE_ENV === 'production';
 const logLevel = process.env.LOG_LEVEL || (isProduction ? 'info' : 'debug');
 const logsDir = path.join(__dirname, process.env.LOGS_DIR || '../../dev_logs');
-const bucketName = process.env.AWS_S3_BUCKET_NAME;
+const bucketName = process.env.AWS_S3_LOGS_BUCKET;
 
 // ============================================================
 // Ensure log directory exists
@@ -136,16 +136,16 @@ const handleRotationAndUpload = (transport, prefix) => {
     (async () => {
       try {
         const gzFile = `${oldFile}.gz`;
-
+        
         await compressFile(oldFile, gzFile);
-
+        
         if (bucketName) {
           // Lazy require — breaks the circular dependency
           const { uploadFileToS3 } = require('../aws-s3-service');
           const key = `${prefix}/${path.basename(gzFile)}`;
-
+          
           await uploadFileToS3(gzFile, bucketName, key);
-
+          
           await fs.promises.unlink(oldFile);
           await fs.promises.unlink(gzFile);
         }
