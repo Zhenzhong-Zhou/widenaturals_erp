@@ -33,6 +33,7 @@ const {
   saveBulkSkuImagesService,
   updateBulkSkuImagesService,
 } = require('../services/sku-image-service');
+const AppError = require('../utils/AppError');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/v1/skus/images
@@ -41,27 +42,66 @@ const {
 /**
  * Uploads images for one or more SKUs in bulk.
  *
- * Images are attached to req.body.skus by upstream middleware before this
- * controller executes. Partial failures are reflected in the response.
+ * Parses SKU metadata from the multipart request body, matches uploaded files
+ * from req.files to image entries marked as uploaded, and passes the merged
+ * SKU/image payload to the bulk image upload service.
  *
- * Requires: auth middleware, image-processing middleware, UPLOAD_SKU_IMAGES permission.
+ * File matching is order-based: the frontend must send files in the same order
+ * as image entries where `source === 'uploaded'` and `file_uploaded === true`.
+ *
+ * Partial service-level failures are reflected in the response. Request-level
+ * validation errors, such as missing or extra uploaded files, abort the request.
+ *
+ * Requires: auth middleware, multipart upload middleware, UPLOAD_SKU_IMAGES permission.
  */
 const uploadSkuImagesController = wrapAsyncHandler(async (req, res) => {
-  const { skus } = req.body;
+  // Multer + multipart means JSON fields arrive as strings, not objects.
+  const skus = typeof req.body.skus === 'string'
+    ? JSON.parse(req.body.skus)
+    : req.body.skus;
+  
+  const files = req.files ?? [];
   const user = req.auth.user;
-
-  const result = await saveBulkSkuImagesService(skus, user);
-  const successCount = result.filter((r) => r.success).length;
+  
+  // Walk the metadata in order and attach files to every "uploaded" slot.
+  // Frontend must send files in the same order as `file_uploaded: true` entries.
+  let fileCursor = 0;
+  const merged = skus.map((set) => ({
+    ...set,
+    images: set.images.map((img) => {
+      if (img.source === 'uploaded' && img.file_uploaded) {
+        const file = files[fileCursor++];
+        if (!file) {
+          throw AppError.validationError(
+            `Missing uploaded file for SKU ${set.skuCode} at image index.`
+          );
+        }
+        return { ...img, file };
+      }
+      return img; // URL-based slot, untouched
+    }),
+  }));
+  
+  if (fileCursor !== files.length) {
+    throw AppError.validationError(
+      `Mismatch: ${files.length} files uploaded, ${fileCursor} consumed.`
+    );
+  }
+  
+  const result = await saveBulkSkuImagesService(merged, user);
+  const successCount = result.reduce((n, r) => n + (r.success ? 1 : 0), 0);
   const failureCount = result.length - successCount;
-
-  res.status(200).json({
-    success: true,
-    message: 'SKU image upload batch completed.',
-    stats: {
-      total: result.length,
-      successCount,
-      failureCount,
-    },
+  
+  const status = failureCount === 0 ? 200 : 207;
+  res.status(status).json({
+    success: failureCount === 0,
+    message:
+      failureCount === 0
+        ? 'All SKU images uploaded successfully.'
+        : successCount === 0
+          ? 'All SKU image uploads failed.'
+          : `SKU image upload completed with ${failureCount} failure(s).`,
+    stats: { total: result.length, successCount, failureCount },
     data: result,
     traceId: req.traceId,
   });
@@ -74,20 +114,64 @@ const uploadSkuImagesController = wrapAsyncHandler(async (req, res) => {
 /**
  * Updates images for one or more SKUs in bulk.
  *
- * Partial failures are reflected in the response.
- * Requires: auth middleware, image-processing middleware, UPDATE_SKU_IMAGES permission.
+ * Parses SKU metadata from the multipart request body, matches uploaded files
+ * from req.files to image entries marked as uploaded, and passes the merged
+ * SKU/image payload to the bulk image update service.
+ *
+ * File matching is order-based: the frontend must send files in the same order
+ * as image entries where `source === 'uploaded'` and `file_uploaded === true`.
+ *
+ * Partial service-level failures are returned in the response stats and data.
+ * Request-level validation errors, such as missing or extra uploaded files,
+ * abort the request.
+ *
+ * Requires: auth middleware, multipart upload middleware, UPDATE_SKU_IMAGES permission.
  */
 const updateSkuImagesController = wrapAsyncHandler(async (req, res) => {
-  const { skus } = req.body;
+  const skus = typeof req.body.skus === 'string'
+    ? JSON.parse(req.body.skus)
+    : req.body.skus;
+  
+  const files = req.files ?? [];
   const user = req.auth.user;
-
-  const result = await updateBulkSkuImagesService(skus, user);
+  
+  let fileCursor = 0;
+  const merged = skus.map((set) => ({
+    ...set,
+    images: set.images.map((img) => {
+      if (img.source === 'uploaded' && img.file_uploaded) {
+        const file = files[fileCursor++];
+        if (!file) {
+          throw AppError.validationError(
+            `Missing uploaded file for SKU ${set.skuCode}, group ${img.group_id}.`
+          );
+        }
+        return { ...img, file };
+      }
+      return img;
+    }),
+  }));
+  
+  if (fileCursor !== files.length) {
+    throw AppError.validationError(
+      `Mismatch: ${files.length} files uploaded, ${fileCursor} consumed.`
+    );
+  }
+  
+  const result = await updateBulkSkuImagesService(merged, user);
   const successCount = result.filter((r) => r.success).length;
   const failureCount = result.length - successCount;
-
-  res.status(200).json({
-    success: true,
-    message: 'SKU image update batch completed.',
+  
+  const status = failureCount === 0 ? 200 : 207;
+  
+  res.status(status).json({
+    success: failureCount === 0,
+    message:
+      failureCount === 0
+        ? 'All SKU images updated successfully.'
+        : successCount === 0
+          ? 'All SKU image updates failed.'
+          : `SKU image update completed with ${failureCount} failure(s).`,
     stats: {
       total: result.length,
       successCount,
