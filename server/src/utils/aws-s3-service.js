@@ -16,6 +16,9 @@ const {
   logSystemException,
 } = require('./logging/system-logger');
 const AppError = require('./AppError');
+const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
+
+const CONTEXT = 'aws-s3-service';
 
 /**
  * Generic S3 operation with retry logic.
@@ -384,7 +387,7 @@ const listBackupsFromS3 = async (bucketName, folderPrefix = 'backups/') => {
  * @returns {Promise<boolean>} True if object exists, false if not.
  */
 const s3ObjectExists = async (bucketName, key) => {
-  const context = 'aws-s3-service/s3ObjectExists';
+  const context = `${CONTEXT}/s3ObjectExists`;
 
   try {
     await s3Client.send(
@@ -408,13 +411,18 @@ const s3ObjectExists = async (bucketName, key) => {
 };
 
 /**
- * Uploads a SKU image to S3 and returns its public URL.
+ * Uploads a SKU image to S3 and returns the stored object key.
  *
- * @param {string} bucketName - The S3 bucket name.
- * @param {string} localFilePath - Local file path to upload.
- * @param {string} keyPrefix - The folder/prefix under which to store the image.
- * @param {string|null} keyName - Optional name for the S3 key (uses local filename if not provided).
- * @returns {Promise<string>} - The public S3 URL of the uploaded image.
+ * Returns the S3 key (not a URL) because the bucket is private. Callers
+ * should store the returned key and use `getPresignedDownloadUrl(bucket, key)`
+ * to generate a time-limited URL when serving the image to the browser.
+ *
+ * @param {string} bucketName       - The S3 bucket name (typically AWS_S3_IMAGES_BUCKET).
+ * @param {string} localFilePath    - Local file path to upload.
+ * @param {string} keyPrefix        - The folder/prefix under which to store the image
+ *                                    (caller decides format, e.g. `skus/<sku-uuid>`).
+ * @param {string|null} [keyName=null] - Optional S3 object name (uses local filename if not provided).
+ * @returns {Promise<{ key: string, contentType: string }>} - The stored S3 key and detected MIME type.
  */
 const uploadSkuImageToS3 = async (
   bucketName,
@@ -423,38 +431,36 @@ const uploadSkuImageToS3 = async (
   keyName = null
 ) => {
   const context = 's3-upload-sku-image';
-
+  
   if (!bucketName) {
     logSystemError('Missing bucket name.', { context });
     throw new Error('Bucket name is required.');
   }
+  
   try {
     const fileStream = fs.createReadStream(localFilePath);
     const ext = path.extname(localFilePath);
     const contentType = mime.lookup(ext) || 'application/octet-stream';
     const baseFileName = keyName || path.basename(localFilePath);
-    const s3Key = `${keyPrefix}/${baseFileName}`;
-
+    const key = `${keyPrefix}/${baseFileName}`;
+    
     const command = new PutObjectCommand({
       Bucket: bucketName,
-      Key: s3Key,
+      Key: key,
       Body: fileStream,
       ContentType: contentType,
     });
-
+    
     await s3Client.send(command);
-
-    const publicUrl = `https://${bucketName}.s3.${process.env.AWS_REGION}.amazonaws.com/${s3Key}`;
-
+    
     logSystemInfo('SKU image uploaded to S3.', {
       context,
       bucketName,
-      s3Key,
+      key,
       contentType,
-      publicUrl,
     });
-
-    return publicUrl;
+    
+    return { key, contentType };
   } catch (error) {
     logSystemError('Failed to upload SKU image to S3.', {
       context,
@@ -465,6 +471,173 @@ const uploadSkuImageToS3 = async (
   }
 };
 
+/**
+ * Generates a time-limited presigned GET URL for downloading a private S3 object.
+ *
+ * Use this whenever you need to serve a private S3 object to a browser
+ * (e.g. SKU images, attachments). The signed URL works without IAM
+ * credentials and expires after the specified duration.
+ *
+ * @param {string} bucketName - The S3 bucket containing the object.
+ * @param {string} key - The S3 object key.
+ * @param {number} [expiresInSeconds=3600] - URL lifetime in seconds (default 1 hour).
+ * @returns {Promise<string>} A presigned URL safe to return to the frontend.
+ * @throws {AppError} If presigning fails.
+ */
+const getPresignedDownloadUrl = async (
+  bucketName,
+  key,
+  expiresInSeconds = 3600
+) => {
+  const context = `${CONTEXT}/getPresignedDownloadUrl`;
+  
+  if (!bucketName || !key) {
+    throw AppError.validationError('bucketName and key are required', {
+      context,
+    });
+  }
+  
+  try {
+    const command = new GetObjectCommand({ Bucket: bucketName, Key: key });
+    const url = await getSignedUrl(s3Client, command, {
+      expiresIn: expiresInSeconds,
+    });
+    
+    logSystemInfo('Generated presigned download URL', {
+      context,
+      bucketName,
+      key,
+      expiresInSeconds,
+    });
+    
+    return url;
+  } catch (error) {
+    logSystemException(error, 'Failed to generate presigned download URL', {
+      context,
+      bucketName,
+      key,
+    });
+    throw AppError.serviceError('Presigned URL generation failed', {
+      cause: error,
+    });
+  }
+};
+
+/**
+ * Generates a time-limited presigned PUT URL so a browser can upload
+ * directly to S3 without proxying through the backend.
+ *
+ * Use this for SKU image uploads from the frontend — backend returns
+ * the URL, browser uploads directly. Saves backend bandwidth and RAM
+ * (matters on t3.micro).
+ *
+ * @param {string} bucketName - The S3 bucket to upload to.
+ * @param {string} key - The S3 object key.
+ * @param {string} contentType - The MIME type of the file being uploaded (e.g. 'image/jpeg').
+ * @param {number} [expiresInSeconds=300] - URL lifetime in seconds (default 5 minutes).
+ * @returns {Promise<string>} A presigned PUT URL.
+ * @throws {AppError} If presigning fails.
+ */
+const getPresignedUploadUrl = async (
+  bucketName,
+  key,
+  contentType,
+  expiresInSeconds = 300
+) => {
+  const context = `${CONTEXT}/getPresignedUploadUrl`;
+  
+  if (!bucketName || !key || !contentType) {
+    throw AppError.validationError(
+      'bucketName, key, and contentType are required',
+      { context }
+    );
+  }
+  
+  try {
+    const command = new PutObjectCommand({
+      Bucket: bucketName,
+      Key: key,
+      ContentType: contentType,
+    });
+    const url = await getSignedUrl(s3Client, command, {
+      expiresIn: expiresInSeconds,
+    });
+    
+    logSystemInfo('Generated presigned upload URL', {
+      context,
+      bucketName,
+      key,
+      contentType,
+      expiresInSeconds,
+    });
+    
+    return url;
+  } catch (error) {
+    logSystemException(error, 'Failed to generate presigned upload URL', {
+      context,
+      bucketName,
+      key,
+    });
+    throw AppError.serviceError('Presigned upload URL generation failed', {
+      cause: error,
+    });
+  }
+};
+
+/**
+ * Resolves a stored image key to a fetchable URL based on environment.
+ *
+ * In production, generates a time-limited presigned URL for the private S3 bucket.
+ * In development, returns a static-served relative URL backed by the local
+ * `public/uploads/` directory.
+ *
+ * @param {string} key - The S3-style key stored in the DB (e.g. 'sku-images/AB/hash/file.webp').
+ * @param {Object} [options]
+ * @param {string} [options.bucketName=process.env.AWS_S3_IMAGES_BUCKET] - Target bucket for production presigning.
+ * @param {number} [options.expiresInSeconds=3600] - Lifetime of the presigned URL when in production.
+ * @returns {Promise<string>} A fetchable URL for the frontend.
+ */
+const resolveImageUrl = async (
+  key,
+  {
+    bucketName = process.env.AWS_S3_IMAGES_BUCKET,
+    expiresInSeconds = 3600,
+  } = {}
+) => {
+  if (!key) return null;
+  
+  if (process.env.NODE_ENV === 'production') {
+    return getPresignedDownloadUrl(bucketName, key, expiresInSeconds);
+  }
+  
+  // Dev: served via Express static from `public/uploads/`
+  return `/uploads/${key}`;
+};
+
+/**
+ * Resolves a flat string field (the image key path) on each item to its
+ * URL form. Mutates a copy — input items are not modified.
+ *
+ * @template T
+ * @param {T[]} items
+ * @param {(keyof T)[]} fieldNames - Field names that hold keys to resolve
+ * @returns {Promise<T[]>}
+ */
+const resolveImageUrlsOnItems = async (items, fieldNames) =>
+  Promise.all(
+    items.map(async (item) => {
+      const resolved = { ...item };
+      await Promise.all(
+        fieldNames.map(async (field) => {
+          if (resolved[field]) {
+            resolved[field] = await resolveImageUrl(resolved[field]);
+          }
+        })
+      );
+      return resolved;
+    })
+  );
+
 module.exports = {
   uploadFileToS3,
   downloadFileFromS3,
@@ -474,4 +647,8 @@ module.exports = {
   listBackupsFromS3,
   s3ObjectExists,
   uploadSkuImageToS3,
+  getPresignedDownloadUrl,
+  getPresignedUploadUrl,
+  resolveImageUrl,
+  resolveImageUrlsOnItems,
 };

@@ -169,7 +169,9 @@ const loadAndValidateEnv = () => {
             loadSecret('aws_secret_access_key', 'AWS_SECRET_ACCESS_KEY'),
           required: true,
         },
-        { envVar: 'AWS_S3_BUCKET_NAME', required: true },
+        { envVar: 'AWS_S3_IMAGES_BUCKET', required: true },
+        { envVar: 'AWS_S3_BACKUPS_BUCKET', required: true },
+        { envVar: 'AWS_S3_LOGS_BUCKET', required: true },
       ],
 
       cors: [

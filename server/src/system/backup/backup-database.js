@@ -8,11 +8,11 @@
  *
  * Environment variables required:
  * - DB_NAME, DB_USER, DB_PASSWORD
- * - BACKUP_ENCRYPTION_KEY — 64-character hex string (32 bytes)
- * - BACKUP_DIR            — path relative to this file
- * - MAX_BACKUPS           — positive multiple of 3 (default: 15)
- * - AWS_S3_BUCKET_NAME    — required for production S3 upload
- * - NODE_ENV              — set to 'production' to enable S3 upload
+ * - BACKUP_ENCRYPTION_KEY     — 64-character hex string (32 bytes)
+ * - BACKUP_DIR                — path relative to this file
+ * - MAX_BACKUPS               — positive multiple of 3 (default: 15)
+ * - AWS_S3_BACKUPS_BUCKET     — required for production S3 upload
+ * - NODE_ENV                  — set to 'production' to enable S3 upload
  */
 
 const fs = require('node:fs/promises');
@@ -55,11 +55,11 @@ let _pgVersion = null;
  */
 const getPgVersion = () => {
   if (_pgVersion) return _pgVersion;
-
+  
   // REQUIRED_PG_VERSION is set in .env and validated against the running
   // server at startup — safe to use here without re-querying the DB
   _pgVersion = process.env.REQUIRED_PG_VERSION ?? 'unknown';
-
+  
   if (_pgVersion === 'unknown') {
     logSystemWarn(
       'REQUIRED_PG_VERSION not set — backup filename will use "unknown"',
@@ -68,7 +68,7 @@ const getPgVersion = () => {
       }
     );
   }
-
+  
   return _pgVersion;
 };
 
@@ -94,7 +94,7 @@ const getPgVersion = () => {
  */
 const resolveConfig = () => {
   const context = `${CONTEXT}-config`;
-
+  
   //--------------------------------------------------
   // Required env validation first — fail fast
   //--------------------------------------------------
@@ -107,7 +107,7 @@ const resolveConfig = () => {
       }
     );
   }
-
+  
   const encryptionKey = process.env.BACKUP_ENCRYPTION_KEY;
   if (!encryptionKey) {
     throw AppError.validationError(
@@ -117,13 +117,13 @@ const resolveConfig = () => {
       }
     );
   }
-
+  
   //--------------------------------------------------
   // maxBackups
   //--------------------------------------------------
   const rawMaxBackups = parseInt(process.env.MAX_BACKUPS, 10);
   let maxBackups = isNaN(rawMaxBackups) ? 5 : rawMaxBackups;
-
+  
   if (!Number.isInteger(maxBackups) || maxBackups <= 0) {
     logSystemWarn(
       `Invalid MAX_BACKUPS: ${maxBackups}. Falling back to default (5).`,
@@ -135,7 +135,7 @@ const resolveConfig = () => {
     );
     maxBackups = 5;
   }
-
+  
   //--------------------------------------------------
   // File paths — all dependencies resolved above
   //--------------------------------------------------
@@ -148,7 +148,7 @@ const resolveConfig = () => {
   const encryptedFile = `${backupFile}.enc`;
   const ivFile = `${encryptedFile}.iv`;
   const hashFile = `${encryptedFile}.sha256`;
-
+  
   return {
     isProduction: process.env.NODE_ENV === 'production',
     targetDatabase,
@@ -160,7 +160,7 @@ const resolveConfig = () => {
     dbUser: process.env.DB_USER,
     dbPassword: process.env.DB_PASSWORD,
     maxBackups,
-    bucketName: process.env.AWS_S3_BUCKET_NAME,
+    bucketName: process.env.AWS_S3_BACKUPS_BUCKET,
     encryptionKey,
   };
 };
@@ -177,7 +177,7 @@ const resolveConfig = () => {
  */
 const backupDatabase = async () => {
   loadEnv();
-
+  
   const {
     isProduction,
     targetDatabase,
@@ -192,15 +192,15 @@ const backupDatabase = async () => {
     bucketName,
     encryptionKey,
   } = resolveConfig();
-
+  
   try {
     await ensureDirectory(backupDir);
-
+    
     logSystemInfo(`Starting backup for database: '${targetDatabase}'`, {
       context: CONTEXT,
       backupDir,
     });
-
+    
     // Dump the database to a SQL file using pg_dump
     await runPgDump(
       [
@@ -214,30 +214,30 @@ const backupDatabase = async () => {
       ],
       { isProduction, dbUser, dbPassword }
     );
-
+    
     // Encrypt — encryptFile owns key validation and partial-file cleanup on failure
     await encryptFile(backupFile, encryptedFile, encryptionKey, ivFile);
-
+    
     // Plain-text SQL is no longer needed once encrypted copy exists
     await fs.unlink(backupFile).catch(() => {});
-
+    
     // Hash the encrypted file so recipients can verify integrity
     const hash = await generateHash(encryptedFile);
     await saveHashToFile(hash, hashFile);
-
+    
     await cleanupOldBackupsService({
       dir: backupDir,
       maxBackups,
       isProduction,
       bucketName,
     });
-
+    
     logSystemInfo('Backup encrypted and saved locally', {
       context: CONTEXT,
       encryptedFile,
       hashFile,
     });
-
+    
     if (isProduction && bucketName) {
       await uploadBackupToS3({ encryptedFile, ivFile, hashFile, bucketName });
       // Local copies removed after confirmed upload — best-effort, failures ignored
@@ -255,10 +255,10 @@ const backupDatabase = async () => {
   } catch (error) {
     // Best-effort cleanup of any partial files left behind
     await cleanupLocalFiles([encryptedFile, ivFile, hashFile]).catch(() => {});
-
+    
     // Already structured — re-throw as-is
     if (error instanceof AppError) throw error;
-
+    
     // Raw error from AWS SDK, fs, crypto — wrap it
     throw new AppError('Backup pipeline failed', 500, {
       type: ERROR_TYPES.SYSTEM,
