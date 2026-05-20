@@ -186,8 +186,33 @@ const validateEnv = (groups) => {
   }
 };
 
+/**
+ * Reads a required environment variable, narrowing the type from
+ * `string | undefined` to `string`.
+ *
+ * Assumes {@link validateEnv} has already run during bootstrap, so the
+ * throw here is purely a defensive safety net for cases where this is
+ * called before validation (e.g. test harnesses, ad-hoc scripts) or
+ * for a variable that wasn't registered in the validation groups.
+ *
+ * @param {string} name - Environment variable name.
+ * @returns {string} The non-empty value of the environment variable.
+ * @throws {AppError} If the variable is undefined or empty.
+ */
+const readRequiredEnv = (name) => {
+  const value = process.env[name];
+  if (!value) {
+    throw AppError.initializationError(
+      `Environment variable read before validation or unregistered: ${name}`,
+      { context: ENV_CONTEXT, envVar: name }
+    );
+  }
+  return value;
+};
+
 module.exports = {
   loadEnv,
   validateEnv,
   loadSecret,
+  readRequiredEnv
 };
