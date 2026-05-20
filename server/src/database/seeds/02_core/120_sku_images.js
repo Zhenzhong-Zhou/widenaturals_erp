@@ -2,9 +2,12 @@ const path = require('path');
 const fs = require('fs');
 const mime = require('mime-types');
 const { v5: uuidv5 } = require('uuid');
-const { uploadSkuImageToS3 } = require('../../../utils/aws-s3-service');
 const { loadEnv } = require('../../../config/env');
-const { resizeImage } = require('../../../utils/media/sku-image-media');
+const {
+  logSystemInfo,
+  logSystemException
+} = require('../../../utils/logging/system-logger');
+const { processImageFile } = require('../../../utils/media/sku-image-media');
 
 loadEnv();
 
@@ -20,7 +23,7 @@ exports.seed = async function (knex) {
   console.log('Seeding sku_images...');
 
   const isProd = process.env.NODE_ENV === 'production';
-  const bucketName = process.env.AWS_S3_BUCKET_NAME;
+  const bucketName = process.env.AWS_S3_IMAGES_BUCKET;
 
   const skuRecords = await knex('skus').select('id', 'sku');
   const skuMap = Object.fromEntries(skuRecords.map((s) => [s.sku, s.id]));
@@ -670,80 +673,27 @@ exports.seed = async function (knex) {
         }
         
         try {
-          const baseName = path.basename(localPath, path.extname(localPath));
-          const brandFolder = sku.slice(0, 2);
+          const {
+            mainKey,
+            thumbKey,
+            zoomKey,
+            mainSizeKb,
+            thumbSizeKb,
+            zoomSizeKb,
+            ext,
+          } = await processImageFile(localPath, sku, isProd, bucketName);
           
-          const mainFileName = `${baseName}_main.webp`;
-          const thumbFileName = `${baseName}_thumb.webp`;
-          const zoomFileName = `${baseName}${path.extname(localPath)}`;
-          
-          const skuFolder = path.join('temp', sku);
-          fs.mkdirSync(skuFolder, { recursive: true });
-          
-          const resizedMainPath = path.join(skuFolder, mainFileName);
-          const resizedThumbPath = path.join(skuFolder, thumbFileName);
-          
-          await resizeImage(localPath, resizedMainPath, 1000, 80, 5);
-          await resizeImage(localPath, resizedThumbPath, 450, 75, 4);
-          
-          let s3MainUrl, s3ThumbUrl, s3ZoomUrl;
-          
-          if (isProd) {
-            const keyPrefix = `sku-images/${brandFolder}`;
-            s3MainUrl = await uploadSkuImageToS3(
-              bucketName,
-              resizedMainPath,
-              keyPrefix,
-              mainFileName
-            );
-            s3ThumbUrl = await uploadSkuImageToS3(
-              bucketName,
-              resizedThumbPath,
-              keyPrefix,
-              thumbFileName
-            );
-            s3ZoomUrl = await uploadSkuImageToS3(
-              bucketName,
-              localPath,
-              keyPrefix,
-              zoomFileName
-            );
-          } else {
-            const devOutputDir = path.resolve(
-              `public/uploads/sku-images/${brandFolder}`
-            );
-            fs.mkdirSync(devOutputDir, { recursive: true });
-            
-            fs.copyFileSync(
-              resizedMainPath,
-              path.join(devOutputDir, mainFileName)
-            );
-            fs.copyFileSync(
-              resizedThumbPath,
-              path.join(devOutputDir, thumbFileName)
-            );
-            fs.copyFileSync(localPath, path.join(devOutputDir, zoomFileName));
-            
-            const publicBase = `/uploads/sku-images/${brandFolder}/${baseName}`;
-            s3MainUrl = `${publicBase}_main.webp`;
-            s3ThumbUrl = `${publicBase}_thumb.webp`;
-            s3ZoomUrl = `${publicBase}${path.extname(localPath)}`;
-          }
-          
-          const mainStats = fs.statSync(resizedMainPath);
-          const thumbStats = fs.statSync(resizedThumbPath);
-          const zoomStats = fs.statSync(localPath);
           const zoomMime = mime.lookup(localPath);
-          const zoomFormat = mime.extension(zoomMime) || 'bin';
+          const zoomFormat = mime.extension(zoomMime) || ext || 'bin';
           
           rows.push(
             {
               id: knex.raw('uuid_generate_v4()'),
               sku_id: skuId,
-              image_url: s3MainUrl,
+              image_url: mainKey,            // stores key; URL generated at read time
               image_type: 'main',
               display_order: 0,
-              file_size_kb: Math.ceil(mainStats.size / 1024),
+              file_size_kb: mainSizeKb,
               file_format: 'webp',
               is_primary: true,
               group_id: groupId,
@@ -754,10 +704,10 @@ exports.seed = async function (knex) {
             {
               id: knex.raw('uuid_generate_v4()'),
               sku_id: skuId,
-              image_url: s3ThumbUrl,
+              image_url: thumbKey,
               image_type: 'thumbnail',
               display_order: 1,
-              file_size_kb: Math.ceil(thumbStats.size / 1024),
+              file_size_kb: thumbSizeKb,
               file_format: 'webp',
               is_primary: false,
               group_id: groupId,
@@ -768,10 +718,10 @@ exports.seed = async function (knex) {
             {
               id: knex.raw('uuid_generate_v4()'),
               sku_id: skuId,
-              image_url: s3ZoomUrl,
+              image_url: zoomKey,
               image_type: 'zoom',
               display_order: 2,
-              file_size_kb: Math.ceil(zoomStats.size / 1024),
+              file_size_kb: zoomSizeKb,
               file_format: zoomFormat,
               is_primary: false,
               group_id: groupId,
@@ -781,9 +731,17 @@ exports.seed = async function (knex) {
             }
           );
           
-          console.log(`Processed SKU ${sku} — main, thumbnail, zoom`);
+          logSystemInfo(`Processed SKU images`, {
+            context: 'seed-sku-images',
+            sku,
+            keys: [mainKey, thumbKey, zoomKey],
+          });
         } catch (err) {
-          console.error(`Failed to process ${img.url}:`, err.message);
+          logSystemException(err, 'Failed to process SKU image', {
+            context: 'seed-sku-images',
+            sku,
+            url: img.url,
+          });
         }
       }
     }

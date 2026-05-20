@@ -49,6 +49,7 @@ const {
   sliceSkuForUser,
   applySkuProductCardVisibilityRules,
   assertSkuEditAllowed,
+  resolveSkuImageUrls, resolveSkuPrimaryImageUrls,
 } = require('../business/sku-business');
 const { withTransaction } = require('../database/db');
 const { lockRows, lockRow } = require('../utils/db/lock-modes');
@@ -116,8 +117,9 @@ const fetchPaginatedSkuProductCardsService = async ({
       sortOrder,
       filters: adjustedFilters,
     });
-
-    return transformPaginatedSkuProductCardResult(rawResult);
+    
+    const transformed = await transformPaginatedSkuProductCardResult(rawResult);
+    return resolveSkuImageUrls(transformed);
   } catch (error) {
     if (error instanceof AppError) throw error;
 
@@ -166,8 +168,9 @@ const fetchPaginatedSkusService = async ({
         pagination: { page, limit, totalRecords: 0, totalPages: 0 },
       };
     }
-
-    return transformPaginatedSkuListResults(rawResult);
+    
+    const transformed = await transformPaginatedSkuListResults(rawResult);
+    return resolveSkuPrimaryImageUrls(transformed);
   } catch (error) {
     if (error instanceof AppError) throw error;
 

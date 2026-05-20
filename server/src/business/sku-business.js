@@ -33,6 +33,7 @@ const { skuHasAnyHistory } = require('../repositories/sku-repository');
 const {
   getSkuOperationalStatusIds,
 } = require('../config/sku-operational-status-cache');
+const { resolveImageUrl } = require('../utils/aws-s3-service');
 
 const CONTEXT = 'sku-business';
 
@@ -465,6 +466,68 @@ const applySkuProductCardVisibilityRules = (filters, acl) => {
 };
 
 /**
+ * Resolves the nested `image.url` field on each item in any paginated
+ * SKU result. Works with both card and list row shapes since they share
+ * the `image: { url, alt }` substructure.
+ *
+ * @template T
+ * @param {PaginatedResult<T>} paginated
+ * @returns {Promise<PaginatedResult<T>>}
+ */
+const resolveSkuImageUrls = async (paginated) => {
+  if (!paginated) return paginated;
+  
+  const arrayField = Array.isArray(paginated.items)
+    ? 'items'
+    : Array.isArray(paginated.data)
+      ? 'data'
+      : null;
+  
+  if (!arrayField || paginated[arrayField].length === 0) return paginated;
+  
+  const resolved = await Promise.all(
+    paginated[arrayField].map(async (item) => ({
+      ...item,
+      image: item.image
+        ? { ...item.image, url: await resolveImageUrl(item.image.url) }
+        : null,
+    }))
+  );
+  
+  return { ...paginated, [arrayField]: resolved };
+};
+
+/**
+ * Resolves the flat `primaryImageUrl` field on each item in a paginated
+ * SKU list result. Use this for endpoints whose row shape exposes the
+ * image URL as a top-level field instead of a nested object.
+ *
+ * @template T
+ * @param {PaginatedResult<T>} paginated
+ * @returns {Promise<PaginatedResult<T>>}
+ */
+const resolveSkuPrimaryImageUrls = async (paginated) => {
+  if (!paginated) return paginated;
+  
+  const arrayField = Array.isArray(paginated.items)
+    ? 'items'
+    : Array.isArray(paginated.data)
+      ? 'data'
+      : null;
+  
+  if (!arrayField || paginated[arrayField].length === 0) return paginated;
+  
+  const resolved = await Promise.all(
+    paginated[arrayField].map(async (item) => ({
+      ...item,
+      primaryImageUrl: await resolveImageUrl(item.primaryImageUrl),
+    }))
+  );
+  
+  return { ...paginated, [arrayField]: resolved };
+};
+
+/**
  * Asserts that a SKU is permitted to be edited under the given edit policy.
  *
  * Root users bypass all edit guards. Non-root users are checked against the
@@ -534,5 +597,7 @@ module.exports = {
   evaluateSkuStatusAccessControl,
   sliceSkuForUser,
   applySkuProductCardVisibilityRules,
+  resolveSkuImageUrls,
+  resolveSkuPrimaryImageUrls,
   assertSkuEditAllowed,
 };
