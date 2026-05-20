@@ -1,79 +1,141 @@
+/**
+ * @file aws-s3-service.js
+ * @description S3 access layer for the WideNaturals ERP system.
+ *
+ * Provides high-level operations over the AWS SDK v3 S3 client:
+ *   - File/buffer upload (with multipart auto-switch via lib-storage for large bodies)
+ *   - File download (to disk or memory)
+ *   - Object deletion (single + batch)
+ *   - Listing (folder enumeration + backup grouping, with pagination)
+ *   - Existence check (HeadObject, metadata only)
+ *   - Presigned URL generation (GET/PUT)
+ *   - Environment-aware image URL resolution
+ *
+ * Error-handling conventions follow the project-wide single-log principle:
+ *   - This module does NOT log exceptions in catch blocks. Errors propagate
+ *     to `globalErrorHandler`, which is the single source of error logs.
+ *   - AppErrors thrown upstream are passed through unchanged
+ *     via `if (error instanceof AppError) throw error;`.
+ *   - SDK errors are wrapped with `AppError.serviceError` so the global
+ *     handler receives a consistent, structured error shape with `cause`.
+ *
+ * The retry helper is the explicit exception to the single-log rule: it logs
+ * each retry attempt for fault-tolerance visibility, in the same spirit as
+ * the `Promise.allSettled` exception in `sku-image-service.js`. Final
+ * failures propagate without logging — `globalErrorHandler` logs them once.
+ *
+ * Production policy alignment:
+ *   - All uploads request server-side encryption (SSE-S3 / AES256 by default).
+ *   - All bucket interactions go through the shared S3Client singleton,
+ *     which is constructed once at bootstrap with validated credentials.
+ *   - Pagination is honoured on list operations (S3 caps ListObjectsV2 at
+ *     1000 keys per response).
+ */
+
+const fs = require('fs');
+const fsp = require('fs/promises');
 const {
   PutObjectCommand,
   DeleteObjectCommand,
-  ListObjectsV2Command,
   DeleteObjectsCommand,
+  ListObjectsV2Command,
   GetObjectCommand,
   HeadObjectCommand,
 } = require('@aws-sdk/client-s3');
-const fs = require('fs');
-const path = require('path');
-const mime = require('mime-types');
-const s3Client = require('../config/aws-s3-config');
-const {
-  logSystemInfo,
-  logSystemError,
-  logSystemException,
-} = require('./logging/system-logger');
-const AppError = require('./AppError');
+const { Upload } = require('@aws-sdk/lib-storage');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
+const s3Client = require('../config/s3-client');
+const AppError = require('./AppError');
+const { logSystemInfo } = require('./logging/system-logger');
 
 const CONTEXT = 'aws-s3-service';
 
+// Server-side encryption mode applied to all uploads. Switch to 'aws:kms'
+// (with SSEKMSKeyId) if the bucket policy mandates KMS.
+const DEFAULT_SSE = 'AES256';
+
+// Retry tuning. Exponential backoff with jitter; capped to avoid unbounded waits.
+const DEFAULT_MAX_RETRIES = 3;
+const RETRY_BASE_MS = 500;
+const RETRY_MAX_MS = 8000;
+
+// Streams above this threshold use multipart upload via @aws-sdk/lib-storage.
+const MULTIPART_THRESHOLD_BYTES = 5 * 1024 * 1024; // 5 MB
+
 /**
- * Generic S3 operation with retry logic.
- * @param {Function} s3Command - The S3 command to execute.
- * @param {number} maxRetries - Maximum number of retries on failure.
- * @returns {Promise<any>}
+ * Computes an exponential backoff delay with jitter.
+ *
+ * @param {number} attempt - 1-indexed attempt number.
+ * @returns {number} Delay in milliseconds.
  */
-const executeWithRetry = async (s3Command, maxRetries = 3) => {
-  let attempt = 0;
-
-  while (attempt < maxRetries) {
-    try {
-      const response = await s3Command();
-      logSystemInfo('S3 operation successful.', {
-        context: 's3-retry',
-        attempt,
-      });
-      return response;
-    } catch (error) {
-      attempt++;
-      logSystemError('S3 operation failed', {
-        context: 's3-retry',
-        attempt,
-        errorMessage: error.message,
-      });
-
-      if (attempt >= maxRetries) {
-        logSystemError('Max retries reached. Giving up.', {
-          context: 's3-retry',
-          attempt,
-        });
-        throw error; // Throw the error if all attempts fail
-      }
-
-      logSystemInfo('Retrying S3 operation...', {
-        context: 's3-retry',
-        attempt,
-        maxRetries,
-        nextRetryInMs: 2000,
-      });
-
-      await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait 2 seconds before retrying
-    }
-  }
+const computeBackoffMs = (attempt) => {
+  const exp = Math.min(RETRY_BASE_MS * 2 ** (attempt - 1), RETRY_MAX_MS);
+  // Full jitter: random between 0 and exp. Avoids synchronized retry storms.
+  return Math.floor(Math.random() * exp);
 };
 
 /**
- * Upload a file to AWS S3.
+ * Executes an S3 command with bounded retries and exponential backoff with jitter.
  *
- * @param {string} filePath - The path of the file to upload.
- * @param {string} bucketName - The name of the S3 bucket.
- * @param {string} key - The key (path) to save the file as in S3.
- * @param {string} [contentType='application/octet-stream'] - The content type of the file (optional).
- * @returns {Promise<Object>} - The response from S3.
- * @throws {Error} - Throws error if upload fails.
+ * Logs each retry attempt for ops visibility (this is the fault-tolerance
+ * exception to the single-log principle). Does NOT log the terminal failure —
+ * propagates the error so `globalErrorHandler` logs it once.
+ *
+ * @template T
+ * @param {() => Promise<T>} s3Command - Thunk returning the S3 command promise.
+ * @param {number} [maxRetries=DEFAULT_MAX_RETRIES] - Maximum retry count.
+ * @returns {Promise<T>} The successful response.
+ */
+const executeWithRetry = async (s3Command, maxRetries = DEFAULT_MAX_RETRIES) => {
+  const context = `${CONTEXT}/executeWithRetry`;
+  let lastError;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt += 1) {
+    try {
+      return await s3Command();
+    } catch (error) {
+      lastError = error;
+      if (attempt >= maxRetries) break;
+      
+      const nextRetryInMs = computeBackoffMs(attempt);
+      logSystemInfo('S3 operation failed; will retry', {
+        context,
+        attempt,
+        maxRetries,
+        nextRetryInMs,
+        errorName: error?.name,
+      });
+      await new Promise((resolve) => setTimeout(resolve, nextRetryInMs));
+    }
+  }
+  
+  // Propagate without logging — globalErrorHandler logs once.
+  throw lastError;
+};
+
+/**
+ * Internal helper: rethrow AppErrors unchanged, wrap everything else.
+ *
+ * @param {unknown} error - Caught error.
+ * @param {string} message - Service-level message for the wrapper.
+ * @param {Object} [meta] - Structured metadata attached to the AppError.
+ * @returns {never}
+ */
+const rethrowAsServiceError = (error, message, meta) => {
+  if (error instanceof AppError) throw error;
+  throw AppError.serviceError(message, { cause: error, ...meta });
+};
+
+/**
+ * Uploads a file from disk to S3. Switches to multipart upload automatically
+ * for files larger than {@link MULTIPART_THRESHOLD_BYTES} via lib-storage.
+ *
+ * @param {string} filePath - Absolute path of the local file.
+ * @param {string} bucketName - Target S3 bucket.
+ * @param {string} key - S3 object key.
+ * @param {string} [contentType='application/octet-stream'] - MIME type.
+ * @returns {Promise<Object>} S3 response (PutObject or CompleteMultipartUpload).
+ * @throws {AppError} If validation fails or the SDK call errors.
  */
 const uploadFileToS3 = async (
   filePath,
@@ -81,82 +143,124 @@ const uploadFileToS3 = async (
   key,
   contentType = 'application/octet-stream'
 ) => {
-  const context = 'uploadFileToS3';
-
-  // Input validation
+  const context = `${CONTEXT}/uploadFileToS3`;
+  
   if (!bucketName || !filePath || !key) {
-    const missing = [
-      !bucketName && 'bucketName',
-      !filePath && 'filePath',
-      !key && 'key',
-    ]
-      .filter(Boolean)
-      .join(', ');
-    logSystemError(`Missing required parameter(s): ${missing}`, { context });
-    throw new Error(`Missing required parameter(s): ${missing}`);
+    throw AppError.validationError(
+      'bucketName, filePath, and key are required',
+      { context, bucketName, key, filePath }
+    );
   }
-
+  
   try {
-    // Check if file exists before attempting to upload
-    if (!fs.existsSync(filePath)) {
-      logSystemError(`File not found at path: ${filePath}`, { context });
-      throw new Error(`File not found at path: ${filePath}`);
+    // Async existence + size check; avoids blocking sync I/O.
+    const stat = await fsp.stat(filePath);
+    
+    const commonParams = {
+      Bucket: bucketName,
+      Key: key,
+      ContentType: contentType,
+      ServerSideEncryption: DEFAULT_SSE,
+    };
+    
+    let response;
+    if (stat.size > MULTIPART_THRESHOLD_BYTES) {
+      // Multipart for large files — handles part chunking, retries, and
+      // ordering. lib-storage retries individual parts internally, so
+      // we don't wrap it in executeWithRetry.
+      const upload = new Upload({
+        client: s3Client,
+        params: { ...commonParams, Body: fs.createReadStream(filePath) },
+      });
+      response = await upload.done();
+    } else {
+      response = await executeWithRetry(() =>
+        s3Client.send(
+          new PutObjectCommand({
+            ...commonParams,
+            Body: fs.createReadStream(filePath),
+          })
+        )
+      );
     }
-
-    // Read a file as a stream
-    const fileStream = fs.createReadStream(filePath);
-
-    // Listen for stream errors
-    fileStream.on('error', (err) => {
-      logSystemError(`File stream error for ${filePath}: ${err.message}`, {
+    
+    logSystemInfo('Uploaded file to S3', {
+      context,
+      bucketName,
+      key,
+      sizeBytes: stat.size,
+      multipart: stat.size > MULTIPART_THRESHOLD_BYTES,
+    });
+    
+    return response;
+  } catch (error) {
+    if (error?.code === 'ENOENT') {
+      throw AppError.validationError(`File not found at path: ${filePath}`, {
         context,
         filePath,
       });
-      throw new Error(`File stream error: ${err.message}`);
-    });
-
-    // Prepare upload parameters
-    const uploadParams = {
-      Bucket: bucketName,
-      Key: key,
-      Body: fileStream,
-      ContentType: contentType,
-    };
-
-    // Upload to S3 using the executeWithRetry function
-    const response = await executeWithRetry(() =>
-      s3Client.send(new PutObjectCommand(uploadParams))
-    );
-
-    logSystemInfo(`Successfully uploaded file to S3`, {
+    }
+    rethrowAsServiceError(error, 'S3 file upload failed', {
       context,
       bucketName,
       key,
-      filePath,
     });
-
-    return response;
-  } catch (error) {
-    logSystemError('Upload to S3 failed', {
-      context,
-      filePath,
-      bucketName,
-      key,
-      errorMessage: error.message,
-    });
-
-    throw error;
   }
 };
 
 /**
- * Downloads a file from S3.
+ * Uploads an in-memory buffer to S3.
  *
- * @param {string} bucketName - The name of the S3 bucket.
- * @param {string} key - The S3 key of the file to download.
- * @param {string|null} downloadPath - The local path to save the file. If null, returns the file as Buffer/String.
- * @param {boolean} asString - If true, returns file as a UTF-8 string. Otherwise, returns as Buffer.
- * @returns {Promise<Buffer|string|null>}
+ * @param {string} bucketName - Target S3 bucket.
+ * @param {string} key - S3 object key.
+ * @param {Buffer} buffer - Body to upload.
+ * @param {string} contentType - MIME type.
+ * @returns {Promise<{ key: string, contentType: string }>} Lean result.
+ * @throws {AppError} If validation fails or the SDK call errors.
+ */
+const uploadBufferToS3 = async (bucketName, key, buffer, contentType) => {
+  const context = `${CONTEXT}/uploadBufferToS3`;
+  
+  if (!bucketName || !key || !Buffer.isBuffer(buffer) || !contentType) {
+    throw AppError.validationError(
+      'bucketName, key, buffer (Buffer), and contentType are required',
+      { context, bucketName, key, contentType }
+    );
+  }
+  
+  try {
+    await executeWithRetry(() =>
+      s3Client.send(
+        new PutObjectCommand({
+          Bucket: bucketName,
+          Key: key,
+          Body: buffer,
+          ContentType: contentType,
+          ServerSideEncryption: DEFAULT_SSE,
+        })
+      )
+    );
+    return { key, contentType };
+  } catch (error) {
+    rethrowAsServiceError(error, 'S3 buffer upload failed', {
+      context,
+      bucketName,
+      key,
+    });
+  }
+};
+
+/**
+ * Downloads an object from S3 either to a local file or into memory.
+ *
+ * @param {string} bucketName - Source S3 bucket.
+ * @param {string} key - S3 object key.
+ * @param {string|null} [downloadPath=null] - Local destination path. If null,
+ *   the body is returned in memory.
+ * @param {boolean} [asString=false] - When returning in memory, decode as UTF-8.
+ * @returns {Promise<Buffer|string|null>} Buffer/string when in-memory, or null
+ *   when written to disk.
+ * @throws {AppError} If validation fails or the SDK call errors.
  */
 const downloadFileFromS3 = async (
   bucketName,
@@ -164,325 +268,251 @@ const downloadFileFromS3 = async (
   downloadPath = null,
   asString = false
 ) => {
-  const context = 's3-download';
-  const meta = { context, bucket: bucketName, key, downloadPath };
-
+  const context = `${CONTEXT}/downloadFileFromS3`;
+  
+  if (!bucketName || !key) {
+    throw AppError.validationError('bucketName and key are required', {
+      context,
+    });
+  }
+  
   try {
-    logSystemInfo(`Attempting to download file from S3`, meta);
-
-    const command = new GetObjectCommand({ Bucket: bucketName, Key: key });
-    const response = await s3Client.send(command);
-
+    const response = await s3Client.send(
+      new GetObjectCommand({ Bucket: bucketName, Key: key })
+    );
+    
     if (downloadPath) {
       const writeStream = fs.createWriteStream(downloadPath);
       await new Promise((resolve, reject) => {
         response.Body.pipe(writeStream)
-          .on('finish', () => {
-            logSystemInfo(`File saved to disk`, {
-              ...meta,
-              filePath: downloadPath,
-            });
-            resolve();
-          })
-          .on('error', (error) => {
-            logSystemError(`Stream error during download`, {
-              ...meta,
-              error: error.message,
-            });
-            reject(error);
-          });
+          .on('finish', resolve)
+          .on('error', reject);
       });
       return null;
-    } else {
-      const chunks = [];
-      for await (const chunk of response.Body) {
-        chunks.push(chunk);
-      }
-      const data = Buffer.concat(chunks);
-      logSystemInfo(`File successfully downloaded into memory`, meta);
-      return asString ? data.toString('utf-8') : data;
     }
+    
+    const chunks = [];
+    for await (const chunk of response.Body) chunks.push(chunk);
+    const data = Buffer.concat(chunks);
+    return asString ? data.toString('utf-8') : data;
   } catch (error) {
-    logSystemError(`Failed to download file from S3`, meta);
-    throw error;
+    rethrowAsServiceError(error, 'S3 download failed', {
+      context,
+      bucketName,
+      key,
+    });
   }
 };
 
 /**
- * Deletes a single file from S3 with retry logic.
- * @param {string} bucketName - The S3 bucket name.
- * @param {string} key - The key (path) of the file to delete.
+ * Deletes a single object from S3.
+ *
+ * @param {string} bucketName - Target S3 bucket.
+ * @param {string} key - Object key.
  * @returns {Promise<void>}
+ * @throws {AppError} If validation fails or the SDK call errors.
  */
 const deleteFileFromS3 = async (bucketName, key) => {
-  const context = 's3-delete-single';
-  const meta = { context, bucket: bucketName, key };
-
+  const context = `${CONTEXT}/deleteFileFromS3`;
+  
   if (!bucketName || !key) {
-    logSystemError('Missing required parameters for deletion.', meta);
-    throw new Error('Bucket name and key are required.');
+    throw AppError.validationError('bucketName and key are required', {
+      context,
+    });
   }
-
+  
   try {
-    logSystemInfo('Deleting file from S3...', meta);
-
     await executeWithRetry(() =>
       s3Client.send(new DeleteObjectCommand({ Bucket: bucketName, Key: key }))
     );
-
-    logSystemInfo('File deleted from S3 successfully.', meta);
   } catch (error) {
-    logSystemError('Failed to delete file from S3.', meta);
-    throw error;
+    rethrowAsServiceError(error, 'S3 delete failed', {
+      context,
+      bucketName,
+      key,
+    });
   }
 };
 
 /**
- * Deletes multiple files from S3 with retry logic.
- * @param {string} bucketName - The S3 bucket name.
- * @param {Array<string>} keys - An array of keys to delete from S3.
+ * Deletes multiple objects from S3 in a single batch request. S3 caps each
+ * `DeleteObjects` call at 1000 keys; this helper chunks transparently.
+ *
+ * @param {string} bucketName - Target S3 bucket.
+ * @param {string[]} keys - Object keys to delete.
  * @returns {Promise<void>}
+ * @throws {AppError} If validation fails or the SDK call errors.
  */
 const deleteFilesFromS3 = async (bucketName, keys) => {
-  const context = 's3-delete-multiple';
-  const meta = { context, bucket: bucketName, keys };
-
+  const context = `${CONTEXT}/deleteFilesFromS3`;
+  
   if (!bucketName || !Array.isArray(keys) || keys.length === 0) {
-    logSystemError('Missing required parameters or empty keys array.', meta);
-    throw new Error('Bucket name and a non-empty keys array are required.');
-  }
-
-  try {
-    logSystemInfo(`Deleting ${keys.length} files from S3...`, meta);
-
-    const deleteParams = {
-      Bucket: bucketName,
-      Delete: { Objects: keys },
-    };
-
-    await executeWithRetry(() =>
-      s3Client.send(new DeleteObjectsCommand(deleteParams))
+    throw AppError.validationError(
+      'bucketName and a non-empty keys array are required',
+      { context, keyCount: Array.isArray(keys) ? keys.length : 0 }
     );
-
-    logSystemInfo('Batch file deletion from S3 completed.', meta);
+  }
+  
+  try {
+    // S3 caps DeleteObjects at 1000 keys per request.
+    const CHUNK_SIZE = 1000;
+    for (let i = 0; i < keys.length; i += CHUNK_SIZE) {
+      const chunk = keys.slice(i, i + CHUNK_SIZE);
+      await executeWithRetry(() =>
+        s3Client.send(
+          new DeleteObjectsCommand({
+            Bucket: bucketName,
+            // SDK requires `{ Key: string }`, not raw strings.
+            Delete: { Objects: chunk.map((k) => ({ Key: k })) },
+          })
+        )
+      );
+    }
   } catch (error) {
-    logSystemError('Failed to delete multiple files from S3.', meta);
-    throw error;
+    rethrowAsServiceError(error, 'S3 batch delete failed', {
+      context,
+      bucketName,
+      keyCount: keys.length,
+    });
   }
 };
 
 /**
- * Lists objects in a specified S3 bucket folder with retry logic.
- * @param {string} bucketName - The S3 bucket name.
- * @param {string} prefix - The folder prefix (e.g., 'backups/').
- * @returns {Promise<Array>} - List of files in the specified folder.
+ * Lists all objects under a prefix, handling pagination transparently.
+ *
+ * @param {string} bucketName - Target S3 bucket.
+ * @param {string} prefix - Object key prefix (e.g. 'backups/').
+ * @returns {Promise<Array<import('@aws-sdk/client-s3')._Object>>} All objects under the prefix.
+ * @throws {AppError} If the SDK call errors.
  */
 const listFilesInS3 = async (bucketName, prefix) => {
-  const context = 's3-list-files';
-  const meta = { context, bucket: bucketName, prefix };
-
+  const context = `${CONTEXT}/listFilesInS3`;
+  
+  if (!bucketName) {
+    throw AppError.validationError('bucketName is required', { context });
+  }
+  
   try {
-    const command = new ListObjectsV2Command({
-      Bucket: bucketName,
-      Prefix: prefix,
-    });
-
-    const response = await executeWithRetry(() => s3Client.send(command));
-
-    logSystemInfo(`Listed S3 objects successfully.`, {
-      ...meta,
-      fileCount: response?.Contents?.length || 0,
-    });
-
-    return response.Contents || [];
+    const all = [];
+    let continuationToken;
+    
+    do {
+      const response = await executeWithRetry(() =>
+        s3Client.send(
+          new ListObjectsV2Command({
+            Bucket: bucketName,
+            Prefix: prefix,
+            ContinuationToken: continuationToken,
+          })
+        )
+      );
+      if (response.Contents?.length) all.push(...response.Contents);
+      continuationToken = response.IsTruncated
+        ? response.NextContinuationToken
+        : undefined;
+    } while (continuationToken);
+    
+    return all;
   } catch (error) {
-    logSystemError('Failed to list files in S3.', meta);
-    throw error;
+    rethrowAsServiceError(error, 'S3 list failed', {
+      context,
+      bucketName,
+      prefix,
+    });
   }
 };
 
 /**
- * Lists backups from the specified S3 bucket and folder, sorted by LastModified date (latest first)
- * and grouped in the order: .enc -> .iv -> .sha256 for each backup set.
+ * Lists backups from a folder, sorted by `LastModified` (newest first) and
+ * grouped per backup set in `.enc -> .iv -> .sha256` order.
  *
- * @param {string} bucketName - The name of the S3 bucket.
- * @param {string} folderPrefix - The prefix/folder path where backups are stored (default: 'backups/').
- * @returns {Promise<Array>} - Returns an array of backup objects sorted and grouped by type.
+ * @param {string} bucketName - Target S3 bucket.
+ * @param {string} [folderPrefix='backups/'] - Folder prefix.
+ * @returns {Promise<Array<{ Key: string, LastModified: Date, Size: number }>>}
+ * @throws {AppError} If validation fails or the SDK call errors.
  */
 const listBackupsFromS3 = async (bucketName, folderPrefix = 'backups/') => {
-  const context = 's3-list-backups';
-  const meta = { context, bucket: bucketName, folderPrefix };
-
+  const context = `${CONTEXT}/listBackupsFromS3`;
+  
+  if (!bucketName) {
+    throw AppError.validationError('bucketName is required', { context });
+  }
+  
   try {
-    if (!bucketName) {
-      logSystemError('Bucket name is required.', meta);
-      throw new Error('Bucket name is required.');
-    }
-
-    logSystemInfo(`Fetching backups from folder...`, meta);
-
-    const command = new ListObjectsV2Command({
-      Bucket: bucketName,
-      Prefix: folderPrefix,
-    });
-
-    const response = await s3Client.send(command);
-
-    if (!response.Contents || response.Contents.length === 0) {
-      logSystemInfo('No backups found in the specified folder.', meta);
-      return [];
-    }
-
-    const backups = response.Contents.filter(
-      (item) => item.Key.startsWith(folderPrefix) && item.Size > 0
-    ) // Ignore folders
+    // Reuse the paginated lister.
+    const all = await listFilesInS3(bucketName, folderPrefix);
+    if (all.length === 0) return [];
+    
+    const backups = all
+      .filter((item) => item.Key.startsWith(folderPrefix) && item.Size > 0)
       .map((item) => ({
         Key: item.Key,
-        LastModified: new Date(item.LastModified), // Convert to Date object
+        LastModified: new Date(item.LastModified),
         Size: item.Size,
       }))
-      .sort((a, b) => b.LastModified - a.LastModified); // Sort by date in descending order
-
-    // Group by backup set and sort each set by type (.enc -> .iv -> .sha256)
+      .sort((a, b) => b.LastModified - a.LastModified);
+    
+    // Group by base name (regex now correctly strips .enc as well).
     const groupedBackups = backups.reduce((acc, item) => {
-      const baseName = item.Key.replace(/(\.iv|\.sha256)$/, ''); // Remove .iv or .sha256 extension
+      const baseName = item.Key.replace(/\.(enc|iv|sha256)$/, '');
       if (!acc[baseName]) acc[baseName] = [];
       acc[baseName].push(item);
       return acc;
     }, {});
-
-    const sortedGroupedBackups = Object.values(groupedBackups).flatMap(
-      (group) =>
-        group.sort((a, b) => {
-          const aExt = a.Key.split('.').pop();
-          const bExt = b.Key.split('.').pop();
-
-          const order = { enc: 0, iv: 1, sha256: 2 };
-          return (order[aExt] ?? 99) - (order[bExt] ?? 99);
-        })
+    
+    const order = { enc: 0, iv: 1, sha256: 2 };
+    return Object.values(groupedBackups).flatMap((group) =>
+      group.sort(
+        (a, b) =>
+          (order[a.Key.split('.').pop()] ?? 99) -
+          (order[b.Key.split('.').pop()] ?? 99)
+      )
     );
-
-    logSystemInfo(`Found ${sortedGroupedBackups.length} backup items.`, {
-      ...meta,
-      itemCount: sortedGroupedBackups.length,
-    });
-
-    return sortedGroupedBackups;
   } catch (error) {
-    logSystemError('Failed to list backups from S3.', meta);
-    throw error;
+    rethrowAsServiceError(error, 'S3 backup listing failed', {
+      context,
+      bucketName,
+      folderPrefix,
+    });
   }
 };
 
 /**
- * @async
- * @function
- * @description
- * Checks whether an object exists in an S3 bucket without downloading it.
+ * Checks object existence via `HeadObject` (metadata only, no body transfer).
  *
- * Uses a lightweight `HeadObject` request (metadata only).
- *
- * @param {string} bucketName - Name of the S3 bucket.
- * @param {string} key - Object key (path inside the bucket).
- * @returns {Promise<boolean>} True if object exists, false if not.
+ * @param {string} bucketName - Target S3 bucket.
+ * @param {string} key - Object key.
+ * @returns {Promise<boolean>} True if the object exists.
+ * @throws {AppError} For non-404 errors.
  */
 const s3ObjectExists = async (bucketName, key) => {
   const context = `${CONTEXT}/s3ObjectExists`;
-
+  
   try {
     await s3Client.send(
       new HeadObjectCommand({ Bucket: bucketName, Key: key })
     );
-    logSystemInfo('S3 object exists', { context, bucketName, key });
     return true;
   } catch (error) {
-    if (error.name === 'NotFound' || error.$metadata?.httpStatusCode === 404) {
-      return false; // Object does not exist
+    if (error?.name === 'NotFound' || error?.$metadata?.httpStatusCode === 404) {
+      return false;
     }
-
-    // Log and rethrow unexpected AWS errors
-    logSystemException(error, 'Failed to check S3 object existence', {
+    rethrowAsServiceError(error, 'S3 existence check failed', {
       context,
       bucketName,
       key,
     });
-    throw AppError.serviceError('S3 existence check failed', { cause: error });
   }
 };
 
 /**
- * Uploads a SKU image to S3 and returns the stored object key.
+ * Generates a time-limited presigned GET URL for a private S3 object.
  *
- * Returns the S3 key (not a URL) because the bucket is private. Callers
- * should store the returned key and use `getPresignedDownloadUrl(bucket, key)`
- * to generate a time-limited URL when serving the image to the browser.
- *
- * @param {string} bucketName       - The S3 bucket name (typically AWS_S3_IMAGES_BUCKET).
- * @param {string} localFilePath    - Local file path to upload.
- * @param {string} keyPrefix        - The folder/prefix under which to store the image
- *                                    (caller decides format, e.g. `skus/<sku-uuid>`).
- * @param {string|null} [keyName=null] - Optional S3 object name (uses local filename if not provided).
- * @returns {Promise<{ key: string, contentType: string }>} - The stored S3 key and detected MIME type.
- */
-const uploadSkuImageToS3 = async (
-  bucketName,
-  localFilePath,
-  keyPrefix,
-  keyName = null
-) => {
-  const context = 's3-upload-sku-image';
-  
-  if (!bucketName) {
-    logSystemError('Missing bucket name.', { context });
-    throw new Error('Bucket name is required.');
-  }
-  
-  try {
-    const fileStream = fs.createReadStream(localFilePath);
-    const ext = path.extname(localFilePath);
-    const contentType = mime.lookup(ext) || 'application/octet-stream';
-    const baseFileName = keyName || path.basename(localFilePath);
-    const key = `${keyPrefix}/${baseFileName}`;
-    
-    const command = new PutObjectCommand({
-      Bucket: bucketName,
-      Key: key,
-      Body: fileStream,
-      ContentType: contentType,
-    });
-    
-    await s3Client.send(command);
-    
-    logSystemInfo('SKU image uploaded to S3.', {
-      context,
-      bucketName,
-      key,
-      contentType,
-    });
-    
-    return { key, contentType };
-  } catch (error) {
-    logSystemError('Failed to upload SKU image to S3.', {
-      context,
-      bucketName,
-      file: localFilePath,
-    });
-    throw error;
-  }
-};
-
-/**
- * Generates a time-limited presigned GET URL for downloading a private S3 object.
- *
- * Use this whenever you need to serve a private S3 object to a browser
- * (e.g. SKU images, attachments). The signed URL works without IAM
- * credentials and expires after the specified duration.
- *
- * @param {string} bucketName - The S3 bucket containing the object.
- * @param {string} key - The S3 object key.
- * @param {number} [expiresInSeconds=3600] - URL lifetime in seconds (default 1 hour).
- * @returns {Promise<string>} A presigned URL safe to return to the frontend.
- * @throws {AppError} If presigning fails.
+ * @param {string} bucketName - Source S3 bucket.
+ * @param {string} key - Object key.
+ * @param {number} [expiresInSeconds=3600] - Lifetime in seconds (default 1h).
+ * @returns {Promise<string>} Presigned URL.
+ * @throws {AppError} If validation fails or presigning errors.
  */
 const getPresignedDownloadUrl = async (
   bucketName,
@@ -499,44 +529,25 @@ const getPresignedDownloadUrl = async (
   
   try {
     const command = new GetObjectCommand({ Bucket: bucketName, Key: key });
-    const url = await getSignedUrl(s3Client, command, {
-      expiresIn: expiresInSeconds,
-    });
-    
-    logSystemInfo('Generated presigned download URL', {
-      context,
-      bucketName,
-      key,
-      expiresInSeconds,
-    });
-    
-    return url;
+    return await getSignedUrl(s3Client, command, { expiresIn: expiresInSeconds });
   } catch (error) {
-    logSystemException(error, 'Failed to generate presigned download URL', {
+    rethrowAsServiceError(error, 'Presigned download URL generation failed', {
       context,
       bucketName,
       key,
-    });
-    throw AppError.serviceError('Presigned URL generation failed', {
-      cause: error,
     });
   }
 };
 
 /**
- * Generates a time-limited presigned PUT URL so a browser can upload
- * directly to S3 without proxying through the backend.
+ * Generates a time-limited presigned PUT URL for direct-from-browser uploads.
  *
- * Use this for SKU image uploads from the frontend — backend returns
- * the URL, browser uploads directly. Saves backend bandwidth and RAM
- * (matters on t3.micro).
- *
- * @param {string} bucketName - The S3 bucket to upload to.
- * @param {string} key - The S3 object key.
- * @param {string} contentType - The MIME type of the file being uploaded (e.g. 'image/jpeg').
- * @param {number} [expiresInSeconds=300] - URL lifetime in seconds (default 5 minutes).
- * @returns {Promise<string>} A presigned PUT URL.
- * @throws {AppError} If presigning fails.
+ * @param {string} bucketName - Target S3 bucket.
+ * @param {string} key - Object key.
+ * @param {string} contentType - MIME type the browser will upload.
+ * @param {number} [expiresInSeconds=300] - Lifetime in seconds (default 5m).
+ * @returns {Promise<string>} Presigned URL.
+ * @throws {AppError} If validation fails or presigning errors.
  */
 const getPresignedUploadUrl = async (
   bucketName,
@@ -558,44 +569,29 @@ const getPresignedUploadUrl = async (
       Bucket: bucketName,
       Key: key,
       ContentType: contentType,
+      ServerSideEncryption: DEFAULT_SSE,
     });
-    const url = await getSignedUrl(s3Client, command, {
-      expiresIn: expiresInSeconds,
-    });
-    
-    logSystemInfo('Generated presigned upload URL', {
-      context,
-      bucketName,
-      key,
-      contentType,
-      expiresInSeconds,
-    });
-    
-    return url;
+    return await getSignedUrl(s3Client, command, { expiresIn: expiresInSeconds });
   } catch (error) {
-    logSystemException(error, 'Failed to generate presigned upload URL', {
+    rethrowAsServiceError(error, 'Presigned upload URL generation failed', {
       context,
       bucketName,
       key,
-    });
-    throw AppError.serviceError('Presigned upload URL generation failed', {
-      cause: error,
     });
   }
 };
 
 /**
- * Resolves a stored image key to a fetchable URL based on environment.
+ * Resolves a stored image key to a fetchable URL.
  *
- * In production, generates a time-limited presigned URL for the private S3 bucket.
- * In development, returns a static-served relative URL backed by the local
- * `public/uploads/` directory.
+ * Production: time-limited presigned URL against the configured images bucket.
+ * Development: relative path served by Express static from `public/uploads/`.
  *
- * @param {string} key - The S3-style key stored in the DB (e.g. 'sku-images/AB/hash/file.webp').
+ * @param {string|null|undefined} key - DB-stored key (e.g. 'sku-images/AB/hash/file.webp').
  * @param {Object} [options]
- * @param {string} [options.bucketName=process.env.AWS_S3_IMAGES_BUCKET] - Target bucket for production presigning.
- * @param {number} [options.expiresInSeconds=3600] - Lifetime of the presigned URL when in production.
- * @returns {Promise<string>} A fetchable URL for the frontend.
+ * @param {string} [options.bucketName=process.env.AWS_S3_IMAGES_BUCKET] - Target bucket.
+ * @param {number} [options.expiresInSeconds=3600] - URL lifetime in production.
+ * @returns {Promise<string|null>} URL, or null when no key supplied.
  */
 const resolveImageUrl = async (
   key,
@@ -609,18 +605,18 @@ const resolveImageUrl = async (
   if (process.env.NODE_ENV === 'production') {
     return getPresignedDownloadUrl(bucketName, key, expiresInSeconds);
   }
-  
-  // Dev: served via Express static from `public/uploads/`
   return `/uploads/${key}`;
 };
 
 /**
- * Resolves a flat string field (the image key path) on each item to its
- * URL form. Mutates a copy — input items are not modified.
+ * Resolves image key fields on a list of items to URL form.
+ *
+ * Pure: input items are not mutated. Failed resolutions throw — wrap the
+ * caller in `Promise.allSettled` if partial failure should be tolerated.
  *
  * @template T
  * @param {T[]} items
- * @param {(keyof T)[]} fieldNames - Field names that hold keys to resolve
+ * @param {(keyof T)[]} fieldNames - Fields holding keys to resolve.
  * @returns {Promise<T[]>}
  */
 const resolveImageUrlsOnItems = async (items, fieldNames) =>
@@ -640,13 +636,13 @@ const resolveImageUrlsOnItems = async (items, fieldNames) =>
 
 module.exports = {
   uploadFileToS3,
+  uploadBufferToS3,
   downloadFileFromS3,
   deleteFileFromS3,
   deleteFilesFromS3,
   listFilesInS3,
   listBackupsFromS3,
   s3ObjectExists,
-  uploadSkuImageToS3,
   getPresignedDownloadUrl,
   getPresignedUploadUrl,
   resolveImageUrl,
