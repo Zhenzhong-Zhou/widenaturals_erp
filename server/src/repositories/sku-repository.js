@@ -8,19 +8,19 @@
  *  - No success logging — middleware and globalErrorHandler own that layer
  *
  * Exports:
- *  - getLastSku                — fetch most recent SKU for a brand/category pattern
+ *  - getLastSku                  — fetch most recent SKU for a brand/category pattern
  *  - getPaginatedSkuProductCards — paginated product card list with filtering and sorting
- *  - getSkuLookup              — offset-paginated SKU dropdown list
- *  - getPaginatedSkus          — paginated SKU list with filtering and sorting
- *  - checkBarcodeExists        — existence check for a barcode value
- *  - checkSkuExists            — existence check for a sku + product_id pair
- *  - insertSkusBulk            — bulk upsert of SKU records
- *  - getSkuDetailsById         — full SKU metadata fetch by id
- *  - skuHasAnyHistory          — existence check across orders, batches, and inventory
- *  - updateSkuMetadata         — patch allowed metadata fields
- *  - updateSkuStatus           — patch status_id and status_date
- *  - updateSkuDimensions       — patch dimension fields
- *  - updateSkuIdentity         — patch sku code and barcode
+ *  - getSkuLookup                — offset-paginated SKU dropdown list
+ *  - getPaginatedSkus            — paginated SKU list with filtering and sorting
+ *  - checkBarcodesExistBulk      — bulk existence check for barcode values
+ *  - checkSkusExistBulk          — bulk existence check for generated SKU + product_id pairs
+ *  - insertSkusBulk              — bulk insert of SKU records
+ *  - getSkuDetailsById           — full SKU metadata fetch by id
+ *  - skuHasAnyHistory            — existence check across orders, batches, and inventory
+ *  - updateSkuMetadata           — patch allowed metadata fields
+ *  - updateSkuStatus             — patch status_id and status_date
+ *  - updateSkuDimensions         — patch dimension fields
+ *  - updateSkuIdentity           — patch sku code and barcode
  */
 
 'use strict';
@@ -48,8 +48,8 @@ const { resolveSort } = require('../utils/query/sort-resolver');
 const { SORTABLE_FIELDS } = require('../utils/sort-field-mapping');
 const {
   GET_LAST_SKU_QUERY,
-  CHECK_BARCODE_EXISTS_QUERY,
-  CHECK_SKU_EXISTS_QUERY,
+  CHECK_BARCODES_EXIST_BULK_QUERY,
+  CHECK_SKUS_EXIST_BULK_QUERY,
   SKU_DETAILS_QUERY,
   SKU_HAS_ANY_HISTORY_QUERY,
   TABLE_NAME,
@@ -65,6 +65,8 @@ const {
   SKU_LIST_ADDITIONAL_SORTS,
   buildPaginatedSkusQuery,
 } = require('./queries/sku-queries');
+
+const CONTEXT = 'sku-repository';
 
 // ─── Last SKU ─────────────────────────────────────────────────────────────────
 
@@ -335,34 +337,34 @@ const getPaginatedSkus = async ({
 // ─── Barcode Existence Check ──────────────────────────────────────────────────
 
 /**
- * Returns true if a SKU with the given barcode already exists.
+ * Checks which barcode values already exist.
  *
- * Skips the query and returns false immediately when barcode is falsy.
+ * Skips the database query and returns an empty array when no barcodes are
+ * provided.
  *
- * @param {string|null}                barcode - Barcode value to check.
- * @param {PoolClient}    [client] - Optional transaction client.
- *
- * @returns {Promise<boolean>}
- * @throws  {AppError} Normalized database error if the query fails.
+ * @param {string[]} barcodes - Barcode values to check.
+ * @param {PoolClient} [client] - Optional transaction client.
+ * @returns {Promise<string[]>} Existing barcode values found in the database.
+ * @throws {AppError} Normalized database error if the query fails.
  */
-const checkBarcodeExists = async (barcode, client) => {
-  if (!barcode) return false;
-
-  const context = 'sku-repository/checkBarcodeExists';
-  const params = [barcode];
-
+const checkBarcodesExistBulk = async (barcodes, client) => {
+  if (!barcodes?.length) return [];
+  
+  const context = `${CONTEXT}/checkBarcodesExistBulk`;
+  const params = [barcodes];
+  
   try {
-    const { rows } = await query(CHECK_BARCODE_EXISTS_QUERY, params, client);
-    return rows.length > 0;
+    const { rows } = await query(CHECK_BARCODES_EXIST_BULK_QUERY, params, client);
+    return rows.map((r) => r.barcode);
   } catch (error) {
     throw handleDbError(error, {
       context,
-      message: 'Failed to check barcode existence.',
-      meta: { barcode },
+      message: 'Failed to check barcode existence in bulk.',
+      meta: { count: barcodes.length },
       logFn: (err) =>
-        logDbQueryError(CHECK_BARCODE_EXISTS_QUERY, params, err, {
+        logDbQueryError(CHECK_BARCODES_EXIST_BULK_QUERY, params, err, {
           context,
-          barcode,
+          count: barcodes.length,
         }),
     });
   }
@@ -371,32 +373,36 @@ const checkBarcodeExists = async (barcode, client) => {
 // ─── SKU Existence Check ──────────────────────────────────────────────────────
 
 /**
- * Returns true if a SKU with the given code already exists for the product.
+ * Checks which generated SKU codes already exist for their product.
  *
- * @param {string}                  sku       - SKU code to check.
- * @param {string}                  productId - Product UUID.
- * @param {PoolClient} [client]  - Optional transaction client.
+ * Skips the database query and returns an empty array when no SKU/product pairs
+ * are provided.
  *
- * @returns {Promise<boolean>}
- * @throws  {AppError} Normalized database error if the query fails.
+ * @param {SkuProductPair[]} pairs - SKU/product pairs to check.
+ * @param {PoolClient} [client] - Optional transaction client.
+ * @returns {Promise<string[]>} Existing SKU codes found in the database.
+ * @throws {AppError} Normalized database error if the query fails.
  */
-const checkSkuExists = async (sku, productId, client) => {
-  const context = 'sku-repository/checkSkuExists';
-  const params = [sku, productId];
-
+const checkSkusExistBulk = async (pairs, client) => {
+  if (!pairs?.length) return [];
+  
+  const context = `${CONTEXT}/checkSkusExistBulk`;
+  const skus = pairs.map((p) => p.sku);
+  const productIds = pairs.map((p) => p.productId);
+  const params = [skus, productIds];
+  
   try {
-    const { rows } = await query(CHECK_SKU_EXISTS_QUERY, params, client);
-    return rows.length > 0;
+    const { rows } = await query(CHECK_SKUS_EXIST_BULK_QUERY, params, client);
+    return rows.map((r) => r.sku);
   } catch (error) {
     throw handleDbError(error, {
       context,
-      message: 'Failed to check SKU existence.',
-      meta: { sku, productId },
+      message: 'Failed to check SKU existence in bulk.',
+      meta: { count: pairs.length },
       logFn: (err) =>
-        logDbQueryError(CHECK_SKU_EXISTS_QUERY, params, err, {
+        logDbQueryError(CHECK_SKUS_EXIST_BULK_QUERY, params, err, {
           context,
-          sku,
-          productId,
+          count: pairs.length,
         }),
     });
   }
@@ -706,8 +712,8 @@ module.exports = {
   getPaginatedSkuProductCards,
   getSkuLookup,
   getPaginatedSkus,
-  checkBarcodeExists,
-  checkSkuExists,
+  checkBarcodesExistBulk,
+  checkSkusExistBulk,
   insertSkusBulk,
   getSkuDetailsById,
   skuHasAnyHistory,

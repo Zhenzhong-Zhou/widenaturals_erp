@@ -1,22 +1,26 @@
 /**
  * @file sku-service.js
- * @description Business logic for SKU retrieval, creation, and mutation.
+ * @description Business logic for SKU retrieval, creation, mutation, and access-controlled DTO composition.
+ *
+ * This service coordinates repository calls, ACL enforcement, transactional
+ * updates, SKU code generation, related-record loading, and response shaping.
+ * It does not perform request validation or response formatting; controllers
+ * and middleware own those layers.
  *
  * Exports:
- *   - fetchPaginatedSkuProductCardsService – paginated SKU product card list
- *   - fetchPaginatedSkusService            – paginated SKU table list
- *   - fetchSkuDetailsService               – full SKU detail with related data
- *   - createSkusService                    – bulk SKU creation with code generation
+ *   - fetchPaginatedSkuProductCardsService – paginated SKU product card list with ACL-scoped filters
+ *   - fetchPaginatedSkusService            – paginated SKU table list with resolved primary images
+ *   - fetchSkuDetailsService               – full SKU detail with access-controlled related data
+ *   - createSkusService                    – bulk SKU creation with code generation and duplicate checks
  *   - updateSkuMetadataService             – updates SKU metadata fields
  *   - updateSkuStatusService               – updates SKU status with FSM validation
  *   - updateSkuDimensionsService           – updates SKU dimension fields
  *   - updateSkuIdentityService             – updates SKU identity fields
  *
- * Error handling follows a single-log principle — errors are not logged here.
- * They bubble up to globalErrorHandler, which logs once with the normalised shape.
- *
- * AppErrors thrown by lower layers are re-thrown as-is.
- * Unexpected errors are wrapped in AppError.serviceError before bubbling up.
+ * Error handling follows the single-log principle:
+ *   - Expected AppErrors from lower layers are re-thrown unchanged.
+ *   - Unexpected errors are wrapped as AppError.serviceError and allowed to
+ *     bubble to globalErrorHandler, which logs once with the normalized shape.
  */
 
 'use strict';
@@ -25,11 +29,11 @@ const { getStatusId } = require('../config/status-cache');
 const {
   getPaginatedSkuProductCards,
   insertSkusBulk,
-  checkSkuExists,
+  checkSkusExistBulk,
   updateSkuStatus,
   getPaginatedSkus,
   getSkuDetailsById,
-  checkBarcodeExists,
+  checkBarcodesExistBulk,
   updateSkuMetadata,
   updateSkuDimensions,
   updateSkuIdentity,
@@ -49,7 +53,8 @@ const {
   sliceSkuForUser,
   applySkuProductCardVisibilityRules,
   assertSkuEditAllowed,
-  resolveSkuImageUrls, resolveSkuPrimaryImageUrls,
+  resolveSkuImageUrls,
+  resolveSkuPrimaryImageUrls,
 } = require('../business/sku-business');
 const { withTransaction } = require('../database/db');
 const { lockRows, lockRow } = require('../utils/db/lock-modes');
@@ -74,22 +79,27 @@ const {
   slicePricingForUser,
 } = require('../business/pricing-business');
 const { SKU_EDIT_TYPE } = require('../utils/constants/domain/sku-constants');
+const { resolveImageUrlsOnItems } = require('../utils/aws-s3-service');
 
 const CONTEXT = 'sku-service';
 
 /**
  * Fetches paginated SKU product cards with ACL-scoped filter enforcement.
  *
- * @param {Object}        options
- * @param {Object}        [options.filters={}]  - Field filters to apply.
- * @param {number}        [options.page=1]      - Page number (1-based).
- * @param {number}        [options.limit=10]    - Records per page.
- * @param {string}        [options.sortBy]      - Sort field key.
- * @param {'ASC'|'DESC'}  [options.sortOrder]   - Sort direction.
- * @param {Object}        options.user          - Authenticated user.
- * @returns {Promise<PaginatedResult<Object>>}
+ * Evaluates the user's SKU visibility scope, applies ACL rules to the filters
+ * before querying, fetches paginated product-card rows, transforms the page
+ * result, and resolves image keys to public URLs.
  *
- * @throws {AppError} Re-throws AppErrors from lower layers unchanged.
+ * @param {Object} options
+ * @param {Object} [options.filters={}] - Field filters to apply before ACL adjustment.
+ * @param {number} [options.page=1] - Page number, 1-based.
+ * @param {number} [options.limit=10] - Records per page.
+ * @param {string} [options.sortBy] - Sort field key.
+ * @param {'ASC'|'DESC'} [options.sortOrder] - Sort direction.
+ * @param {Object} options.user - Authenticated user used for ACL evaluation.
+ * @returns {Promise<PaginatedResult<Object>>} Paginated SKU product-card DTO with resolved image URLs.
+ *
+ * @throws {AppError} Re-throws expected AppErrors from lower layers unchanged.
  * @throws {AppError} Wraps unexpected errors as `AppError.serviceError`.
  */
 const fetchPaginatedSkuProductCardsService = async ({
@@ -182,16 +192,19 @@ const fetchPaginatedSkusService = async ({
 };
 
 /**
- * Fetches full SKU detail with images, pricing, and compliance records,
- * each filtered by the user's access scope.
+ * Fetches a full SKU detail DTO with access-controlled related records.
+ *
+ * Retrieves the base SKU record, applies SKU-level visibility rules, resolves
+ * permitted image keys to public URLs, and conditionally includes pricing and
+ * compliance records based on the user's resolved ACL.
  *
  * @param {string} skuId - UUID of the SKU to retrieve.
- * @param {Object} user  - Authenticated user.
- * @returns {Promise<Object>} Transformed SKU detail DTO.
+ * @param {Object} user - Authenticated user.
+ * @returns {Promise<Object>} Access-controlled SKU detail DTO.
  *
- * @throws {AppError} `notFoundError`      – SKU does not exist.
- * @throws {AppError} `authorizationError` – user cannot view this SKU.
- * @throws {AppError} Re-throws all other AppErrors from lower layers unchanged.
+ * @throws {AppError} `notFoundError` when the SKU does not exist.
+ * @throws {AppError} `authorizationError` when the user cannot view this SKU.
+ * @throws {AppError} Re-throws expected AppErrors from lower layers unchanged.
  * @throws {AppError} Wraps unexpected errors as `AppError.serviceError`.
  */
 const fetchSkuDetailsService = async (skuId, user) => {
@@ -219,6 +232,7 @@ const fetchSkuDetailsService = async (skuId, user) => {
     const imageAccess = await evaluateSkuImageViewAccessControl(user);
     const imagesRaw = await getSkuImagesBySkuId(skuId);
     const safeImages = sliceSkuImagesForUser(imagesRaw, imageAccess);
+    const resolvedImages = await resolveImageUrlsOnItems(safeImages, ['imageUrl']);
 
     // 4. Fetch and filter pricing (optional — gated by access).
     const pricingAccess = await evaluatePricingViewAccessControl(user);
@@ -244,7 +258,7 @@ const fetchSkuDetailsService = async (skuId, user) => {
     // 6. Build final response DTO.
     return transformSkuDetail({
       sku: safeSku,
-      images: safeImages,
+      images: resolvedImages,
       pricing: safePricingRows,
       complianceRecords: safeComplianceRecords,
     });
@@ -259,38 +273,40 @@ const fetchSkuDetailsService = async (skuId, user) => {
 };
 
 /**
- * Creates SKUs in bulk with code generation and duplicate validation.
+ * Creates SKUs in bulk with SKU-code generation and duplicate validation.
  *
- * Validates input, locks product rows, resolves base codes, generates SKU codes,
- * checks for duplicates, and inserts in bulk.
+ * Validates input, locks related product rows, resolves or creates SKU base
+ * codes, generates SKU codes sequentially, checks SKU and barcode conflicts,
+ * inserts the new SKUs with the initial inactive status, and returns transformed
+ * SKU records.
  *
- * @param {Array<Object>} skuList - SKU input objects.
- * @param {Object}        user    - Authenticated user.
- * @returns {Promise<SkuInsertRecord[]>}
+ * @param {Array<Object>} skuList - Validated SKU creation input objects.
+ * @param {Object} user - Authenticated user creating the SKUs.
+ * @returns {Promise<Object[]>} Transformed created SKU records.
  *
- * @throws {AppError} `validationError`  – empty input or business rule failure.
- * @throws {AppError} `notFoundError`    – no matching products found to lock.
- * @throws {AppError} `conflictError`    – SKU or barcode already exists.
- * @throws {AppError} Re-throws all other AppErrors from lower layers unchanged.
+ * @throws {AppError} `validationError` for empty input or business rule failure.
+ * @throws {AppError} `notFoundError` when no matching products are found to lock.
+ * @throws {AppError} `conflictError` when generated SKUs or barcodes already exist.
+ * @throws {AppError} Re-throws expected AppErrors from lower layers unchanged.
  * @throws {AppError} Wraps unexpected errors as `AppError.serviceError`.
  */
 const createSkusService = async (skuList, user) => {
   const context = `${CONTEXT}/createSkusService`;
-
+  
   try {
+    // Pure input validation — outside the transaction (point 5).
+    if (!Array.isArray(skuList) || skuList.length === 0) {
+      throw AppError.validationError('No SKUs provided for creation.');
+    }
+    validateSkuList(skuList);
+    
+    const userId = user.id;
+    const activeStatusId = getStatusId('general_active');
+    const inactiveStatusId = getStatusId('general_inactive');
+    
     return await withTransaction(async (client) => {
-      const userId = user.id;
       const lastUsedCodeMap = new Map();
-
-      if (!Array.isArray(skuList) || skuList.length === 0) {
-        throw AppError.validationError('No SKUs provided for creation.');
-      }
-
-      validateSkuList(skuList);
-
-      const activeStatusId = getStatusId('general_active');
-      const inactiveStatusId = getStatusId('general_inactive');
-
+      
       // 1. Lock all related product rows.
       const uniqueProductIds = [...new Set(skuList.map((s) => s.product_id))];
       const lockedProducts = await lockRows(
@@ -300,11 +316,11 @@ const createSkusService = async (skuList, user) => {
         'FOR UPDATE',
         { context }
       );
-
+      
       if (!lockedProducts?.length) {
         throw AppError.notFoundError('No matching products found to lock.');
       }
-
+      
       // 2. Resolve or create base codes for all brand/category pairs.
       const basePairs = skuList.map((s) => ({
         brandCode: s.brand_code,
@@ -312,10 +328,9 @@ const createSkusService = async (skuList, user) => {
         statusId: activeStatusId,
         userId,
       }));
-
       await getOrCreateBaseCodesBulk(basePairs, client);
-
-      // 3. Generate SKU codes — uses lastUsedCodeMap to minimise DB lookups.
+      
+      // 3. Generate SKU codes — sequential by necessity (lastUsedCodeMap mutates per iteration).
       const generatedSkus = [];
       for (const s of skuList) {
         const skuCode = await generateSKU(
@@ -328,46 +343,43 @@ const createSkusService = async (skuList, user) => {
         );
         generatedSkus.push(skuCode);
       }
-
-      // 4. Pre-check for duplicates before insertion.
-      for (let i = 0; i < skuList.length; i++) {
-        const s = skuList[i];
-
-        const exists = await checkSkuExists(
-          generatedSkus[i],
-          s.product_id,
-          client
+      
+      // 4. Bulk duplicate pre-check.
+      const skuConflicts = await checkSkusExistBulk(
+        generatedSkus.map((sku, i) => ({ sku, productId: skuList[i].product_id })),
+        client
+      );
+      if (skuConflicts.length) {
+        throw AppError.conflictError(
+          `SKU(s) already exist: ${skuConflicts.join(', ')}`
         );
-        if (exists) {
+      }
+      
+      const barcodes = skuList.map((s) => s.barcode).filter(Boolean);
+      if (barcodes.length) {
+        const barcodeConflicts = await checkBarcodesExistBulk(barcodes, client);
+        if (barcodeConflicts.length) {
           throw AppError.conflictError(
-            `SKU already exists: ${generatedSkus[i]}`
+            `Barcode(s) already in use: ${barcodeConflicts.join(', ')}`
           );
         }
-
-        if (s.barcode) {
-          const barcodeExists = await checkBarcodeExists(s.barcode, client);
-          if (barcodeExists) {
-            throw AppError.conflictError(
-              `Barcode already in use: ${s.barcode}`
-            );
-          }
-        }
       }
-
-      // 5. Prepare and insert in bulk.
+      
+      // 5. Prepare → validate → insert.
       const insertPayloads = prepareSkuInsertPayloads(
         skuList,
         generatedSkus,
         inactiveStatusId,
         userId
       );
+      
       const insertedSkus = await insertSkusBulk(insertPayloads, client);
-
+      
       return transformSkuRecord(insertedSkus, generatedSkus);
     });
   } catch (error) {
     if (error instanceof AppError) throw error;
-
+    
     throw AppError.serviceError('Unable to create SKUs.', {
       context,
       meta: { error: error.message },

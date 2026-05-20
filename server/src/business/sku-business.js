@@ -289,54 +289,38 @@ const validateSkuList = (skuList) => {
 };
 
 /**
- * Prepares a single SKU insert payload from creation data.
+ * Prepares SKU insert payloads from validated SKU creation data.
  *
- * @param {object} skuData - Validated SKU creation payload.
- * @param {string} generatedSku - Generated SKU code.
- * @param {string} statusId - UUID of the initial status.
- * @param {string} userId - UUID of the creating user.
- * @returns {object}
- */
-const prepareSkuInsertPayload = (skuData, generatedSku, statusId, userId) => ({
-  product_id: skuData.product_id,
-  sku: generatedSku,
-  barcode: skuData.barcode ?? null,
-  language: skuData.language ?? 'en-fr',
-  country_code: skuData.region_code ?? null,
-  market_region: skuData.market_region ?? null,
-  size_label: skuData.size_label ?? null,
-  description: skuData.description ?? null,
-  length_cm: skuData.length_cm ?? null,
-  width_cm: skuData.width_cm ?? null,
-  height_cm: skuData.height_cm ?? null,
-  weight_g: skuData.weight_g ?? null,
-  status_id: statusId,
-  created_by: userId,
-});
-
-/**
- * Prepares a list of SKU insert payloads from validated creation data.
+ * Maps each validated SKU input to a database-ready row, using the generated
+ * SKU code at the same index. Optional fields are normalized to null, and
+ * language defaults to `en-fr` when not provided.
+ *
+ * Assumes `skuList` and `generatedSkus` are index-aligned and have already
+ * been validated by the caller.
  *
  * @param {object[]} skuList - Validated SKU creation payloads.
  * @param {string[]} generatedSkus - Generated SKU codes, index-matched to `skuList`.
- * @param {string} statusId - UUID of the initial status.
- * @param {string} userId - UUID of the creating user.
- * @returns {object[]}
+ * @param {string} statusId - UUID of the initial SKU status.
+ * @param {string} userId - UUID of the user creating the SKUs.
+ * @returns {object[]} Database-ready SKU insert rows.
  */
-const prepareSkuInsertPayloads = (skuList, generatedSkus, statusId, userId) => {
-  const result = new Array(skuList.length);
-
-  for (let i = 0; i < skuList.length; i++) {
-    result[i] = prepareSkuInsertPayload(
-      skuList[i],
-      generatedSkus[i],
-      statusId,
-      userId
-    );
-  }
-
-  return result;
-};
+const prepareSkuInsertPayloads = (skuList, generatedSkus, statusId, userId) =>
+  skuList.map((s, i) => ({
+    product_id: s.product_id,
+    sku: generatedSkus[i],
+    barcode: s.barcode ?? null,
+    language: s.language ?? 'en-fr',
+    country_code: s.region_code ?? null,
+    market_region: s.market_region ?? null,
+    size_label: s.size_label ?? null,
+    description: s.description ?? null,
+    length_cm: s.length_cm ?? null,
+    width_cm: s.width_cm ?? null,
+    height_cm: s.height_cm ?? null,
+    weight_g: s.weight_g ?? null,
+    status_id: statusId,
+    created_by: userId,
+  }));
 
 /**
  * Asserts that a SKU status transition is permitted, throwing if not.
@@ -591,7 +575,6 @@ module.exports = {
   enrichSkuRow,
   validateSkuCreation,
   validateSkuList,
-  prepareSkuInsertPayload,
   prepareSkuInsertPayloads,
   assertValidSkuStatusTransition,
   evaluateSkuStatusAccessControl,
