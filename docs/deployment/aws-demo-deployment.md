@@ -11,11 +11,11 @@ End-to-end workflow for setting up an AWS account from zero and deploying the ER
 Before clicking anything on AWS:
 
 - [ ] Decide region. **Pick one and stay in it** — multi-region usage silently doubles consumption. Reasonable choices for a Vancouver-based dev:
-   - `us-east-2` (Ohio) — **cheapest**, t3.micro ~$7.50/mo (chosen for this demo)
-   - `us-west-2` (Oregon) — same price as Ohio, lower latency from Vancouver
-   - `ca-west-1` (Calgary) — ~$8.50/mo (~$1/mo more), Canadian data residency, lowest latency from Vancouver
-   - `ca-central-1` (Montreal) — ~$8.50/mo, Canadian data residency, higher latency
-     See **Decisions log** at the end of this doc for the rationale of the choice made.
+    - `us-east-2` (Ohio) — **cheapest**, t3.micro ~$7.50/mo (chosen for this demo)
+    - `us-west-2` (Oregon) — same price as Ohio, lower latency from Vancouver
+    - `ca-west-1` (Calgary) — ~$8.50/mo (~$1/mo more), Canadian data residency, lowest latency from Vancouver
+    - `ca-central-1` (Montreal) — ~$8.50/mo, Canadian data residency, higher latency
+      See **Decisions log** at the end of this doc for the rationale of the choice made.
 - [ ] Decide domain strategy (real domain → real SSL via Let's Encrypt; IP-only → self-signed or skip HTTPS for demo).
 - [ ] Have a password manager ready (you'll generate IAM creds you must not lose).
 - [ ] `.gitignore` includes `.env*` (verify before going further).
@@ -150,13 +150,13 @@ Wire the SDK into the backend on your dev machine. **Do not touch EC2 yet.**
    AWS_REGION=us-west-2
    AWS_ACCESS_KEY_ID=AKIA...
    AWS_SECRET_ACCESS_KEY=...
-   S3_IMAGES_BUCKET=widenaturals-erp-dev-images
-   S3_BACKUPS_BUCKET=widenaturals-erp-dev-backups
-   S3_LOGS_BUCKET=widenaturals-erp-dev-logs
+   AWS_S3_IMAGES_BUCKET=widenaturals-erp-dev-images
+   AWS_S3_BACKUPS_BUCKET=widenaturals-erp-dev-backups
+   AWS_S3_LOGS_BUCKET=widenaturals-erp-dev-logs
    ```
 3. Write a one-off smoke script `scripts/test-s3.js`:
-   - list bucket → upload `test.txt` → generate presigned GET URL → fetch it → delete it.
-   - If all four succeed, S3 wiring is correct.
+    - list bucket → upload `test.txt` → generate presigned GET URL → fetch it → delete it.
+    - If all four succeed, S3 wiring is correct.
 4. Build per-concern services following project conventions:
    ```
    server/src/services/
@@ -198,50 +198,50 @@ If that full loop works, EC2 deploy is mechanical.
 4. **Architecture:** 64-bit x86 (avoid ARM/`t4g` for the demo; some npm native modules and Docker images don't ship for ARM).
 5. **Instance type:** `t3.micro` (1 GB RAM, 2 vCPU). Tight but adequate for demo if you run native (no Docker).
 6. **Key pair → Create new key pair:**
-   - Name: `widenaturals-erp-demo`
-   - Type: **RSA** (more universally compatible than ED25519)
-   - Format: **`.pem`** (for Mac/Linux SSH; `.ppk` is PuTTY/Windows only)
-   - Download triggers automatically — this is the **only time** the private key is shown
-   - **Immediately on download:**
-     ```bash
-     mkdir -p ~/.ssh
-     mv ~/Downloads/widenaturals-erp-demo.pem ~/.ssh/
-     chmod 400 ~/.ssh/widenaturals-erp-demo.pem
-     ```
-     SSH refuses to use key files readable by other users — the `chmod 400` is mandatory.
+    - Name: `widenaturals-erp-demo`
+    - Type: **RSA** (more universally compatible than ED25519)
+    - Format: **`.pem`** (for Mac/Linux SSH; `.ppk` is PuTTY/Windows only)
+    - Download triggers automatically — this is the **only time** the private key is shown
+    - **Immediately on download:**
+      ```bash
+      mkdir -p ~/.ssh
+      mv ~/Downloads/widenaturals-erp-demo.pem ~/.ssh/
+      chmod 400 ~/.ssh/widenaturals-erp-demo.pem
+      ```
+      SSH refuses to use key files readable by other users — the `chmod 400` is mandatory.
 7. **Network settings → Edit:**
-   - Default VPC, public subnet, **Auto-assign public IP: enable**.
-   - **No NAT Gateway.** ($33/mo trap.)
-   - Security group: create new, name `widenaturals-erp-demo-sg`:
-      - SSH (22) → source: **My IP** only (not 0.0.0.0/0 — the AWS warning is real)
-      - HTTP (80) → 0.0.0.0/0 (needed for Let's Encrypt validation + Nginx)
-      - HTTPS (443) → 0.0.0.0/0
-      - **Do not** open 5432 (Postgres) or your Node port (e.g. 5000). Keep them internal.
+    - Default VPC, public subnet, **Auto-assign public IP: enable**.
+    - **No NAT Gateway.** ($33/mo trap.)
+    - Security group: create new, name `widenaturals-erp-demo-sg`:
+        - SSH (22) → source: **My IP** only (not 0.0.0.0/0 — the AWS warning is real)
+        - HTTP (80) → 0.0.0.0/0 (needed for Let's Encrypt validation + Nginx)
+        - HTTPS (443) → 0.0.0.0/0
+        - **Do not** open 5432 (Postgres) or your Node port (e.g. 5000). Keep them internal.
 8. **Configure storage → Advanced:**
-   - **Size: 20 GiB** (NOT the 8 GiB default). 8 GB fills up fast once you have Ubuntu + apt updates + node_modules + Postgres data + logs. ~$1.60/mo for 20 GB vs $0.64 for 8 GB — worth it.
-   - Volume type: **gp3** (cheaper per GB than gp2, free tier eligible)
-   - **Encrypted: Yes**, KMS key: `(default) aws/ebs`. Encryption is free, no perf impact, defense in depth.
-   - Throughput: 125 (gp3 default, fine)
-   - Delete on termination: Yes (for clean teardown — no orphaned EBS bills)
+    - **Size: 20 GiB** (NOT the 8 GiB default). 8 GB fills up fast once you have Ubuntu + apt updates + node_modules + Postgres data + logs. ~$1.60/mo for 20 GB vs $0.64 for 8 GB — worth it.
+    - Volume type: **gp3** (cheaper per GB than gp2, free tier eligible)
+    - **Encrypted: Yes**, KMS key: `(default) aws/ebs`. Encryption is free, no perf impact, defense in depth.
+    - Throughput: 125 (gp3 default, fine)
+    - Delete on termination: Yes (for clean teardown — no orphaned EBS bills)
 9. **Advanced details — the non-obvious gotchas:**
-   - **Credit specification: `Standard`** ← **CRITICAL**. AWS defaults to `Unlimited`, which silently bills $0.05/vCPU-hour when the instance bursts past baseline credits. A runaway process can rack up $20+/day. Standard caps CPU at baseline when credits exhaust — no surprise bill.
-   - **Shutdown behavior: `Stop`** (NOT `Terminate`). If set to Terminate, running `sudo shutdown -h now` from inside the box destroys the instance + volume.
-   - **Metadata version: `V2 only (token required)`** (IMDSv2). More secure than V1; default is correct, keep it.
-   - **EBS-optimized: Enable** (default, good).
-   - Termination protection: leave off (makes teardown easier for a demo).
-   - Detailed CloudWatch monitoring: leave off (basic is free; detailed adds ~$2.10/instance/mo).
-   - IAM instance profile: leave empty for now (we use access keys in `.env.production`; can switch to instance profile later as a security upgrade).
+    - **Credit specification: `Standard`** ← **CRITICAL**. AWS defaults to `Unlimited`, which silently bills $0.05/vCPU-hour when the instance bursts past baseline credits. A runaway process can rack up $20+/day. Standard caps CPU at baseline when credits exhaust — no surprise bill.
+    - **Shutdown behavior: `Stop`** (NOT `Terminate`). If set to Terminate, running `sudo shutdown -h now` from inside the box destroys the instance + volume.
+    - **Metadata version: `V2 only (token required)`** (IMDSv2). More secure than V1; default is correct, keep it.
+    - **EBS-optimized: Enable** (default, good).
+    - Termination protection: leave off (makes teardown easier for a demo).
+    - Detailed CloudWatch monitoring: leave off (basic is free; detailed adds ~$2.10/instance/mo).
+    - IAM instance profile: leave empty for now (we use access keys in `.env.production`; can switch to instance profile later as a security upgrade).
 10. Click **Launch instance**.
 11. **Within 5 minutes of launch**, allocate + associate an Elastic IP:
-   - EC2 → **Elastic IPs** → **Allocate Elastic IP address**
-   - Add a name tag (e.g. `widenaturals-erp-demo-eip`) so it's findable later
-   - Click Allocate
-   - Select the new EIP → **Actions** → **Associate Elastic IP address**
-   - Resource type: **Instance** → pick `widenaturals_erp_demo`
-   - Private IP: auto-fills (only one option)
-   - **`Allow this Elastic IP address to be reassociated`: LEAVE UNCHECKED.** Default unchecked is safer — it requires manual disassociation before moving the EIP, preventing accidental remaps.
-   - Click Associate
-   - **Save the EIP address** — that's your permanent SSH endpoint. EIPs are free while attached, ~$3.60/mo if unattached.
+    - EC2 → **Elastic IPs** → **Allocate Elastic IP address**
+    - Add a name tag (e.g. `widenaturals-erp-demo-eip`) so it's findable later
+    - Click Allocate
+    - Select the new EIP → **Actions** → **Associate Elastic IP address**
+    - Resource type: **Instance** → pick `widenaturals_erp_demo`
+    - Private IP: auto-fills (only one option)
+    - **`Allow this Elastic IP address to be reassociated`: LEAVE UNCHECKED.** Default unchecked is safer — it requires manual disassociation before moving the EIP, preventing accidental remaps.
+    - Click Associate
+    - **Save the EIP address** — that's your permanent SSH endpoint. EIPs are free while attached, ~$3.60/mo if unattached.
 
 ---
 
@@ -299,9 +299,9 @@ DATABASE_URL=postgres://widenaturals_app:<pw>@localhost:5432/widenaturals_erp
 AWS_REGION=us-west-2
 AWS_ACCESS_KEY_ID=AKIA...           # prod IAM user, NOT dev
 AWS_SECRET_ACCESS_KEY=...
-S3_IMAGES_BUCKET=widenaturals-erp-prod-images
-S3_BACKUPS_BUCKET=widenaturals-erp-prod-backups
-S3_LOGS_BUCKET=widenaturals-erp-prod-logs
+AWS_S3_IMAGES_BUCKET=widenaturals-erp-prod-images
+AWS_S3_BACKUPS_BUCKET=widenaturals-erp-prod-backups
+AWS_S3_LOGS_BUCKET=widenaturals-erp-prod-logs
 SESSION_SECRET=...
 JWT_SECRET=...
 ```
@@ -545,8 +545,8 @@ Why we made each choice during initial setup. When something needs to change lat
 ### Two budgets, not one: Zero Spend + Monthly $50
 - **Considered:** single $50 monthly budget with 50/80/100% alerts.
 - **Chose two budgets** because they catch different failure modes:
-   - Zero Spend fires at $0.01 actual spend → tells you the moment credits run out (paid mode silently engaged).
-   - Monthly $50 fires at 85% actual / 100% forecasted → graduated warning during normal use.
+    - Zero Spend fires at $0.01 actual spend → tells you the moment credits run out (paid mode silently engaged).
+    - Monthly $50 fires at 85% actual / 100% forecasted → graduated warning during normal use.
 - A single budget at $50 wouldn't tell you you've moved from "covered by credits" to "paying real money" until ~$42 of real spend had accumulated.
 
 ### Docker: not used (run everything native)
