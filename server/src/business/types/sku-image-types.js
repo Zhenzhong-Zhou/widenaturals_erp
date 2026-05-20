@@ -32,3 +32,23 @@
  * @property {string|null} uploaded_by_firstname
  * @property {string|null} uploaded_by_lastname
  */
+
+/**
+ * @typedef {Object} SkuImageForUser
+ * @property {string} id
+ * @property {string} groupId
+ * @property {string|null} imageUrl
+ * @property {string} type
+ * @property {boolean} isPrimary
+ * @property {string|null} altText
+ * @property {Object} [metadata]
+ * @property {number|null} metadata.sizeKb
+ * @property {string|null} metadata.format
+ * @property {number|null} metadata.displayOrder
+ * @property {Object|null} [audit]
+ * @property {Date|string|null} audit.uploadedAt
+ * @property {Object|null} audit.uploadedBy
+ * @property {string} audit.uploadedBy.id
+ * @property {string|null} audit.uploadedBy.firstname
+ * @property {string|null} audit.uploadedBy.lastname
+ */

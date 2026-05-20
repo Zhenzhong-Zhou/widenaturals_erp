@@ -1,13 +1,12 @@
-const path = require('path');
-const fs = require('fs');
 const mime = require('mime-types');
 const { v5: uuidv5 } = require('uuid');
 const { loadEnv } = require('../../../config/env');
 const {
   logSystemInfo,
-  logSystemException
+  logSystemException,
 } = require('../../../utils/logging/system-logger');
 const { processImageFile } = require('../../../utils/media/sku-image-media');
+const { resolveSource } = require('../../../utils/media/image-source');
 
 loadEnv();
 
@@ -635,131 +634,112 @@ exports.seed = async function (knex) {
     .select('sku_id');
   const skusWithPrimary = new Set(existingPrimaries.map((r) => r.sku_id));
   
-  const tempPath = path.resolve('temp');
   const rows = [];
   
-  try {
-    for (const { sku, images } of seedData) {
-      const skuId = skuMap[sku];
-      if (!skuId) {
-        console.warn(`SKU not found: ${sku}`);
-        continue;
-      }
-      
-      // Don't overwrite user-uploaded primaries.
-      if (skusWithPrimary.has(skuId)) {
-        console.log(
-          `Skipping ${sku} — already has a primary image (likely user-uploaded)`
-        );
-        continue;
-      }
-      
-      // Deterministic group_id: same SKU always produces the same UUID.
-      // This lets onConflict.ignore() catch re-runs cleanly instead of
-      // minting a new group_id every time and tripping the partial unique.
-      const groupId = uuidv5(`sku-images:${sku}`, SKU_IMAGE_NAMESPACE);
-      
-      for (const img of images) {
-        const isLocal = !img.url.startsWith('http');
-        if (!isLocal) {
-          console.warn(`Remote images not supported for resizing: ${img.url}`);
-          continue;
-        }
-        
-        const localPath = path.resolve(process.cwd(), img.url);
-        if (!fs.existsSync(localPath)) {
-          console.warn(`File not found: ${localPath}`);
-          continue;
-        }
-        
-        try {
-          const {
-            mainKey,
-            thumbKey,
-            zoomKey,
-            mainSizeKb,
-            thumbSizeKb,
-            zoomSizeKb,
-            ext,
-          } = await processImageFile(localPath, sku, isProd, bucketName);
-          
-          const zoomMime = mime.lookup(localPath);
-          const zoomFormat = mime.extension(zoomMime) || ext || 'bin';
-          
-          rows.push(
-            {
-              id: knex.raw('uuid_generate_v4()'),
-              sku_id: skuId,
-              image_url: mainKey,            // stores key; URL generated at read time
-              image_type: 'main',
-              display_order: 0,
-              file_size_kb: mainSizeKb,
-              file_format: 'webp',
-              is_primary: true,
-              group_id: groupId,
-              alt_text: img.alt,
-              uploaded_at: knex.fn.now(),
-              uploaded_by: systemUser.id,
-            },
-            {
-              id: knex.raw('uuid_generate_v4()'),
-              sku_id: skuId,
-              image_url: thumbKey,
-              image_type: 'thumbnail',
-              display_order: 1,
-              file_size_kb: thumbSizeKb,
-              file_format: 'webp',
-              is_primary: false,
-              group_id: groupId,
-              alt_text: img.alt,
-              uploaded_at: knex.fn.now(),
-              uploaded_by: systemUser.id,
-            },
-            {
-              id: knex.raw('uuid_generate_v4()'),
-              sku_id: skuId,
-              image_url: zoomKey,
-              image_type: 'zoom',
-              display_order: 2,
-              file_size_kb: zoomSizeKb,
-              file_format: zoomFormat,
-              is_primary: false,
-              group_id: groupId,
-              alt_text: img.alt,
-              uploaded_at: knex.fn.now(),
-              uploaded_by: systemUser.id,
-            }
-          );
-          
-          logSystemInfo(`Processed SKU images`, {
-            context: 'seed-sku-images',
-            sku,
-            keys: [mainKey, thumbKey, zoomKey],
-          });
-        } catch (err) {
-          logSystemException(err, 'Failed to process SKU image', {
-            context: 'seed-sku-images',
-            sku,
-            url: img.url,
-          });
-        }
-      }
+  for (const { sku, images } of seedData) {
+    const skuId = skuMap[sku];
+    if (!skuId) {
+      console.warn(`SKU not found: ${sku}`);
+      continue;
     }
     
-    if (rows.length) {
-      await knex('sku_images')
-        .insert(rows)
-        .onConflict(['sku_id', 'group_id', 'image_type'])
-        .ignore();
+    if (skusWithPrimary.has(skuId)) {
+      console.log(
+        `Skipping ${sku} — already has a primary image (likely user-uploaded)`
+      );
+      continue;
+    }
+    
+    const groupId = uuidv5(`sku-images:${sku}`, SKU_IMAGE_NAMESPACE);
+    
+    for (const [imgIndex, img] of images.entries()) {
+      if (img.url.startsWith('http')) {
+        console.warn(`Remote images not supported in seed: ${img.url}`);
+        continue;
+      }
       
-      console.log(`Inserted ${rows.length} sku_images (existing rows ignored)`);
-    } else {
-      console.log('No new sku_images to insert.');
+      try {
+        // resolveSource handles local-path read + existence check.
+        // Returns { buffer, mimetype, originalname }.
+        const file = await resolveSource(img.url, sku);
+        
+        const {
+          mainKey, thumbKey, zoomKey,
+          mainSizeKb, thumbSizeKb, zoomSizeKb,
+          ext,
+        } = await processImageFile(file, sku, isProd, bucketName);
+        
+        const zoomFormat = mime.extension(file.mimetype) || ext || 'bin';
+        const baseOrder = imgIndex * 3;
+        
+        rows.push(
+          {
+            id: knex.raw('uuid_generate_v4()'),
+            sku_id: skuId,
+            image_url: mainKey,
+            image_type: 'main',
+            display_order: baseOrder,
+            file_size_kb: mainSizeKb,
+            file_format: 'webp',
+            is_primary: img.isPrimary === true && imgIndex === 0,
+            group_id: groupId,
+            alt_text: img.alt,
+            uploaded_at: knex.fn.now(),
+            uploaded_by: systemUser.id,
+          },
+          {
+            id: knex.raw('uuid_generate_v4()'),
+            sku_id: skuId,
+            image_url: thumbKey,
+            image_type: 'thumbnail',
+            display_order: baseOrder + 1,
+            file_size_kb: thumbSizeKb,
+            file_format: 'webp',
+            is_primary: false,
+            group_id: groupId,
+            alt_text: img.alt,
+            uploaded_at: knex.fn.now(),
+            uploaded_by: systemUser.id,
+          },
+          {
+            id: knex.raw('uuid_generate_v4()'),
+            sku_id: skuId,
+            image_url: zoomKey,
+            image_type: 'zoom',
+            display_order: baseOrder + 2,
+            file_size_kb: zoomSizeKb,
+            file_format: zoomFormat,
+            is_primary: false,
+            group_id: groupId,
+            alt_text: img.alt,
+            uploaded_at: knex.fn.now(),
+            uploaded_by: systemUser.id,
+          }
+        );
+        
+        logSystemInfo('Processed SKU images', {
+          context: 'seed-sku-images',
+          sku,
+          keys: [mainKey, thumbKey, zoomKey],
+        });
+      } catch (err) {
+        logSystemException(err, 'Failed to process SKU image', {
+          context: 'seed-sku-images',
+          sku,
+          url: img.url,
+        });
+      }
     }
-  } finally {
-    if (fs.existsSync(tempPath)) {
-      fs.rmSync(tempPath, { recursive: true, force: true });
-      console.log('Cleaned up temp folder');
-    }
+  }
+  
+  if (rows.length) {
+    await knex('sku_images')
+      .insert(rows)
+      .onConflict(['sku_id', 'group_id', 'image_type'])
+      .ignore();
+    
+    console.log(`Inserted ${rows.length} sku_images (existing rows ignored)`);
+  } else {
+    console.log('No new sku_images to insert.');
   }
 };

@@ -1,27 +1,36 @@
 /**
  * @file image-source.js
  * @description
- * Image source resolution and detection utilities.
+ * Image source detection and resolution utilities.
  *
- * Resolves an image source (remote URL or local path) into an absolute
- * local filesystem path suitable for downstream processing. Enforces
- * security controls for remote URLs including host allow-listing and
- * SSRF prevention.
+ * Converts an image source, either a remote HTTP(S) URL or an allowed local
+ * development/seed path, into a multer-like file object:
+ *
+ * {
+ *   buffer: Buffer,
+ *   mimetype: string,
+ *   originalname: string
+ * }
+ *
+ * Remote image sources are protected with host allow-listing, SSRF guards,
+ * public-IP DNS validation, redirect blocking, retry handling, MIME validation,
+ * and hard response-size limits.
+ *
+ * Local path resolution is intended only for trusted seed, fixture, and
+ * development workflows. It should remain disabled unless explicitly enabled.
  */
 
 'use strict';
 
 const path = require('path');
-const fs = require('fs');
-const { Readable } = require('stream');
 const fsp = require('fs/promises');
 const net = require('net');
 const dns = require('dns').promises;
 const { URL } = require('node:url');
+const mime = require('mime-types');
 const AppError = require('../AppError');
 const { retry } = require('../retry/retry');
 const {
-  logSystemException,
   logSystemWarn,
 } = require('../logging/system-logger');
 const {
@@ -29,8 +38,21 @@ const {
 } = require('../constants/security/media-security-constants');
 const { isRetryableHttpError } = require('../db/db-error-utils');
 
+const CONTEXT = 'image-source';
+
 const ROOT_DIR = path.resolve(__dirname, '../../../');
 
+const MAX_REMOTE_IMAGE_BYTES = (parseInt(process.env.UPLOAD_MAX_FILE_SIZE_MB, 10) || 10) * 1024 * 1024;
+
+/**
+ * Determines whether an IP address is private, local, reserved, or otherwise
+ * unsafe for server-side remote image fetching.
+ *
+ * Used as a defense-in-depth SSRF check after hostname allow-listing.
+ *
+ * @param {string} ip
+ * @returns {boolean}
+ */
 const isPrivateOrUnsafeIp = (ip) => {
   const ipVersion = net.isIP(ip);
   if (!ipVersion) return true;
@@ -65,16 +87,40 @@ const isPrivateOrUnsafeIp = (ip) => {
   return false;
 };
 
+/**
+ * Verifies that all resolved DNS records for a hostname point to public IPs.
+ *
+ * @param {string} hostname
+ * @returns {Promise<void>}
+ * @throws {AppError} When DNS resolution fails or resolves to an unsafe IP.
+ */
 const assertHostnameResolvesToPublicIp = async (hostname) => {
-  const records = await dns.lookup(hostname, { all: true });
-
-  if (!Array.isArray(records) || records.length === 0) {
-    throw AppError.validationError('Unable to resolve remote image host.');
+  let records;
+  
+  try {
+    records = await dns.lookup(hostname, { all: true });
+  } catch (error) {
+    throw AppError.validationError('Unable to resolve remote image host.', {
+      cause: error,
+      meta: { context: `${CONTEXT}/assertHostnameResolvesToPublicIp`, hostname },
+    });
   }
-
+  
+  if (!Array.isArray(records) || records.length === 0) {
+    throw AppError.validationError('Unable to resolve remote image host.', {
+      meta: { context: `${CONTEXT}/assertHostnameResolvesToPublicIp`, hostname },
+    });
+  }
+  
   for (const record of records) {
     if (isPrivateOrUnsafeIp(record.address)) {
-      throw AppError.validationError('Resolved host IP is not allowed.');
+      throw AppError.validationError('Resolved host IP is not allowed.', {
+        meta: {
+          context: `${CONTEXT}/assertHostnameResolvesToPublicIp`,
+          hostname,
+          resolvedAddress: record.address,
+        },
+      });
     }
   }
 };
@@ -100,168 +146,114 @@ const isRemoteUrl = (value) => {
 };
 
 /**
- * Resolves an image source into an absolute local filesystem path.
+ * Resolve an image source — either a remote URL or a local filesystem path —
+ * into the same shape multer produces, so downstream stages don't care where
+ * the bytes came from.
  *
- * Supports remote HTTP(S) URLs (downloaded to a temp file) and local
- * paths (absolute or relative to project root). Remote URLs are subject
- * to strict security validation before any network IO is attempted.
+ * Remote URLs go through the SSRF-guarded HTTP client:
+ *   • host must be in `ALLOWED_IMAGE_HOSTS` (exact or subdomain match)
+ *   • localhost, IP literals, URL credentials, and non-standard ports are rejected
+ *   • DNS must resolve to a public (non-private, non-loopback) IP
+ *   • redirects are disabled; transient failures retried up to 3×
+ *   • response body capped at MAX_REMOTE_IMAGE_BYTES (both declared and actual)
  *
- * Security controls (remote URLs only):
- *   • Enforces hostname allow-list; rejects unlisted hosts
- *   • Blocks localhost explicitly
- *   • Blocks direct IP access to prevent SSRF
- *   • Supports subdomain matching for approved domains
- *   • Rejects if allow-list is empty (remote fetching disabled)
+ * Local paths are resolved relative to ROOT_DIR when not absolute, and read
+ * directly off disk. Used for seed data, fixtures, and dev workflows.
  *
- * Temp files are written to <project>/temp and must be cleaned up
- * by the caller after processing.
- *
- * @param {string} src - Remote URL or local file path
- * @param {string} skuCode - SKU code used to namespace the temp directory
- * @returns {Promise<string>} Absolute local path to the resolved image file
- * @throws {AppError} ValidationError for invalid inputs or untrusted hosts
- * @throws {AppError} FileSystemError for network or IO failures
+ * @param {string} src - Remote URL or local path. Validated upstream is not assumed.
+ * @param {string} skuCode - SKU being processed; included in error meta for traceability.
+ * @returns {Promise<ImageFile>}
+ * @throws {AppError} `validationError` for any policy rejection (bad host, oversize, etc).
  */
 const resolveSource = async (src, skuCode) => {
-  const context = 'image-source/resolveSource';
-
+  const context = `${CONTEXT}/resolveSource`;
+  
   if (!src || typeof src !== 'string') {
     throw AppError.validationError('Invalid image source');
   }
-
-  // ------------------------------------------------------------
-  // Remote URL handling
-  // ------------------------------------------------------------
+  
+  // ---------- Remote URL handling ----------
   if (isRemoteUrl(src)) {
     const url = new URL(src);
     const hostname = url.hostname.toLowerCase();
-
-    // Validation errors are expected — throw directly without logging
+    
     if (!ALLOWED_IMAGE_HOSTS.length) {
       throw AppError.validationError('Remote image fetching is not enabled.');
     }
-
     if (hostname === 'localhost') {
       throw AppError.validationError('Localhost is not allowed.');
     }
-
     if (url.username || url.password) {
       throw AppError.validationError('URL credentials are not allowed.');
     }
-
-    // Block numeric IPs to prevent SSRF via direct IP access
     if (net.isIP(hostname)) {
       throw AppError.validationError('IP-based hosts are not allowed.');
     }
-
-    // Restrict to default HTTP(S) ports to reduce SSRF surface.
     if (url.port && url.port !== '80' && url.port !== '443') {
       throw AppError.validationError('Non-standard ports are not allowed.');
     }
-
+    
     const isAllowed = ALLOWED_IMAGE_HOSTS.some(
       (host) => hostname === host || hostname.endsWith(`.${host}`)
     );
-
+    
     if (!isAllowed) {
       logSystemWarn('Blocked untrusted image host', {
-        context,
-        hostname,
-        allowedHosts: ALLOWED_IMAGE_HOSTS,
+        context, skuCode, hostname, allowedHosts: ALLOWED_IMAGE_HOSTS,
       });
-      throw AppError.validationError('Untrusted image host');
+      throw AppError.validationError('Untrusted image host', { meta: { context, skuCode, hostname } });
     }
-
+    
     await assertHostnameResolvesToPublicIp(hostname);
-
-    // Build a canonical URL from validated components only.
+    
     const sanitizedUrl = `${url.protocol}//${hostname}${url.pathname}${url.search}`;
-
-    try {
-      const tempDir = path.join(
-        ROOT_DIR,
-        'temp',
-        `${skuCode}-${Date.now()}-${Math.random().toString(36).slice(2)}`
-      );
-
-      await fsp.mkdir(tempDir, { recursive: true });
-
-      const filename = path.basename(url.pathname) || 'image';
-      const tempFile = path.join(tempDir, filename);
-
-      const response = await retry(
-        async () => {
-          const res = await globalThis.fetch(sanitizedUrl, {
-            redirect: 'error',
-          });
-
-          if (!res.ok) {
-            const error = new Error(`HTTP error: ${res.status}`);
-            error.response = res;
-            throw error;
-          }
-
-          return res;
-        },
-        {
-          retries: 3,
-          baseDelay: 500,
-          shouldRetry: isRetryableHttpError,
+    
+    const response = await retry(
+      async () => {
+        const res = await globalThis.fetch(sanitizedUrl, { redirect: 'error' });
+        if (!res.ok) {
+          const error = new Error(`HTTP error: ${res.status}`);
+          error.response = res;
+          throw error;
         }
+        return res;
+      },
+      { retries: 3, baseDelay: 500, shouldRetry: isRetryableHttpError }
+    );
+    
+    // Size guard — check Content-Length first, then enforce hard cap on actual bytes
+    const declaredSize = parseInt(response.headers.get('content-length') ?? '0', 10);
+    if (declaredSize > MAX_REMOTE_IMAGE_BYTES) {
+      throw AppError.validationError(
+        `Remote image exceeds size limit (${MAX_REMOTE_IMAGE_BYTES} bytes).`
       );
-
-      if (!response.body) {
-        throw AppError.fileSystemError('Fetch returned empty body', { src });
-      }
-
-      // Native fetch returns a WHATWG ReadableStream — convert to Node Readable
-      // before piping to the write stream
-      await new Promise((resolve, reject) => {
-        const nodeStream = Readable.fromWeb(response.body);
-        const writeStream = fs.createWriteStream(tempFile);
-        nodeStream.pipe(writeStream);
-        writeStream.on('finish', resolve);
-        writeStream.on('error', reject);
-      });
-
-      return tempFile;
-    } catch (error) {
-      logSystemException(error, 'Failed to fetch remote image', {
-        context,
-        skuCode,
-        src,
-      });
-
-      if (error instanceof AppError) throw error;
-
-      throw AppError.fileSystemError('Failed to fetch remote image', {
-        cause: error,
-      });
     }
+    
+    const buffer = Buffer.from(await response.arrayBuffer());
+    
+    if (buffer.length > MAX_REMOTE_IMAGE_BYTES) {
+      throw AppError.validationError(
+        `Remote image exceeds size limit (${MAX_REMOTE_IMAGE_BYTES} bytes).`
+      );
+    }
+    
+    return {
+      buffer,
+      mimetype: response.headers.get('content-type') ?? 'application/octet-stream',
+      originalname: path.basename(url.pathname) || 'remote-image',
+    };
   }
-
-  // ------------------------------------------------------------
-  // Local path handling
-  // ------------------------------------------------------------
-  try {
-    const resolvedPath = path.isAbsolute(src)
-      ? src
-      : path.resolve(ROOT_DIR, src);
-
-    await fsp.access(resolvedPath);
-
-    return resolvedPath;
-  } catch (error) {
-    logSystemException(error, 'Failed to resolve local image path', {
-      context,
-      skuCode,
-      src,
-    });
-
-    throw AppError.fileSystemError('Failed to resolve local image path', {
-      cause: error,
-    });
-  }
+  
+  // ---------- Local path handling ----------
+  const resolvedPath = path.isAbsolute(src) ? src : path.resolve(ROOT_DIR, src);
+  
+  await fsp.access(resolvedPath); // throws if missing — let global handler shape it
+  
+  return {
+    buffer: await fsp.readFile(resolvedPath),
+    mimetype: mime.lookup(resolvedPath) || 'application/octet-stream',
+    originalname: path.basename(resolvedPath),
+  };
 };
 
 /**

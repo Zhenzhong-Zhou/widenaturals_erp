@@ -93,49 +93,51 @@ const evaluateSkuImageViewAccessControl = async (user) => {
 };
 
 /**
- * Filters and shapes a list of SKU image rows based on the user's access flags.
+ * Filters and shapes SKU image rows based on the user's image-view ACL.
  *
- * Returns an empty array if the user cannot view images at all. Metadata and
- * audit fields are conditionally included based on the ACL.
+ * Returns an empty array when the input is invalid or the user cannot view SKU
+ * images. Metadata and audit fields are included only when permitted by the
+ * resolved ACL.
  *
  * @param {SkuImageRow[]} imageRows - Raw SKU image rows from the repository.
  * @param {SkuImageViewAcl} access - Resolved ACL from `evaluateSkuImageViewAccessControl`.
- * @returns {object[]} Filtered and shaped image records.
+ * @returns {SkuImageForUser[]} Filtered and shaped image records safe for the current user.
  */
 const sliceSkuImagesForUser = (imageRows, access) => {
-  if (!Array.isArray(imageRows) || !access.canViewImages) return [];
-
+  if (!Array.isArray(imageRows) || !access?.canViewImages) return [];
+  
   return imageRows.map((row) => {
+    /** @type {SkuImageForUser} */
     const safe = {
       id: row.id,
       groupId: row.group_id,
-      imageUrl: row.image_url,
+      imageUrl: row.image_url ?? null,
       type: row.image_type,
-      isPrimary: row.is_primary,
-      altText: row.alt_text,
+      isPrimary: Boolean(row.is_primary),
+      altText: row.alt_text ?? null,
     };
-
+    
     if (access.canViewImageMetadata) {
       safe.metadata = {
-        sizeKb: row.file_size_kb,
-        format: row.file_format,
-        displayOrder: row.display_order,
+        sizeKb: row.file_size_kb ?? null,
+        format: row.file_format ?? null,
+        displayOrder: row.display_order ?? null,
       };
     }
-
+    
     if (access.canViewImageHistory) {
       safe.audit = {
-        uploadedAt: row.uploaded_at,
+        uploadedAt: row.uploaded_at ?? null,
         uploadedBy: row.uploaded_by
           ? {
-              id: row.uploaded_by,
-              firstname: row.uploaded_by_firstname,
-              lastname: row.uploaded_by_lastname,
-            }
+            id: row.uploaded_by,
+            firstname: row.uploaded_by_firstname ?? null,
+            lastname: row.uploaded_by_lastname ?? null,
+          }
           : null,
       };
     }
-
+    
     return safe;
   });
 };
