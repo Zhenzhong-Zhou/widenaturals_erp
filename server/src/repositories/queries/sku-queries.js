@@ -6,23 +6,23 @@
  * Factory functions accept a pre-built WHERE clause from the filter builder.
  *
  * Exports:
- *  - GET_LAST_SKU_QUERY                — fetch most recent SKU matching a brand/category pattern
- *  - CHECK_BARCODE_EXISTS_QUERY        — existence check for a barcode value
- *  - CHECK_SKU_EXISTS_QUERY            — existence check for a sku + product_id pair
- *  - SKU_DETAILS_QUERY                 — full SKU metadata fetch by id
- *  - SKU_HAS_ANY_HISTORY_QUERY         — existence check across orders, batches, and inventory
- *  - PRIVILEGED_JOINS                  — join set for allowAllSkus dropdown queries
- *  - BASE_JOINS                        — join set for standard dropdown queries
- *  - PRIVILEGED_SELECT_FIELDS          — select fields for allowAllSkus dropdown queries
- *  - BASE_SELECT_FIELDS                — select fields for standard dropdown queries
- *  - TABLE_NAME                        — aliased table name passed to paginateQueryByOffset
- *  - SKU_PRODUCT_CARD_JOINS            — join array for product card paginated query
- *  - SKU_PRODUCT_CARD_SORT_WHITELIST   — valid sort fields for product card query
- *  - buildSkuProductCardQuery          — factory for paginated product card query
- *  - SKU_LIST_JOINS                    — join array for paginated SKU list query
- *  - SKU_LIST_SORT_WHITELIST           — valid sort fields for paginated SKU list query
- *  - SKU_LIST_ADDITIONAL_SORTS         — deterministic tie-break sort columns
- *  - buildPaginatedSkusQuery           — factory for paginated SKU list query
+ *  - GET_LAST_SKU_QUERY                     — fetch most recent SKU matching a brand/category pattern
+ *  - CHECK_BARCODES_EXIST_BULK_QUERY        — bulk existence check for barcode values
+ *  - CHECK_SKUS_EXIST_BULK_QUERY            — bulk existence check for generated SKU + product_id pairs
+ *  - SKU_DETAILS_QUERY                      — full SKU metadata fetch by id
+ *  - SKU_HAS_ANY_HISTORY_QUERY              — existence check across orders, batches, and inventory
+ *  - PRIVILEGED_JOINS                       — join set for allowAllSkus dropdown queries
+ *  - BASE_JOINS                             — join set for standard dropdown queries
+ *  - PRIVILEGED_SELECT_FIELDS               — select fields for allowAllSkus dropdown queries
+ *  - BASE_SELECT_FIELDS                     — select fields for standard dropdown queries
+ *  - TABLE_NAME                             — aliased table name passed to paginateQueryByOffset
+ *  - SKU_PRODUCT_CARD_JOINS                 — join array for product card paginated query
+ *  - SKU_PRODUCT_CARD_SORT_WHITELIST        — valid sort fields for product card query
+ *  - buildSkuProductCardQuery               — factory for paginated product card query
+ *  - SKU_LIST_JOINS                         — join array for paginated SKU list query
+ *  - SKU_LIST_SORT_WHITELIST                — valid sort fields for paginated SKU list query
+ *  - SKU_LIST_ADDITIONAL_SORTS              — deterministic tie-break sort columns
+ *  - buildPaginatedSkusQuery                — factory for paginated SKU list query
  */
 
 'use strict';
@@ -41,20 +41,19 @@ const GET_LAST_SKU_QUERY = `
   LIMIT 1
 `;
 
-// $1: barcode
-const CHECK_BARCODE_EXISTS_QUERY = `
-  SELECT 1
+// $1: barcodes (text[])
+const CHECK_BARCODES_EXIST_BULK_QUERY = `
+  SELECT barcode
   FROM skus
-  WHERE barcode = $1
-  LIMIT 1
+  WHERE barcode = ANY($1::text[])
 `;
 
-// $1: sku, $2: product_id
-const CHECK_SKU_EXISTS_QUERY = `
-  SELECT 1
-  FROM skus
-  WHERE sku = $1 AND product_id = $2
-  LIMIT 1
+// $1: sku codes (text[]), $2: product ids (uuid[]) — positionally paired
+const CHECK_SKUS_EXIST_BULK_QUERY = `
+  SELECT s.sku
+  FROM skus s
+  JOIN unnest($1::text[], $2::uuid[]) AS v(sku, product_id)
+    ON s.sku = v.sku AND s.product_id = v.product_id
 `;
 
 // ─── SKU Detail ───────────────────────────────────────────────────────────────
@@ -352,8 +351,8 @@ const buildPaginatedSkusQuery = (whereClause) => `
 
 module.exports = {
   GET_LAST_SKU_QUERY,
-  CHECK_BARCODE_EXISTS_QUERY,
-  CHECK_SKU_EXISTS_QUERY,
+  CHECK_BARCODES_EXIST_BULK_QUERY,
+  CHECK_SKUS_EXIST_BULK_QUERY,
   SKU_DETAILS_QUERY,
   SKU_HAS_ANY_HISTORY_QUERY,
   TABLE_NAME,

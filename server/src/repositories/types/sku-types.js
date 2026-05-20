@@ -123,3 +123,9 @@
  * @property {string}      id
  * @property {string|null} skuCode
  */
+
+/**
+ * @typedef {Object} SkuProductPair
+ * @property {string} sku - Generated SKU code to check.
+ * @property {string} productId - Product UUID associated with the SKU.
+ */
