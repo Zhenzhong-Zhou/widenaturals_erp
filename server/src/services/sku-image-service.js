@@ -1,22 +1,30 @@
 /**
  * @file sku-image-service.js
- * @description Business logic for SKU image processing, upload, and persistence.
+ * @description Business logic for SKU image processing, upload, update, and persistence.
+ *
+ * This service handles:
+ *  - processing uploaded or URL-based SKU images into main/thumbnail/zoom variants
+ *  - saving image variants for one SKU inside an existing transaction
+ *  - updating existing image groups for one SKU inside an existing transaction
+ *  - bulk save/update workflows with per-SKU transaction isolation
  *
  * Exports:
- *   - processAndUploadSkuImages  – processes and uploads image variants for a single SKU
- *   - saveBulkSkuImagesService   – saves images for multiple SKUs concurrently
- *   - updateBulkSkuImagesService – updates images for multiple SKUs concurrently
+ *  - processAndUploadSkuImages  — processes and uploads image variants for a single SKU
+ *  - saveBulkSkuImagesService   — saves images for multiple SKUs with per-SKU isolation
+ *  - updateBulkSkuImagesService — updates images for multiple SKUs with per-SKU isolation
  *
- * Logging exceptions to the single-log principle:
- *   - Per-image failures inside `processSingleImage` and `reprocessUpdatedSkuImages`
- *     are logged with `logSystemException` because they use fault-tolerance patterns
- *     (returning null / continuing) — these are the only observability points for
- *     individual image failures that do not propagate as thrown errors.
- *   - Per-SKU failures inside `Promise.allSettled` result maps are logged with
- *     `logSystemException` for the same reason — failures are captured as data,
- *     not propagated, so globalErrorHandler never sees them.
- *
- * All other errors bubble up to globalErrorHandler which logs once.
+ * Logging and error-handling policy:
+ *  - Per-image failures inside `processAndUploadSkuImages` are logged with
+ *    `logSystemException` because the function intentionally skips failed images
+ *    and continues processing the remaining images.
+ *  - Per-SKU failures inside bulk `Promise.allSettled` workflows are logged with
+ *    `logSystemException` because failures are converted into response data and
+ *    do not reach `globalErrorHandler`.
+ *  - `reprocessUpdatedSkuImages` does not log directly. It rethrows expected
+ *    AppErrors and wraps unexpected errors so the SKU-level transaction can fail
+ *    atomically.
+ *  - Unexpected errors outside fault-tolerant paths are wrapped as AppError
+ *    service errors and are left for the caller/global error handler to log once.
  */
 
 'use strict';
@@ -76,10 +84,13 @@ const processAndUploadSkuImages = async (
   const context = `${CONTEXT}/processAndUploadSkuImages`;
 
   if (!Array.isArray(images) || images.length === 0) return [];
-
+  
   const normalizedImages = images
-    .filter((img) => img?.url || img?.image_url)
+    .filter((img) =>
+      Buffer.isBuffer(img?.file?.buffer) || img?.url || img?.image_url
+    )
     .map((img, index) => ({
+      file: Buffer.isBuffer(img?.file?.buffer) ? img.file : null,
       src: img.image_url ?? img.url ?? null,
       alt_text: img.alt_text || '',
       requestedType: img.image_type === 'main' ? 'main' : 'auto',
@@ -100,22 +111,14 @@ const processAndUploadSkuImages = async (
 
   const processSingleImage = async (img) => {
     try {
-      const { src, alt_text, index } = img;
-
-      if (!src) throw AppError.validationError('Missing image source.');
-
-      const localPath = await resolveSource(src, sku);
-
-      const {
-        mainUrl,
-        thumbUrl,
-        zoomUrl,
-        mainSizeKb,
-        thumbSizeKb,
-        zoomSizeKb,
-        ext,
-      } = await processImageFile(localPath, sku, isProd, bucketName);
-
+      const { file, src, alt_text, index } = img;
+      
+      // Direct upload uses the buffer in hand; URL goes through SSRF-guarded resolver
+      const sourceFile = file ?? await resolveSource(src, sku);
+      
+      const { mainKey, thumbKey, zoomKey, mainSizeKb, thumbSizeKb, zoomSizeKb, ext } =
+        await processImageFile(sourceFile, sku, isProd, bucketName);
+      
       const groupId = crypto.randomUUID();
       const isPrimary = index === primaryIndex && primaryIndex !== -1;
       const baseOrder = index * 3;
@@ -123,7 +126,7 @@ const processAndUploadSkuImages = async (
       return [
         {
           group_id: groupId,
-          image_url: mainUrl,
+          image_url: mainKey,
           image_type: 'main',
           display_order: baseDisplayOrder + baseOrder,
           file_format: 'webp',
@@ -133,7 +136,7 @@ const processAndUploadSkuImages = async (
         },
         {
           group_id: groupId,
-          image_url: thumbUrl,
+          image_url: thumbKey,
           image_type: 'thumbnail',
           display_order: baseDisplayOrder + baseOrder + 1,
           file_format: 'webp',
@@ -143,7 +146,7 @@ const processAndUploadSkuImages = async (
         },
         {
           group_id: groupId,
-          image_url: zoomUrl,
+          image_url: zoomKey,
           image_type: 'zoom',
           display_order: baseDisplayOrder + baseOrder + 2,
           file_format: ext,
@@ -174,80 +177,80 @@ const processAndUploadSkuImages = async (
 };
 
 /**
- * Reprocesses updated SKU image variants if a new source is detected.
+ * Reprocesses updated SKU image variants when a new source is provided.
  *
- * Skips processing when no new source is present, preserving existing URLs.
- * Per-image failures are logged and re-thrown to maintain SKU-level atomicity.
+ * Uses an uploaded file buffer first, then falls back to a detected image URL/path.
+ * When no new source is detected, URL and size fields are returned as `null`,
+ * allowing the downstream update layer to preserve existing values when using
+ * null-safe update logic such as COALESCE.
+ *
+ * Processing errors are re-thrown or wrapped as service errors so the caller can
+ * preserve SKU-level atomicity, usually through a transaction.
  *
  * @param {Array<Object>} images     - Image update objects.
- * @param {string}        skuCode    - SKU code for processing.
- * @param {boolean}       isProd
- * @param {string}        bucketName
- * @returns {Promise<Array<Object>>} Processed image variant objects.
+ * @param {string}        skuCode    - SKU code for processing and file naming.
+ * @param {boolean}       isProd     - Whether to use production storage.
+ * @param {string}        bucketName - Target S3 bucket name.
+ * @returns {Promise<Array<Object>>} Normalized image update objects with processed variant URLs when available.
  */
-const reprocessUpdatedSkuImages = async (
-  images,
-  skuCode,
-  isProd,
-  bucketName
-) => {
+const reprocessUpdatedSkuImages = async (images, skuCode, isProd, bucketName) => {
   const context = `${CONTEXT}/reprocessUpdatedSkuImages`;
-
+  
   if (!Array.isArray(images) || images.length === 0) return images ?? [];
-
+  
   const processed = [];
-
+  
   for (const image of images) {
     try {
       let variantData = null;
-
-      const sourcePath = detectImageSource(image);
-
-      if (sourcePath) {
-        const localPath = await resolveSource(sourcePath, skuCode);
-
-        const {
-          mainUrl,
-          thumbUrl,
-          zoomUrl,
-          mainSizeKb,
-          thumbSizeKb,
-          zoomSizeKb,
-        } = await processImageFile(localPath, skuCode, isProd, bucketName);
-
+      
+      // Determine source: direct upload file, then fall back to detected URL/path
+      const sourceFile = image?.file?.buffer && Buffer.isBuffer(image.file.buffer)
+        ? image.file
+        : (() => {
+          const detected = detectImageSource(image);
+          return detected ? null : null; // placeholder, see below
+        })();
+      
+      const detectedSrc = !sourceFile ? detectImageSource(image) : null;
+      const finalFile = sourceFile ?? (detectedSrc ? await resolveSource(detectedSrc, skuCode) : null);
+      
+      if (finalFile) {
+        const { mainKey, thumbKey, zoomKey, mainSizeKb, thumbSizeKb, zoomSizeKb } =
+          await processImageFile(finalFile, skuCode, isProd, bucketName);
+        
         variantData = {
-          main_url: mainUrl,
-          thumb_url: thumbUrl,
-          zoom_url: zoomUrl,
+          main_url: mainKey,
+          thumb_url: thumbKey,
+          zoom_url: zoomKey,
           main_size_kb: mainSizeKb,
           thumb_size_kb: thumbSizeKb,
           zoom_size_kb: zoomSizeKb,
         };
       }
-
+      
       processed.push({
         group_id: image.group_id,
-        main_url: variantData?.main_url ?? null,
+        main_url:  variantData?.main_url  ?? null,
         thumb_url: variantData?.thumb_url ?? null,
-        zoom_url: variantData?.zoom_url ?? null,
-        main_size_kb: variantData?.main_size_kb ?? null,
+        zoom_url:  variantData?.zoom_url  ?? null,
+        main_size_kb:  variantData?.main_size_kb  ?? null,
         thumb_size_kb: variantData?.thumb_size_kb ?? null,
-        zoom_size_kb: variantData?.zoom_size_kb ?? null,
+        zoom_size_kb:  variantData?.zoom_size_kb  ?? null,
         display_order: image.display_order ?? null,
-        alt_text: image.alt_text ?? null,
-        is_primary: image.is_primary ?? null,
+        alt_text:      image.alt_text      ?? null,
+        is_primary:    image.is_primary    ?? null,
       });
     } catch (error) {
-      // Re-throw to maintain SKU-level atomicity — log for observability.
-      logSystemException(error, 'Image reprocessing failed', {
-        context,
-        skuCode,
-        groupId: image?.group_id,
+      // No log here — re-throw lets global handler log once; SKU-level atomicity preserved.
+      if (error instanceof AppError) throw error;
+      throw AppError.serviceError('Image reprocessing failed', {
+        cause: error,
+        meta: { context, skuCode, groupId: image?.group_id },
       });
-      throw error;
     }
   }
-
+  
   return processed;
 };
 
@@ -356,7 +359,7 @@ const saveSkuImagesService = async (
 const saveBulkSkuImagesService = async (skuImageSets, user) => {
   const context = `${CONTEXT}/saveBulkSkuImagesService`;
   const isProd = process.env.NODE_ENV === 'production';
-  const bucketName = process.env.S3_BUCKET_NAME;
+  const bucketName = process.env.AWS_S3_IMAGES_BUCKET;
   const limit = pLimit(BULK_SKU_CONCURRENCY);
 
   try {
@@ -478,7 +481,7 @@ const updateSkuImagesService = async (
         'One or more image groups do not belong to this SKU.'
       );
     }
-
+    
     // 3. Reprocess image variants if a new source is detected.
     const processedUpdates = await reprocessUpdatedSkuImages(
       images,
@@ -522,7 +525,7 @@ const updateSkuImagesService = async (
 const updateBulkSkuImagesService = async (skuUpdateSets, user) => {
   const context = `${CONTEXT}/updateBulkSkuImagesService`;
   const isProd = process.env.NODE_ENV === 'production';
-  const bucketName = process.env.S3_BUCKET_NAME;
+  const bucketName = process.env.AWS_S3_IMAGES_BUCKET;
   const limit = pLimit(BULK_SKU_CONCURRENCY);
 
   try {
