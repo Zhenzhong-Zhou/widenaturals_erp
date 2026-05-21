@@ -61,7 +61,7 @@ const {
       `,
       ['root@widenaturals.com']
     );
-    console.log('>>>>>', actorRows);
+    
     if (actorRows.length === 0) {
       throw new Error('Actor not found: root@widenaturals.com');
     }
