@@ -35,6 +35,29 @@ const {
 } = require('../services/sku-image-service');
 const AppError = require('../utils/AppError');
 
+/**
+ * Extracts the uploaded files array from a multer-parsed request.
+ *
+ * Multer sets `req.files` to an array when using `.array()` / `.fields()`,
+ * or leaves it undefined when no files were uploaded. This helper enforces
+ * that shape explicitly so a tampered or misconfigured payload fails fast
+ * instead of being silently coerced into `[]`.
+ *
+ * @param {import('express').Request} req
+ * @returns {Express.Multer.File[]}
+ * @throws {AppError} validationError when `req.files` is present but not an array.
+ */
+const extractUploadedFiles = (req) => {
+  const rawFiles = req.files;
+  if (rawFiles == null) return [];
+  if (!Array.isArray(rawFiles)) {
+    throw AppError.validationError(
+      'Invalid files payload: expected an array of uploaded files.'
+    );
+  }
+  return rawFiles;
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/v1/skus/images
 // ─────────────────────────────────────────────────────────────────────────────
@@ -60,7 +83,7 @@ const uploadSkuImagesController = wrapAsyncHandler(async (req, res) => {
     ? JSON.parse(req.body.skus)
     : req.body.skus;
   
-  const files = req.files ?? [];
+  const files = extractUploadedFiles(req);
   const user = req.auth.user;
   
   // Walk the metadata in order and attach files to every "uploaded" slot.
@@ -132,7 +155,7 @@ const updateSkuImagesController = wrapAsyncHandler(async (req, res) => {
     ? JSON.parse(req.body.skus)
     : req.body.skus;
   
-  const files = req.files ?? [];
+  const files = extractUploadedFiles(req);
   const user = req.auth.user;
   
   let fileCursor = 0;
