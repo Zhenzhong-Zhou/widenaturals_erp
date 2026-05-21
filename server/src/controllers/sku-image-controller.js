@@ -38,13 +38,13 @@ const AppError = require('../utils/AppError');
 /**
  * Extracts the uploaded files array from a multer-parsed request.
  *
- * Multer sets `req.files` to an array when using `.array()` / `.fields()`,
- * or leaves it undefined when no files were uploaded. This helper enforces
- * that shape explicitly so a tampered or misconfigured payload fails fast
- * instead of being silently coerced into `[]`.
+ * Expects multer configured with `.array()` or `.any()`, which set
+ * `req.files` to an array, or leave it undefined when no files were uploaded.
+ * Throws when `req.files` is present but not an array, defending against
+ * type confusion from misconfigured middleware or tampered requests.
  *
- * @param {import('express').Request} req
- * @returns {Express.Multer.File[]}
+ * @param {Object} req Express request.
+ * @returns {Array<Object>} Uploaded files, or [] when none were sent.
  * @throws {AppError} validationError when `req.files` is present but not an array.
  */
 const extractUploadedFiles = (req) => {
