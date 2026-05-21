@@ -38,7 +38,7 @@ const {
   DeleteObjectCommand,
 } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
-const { loadEnv } = require('../src/config/env');
+const { loadEnv } = require('../../config/env');
 
 loadEnv();
 
