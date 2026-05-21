@@ -26,7 +26,7 @@
  *
  * Production policy alignment:
  *   - All uploads request server-side encryption (SSE-S3 / AES256 by default).
- *   - All bucket interactions go through the shared S3Client singleton,
+ *   - All bucket interactions go through the shared getS3Client singleton,
  *     which is constructed once at bootstrap with validated credentials.
  *   - Pagination is honoured on list operations (S3 caps ListObjectsV2 at
  *     1000 keys per response).
@@ -44,7 +44,7 @@ const {
 } = require('@aws-sdk/client-s3');
 const { Upload } = require('@aws-sdk/lib-storage');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
-const s3Client = require('../config/s3-client');
+const { getS3Client } = require('../config/s3-client');
 const AppError = require('./AppError');
 const { logSystemInfo } = require('./logging/system-logger');
 
@@ -169,13 +169,13 @@ const uploadFileToS3 = async (
       // ordering. lib-storage retries individual parts internally, so
       // we don't wrap it in executeWithRetry.
       const upload = new Upload({
-        client: s3Client,
+        client: getS3Client(),
         params: { ...commonParams, Body: fs.createReadStream(filePath) },
       });
       response = await upload.done();
     } else {
       response = await executeWithRetry(() =>
-        s3Client.send(
+        getS3Client().send(
           new PutObjectCommand({
             ...commonParams,
             Body: fs.createReadStream(filePath),
@@ -230,7 +230,7 @@ const uploadBufferToS3 = async (bucketName, key, buffer, contentType) => {
   
   try {
     await executeWithRetry(() =>
-      s3Client.send(
+      getS3Client().send(
         new PutObjectCommand({
           Bucket: bucketName,
           Key: key,
@@ -277,7 +277,7 @@ const downloadFileFromS3 = async (
   }
   
   try {
-    const response = await s3Client.send(
+    const response = await getS3Client().send(
       new GetObjectCommand({ Bucket: bucketName, Key: key })
     );
     
@@ -323,7 +323,7 @@ const deleteFileFromS3 = async (bucketName, key) => {
   
   try {
     await executeWithRetry(() =>
-      s3Client.send(new DeleteObjectCommand({ Bucket: bucketName, Key: key }))
+      getS3Client().send(new DeleteObjectCommand({ Bucket: bucketName, Key: key }))
     );
   } catch (error) {
     rethrowAsServiceError(error, 'S3 delete failed', {
@@ -359,7 +359,7 @@ const deleteFilesFromS3 = async (bucketName, keys) => {
     for (let i = 0; i < keys.length; i += CHUNK_SIZE) {
       const chunk = keys.slice(i, i + CHUNK_SIZE);
       await executeWithRetry(() =>
-        s3Client.send(
+        getS3Client().send(
           new DeleteObjectsCommand({
             Bucket: bucketName,
             // SDK requires `{ Key: string }`, not raw strings.
@@ -398,7 +398,7 @@ const listFilesInS3 = async (bucketName, prefix) => {
     
     do {
       const response = await executeWithRetry(() =>
-        s3Client.send(
+        getS3Client().send(
           new ListObjectsV2Command({
             Bucket: bucketName,
             Prefix: prefix,
@@ -489,7 +489,7 @@ const s3ObjectExists = async (bucketName, key) => {
   const context = `${CONTEXT}/s3ObjectExists`;
   
   try {
-    await s3Client.send(
+    await getS3Client().send(
       new HeadObjectCommand({ Bucket: bucketName, Key: key })
     );
     return true;
@@ -529,7 +529,7 @@ const getPresignedDownloadUrl = async (
   
   try {
     const command = new GetObjectCommand({ Bucket: bucketName, Key: key });
-    return await getSignedUrl(s3Client, command, { expiresIn: expiresInSeconds });
+    return await getSignedUrl(getS3Client(), command, { expiresIn: expiresInSeconds });
   } catch (error) {
     rethrowAsServiceError(error, 'Presigned download URL generation failed', {
       context,
@@ -571,7 +571,7 @@ const getPresignedUploadUrl = async (
       ContentType: contentType,
       ServerSideEncryption: DEFAULT_SSE,
     });
-    return await getSignedUrl(s3Client, command, { expiresIn: expiresInSeconds });
+    return await getSignedUrl(getS3Client(), command, { expiresIn: expiresInSeconds });
   } catch (error) {
     rethrowAsServiceError(error, 'Presigned upload URL generation failed', {
       context,
