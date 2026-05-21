@@ -4,6 +4,7 @@ import {
   type SyntheticEvent,
   type UIEvent,
   type JSX,
+  type Key,
   isValidElement,
   type ReactNode,
 } from 'react';
@@ -12,7 +13,6 @@ import {
   type AutocompleteProps,
   Box,
   Divider,
-  MenuItem,
   Stack,
   Tooltip,
   useTheme
@@ -23,7 +23,6 @@ import { faPlus, faSyncAlt } from '@fortawesome/free-solid-svg-icons';
 import {
   BaseInput,
   CustomTypography,
-  ErrorMessage,
   Loading
 } from '@components/index';
 
@@ -200,45 +199,82 @@ const Dropdown: FC<DropdownProps> = ({
         disableClearable={!searchable}
         fullWidth
         isOptionEqualToValue={(option, val) => option.value === val.value}
-        renderOption={(props, option) => (
-          <Box key={option.value}>
-            {option.value === '__loading__' && (
+        renderOption={(props, option) => {
+          const { key, ...optionProps } = props as { key: Key } & typeof props;
+          
+          // Loading sentinel
+          if (option.value === '__loading__') {
+            return (
               <Box
-                key="loading-indicator"
+                key={key}
+                component="li"
+                {...optionProps}
+                onClick={(e) => e.stopPropagation()}
                 sx={{
                   textAlign: 'center',
                   py: 1,
                   width: '100%',
                   backgroundColor: theme.palette.background.paper,
+                  cursor: 'default',
                 }}
               >
                 <Loading size={16} variant="dotted" />
               </Box>
-            )}
-
-            {/* Divider before the regular options */}
-            {option.value === 'add' && (
+            );
+          }
+          
+          // No-options sentinel
+          if (option.value === '__no_options__') {
+            return (
+              <Box
+                key={key}
+                component="li"
+                {...optionProps}
+                onClick={(e) => e.stopPropagation()}
+                sx={{
+                  textAlign: 'center',
+                  py: 1,
+                  color: 'text.secondary',
+                  cursor: 'default',
+                }}
+              >
+                {typeof option.label === 'string' ? option.label : null}
+              </Box>
+            );
+          }
+          
+          // "add" slot is just a divider before regular options
+          if (option.value === 'add') {
+            return (
               <Divider
-                key={`divider-${option.value}`}
-                sx={{ marginY: 0.5, borderColor: theme.palette.divider }}
+                key={key}
+                component="li"
+                sx={{ my: 0.5, borderColor: theme.palette.divider }}
               />
-            )}
-
-            {option.value === 'refresh' && (
+            );
+          }
+          
+          // "refresh" slot renders the header action row
+          if (option.value === 'refresh') {
+            return (
               <Stack
-                key="top-options"
+                key={key}
+                component="li"
+                {...optionProps}
                 direction="row"
+                onClick={(e) => e.stopPropagation()}
                 sx={{
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  padding: '8px 16px',
+                  px: 2,
+                  py: 1,
                   backgroundColor: theme.palette.background.default,
-                  marginBottom: '4px',
+                  mb: '4px',
+                  cursor: 'default',
+                  listStyle: 'none',
                 }}
               >
-                {/* Refresh List Button */}
                 <CustomTypography
-                  key="refresh-button"
                   onClick={onRefresh}
                   sx={{
                     cursor: 'pointer',
@@ -256,11 +292,9 @@ const Dropdown: FC<DropdownProps> = ({
                   <FontAwesomeIcon icon={faSyncAlt} />
                   Refresh
                 </CustomTypography>
-
-                {/* Add New Button */}
+                
                 {onAddNew && (
                   <CustomTypography
-                    key="add-new-button"
                     onClick={onAddNew}
                     sx={{
                       cursor: 'pointer',
@@ -280,71 +314,65 @@ const Dropdown: FC<DropdownProps> = ({
                   </CustomTypography>
                 )}
               </Stack>
-            )}
-
-            {/* Render Regular Options */}
-            {option.value !== 'refresh' && option.value !== 'add' && (
-              <MenuItem
-                {...props}
-                key={`option-${option.value}`}
-                data-value={option.value}
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1,
-                }}
-              >
-                {/* Support both FontAwesomeIcon and JSX */}
-                {option.icon && (
-                  <Box
-                    component="span"
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      marginRight: 1,
-                    }}
-                  >
-                    {option.tooltip ? (
-                      <Tooltip title={option.tooltip}>
-                        <span>
-                          {isValidElement(option.icon) ? (
-                            option.icon
-                          ) : (
-                            <FontAwesomeIcon
-                              icon={option.icon as IconProp}
-                              color={option.iconColor ?? 'inherit'}
-                              style={{ marginRight: 8 }}
-                            />
-                          )}
-                        </span>
-                      </Tooltip>
-                    ) : isValidElement(option.icon) ? (
-                      option.icon
-                    ) : (
-                      <FontAwesomeIcon
-                        icon={option.icon as IconProp}
-                        color={option.iconColor ?? 'inherit'}
-                        style={{ marginRight: 8 }}
-                      />
-                    )}
-                  </Box>
-                )}
-                {option.displayLabel ? (
-                  option.displayLabel
-                ) : typeof option.label === 'string' ? (
-                  <span>{option.label}</span>
+            );
+          }
+          
+          // Regular option — use a styled <li>, not MenuItem
+          return (
+            <Box
+              key={key}
+              component="li"
+              {...optionProps}
+              data-value={option.value}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                px: 2,
+                py: 1,
+                cursor: 'pointer',
+                '&:hover': { backgroundColor: 'action.hover' },
+                '&[aria-selected="true"]': { backgroundColor: 'action.selected' },
+              }}
+            >
+              {option.icon && (
+                <Box
+                  component="span"
+                  sx={{ display: 'flex', alignItems: 'center', mr: 1 }}
+                >
+                  {option.tooltip ? (
+                    <Tooltip title={option.tooltip}>
+              <span>
+                {isValidElement(option.icon) ? (
+                  option.icon
                 ) : (
-                  option.label
+                  <FontAwesomeIcon
+                    icon={option.icon as IconProp}
+                    color={option.iconColor ?? 'inherit'}
+                    style={{ marginRight: 8 }}
+                  />
                 )}
-              </MenuItem>
-            )}
-            {error && (
-              <Box sx={{ mt: 1 }}>
-                <ErrorMessage message={error} />
-              </Box>
-            )}
-          </Box>
-        )}
+              </span>
+                    </Tooltip>
+                  ) : isValidElement(option.icon) ? (
+                    option.icon
+                  ) : (
+                    <FontAwesomeIcon
+                      icon={option.icon as IconProp}
+                      color={option.iconColor ?? 'inherit'}
+                      style={{ marginRight: 8 }}
+                    />
+                  )}
+                </Box>
+              )}
+              {option.displayLabel
+                ? option.displayLabel
+                : typeof option.label === 'string'
+                  ? <span>{option.label}</span>
+                  : option.label}
+            </Box>
+          );
+        }}
       />
     </Box>
   );
