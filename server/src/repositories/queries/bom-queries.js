@@ -190,91 +190,115 @@ const BOM_PRODUCTION_SUMMARY_QUERY = `
   WITH part_requirements AS (
     SELECT
       bi.bom_id,
-      pa.id                                   AS part_id,
-      pa.name                                 AS part_name,
+      pa.id AS part_id,
+      pa.name AS part_name,
       bim.packaging_material_id,
       COALESCE(bim.material_qty_per_product, 1) AS material_qty_per_product,
-      COALESCE(bim.unit, 'pcs')               AS required_unit
+      COALESCE(bim.unit, 'pcs') AS required_unit
     FROM bom_items AS bi
-    JOIN parts AS pa              ON pa.id = bi.part_id
-    LEFT JOIN bom_item_materials AS bim ON bim.bom_item_id = bi.id
+    JOIN parts AS pa
+      ON pa.id = bi.part_id
+    LEFT JOIN bom_item_materials AS bim
+      ON bim.bom_item_id = bi.id
     WHERE bi.bom_id = $1
   ),
   part_inventory AS (
     SELECT
-      pm.id                                   AS packaging_material_id,
-      SUM(wi.warehouse_quantity - wi.reserved_quantity) AS total_available_quantity
-    FROM warehouse_inventory wi
-    JOIN batch_registry br        ON wi.batch_id = br.id
-    LEFT JOIN packaging_material_batches pmb
-      ON br.packaging_material_batch_id = pmb.id
-    LEFT JOIN packaging_material_suppliers pms
-      ON pmb.packaging_material_supplier_id = pms.id
-    LEFT JOIN packaging_materials pm ON pms.packaging_material_id = pm.id
+      pm.id AS packaging_material_id,
+      SUM(
+        COALESCE(wi.warehouse_quantity, 0) - COALESCE(wi.reserved_quantity, 0)
+      ) AS total_available_quantity
+    FROM warehouse_inventory AS wi
+    JOIN inventory_status AS ist
+      ON ist.id = wi.status_id
+     AND ist.name IN ('available', 'in_stock')
+    JOIN batch_registry AS br
+      ON br.id = wi.batch_id
+    LEFT JOIN packaging_material_batches AS pmb
+      ON pmb.id = br.packaging_material_batch_id
+    LEFT JOIN packaging_material_suppliers AS pms
+      ON pms.id = pmb.packaging_material_supplier_id
+    LEFT JOIN packaging_materials AS pm
+      ON pm.id = pms.packaging_material_id
     WHERE br.batch_type = 'packaging_material'
     GROUP BY pm.id
   ),
   part_details AS (
     SELECT
-      pm.id                                   AS packaging_material_id,
-      pm.name                                 AS material_name,
-      pmb.id                                  AS packaging_material_batch_id,
+      pm.id AS packaging_material_id,
+      pm.name AS material_name,
+      pmb.id AS packaging_material_batch_id,
       pmb.material_snapshot_name,
       pmb.received_label_name,
       pmb.lot_number,
-      pmb.quantity                            AS batch_quantity,
+      pmb.quantity AS batch_quantity,
       wi.warehouse_quantity,
       wi.reserved_quantity,
-      (wi.warehouse_quantity - wi.reserved_quantity) AS available_quantity,
+      (
+        COALESCE(wi.warehouse_quantity, 0) - COALESCE(wi.reserved_quantity, 0)
+      ) AS available_quantity,
       wi.inbound_date,
       wi.outbound_date,
-      wi.last_update,
-      wi.status_id                            AS warehouse_inventory_status_id,
-      ist.name                                AS inventory_status,
-      w.name                                  AS warehouse_name,
+      wi.last_movement_at AS last_update,
+      wi.status_id AS warehouse_inventory_status_id,
+      ist.name AS inventory_status,
+      w.name AS warehouse_name,
       pms.supplier_id,
-      sup.name                                AS supplier_name,
+      sup.name AS supplier_name,
       CASE
-        WHEN (wi.warehouse_quantity - wi.reserved_quantity) > 0
-        THEN TRUE ELSE FALSE
-      END                                     AS is_usable_for_production,
+        WHEN (
+          COALESCE(wi.warehouse_quantity, 0) - COALESCE(wi.reserved_quantity, 0)
+        ) > 0
+        THEN TRUE
+        ELSE FALSE
+      END AS is_usable_for_production,
       CASE
         WHEN COALESCE(bst.is_active, FALSE) = FALSE
-        THEN TRUE ELSE FALSE
-      END                                     AS is_inactive_batch
-    FROM warehouse_inventory wi
-    JOIN warehouses w             ON wi.warehouse_id = w.id
-    JOIN batch_registry br        ON wi.batch_id = br.id
-    JOIN inventory_status ist     ON wi.status_id = ist.id
-      AND ist.name IN ('available', 'in_stock')
-    LEFT JOIN packaging_material_batches pmb
-      ON br.packaging_material_batch_id = pmb.id
-    LEFT JOIN batch_status AS bst ON bst.id = pmb.status_id
-      AND bst.name IN ('active', 'inactive')
-    LEFT JOIN packaging_material_suppliers pms
-      ON pmb.packaging_material_supplier_id = pms.id
-    LEFT JOIN suppliers sup       ON sup.id = pms.supplier_id
-    LEFT JOIN packaging_materials pm ON pms.packaging_material_id = pm.id
+        THEN TRUE
+        ELSE FALSE
+      END AS is_inactive_batch
+    FROM warehouse_inventory AS wi
+    JOIN warehouses AS w
+      ON w.id = wi.warehouse_id
+    JOIN batch_registry AS br
+      ON br.id = wi.batch_id
+    JOIN inventory_status AS ist
+      ON ist.id = wi.status_id
+     AND ist.name IN ('available', 'in_stock')
+    LEFT JOIN packaging_material_batches AS pmb
+      ON pmb.id = br.packaging_material_batch_id
+    LEFT JOIN batch_status AS bst
+      ON bst.id = pmb.status_id
+     AND bst.name IN ('active', 'inactive')
+    LEFT JOIN packaging_material_suppliers AS pms
+      ON pms.id = pmb.packaging_material_supplier_id
+    LEFT JOIN suppliers AS sup
+      ON sup.id = pms.supplier_id
+    LEFT JOIN packaging_materials AS pm
+      ON pm.id = pms.packaging_material_id
     WHERE br.batch_type = 'packaging_material'
   )
   SELECT
     pr.part_id,
     pr.part_name,
-    pr.material_qty_per_product   AS required_qty_per_unit,
+    pr.material_qty_per_product AS required_qty_per_unit,
+    pr.required_unit,
     COALESCE(pi.total_available_quantity, 0) AS total_available_quantity,
     CASE
       WHEN COALESCE(pr.material_qty_per_product, 0) = 0 THEN NULL
       ELSE FLOOR(
         COALESCE(pi.total_available_quantity, 0) / pr.material_qty_per_product
       )
-    END                           AS max_producible_units,
+    END AS max_producible_units,
     CASE
       WHEN COALESCE(pi.total_available_quantity, 0) < pr.material_qty_per_product
-      THEN TRUE ELSE FALSE
-    END                           AS is_shortage,
+      THEN TRUE
+      ELSE FALSE
+    END AS is_shortage,
     GREATEST(
-      pr.material_qty_per_product - COALESCE(pi.total_available_quantity, 0), 0
-    )                             AS shortage_qty,
+      pr.material_qty_per_product - COALESCE(pi.total_available_quantity, 0),
+      0
+    ) AS shortage_qty,
     pd.material_name,
     pd.packaging_material_batch_id,
     pd.material_snapshot_name,
@@ -290,12 +314,16 @@ const BOM_PRODUCTION_SUMMARY_QUERY = `
     pd.inventory_status,
     pd.warehouse_name,
     pd.supplier_name
-  FROM part_requirements pr
-  LEFT JOIN part_inventory pi
+  FROM part_requirements AS pr
+  LEFT JOIN part_inventory AS pi
     ON pi.packaging_material_id = pr.packaging_material_id
-  LEFT JOIN part_details pd
+  LEFT JOIN part_details AS pd
     ON pd.packaging_material_id = pr.packaging_material_id
-  ORDER BY pr.part_name, pd.material_name, pd.lot_number, pd.warehouse_name
+  ORDER BY
+    pr.part_name,
+    pd.material_name,
+    pd.lot_number,
+    pd.warehouse_name
 `;
 
 module.exports = {
