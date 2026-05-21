@@ -23,14 +23,13 @@ const fs = require('fs');
 const path = require('path');
 const dotenv = require('dotenv');
 const {
-  logSystemInfo,
-  logSystemWarn,
   logSystemFatal,
 } = require('../utils/logging/system-logger');
 const AppError = require('../utils/AppError');
 
 const ENV_CONTEXT = 'env-loader';
 const ALLOWED_ENVS = ['development', 'test', 'staging', 'production'];
+const DEBUG = process.env.DEBUG_ENV_LOADER === 'true';
 
 /**
  * Loads a secret from Docker secrets if present, otherwise falls back to the
@@ -53,15 +52,17 @@ const loadSecret = (secretName, envVarName) => {
 /**
  * Loads dotenv files based on the current NODE_ENV value.
  *
- * Load order:
- * 1. .env.defaults
- * 2. environment-specific .env.server
- * 3. environment-specific .env.database
+ * Load order (env-specific files take precedence over defaults):
+ * 1. .env.{env}.server
+ * 2. .env.{env}.database
+ * 3. .env.defaults                    // fallback values only
  *
- * Later files may override values from earlier files.
+ * Missing files are skipped silently. Set DEBUG_ENV_LOADER=true to log
+ * which files were loaded or skipped (uses console directly — runs before
+ * the app logger is initialized).
  *
  * @returns {{ env: string }} The normalized runtime environment.
- * @throws {AppError} When NODE_ENV is invalid.
+ * @throws {AppError} When NODE_ENV is invalid or cannot be normalized.
  */
 const loadEnv = () => {
   const env = process.env.NODE_ENV?.trim().toLowerCase() || 'development';
@@ -81,17 +82,9 @@ const loadEnv = () => {
   envPaths.forEach((filePath) => {
     if (fs.existsSync(filePath)) {
       dotenv.config({ path: filePath });
-      logSystemInfo('Environment file loaded', {
-        context: ENV_CONTEXT,
-        filePath,
-        env,
-      });
-    } else {
-      logSystemWarn('Environment file not found', {
-        context: ENV_CONTEXT,
-        filePath,
-        env,
-      });
+      if (DEBUG) console.info('[env-loader] loaded', { filePath, env });
+    } else if (DEBUG) {
+      console.warn('[env-loader] not found', { filePath, env });
     }
   });
 
