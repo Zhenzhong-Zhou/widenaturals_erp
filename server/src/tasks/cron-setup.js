@@ -9,6 +9,7 @@
  * Environment variables:
  *   NODE_ENV              — determines production vs development paths
  *   LOGS_DIR              — overrides default dev log directory
+ *   LOGS_DIR              — overrides default log directory (applies to all envs)
  *   BACKUP_CRON_SCHEDULE  — cron schedule expression (default: '0 2 * * *')
  *   CRON_PATH             — PATH injected into cron environment
  */
@@ -59,12 +60,13 @@ const resolveNodePath = () => {
  */
 const resolveConfig = () => {
   const isProduction = process.env.NODE_ENV === 'production';
-
-  const logsDir = isProduction
-    ? '/logs/database'
-    : path.resolve(
-        process.env.LOGS_DIR || path.join(__dirname, '../../../dev_logs')
-      );
+  
+  const logsDir = path.resolve(
+    process.env.LOGS_DIR ||
+    (isProduction
+      ? path.join(__dirname, '../../../logs/database')
+      : path.join(__dirname, '../../../dev_logs'))
+  );
 
   // Updated path — backup-scheduler.js replaced by run-backup.js
   const backupJobPath = path.resolve(
