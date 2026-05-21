@@ -1,32 +1,41 @@
 /**
  * @file s3-client.js
- * @description Singleton AWS S3 client for the WideNaturals ERP system.
+ * @description Lazy singleton AWS S3 client for the WideNaturals ERP system.
  *
- * Used by services that interact with S3 (SKU images, document storage, etc.).
- * Credentials and region are resolved from environment variables that have
- * been validated upstream by `validateEnv` during bootstrap.
+ * Used by services that interact with S3, such as SKU images and document
+ * storage. Credentials and region are resolved from environment variables
+ * only when the S3 client is first requested.
  *
- * AWS SDK v3 uses NodeHttpHandler under the hood, which enables HTTP keep-alive
- * by default, so a single shared client instance reuses sockets across requests.
+ * Lazy construction keeps environment reads out of module load time. This
+ * allows standalone scripts to import this module before calling loadEnv(),
+ * as long as loadEnv() / validateEnv() run before getS3Client() is called.
+ *
+ * AWS SDK v3 uses NodeHttpHandler under the hood, which enables HTTP
+ * keep-alive by default, so a single shared client instance reuses sockets
+ * across requests.
  */
 
 const { S3Client } = require('@aws-sdk/client-s3');
 const { readRequiredEnv } = require('../config/env');
 
 /**
- * Constructs the singleton S3 client.
+ * Cached singleton S3 client instance.
+ *
+ * @type {S3Client | null}
+ */
+let s3Client = null;
+
+/**
+ * Constructs a new S3 client.
  *
  * Wrapped in a function so the `@ts-ignore` needed for the AWS SDK's
- * rest-tuple constructor signature (`...args: __CheckOptionalClientConfig<S3ClientConfig>`)
- * stays scoped to this expression. The explicit `@returns {S3Client}` anchors
- * the return type, which keeps consumers from seeing `S3Client | {}` when
- * WebStorm's JSDoc inspector loses the type through the suppressed line.
+ * rest-tuple constructor signature stays scoped to this expression.
  *
  * @returns {S3Client}
  */
 const buildS3Client = () => {
-  // @ts-ignore -- AWS SDK v3 rest-tuple constructor signature confuses
-  // WebStorm's JSDoc inspector. tsc accepts this call as written.
+  // @ts-ignore -- AWS SDK v3 rest-tuple constructor signature can confuse
+  // WebStorm's JSDoc inspector in CommonJS. tsc accepts this call as written.
   return new S3Client({
     region: readRequiredEnv('AWS_REGION'),
     credentials: {
@@ -37,11 +46,22 @@ const buildS3Client = () => {
 };
 
 /**
- * Shared S3 client instance. Reuse across the app — do not construct new
- * S3Client instances per request, as that defeats connection pooling.
+ * Returns the singleton S3 client, constructing it on first call.
  *
- * @type {S3Client}
+ * Reuse this client across the app. Do not construct new S3Client instances
+ * per request, because that defeats connection pooling.
+ *
+ * @returns {S3Client}
  */
-const s3Client = buildS3Client();
+const getS3Client = () => {
+  if (s3Client) {
+    return s3Client;
+  }
+  
+  s3Client = buildS3Client();
+  return s3Client;
+};
 
-module.exports = s3Client;
+module.exports = {
+  getS3Client,
+};

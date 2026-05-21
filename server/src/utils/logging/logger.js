@@ -144,7 +144,7 @@ const handleRotationAndUpload = (transport, prefix) => {
           const { uploadFileToS3 } = require('../aws-s3-service');
           const key = `${prefix}/${path.basename(gzFile)}`;
           
-          await uploadFileToS3(gzFile, bucketName, key);
+          await uploadFileToS3(gzFile, bucketName, key, 'application/gzip');
           
           await fs.promises.unlink(oldFile);
           await fs.promises.unlink(gzFile);
