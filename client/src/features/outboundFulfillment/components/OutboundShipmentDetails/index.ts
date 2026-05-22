@@ -1,4 +1,5 @@
 export { default as OutboundShipmentHeaderSection } from './OutboundShipmentHeaderSection';
+export { default as TrackingNumbersSection } from './TrackingNumbersSection';
 export {
   outboundFulfillmentTableColumns,
   outboundFulfillmentBatchColumns,

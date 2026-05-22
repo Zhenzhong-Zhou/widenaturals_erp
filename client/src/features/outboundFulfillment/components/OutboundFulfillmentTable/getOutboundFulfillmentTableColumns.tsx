@@ -60,9 +60,20 @@ export const getOutboundFulfillmentTableColumns = (
     },
     {
       id: 'trackingNumber',
-      label: 'Tracking Number',
-      minWidth: 140,
-      renderCell: (row) => formatLabel(row.trackingNumber) ?? '—',
+      label: 'Tracking',
+      minWidth: 200,
+      sortable: true,
+      renderCell: (row) => {
+        if (!row.primaryTrackingNumber) return '—';
+        
+        const carrierSuffix = row.primaryCarrier
+          ? ` (${row.primaryCarrier})`
+          : '';
+        const moreSuffix =
+          row.trackingCount > 1 ? ` +${row.trackingCount - 1} more` : '';
+        
+        return `${row.primaryTrackingNumber}${carrierSuffix}${moreSuffix}`;
+      },
     },
     {
       id: 'shippedAt',

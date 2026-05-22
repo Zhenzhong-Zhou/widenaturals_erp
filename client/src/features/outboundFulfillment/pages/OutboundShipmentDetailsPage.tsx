@@ -11,7 +11,10 @@ import {
   NoDataFound,
   SkeletonExpandedRow,
 } from '@components/index';
-import { OutboundShipmentHeaderSection } from '@features/outboundFulfillment/components/OutboundShipmentDetails';
+import {
+  OutboundShipmentHeaderSection,
+  TrackingNumbersSection,
+} from '@features/outboundFulfillment/components/OutboundShipmentDetails';
 import ConfirmFulfillmentButton from '@features/outboundFulfillment/components/ConfirmFulfillmentButton';
 import CompleteManualFulfillmentButton from '@features/outboundFulfillment/components/CompleteManualFulfillmentButton';
 import { useOutboundShipmentDetails } from '@hooks/index';
@@ -236,6 +239,10 @@ const OutboundShipmentDetailsPage: FC = () => {
           {/* Outbound Shipment Details Header Info */}
           <OutboundShipmentHeaderSection
             orderNumber={orderNumber}
+            flattened={shipmentHeader}
+          />
+          
+          <TrackingNumbersSection
             flattened={shipmentHeader}
           />
 
