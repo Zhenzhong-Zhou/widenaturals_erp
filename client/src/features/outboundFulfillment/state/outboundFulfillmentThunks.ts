@@ -45,11 +45,11 @@ import type {
 import { outboundFulfillmentService } from '@services/outboundFulfillmentService';
 import {
   flattenFulfillments,
+  flattenOutboundShipment,
   flattenShipmentHeader,
 } from '@features/outboundFulfillment/utils';
 import type { UiErrorPayload } from '@utils/error/uiErrorUtils';
 import { extractUiErrorPayload } from '@utils/error';
-import { flattenOutboundShipment } from '@features/outboundFulfillment/utils/flattenOutboundShipment';
 
 /**
  * Initiates outbound fulfillment for an order.

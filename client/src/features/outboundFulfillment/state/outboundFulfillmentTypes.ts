@@ -125,6 +125,10 @@ export interface OutboundFulfillmentFilters {
 /**
  * Available sort keys for outbound shipments.
  * Derived from outboundShipmentSortMap (server).
+ *
+ * Note: `trackingNumber` and `carrier` sort by the *primary* (oldest)
+ * tracking number per shipment — shipments with multiple tracking
+ * numbers use the first attached one as the sort key.
  */
 export type OutboundFulfillmentSortKey =
   | 'shipmentStatus'
@@ -137,10 +141,12 @@ export type OutboundFulfillmentSortKey =
   | 'warehouseName'
   | 'deliveryMethod'
   | 'trackingNumber'
+  | 'carrier'
   | 'createdByFirstName'
   | 'createdByLastName'
   | 'updatedByFirstName'
-  | 'updatedByLastName';
+  | 'updatedByLastName'
+  | 'defaultNaturalSort';
 
 /**
  * Query request params for outbound fulfillment fetch.
@@ -169,10 +175,12 @@ export interface OutboundShipmentRecord {
   deliveryMethod: {
     id: string;
     name: string;
+    requiresTracking: boolean;
   } | null;
-  trackingNumber: {
-    id: string;
-    number: string;
+  tracking: {
+    primaryNumber: string;
+    primaryCarrier: NullableString;
+    count: number;
   } | null;
   status: {
     id: string;
@@ -206,47 +214,45 @@ export type PaginatedOutboundFulfillmentApiResponse =
 export interface FlattenedOutboundShipmentRow {
   /** Shipment */
   shipmentId: string;
-
+  
   /** Order */
   orderId: string;
   orderNumber: string;
-
+  
   /** Warehouse */
   warehouseId: string;
   warehouseName: NullableString;
-
+  
   /** Delivery method */
   deliveryMethodId: NullableString;
   deliveryMethodName: NullableString;
-
-  /** Tracking */
-  trackingId: NullableString;
-  trackingNumber: NullableString;
-
+  deliveryMethodRequiresTracking: boolean;
+  
+  /** Tracking summary (primary + count) */
+  primaryTrackingNumber: NullableString;
+  primaryCarrier: NullableString;
+  trackingCount: number;
+  
   /** Status */
   statusId: string;
   statusCode: string;
   statusName: string;
-
+  
   /** Dates */
   shippedAt: NullableString;
   expectedDelivery: NullableString;
-
+  
   /** Notes & metadata */
   notes: NullableString;
   shipmentDetails: Record<string, any> | null;
-
-  /** Audit */
-  /** ISO timestamp when the SKU was created. */
+  
+  /** Audit — ISO timestamp when the shipment was created. */
   createdAt: string;
-
-  /** Display name of the user/system who created the SKU. */
+  /** Display name of the user/system who created the shipment. */
   createdBy: string;
-
-  /** ISO timestamp when the SKU was last updated. */
+  /** ISO timestamp when the shipment was last updated. */
   updatedAt: string;
-
-  /** Display name of the user/system who last updated the SKU. */
+  /** Display name of the user/system who last updated the shipment. */
   updatedBy: string;
 }
 
@@ -297,7 +303,7 @@ export interface ShipmentHeader {
   expectedDeliveryDate: NullableString;
   notes: NullableString;
   details: NullableString;
-  tracking: TrackingInfo | null;
+  trackingNumbers: TrackingNumberDetail[];
   audit: GenericAudit;
 }
 
@@ -306,23 +312,29 @@ export interface DeliveryMethod {
   id: string;
   name: string;
   isPickup: boolean;
+  requiresTracking: boolean;
   estimatedTime: string | { days: number; hours?: number } | null;
 }
 
-/** Tracking info (nullable in your response) */
-export interface TrackingInfo {
+/**
+ * Tracking number record. One shipment can carry many (e.g. split parcels,
+ * multiple BOL on freight orders). Empty array on shipments with no tracking
+ * attached yet.
+ */
+export interface TrackingNumberDetail {
   id: string;
-  number: string;
+  number: NullableString;
   carrier: string;
-  serviceName: string;
+  serviceName: NullableString;
   bolNumber: NullableString;
   freightType: NullableString;
   notes: NullableString;
   shippedDate: NullableString;
   status: {
     id: string;
-    name: string;
-  };
+    name: NullableString;
+  } | null;
+  createdAt: string;
 }
 
 /** Fulfillment info */
@@ -440,20 +452,7 @@ export type OutboundShipmentDetailsState =
  *  - Warehouse and delivery method information
  *  - Shipment status and scheduling fields
  *  - Audit metadata (created/updated by users)
- *  - Tracking details (carrier, service, BOL, freight type)
- *
- * Used primarily for:
- *  - Outbound shipment detail views
- *  - Table header summaries and metadata sections
- */
-/**
- * Represents a **flattened outbound shipment header** for display and data binding.
- *
- * Combines key shipment-level attributes, including:
- *  - Warehouse and delivery method information
- *  - Shipment status and scheduling fields
- *  - Audit metadata (created/updated by users)
- *  - Tracking details (carrier, service, BOL, freight type)
+ *  - Tracking numbers (1:N — shipments can have multiple)
  *
  * Used primarily for:
  *  - Outbound shipment detail views
@@ -464,41 +463,48 @@ export interface FlattenedShipmentHeader {
   orderId: string;
   warehouseId: NullableString;
   warehouseName: NullableString;
-
+  
   /** Delivery method information */
   deliveryMethodId: NullableString;
   deliveryMethodName: NullableString;
   deliveryMethodIsPickup: boolean | null;
+  deliveryMethodRequiresTracking: boolean;
   deliveryMethodEstimatedTime: NullableString;
-
+  
   /** Shipment status */
   statusId: NullableString;
   statusCode: NullableString;
   statusName: NullableString;
-
+  
   /** Scheduling and notes */
   shippedAt: NullableString;
   expectedDeliveryDate: NullableString;
   notes: NullableString;
   details: NullableString;
-
+  
   /** Audit info */
   createdAt: NullableString;
   createdByName: NullableString;
   updatedAt: NullableString;
   updatedByName: NullableString;
+  
+  /** Tracking numbers (1:N — empty array if none attached) */
+  trackingNumbers: FlattenedTrackingRow[];
+}
 
-  /** Tracking info */
-  trackingId: NullableString;
+/** Flat per-tracking-number row for detail rendering */
+export interface FlattenedTrackingRow {
+  trackingId: string;
   trackingNumber: NullableString;
-  trackingCarrier: NullableString;
-  trackingService: NullableString;
-  trackingBolNumber: NullableString;
-  trackingFreightType: NullableString;
-  trackingNotes: NullableString;
-  trackingShippedDate: NullableString;
-  trackingStatusId: NullableString;
-  trackingStatusName: NullableString;
+  carrier: string;
+  serviceName: NullableString;
+  bolNumber: NullableString;
+  freightType: NullableString;
+  notes: NullableString;
+  shippedDate: NullableString;
+  statusId: NullableString;
+  statusName: NullableString;
+  createdAt: string;
 }
 
 /** Batch-only type for the mini table */

@@ -10,9 +10,10 @@ import type {
  * UI-friendly `FlattenedShipmentHeader`.
  *
  * This transformation:
- * - Normalizes deeply nested relations (warehouse, delivery method, status, tracking)
+ * - Normalizes deeply nested relations (warehouse, delivery method, status)
  * - Converts optional sub-objects into nullable scalar fields
- * - Preserves audit and tracking metadata for display
+ * - Maps the trackingNumbers array (1:N) to flat per-tracking rows for display
+ * - Preserves audit and tracking metadata
  *
  * Design notes:
  * - Intended to run **once** at the thunk / ingestion boundary
@@ -26,50 +27,55 @@ export const flattenShipmentHeader = (
   header: ShipmentHeader | null | undefined
 ): FlattenedShipmentHeader | null => {
   if (!header) return null;
-
+  
   return {
     shipmentId: header.shipmentId,
     orderId: header.orderId,
     warehouseId: header.warehouse?.id ?? null,
     warehouseName: header.warehouse?.name ?? null,
-
+    
     // delivery method
     deliveryMethodId: header.deliveryMethod?.id ?? null,
     deliveryMethodName: header.deliveryMethod?.name ?? null,
     deliveryMethodIsPickup: header.deliveryMethod?.isPickup ?? null,
+    deliveryMethodRequiresTracking:
+      header.deliveryMethod?.requiresTracking ?? false,
     deliveryMethodEstimatedTime: header.deliveryMethod?.estimatedTime
       ? typeof header.deliveryMethod.estimatedTime === 'object'
         ? `${header.deliveryMethod.estimatedTime.days} days`
         : String(header.deliveryMethod.estimatedTime)
       : null,
-
+    
     // shipment status
     statusId: header.status?.id ?? null,
     statusCode: header.status?.code ?? null,
     statusName: header.status?.name ?? null,
-
+    
     shippedAt: header.shippedAt,
     expectedDeliveryDate: header.expectedDeliveryDate,
     notes: header.notes,
     details: header.details,
-
+    
     // audit
     createdAt: header.audit?.createdAt ?? null,
     createdByName: header.audit?.createdBy?.name ?? null,
     updatedAt: header.audit?.updatedAt ?? null,
     updatedByName: header.audit?.updatedBy?.name ?? null,
-
-    // tracking
-    trackingId: header.tracking?.id ?? null,
-    trackingNumber: header.tracking?.number ?? null,
-    trackingCarrier: header.tracking?.carrier ?? null,
-    trackingService: header.tracking?.serviceName ?? null,
-    trackingBolNumber: header.tracking?.bolNumber ?? null,
-    trackingFreightType: header.tracking?.freightType ?? null,
-    trackingNotes: header.tracking?.notes ?? null,
-    trackingShippedDate: header.tracking?.shippedDate ?? null,
-    trackingStatusId: header.tracking?.status?.id ?? null,
-    trackingStatusName: header.tracking?.status?.name ?? null,
+    
+    // tracking numbers (1:N — empty array when none attached)
+    trackingNumbers: (header.trackingNumbers ?? []).map((t) => ({
+      trackingId: t.id,
+      trackingNumber: t.number,
+      carrier: t.carrier,
+      serviceName: t.serviceName,
+      bolNumber: t.bolNumber,
+      freightType: t.freightType,
+      notes: t.notes,
+      shippedDate: t.shippedDate,
+      statusId: t.status?.id ?? null,
+      statusName: t.status?.name ?? null,
+      createdAt: t.createdAt,
+    })),
   };
 };
 
