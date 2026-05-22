@@ -637,7 +637,7 @@ const SORTABLE_FIELDS = {
     defaultNaturalSort: 'o.created_at',
   },
   outboundShipmentSortMap: {
-    // Shipment-level fields (FROM outbound_shipments os)
+    // Shipment-level
     shipmentId: 'os.id',
     shipmentStatus: 'ss.name',
     shipmentStatusCode: 'ss.code',
@@ -645,28 +645,29 @@ const SORTABLE_FIELDS = {
     expectedDeliveryDate: 'os.expected_delivery_date',
     createdAt: 'os.created_at',
     updatedAt: 'os.updated_at',
-
-    // Order-level fields (FROM orders o)
+    
+    // Order-level
     orderId: 'os.order_id',
     orderNumber: 'o.order_number',
-
-    // Warehouse-level fields (FROM warehouses w)
+    
+    // Warehouse
     warehouseName: 'w.name',
-
-    // Delivery method (FROM delivery_methods dm)
+    
+    // Delivery method
     deliveryMethod: 'dm.method_name',
-
-    // Tracking info (FROM tracking_numbers tn)
+    
+    // Tracking (resolves to primary/oldest tracking per shipment via LATERAL)
     trackingNumber: 'tn.tracking_number',
-
-    // Audit fields (FROM users u1/u2)
+    carrier: 'tn.carrier',
+    
+    // Audit
     createdByFirstName: 'u1.firstname',
     createdByLastName: 'u1.lastname',
     updatedByFirstName: 'u2.firstname',
     updatedByLastName: 'u2.lastname',
-
-    // Default fallback
-    defaultNaturalSort: 'os.created_at',
+    
+    // Default — must be array for stable pagination tie-breakers
+    defaultNaturalSort: ['os.created_at', 'os.id'],
   },
   statusSortMap: {
     name: 'LOWER(s.name)',

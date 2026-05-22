@@ -10,7 +10,8 @@
  * Exports:
  *  - insertOutboundShipmentsBulk          — bulk upsert with conflict resolution
  *  - getShipmentByShipmentId              — fetch single shipment by id
- *  - updateOutboundShipmentStatus         — bulk status update by id array
+ *  - markOutboundShipmentsShipped         — bulk transition to shipped (stamps shipped_at)
+ *  - updateOutboundShipmentStatus         — bulk generic status update (no shipped_at stamp)
  *  - getPaginatedOutboundShipmentRecords  — paginated list with filtering and sorting
  *  - getShipmentDetailsById               — full detail fetch with fulfillment and batch joins
  */
@@ -35,6 +36,7 @@ const {
   OUTBOUND_SHIPMENT_CONFLICT_COLUMNS,
   OUTBOUND_SHIPMENT_UPDATE_STRATEGIES,
   OUTBOUND_SHIPMENT_GET_BY_ID_QUERY,
+  OUTBOUND_SHIPMENT_MARK_SHIPPED_QUERY,
   OUTBOUND_SHIPMENT_UPDATE_STATUS_QUERY,
   OUTBOUND_SHIPMENT_TABLE,
   OUTBOUND_SHIPMENT_JOINS,
@@ -42,6 +44,8 @@ const {
   buildOutboundShipmentPaginatedQuery,
   OUTBOUND_SHIPMENT_DETAILS_QUERY,
 } = require('./queries/outbound-shipment-queries');
+
+const CONTEXT = 'outbound-shipment-repository';
 
 // ─── Insert / Upsert ──────────────────────────────────────────────────────────
 
@@ -51,7 +55,11 @@ const {
  * On conflict matching order_id + warehouse_id, overwrites status and
  * delivery fields, merges notes, refreshes timestamps.
  *
- * @param {Array<Object>}              shipments - Validated shipment objects to insert.
+ * Tracking numbers are attached separately via tracking-numbers-repository —
+ * they live on their own table with a back-reference to outbound_shipments
+ * (1:N relationship).
+ *
+ * @param {Array<Object>} shipments - Validated shipment objects to insert.
  * @param {PoolClient}    client    - DB client for transactional context.
  *
  * @returns {Promise<Array<Object>>} Inserted or updated shipment records.
@@ -59,14 +67,13 @@ const {
  */
 const insertOutboundShipmentsBulk = async (shipments, client) => {
   if (!Array.isArray(shipments) || shipments.length === 0) return [];
-
-  const context = 'outbound-shipment-repository/insertOutboundShipmentsBulk';
-
+  
+  const context = `${CONTEXT}/insertOutboundShipmentsBulk`;
+  
   const rows = shipments.map((s) => [
     s.order_id,
     s.warehouse_id,
-    s.delivery_method_id ?? null,
-    s.tracking_number_id ?? null,
+    s.delivery_method_id,
     s.status_id,
     s.shipped_at ?? null,
     s.expected_delivery_date ?? null,
@@ -76,9 +83,9 @@ const insertOutboundShipmentsBulk = async (shipments, client) => {
     s.updated_by ?? null,
     null, // updated_at — null at insert time
   ]);
-
+  
   validateBulkInsertRows(rows, OUTBOUND_SHIPMENT_INSERT_COLUMNS.length);
-
+  
   try {
     return await bulkInsert(
       'outbound_shipments',
@@ -111,15 +118,15 @@ const insertOutboundShipmentsBulk = async (shipments, client) => {
  *
  * Returns null if no shipment exists for the given ID.
  *
- * @param {string}                  shipmentId - UUID of the shipment.
+ * @param {string}     shipmentId - UUID of the shipment.
  * @param {PoolClient} client     - DB client for transactional context.
  *
  * @returns {Promise<Object|null>} Shipment row, or null if not found.
  * @throws  {AppError}             Normalized database error if the query fails.
  */
 const getShipmentByShipmentId = async (shipmentId, client) => {
-  const context = 'outbound-shipment-repository/getShipmentByShipmentId';
-
+  const context = `${CONTEXT}/getShipmentByShipmentId`;
+  
   try {
     const { rows } = await query(
       OUTBOUND_SHIPMENT_GET_BY_ID_QUERY,
@@ -141,18 +148,68 @@ const getShipmentByShipmentId = async (shipmentId, client) => {
   }
 };
 
+// ─── Mark Shipped ─────────────────────────────────────────────────────────────
+
+/**
+ * Marks multiple outbound shipments as shipped — stamps shipped_at = NOW().
+ *
+ * Use this only for transitions into the "Shipped" lifecycle state. For all
+ * other status transitions (Cancelled, OnHold, Returned, etc.) use
+ * updateOutboundShipmentStatus, which does not touch shipped_at.
+ *
+ * Returns an empty array if no shipments match — not treated as an error.
+ *
+ * @param {string}     statusId    - UUID of the "Shipped" status.
+ * @param {string}     userId      - UUID of the user performing the update.
+ * @param {string[]}   shipmentIds - UUIDs of shipments to mark shipped.
+ * @param {PoolClient} client      - DB client for transactional context.
+ *
+ * @returns {Promise<string[]>} UUIDs of updated shipment records.
+ * @throws  {AppError}          Normalized database error if the update fails.
+ */
+const markOutboundShipmentsShipped = async (
+  { statusId, userId, shipmentIds },
+  client
+) => {
+  const context = `${CONTEXT}/markOutboundShipmentsShipped`;
+  const params = [statusId, userId, shipmentIds];
+  
+  try {
+    const result = await query(
+      OUTBOUND_SHIPMENT_MARK_SHIPPED_QUERY,
+      params,
+      client
+    );
+    return result.rows.map((r) => r.id);
+  } catch (error) {
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to mark outbound shipments as shipped.',
+      meta: { statusId, shipmentIds },
+      logFn: (err) =>
+        logDbQueryError(OUTBOUND_SHIPMENT_MARK_SHIPPED_QUERY, params, err, {
+          context,
+          statusId,
+          shipmentIds,
+        }),
+    });
+  }
+};
+
 // ─── Update Status ────────────────────────────────────────────────────────────
 
 /**
  * Updates the status of multiple outbound shipments by their IDs.
  *
+ * Does NOT stamp shipped_at — use markOutboundShipmentsShipped for transitions
+ * into the "Shipped" state.
+ *
  * Returns an empty array if no shipments match — not treated as an error.
  *
- * @param {Object}                  options
- * @param {string}                  options.statusId    - UUID of the new status.
- * @param {string}                  options.userId      - UUID of the user performing the update.
- * @param {string[]}                options.shipmentIds - UUIDs of shipments to update.
- * @param {PoolClient} client              - DB client for transactional context.
+ * @param {string}     statusId    - UUID of the new status.
+ * @param {string}     userId      - UUID of the user performing the update.
+ * @param {string[]}   shipmentIds - UUIDs of shipments to update.
+ * @param {PoolClient} client      - DB client for transactional context.
  *
  * @returns {Promise<string[]>} UUIDs of updated shipment records.
  * @throws  {AppError}          Normalized database error if the update fails.
@@ -161,9 +218,9 @@ const updateOutboundShipmentStatus = async (
   { statusId, userId, shipmentIds },
   client
 ) => {
-  const context = 'outbound-shipment-repository/updateOutboundShipmentStatus';
+  const context = `${CONTEXT}/updateOutboundShipmentStatus`;
   const params = [statusId, userId, shipmentIds];
-
+  
   try {
     const result = await query(
       OUTBOUND_SHIPMENT_UPDATE_STATUS_QUERY,
@@ -191,37 +248,39 @@ const updateOutboundShipmentStatus = async (
 /**
  * Fetches paginated outbound shipment records with optional filtering and sorting.
  *
- * @param {Object}       options
- * @param {Object}       [options.filters={}]             - Field filters.
- * @param {number}       [options.page=1]                 - Page number (1-based).
- * @param {number}       [options.limit=10]               - Records per page.
- * @param {string}       [options.sortBy='os.created_at'] - Sort key (mapped via outboundShipmentSortMap).
- * @param {'ASC'|'DESC'} [options.sortOrder='DESC']       - Sort direction.
+ * The list query joins a LATERAL subquery on tracking_numbers to surface the
+ * primary (oldest) tracking number per shipment plus a total tracking_count —
+ * shipments with multiple tracking numbers do not fan out into duplicate rows.
+ *
+ * @param {Object}       [filters={}]          - Field filters.
+ * @param {number}       [page=1]              - Page number (1-based).
+ * @param {number}       [limit=10]            - Records per page.
+ * @param {string}       [sortBy='createdAt']  - Sort key (camelCase, mapped via outboundShipmentSortMap).
+ * @param {'ASC'|'DESC'} [sortOrder='DESC']    - Sort direction.
  *
  * @returns {Promise<Object>} Paginated result with rows and pagination metadata.
  * @throws  {AppError}        Normalized database error if the query fails.
  */
 const getPaginatedOutboundShipmentRecords = async ({
-  filters = {},
-  page = 1,
-  limit = 10,
-  sortBy = 'os.created_at',
-  sortOrder = 'DESC',
-}) => {
-  const context =
-    'outbound-shipment-repository/getPaginatedOutboundShipmentRecords';
-
+                                                     filters = {},
+                                                     page = 1,
+                                                     limit = 10,
+                                                     sortBy = 'createdAt',
+                                                     sortOrder = 'DESC',
+                                                   }) => {
+  const context = `${CONTEXT}/getPaginatedOutboundShipmentRecords`;
+  
   const { whereClause, params } = buildOutboundShipmentFilter(filters);
-
+  
   const sortConfig = resolveSort({
     sortBy,
     sortOrder,
     moduleKey: 'outboundShipmentSortMap',
     defaultSort: SORTABLE_FIELDS.outboundShipmentSortMap.defaultNaturalSort,
   });
-
+  
   const queryText = buildOutboundShipmentPaginatedQuery(whereClause);
-
+  
   try {
     return await paginateQuery({
       tableName: OUTBOUND_SHIPMENT_TABLE,
@@ -254,9 +313,15 @@ const getPaginatedOutboundShipmentRecords = async ({
 // ─── Detail ───────────────────────────────────────────────────────────────────
 
 /**
- * Fetches full shipment detail by ID including fulfillments, batches, and audit fields.
+ * Fetches full shipment detail by ID including fulfillments, batches, tracking
+ * numbers, and audit fields.
  *
- * Returns multiple rows per shipment — one per fulfillment/batch combination.
+ * Tracking numbers are aggregated into a single jsonb array per shipment via
+ * a LATERAL subquery — they do not fan out into separate rows. Fulfillments
+ * and shipment batches DO fan out, so the result is one row per
+ * fulfillment × batch combination, all carrying the same tracking_numbers
+ * array. Group by shipment_id in the transformer.
+ *
  * Returns an empty array if no shipment exists for the given ID.
  *
  * @param {string} shipmentId - UUID of the shipment.
@@ -265,8 +330,8 @@ const getPaginatedOutboundShipmentRecords = async ({
  * @throws  {AppError}               Normalized database error if the query fails.
  */
 const getShipmentDetailsById = async (shipmentId) => {
-  const context = 'outbound-shipment-repository/getShipmentDetailsById';
-
+  const context = `${CONTEXT}/getShipmentDetailsById`;
+  
   try {
     const { rows } = await query(OUTBOUND_SHIPMENT_DETAILS_QUERY, [shipmentId]);
     return rows;
@@ -287,6 +352,7 @@ const getShipmentDetailsById = async (shipmentId) => {
 module.exports = {
   insertOutboundShipmentsBulk,
   getShipmentByShipmentId,
+  markOutboundShipmentsShipped,
   updateOutboundShipmentStatus,
   getPaginatedOutboundShipmentRecords,
   getShipmentDetailsById,

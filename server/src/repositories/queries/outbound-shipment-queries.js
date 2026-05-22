@@ -4,16 +4,17 @@
  * outbound-shipment-repository.js.
  *
  * Exports:
- *  - OUTBOUND_SHIPMENT_INSERT_COLUMNS      — ordered column list for bulk insert
- *  - OUTBOUND_SHIPMENT_CONFLICT_COLUMNS    — upsert conflict target columns
- *  - OUTBOUND_SHIPMENT_UPDATE_STRATEGIES   — conflict update strategies
- *  - OUTBOUND_SHIPMENT_GET_BY_ID_QUERY     — fetch single shipment by id
- *  - OUTBOUND_SHIPMENT_UPDATE_STATUS_QUERY — bulk status update by id array
- *  - OUTBOUND_SHIPMENT_TABLE               — aliased table name for paginated query
- *  - OUTBOUND_SHIPMENT_JOINS               — join array for paginated query
- *  - OUTBOUND_SHIPMENT_SORT_WHITELIST      — valid sort fields for paginated query
- *  - buildOutboundShipmentPaginatedQuery   — factory for paginated list query
- *  - OUTBOUND_SHIPMENT_DETAILS_QUERY       — full detail fetch by shipment id
+ *  - OUTBOUND_SHIPMENT_INSERT_COLUMNS       — ordered column list for bulk insert
+ *  - OUTBOUND_SHIPMENT_CONFLICT_COLUMNS     — upsert conflict target columns
+ *  - OUTBOUND_SHIPMENT_UPDATE_STRATEGIES    — conflict update strategies
+ *  - OUTBOUND_SHIPMENT_GET_BY_ID_QUERY      — fetch single shipment by id
+ *  - OUTBOUND_SHIPMENT_MARK_SHIPPED_QUERY   — bulk transition to shipped (stamps shipped_at)
+ *  - OUTBOUND_SHIPMENT_UPDATE_STATUS_QUERY  — bulk generic status update (no shipped_at stamp)
+ *  - OUTBOUND_SHIPMENT_TABLE                — aliased table name for paginated query
+ *  - OUTBOUND_SHIPMENT_JOINS                — join array for paginated query (includes LATERAL for primary tracking)
+ *  - OUTBOUND_SHIPMENT_SORT_WHITELIST       — valid sort fields for paginated query
+ *  - buildOutboundShipmentPaginatedQuery    — factory for paginated list query
+ *  - OUTBOUND_SHIPMENT_DETAILS_QUERY        — full detail fetch by shipment id (tracking aggregated via LATERAL)
  */
 
 'use strict';
@@ -27,7 +28,6 @@ const OUTBOUND_SHIPMENT_INSERT_COLUMNS = [
   'order_id',
   'warehouse_id',
   'delivery_method_id',
-  'tracking_number_id',
   'status_id',
   'shipped_at',
   'expected_delivery_date',
@@ -66,7 +66,8 @@ const OUTBOUND_SHIPMENT_GET_BY_ID_QUERY = `
     dm.id                         AS delivery_method_id,
     dm.method_name                AS delivery_method_name,
     dm.is_pickup_location         AS is_pickup_location,
-    dm.estimated_time             AS delivery_estimated_time
+    dm.estimated_time             AS delivery_estimated_time,
+    dm.requires_tracking_number   AS requires_tracking_number
   FROM outbound_shipments os
   LEFT JOIN shipment_status  ss ON ss.id = os.status_id
   LEFT JOIN delivery_methods dm ON dm.id = os.delivery_method_id
@@ -75,12 +76,25 @@ const OUTBOUND_SHIPMENT_GET_BY_ID_QUERY = `
 
 // ─── Update Status ────────────────────────────────────────────────────────────
 
-// $1: status_id, $2: user_id, $3: shipment_ids (UUID array)
-const OUTBOUND_SHIPMENT_UPDATE_STATUS_QUERY = `
+// For transitions to shipped (stamps shipped_at).
+// $1: status_id, $2: user_id, $3: shipment_ids
+const OUTBOUND_SHIPMENT_MARK_SHIPPED_QUERY = `
   UPDATE outbound_shipments
   SET
     status_id  = $1,
     shipped_at = NOW(),
+    updated_at = NOW(),
+    updated_by = $2
+  WHERE id = ANY($3::uuid[])
+  RETURNING id
+`;
+
+// For all other status transitions (does not stamp shipped_at).
+// $1: status_id, $2: user_id, $3: shipment_ids
+const OUTBOUND_SHIPMENT_UPDATE_STATUS_QUERY = `
+  UPDATE outbound_shipments
+  SET
+    status_id  = $1,
     updated_at = NOW(),
     updated_by = $2
   WHERE id = ANY($3::uuid[])
@@ -95,10 +109,19 @@ const OUTBOUND_SHIPMENT_JOINS = [
   'LEFT JOIN orders           o  ON os.order_id           = o.id',
   'LEFT JOIN warehouses       w  ON os.warehouse_id       = w.id',
   'LEFT JOIN delivery_methods dm ON os.delivery_method_id = dm.id',
-  'LEFT JOIN tracking_numbers tn ON os.tracking_number_id = tn.id',
   'LEFT JOIN shipment_status  ss ON os.status_id          = ss.id',
   'LEFT JOIN users            u1 ON os.created_by         = u1.id',
   'LEFT JOIN users            u2 ON os.updated_by         = u2.id',
+  `LEFT JOIN LATERAL (
+    SELECT
+      tn.tracking_number,
+      tn.carrier,
+      COUNT(*) OVER () AS tracking_count
+    FROM tracking_numbers tn
+    WHERE tn.outbound_shipment_id = os.id
+    ORDER BY tn.created_at
+    LIMIT 1
+  ) tn ON true`,
 ];
 
 const _OUTBOUND_SHIPMENT_JOINS_SQL = OUTBOUND_SHIPMENT_JOINS.join('\n  ');
@@ -120,8 +143,10 @@ const buildOutboundShipmentPaginatedQuery = (whereClause) => `
     w.name                        AS warehouse_name,
     os.delivery_method_id,
     dm.method_name                AS delivery_method,
-    os.tracking_number_id,
+    dm.requires_tracking_number,
     tn.tracking_number,
+    tn.carrier,
+    tn.tracking_count,
     os.status_id,
     ss.code                       AS status_code,
     ss.name                       AS status_name,
@@ -157,6 +182,7 @@ const OUTBOUND_SHIPMENT_DETAILS_QUERY = `
     dm.method_name                AS delivery_method_name,
     dm.is_pickup_location         AS delivery_method_is_pickup,
     dm.estimated_time             AS delivery_method_estimated_time,
+    dm.requires_tracking_number   AS delivery_method_requires_tracking,
     os.status_id                  AS shipment_status_id,
     ss.code                       AS shipment_status_code,
     ss.name                       AS shipment_status_name,
@@ -172,16 +198,7 @@ const OUTBOUND_SHIPMENT_DETAILS_QUERY = `
     os.updated_by,
     updated_by_user.firstname     AS shipment_updated_by_firstname,
     updated_by_user.lastname      AS shipment_updated_by_lastname,
-    tn.id                         AS tracking_id,
-    tn.tracking_number,
-    tn.carrier,
-    tn.service_name,
-    tn.bol_number,
-    tn.freight_type,
-    tn.custom_notes               AS tracking_notes,
-    tn.shipped_date               AS tracking_shipped_date,
-    tn.status_id                  AS tracking_status_id,
-    ts.name                       AS tracking_status_name,
+    tn_agg.tracking_numbers       AS tracking_numbers,
     of.id                         AS fulfillment_id,
     of.quantity_fulfilled,
     of.fulfilled_at,
@@ -242,10 +259,28 @@ const OUTBOUND_SHIPMENT_DETAILS_QUERY = `
   LEFT JOIN warehouses ws                       ON ws.id  = os.warehouse_id
   LEFT JOIN delivery_methods dm                 ON dm.id  = os.delivery_method_id
   LEFT JOIN shipment_status ss                  ON ss.id  = os.status_id
-  LEFT JOIN tracking_numbers tn                 ON tn.id  = os.tracking_number_id
-  LEFT JOIN status ts                           ON ts.id  = tn.status_id
   LEFT JOIN users created_by_user               ON created_by_user.id  = os.created_by
   LEFT JOIN users updated_by_user               ON updated_by_user.id  = os.updated_by
+  LEFT JOIN LATERAL (
+    SELECT jsonb_agg(
+      jsonb_build_object(
+        'id',              tn.id,
+        'tracking_number', tn.tracking_number,
+        'carrier',         tn.carrier,
+        'service_name',    tn.service_name,
+        'bol_number',      tn.bol_number,
+        'freight_type',    tn.freight_type,
+        'shipped_date',    tn.shipped_date,
+        'status_id',       tn.status_id,
+        'status_name',     ts.name,
+        'notes',           tn.custom_notes,
+        'created_at',      tn.created_at
+      ) ORDER BY tn.created_at
+    ) AS tracking_numbers
+    FROM tracking_numbers tn
+    LEFT JOIN status ts ON ts.id = tn.status_id
+    WHERE tn.outbound_shipment_id = os.id
+  ) tn_agg ON true
   LEFT JOIN order_fulfillments of               ON of.shipment_id      = os.id
   LEFT JOIN fulfillment_status fs               ON fs.id  = of.status_id
   LEFT JOIN users fulfillment_created_by_user   ON fulfillment_created_by_user.id  = of.created_by
@@ -268,6 +303,7 @@ module.exports = {
   OUTBOUND_SHIPMENT_CONFLICT_COLUMNS,
   OUTBOUND_SHIPMENT_UPDATE_STRATEGIES,
   OUTBOUND_SHIPMENT_GET_BY_ID_QUERY,
+  OUTBOUND_SHIPMENT_MARK_SHIPPED_QUERY,
   OUTBOUND_SHIPMENT_UPDATE_STATUS_QUERY,
   OUTBOUND_SHIPMENT_TABLE,
   OUTBOUND_SHIPMENT_JOINS,

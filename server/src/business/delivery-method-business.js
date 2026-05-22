@@ -93,8 +93,28 @@ const enrichDeliveryMethodRow = (row, activeStatusId) => {
   };
 };
 
+/**
+ * Asserts that a delivery method has been resolved for the order before
+ * proceeding with shipment creation.
+ *
+ * outbound_shipments.delivery_method_id is NOT NULL — without this guard,
+ * a missing method would surface as an opaque NOT NULL constraint violation
+ * from the DB layer.
+ *
+ * @param {string|null|undefined} deliveryMethodId - Resolved delivery method UUID.
+ * @throws {AppError} `validationError` — when deliveryMethodId is falsy.
+ */
+const assertDeliveryMethodResolved = (deliveryMethodId) => {
+  if (!deliveryMethodId) {
+    throw AppError.validationError(
+      'Order has no delivery method assigned — cannot create shipment.'
+    );
+  }
+};
+
 module.exports = {
   evaluateDeliveryMethodLookupAccessControl,
   enforceDeliveryMethodLookupVisibilityRules,
   enrichDeliveryMethodRow,
+  assertDeliveryMethodResolved,
 };

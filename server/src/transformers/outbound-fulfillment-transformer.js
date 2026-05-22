@@ -2,15 +2,27 @@
  * @file outbound-fulfillment-transformer.js
  * @description Transformers for outbound fulfillment and shipment records.
  *
+ * Maps raw DB rows from outbound-fulfillment-service and outbound-shipment-repository
+ * into the canonical API response shapes consumed by the frontend.
+ *
+ * Tracking handling (post-tracking refactor):
+ *  - Detail rows carry a single `tracking_numbers` jsonb array aggregated by a
+ *    LATERAL subquery on tracking_numbers. The array is identical across the
+ *    fulfillment × batch fan-out for one shipment and is read once from rows[0].
+ *  - List rows carry primary tracking summary fields (tracking_number, carrier,
+ *    tracking_count) from a separate LATERAL subquery. Shipments do not fan out
+ *    when multiple tracking numbers exist.
+ *
  * Exports:
- *   - transformFulfillmentResult               – minimal result after initial fulfillment creation
- *   - transformAdjustedFulfillmentResult       – full result after fulfillment confirmation
- *   - transformPaginatedOutboundShipmentResults – paginated shipment list
- *   - transformShipmentDetailsRows             – grouped shipment detail with fulfillments and batches
- *   - transformPickupCompletionResult          – result after manual/pickup fulfillment completion
+ *   - transformFulfillmentResult                — minimal result after initial fulfillment creation
+ *   - transformAdjustedFulfillmentResult        — full result after fulfillment confirmation
+ *   - transformPaginatedOutboundShipmentResults — paginated shipment list
+ *   - transformShipmentDetailsRows              — grouped shipment detail with tracking,
+ *                                                 fulfillments, and batches
+ *   - transformPickupCompletionResult           — result after manual/pickup fulfillment completion
  *
  * Internal helpers (not exported):
- *   - transformOutboundShipmentRow – per-row transformer for paginated shipment list
+ *   - transformOutboundShipmentRow              — per-row transformer for paginated shipment list
  *
  * All functions are pure — no logging, no AppError, no side effects.
  */
@@ -116,6 +128,10 @@ const transformAdjustedFulfillmentResult = ({
 /**
  * Transforms a single paginated outbound shipment DB row into the list view shape.
  *
+ * Tracking is surfaced from a LATERAL subquery on the underlying list query —
+ * each row carries the primary (oldest) tracking number plus a total count.
+ * Shipments with no tracking yet have tracking: null.
+ *
  * @param {Object} row
  * @returns {Object}
  */
@@ -131,10 +147,18 @@ const transformOutboundShipmentRow = (row) =>
       name: row.warehouse_name ?? null,
     },
     deliveryMethod: row.delivery_method
-      ? { id: row.delivery_method_id, name: row.delivery_method }
+      ? {
+        id: row.delivery_method_id,
+        name: row.delivery_method,
+        requiresTracking: row.requires_tracking_number ?? false,
+      }
       : null,
-    trackingNumber: row.tracking_number
-      ? { id: row.tracking_number_id, number: row.tracking_number }
+    tracking: row.tracking_number
+      ? {
+        primaryNumber: row.tracking_number,
+        primaryCarrier: row.carrier ?? null,
+        count: parseInt(row.tracking_count ?? 0, 10),
+      }
       : null,
     status: {
       id: row.status_id,
@@ -172,9 +196,9 @@ const transformPaginatedOutboundShipmentResults = (paginatedResult) =>
  */
 const transformShipmentDetailsRows = (rows) => {
   if (!rows || !rows.length) return null;
-
+  
   const first = rows[0];
-
+  
   const header = {
     shipmentId: first.shipment_id,
     orderId: first.order_id,
@@ -184,11 +208,12 @@ const transformShipmentDetailsRows = (rows) => {
     },
     deliveryMethod: first.delivery_method_id
       ? {
-          id: first.delivery_method_id,
-          name: first.delivery_method_name,
-          isPickup: first.delivery_method_is_pickup,
-          estimatedTime: first.delivery_method_estimated_time,
-        }
+        id: first.delivery_method_id,
+        name: first.delivery_method_name,
+        isPickup: first.delivery_method_is_pickup,
+        requiresTracking: first.delivery_method_requires_tracking ?? false,
+        estimatedTime: first.delivery_method_estimated_time,
+      }
       : null,
     status: {
       id: first.shipment_status_id,
@@ -213,41 +238,42 @@ const transformShipmentDetailsRows = (rows) => {
         },
       })
     ),
-    tracking: first.tracking_id
-      ? {
-          id: first.tracking_id,
-          number: first.tracking_number,
-          carrier: first.carrier,
-          serviceName: first.service_name,
-          bolNumber: first.bol_number,
-          freightType: first.freight_type,
-          notes: first.tracking_notes,
-          shippedDate: first.tracking_shipped_date,
-          status: {
-            id: first.tracking_status_id,
-            name: first.tracking_status_name,
-          },
-        }
-      : null,
+    trackingNumbers: Array.isArray(first.tracking_numbers)
+      ? first.tracking_numbers.map((t) => ({
+        id: t.id,
+        number: t.tracking_number,
+        carrier: t.carrier,
+        serviceName: t.service_name,
+        bolNumber: t.bol_number,
+        freightType: t.freight_type,
+        notes: t.notes,
+        shippedDate: t.shipped_date,
+        status:
+          t.status_id != null
+            ? { id: t.status_id, name: t.status_name }
+            : null,
+        createdAt: t.created_at,
+      }))
+      : [],
   };
-
+  
   const fulfillmentsMap = new Map();
-
+  
   for (const row of rows) {
     if (!row.fulfillment_id) continue;
-
+    
     if (!fulfillmentsMap.has(row.fulfillment_id)) {
       fulfillmentsMap.set(row.fulfillment_id, {
         fulfillmentId: row.fulfillment_id,
         quantityFulfilled: row.quantity_fulfilled,
         fulfilledBy: row.fulfilled_by
           ? {
-              id: row.fulfilled_by,
-              name: getFullName(
-                row.fulfillment_fulfilled_by_firstname,
-                row.fulfillment_fulfilled_by_lastname
-              ),
-            }
+            id: row.fulfilled_by,
+            name: getFullName(
+              row.fulfillment_fulfilled_by_firstname,
+              row.fulfillment_fulfilled_by_lastname
+            ),
+          }
           : null,
         fulfilledAt: row.fulfilled_at,
         notes: row.fulfillment_notes,
@@ -259,52 +285,52 @@ const transformShipmentDetailsRows = (rows) => {
         audit: compactAudit(makeAudit(row, { prefix: 'fulfillment_' })),
         orderItem: row.order_item_id
           ? {
-              id: row.order_item_id,
-              quantityOrdered: row.quantity_ordered,
-              ...(row.sku_id && row.product_id
+            id: row.order_item_id,
+            quantityOrdered: row.quantity_ordered,
+            ...(row.sku_id && row.product_id
+              ? {
+                sku: {
+                  id: row.sku_id,
+                  code: row.sku,
+                  barcode: row.barcode,
+                  sizeLabel: row.size_label,
+                  region: row.market_region,
+                  product: {
+                    id: row.product_id,
+                    name: getProductDisplayName(row),
+                    category: row.category,
+                  },
+                },
+              }
+              : row.packaging_material_id
                 ? {
-                    sku: {
-                      id: row.sku_id,
-                      code: row.sku,
-                      barcode: row.barcode,
-                      sizeLabel: row.size_label,
-                      region: row.market_region,
-                      product: {
-                        id: row.product_id,
-                        name: getProductDisplayName(row),
-                        category: row.category,
-                      },
-                    },
-                  }
-                : row.packaging_material_id
-                  ? {
-                      packagingMaterial: {
-                        id: row.packaging_material_id,
-                        code: row.packaging_material_code,
-                        label:
-                          row.material_snapshot_name ||
-                          formatPackagingMaterialLabel({
-                            name: row.packaging_material_name,
-                            size: row.packaging_material_size,
-                            color: row.packaging_material_color,
-                            unit: row.packaging_material_unit,
-                            length_cm: row.packaging_material_length_cm,
-                            width_cm: row.packaging_material_width_cm,
-                            height_cm: row.packaging_material_height_cm,
-                          }),
-                      },
-                    }
-                  : {}),
-            }
+                  packagingMaterial: {
+                    id: row.packaging_material_id,
+                    code: row.packaging_material_code,
+                    label:
+                      row.material_snapshot_name ||
+                      formatPackagingMaterialLabel({
+                        name: row.packaging_material_name,
+                        size: row.packaging_material_size,
+                        color: row.packaging_material_color,
+                        unit: row.packaging_material_unit,
+                        length_cm: row.packaging_material_length_cm,
+                        width_cm: row.packaging_material_width_cm,
+                        height_cm: row.packaging_material_height_cm,
+                      }),
+                  },
+                }
+                : {}),
+          }
           : null,
         batches: [],
       });
     }
-
+    
     if (row.shipment_batch_id) {
       const fulfillment = fulfillmentsMap.get(row.fulfillment_id);
       if (!fulfillment) continue;
-
+      
       const batch = {
         shipmentBatchId: row.shipment_batch_id,
         quantityShipped: row.quantity_shipped,
@@ -313,25 +339,25 @@ const transformShipmentDetailsRows = (rows) => {
         batchRegistryId: row.batch_registry_id,
         batchType: row.batch_type,
       };
-
+      
       if (row.batch_type === 'product') {
         Object.assign(batch, {
           lotNumber: row.product_lot_number,
           expiryDate: row.product_expiry_date,
         });
       }
-
+      
       if (row.batch_type === 'packaging_material') {
         Object.assign(batch, {
           lotNumber: row.material_lot_number,
           expiryDate: row.material_expiry_date,
         });
       }
-
+      
       fulfillment.batches.push(batch);
     }
   }
-
+  
   return cleanObject({
     shipment: header,
     fulfillments: Array.from(fulfillmentsMap.values()),

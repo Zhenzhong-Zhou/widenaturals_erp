@@ -16,23 +16,42 @@
 /**
  * Raw DB row returned by the paginated outbound shipment query.
  *
+ * Tracking columns come from a LATERAL subquery exposing the primary
+ * (oldest) tracking number per shipment plus a total tracking_count.
+ * Shipments with no tracking have tracking_number / carrier as null
+ * and tracking_count as '0'.
+ *
  * @typedef {Object} OutboundShipmentRow
+ *
+ * — Shipment / order / warehouse —
  * @property {string}      shipment_id
  * @property {string}      order_id
  * @property {string}      order_number
  * @property {string}      warehouse_id
  * @property {string|null} warehouse_name
+ *
+ * — Delivery method —
  * @property {string|null} delivery_method_id
  * @property {string|null} delivery_method
- * @property {string|null} tracking_number_id
+ * @property {boolean}     requires_tracking_number
+ *
+ * — Tracking (LATERAL primary + count) —
  * @property {string|null} tracking_number
+ * @property {string|null} carrier
+ * @property {string}      tracking_count      - String from COUNT() — parseInt in transformer.
+ *
+ * — Status —
  * @property {string}      status_id
  * @property {string}      status_code
  * @property {string}      status_name
+ *
+ * — Dates / details —
  * @property {string|null} shipped_at
  * @property {string|null} expected_delivery_date
  * @property {string|null} notes
  * @property {Object|null} shipment_details
+ *
+ * — Audit —
  * @property {string}      created_at
  * @property {string}      created_by
  * @property {string|null} created_by_firstname
@@ -46,8 +65,27 @@
 /**
  * Raw DB row returned by the shipment detail query.
  *
- * One row per shipment batch. Fulfillment and shipment header fields
- * repeat across rows — grouped by fulfillment_id in the transformer.
+ * Tracking numbers are aggregated into a single jsonb array via a LATERAL
+ * subquery — they do NOT fan out into separate rows. The same
+ * tracking_numbers array repeats on every row of the fulfillment × batch
+ * fan-out (and is identical across them); read it from rows[0].
+ *
+ * Fulfillment and shipment batch fields still fan out — one row per
+ * fulfillment × batch combination — and are grouped by fulfillment_id
+ * in the transformer.
+ *
+ * @typedef {Object} TrackingNumberDetail
+ * @property {string}      id
+ * @property {string|null} tracking_number
+ * @property {string}      carrier
+ * @property {string|null} service_name
+ * @property {string|null} bol_number
+ * @property {string|null} freight_type
+ * @property {string|null} shipped_date
+ * @property {string}      status_id
+ * @property {string|null} status_name
+ * @property {string|null} notes
+ * @property {string}      created_at
  *
  * @typedef {Object} ShipmentDetailRow
  *
@@ -60,6 +98,7 @@
  * @property {string|null} delivery_method_name
  * @property {boolean|null} delivery_method_is_pickup
  * @property {string|null} delivery_method_estimated_time
+ * @property {boolean}     delivery_method_requires_tracking
  * @property {string}      shipment_status_id
  * @property {string}      shipment_status_code
  * @property {string}      shipment_status_name
@@ -76,17 +115,8 @@
  * @property {string|null} shipment_updated_by_firstname
  * @property {string|null} shipment_updated_by_lastname
  *
- * — Tracking —
- * @property {string|null} tracking_id
- * @property {string|null} tracking_number
- * @property {string|null} carrier
- * @property {string|null} service_name
- * @property {string|null} bol_number
- * @property {string|null} freight_type
- * @property {string|null} tracking_notes
- * @property {string|null} tracking_shipped_date
- * @property {string|null} tracking_status_id
- * @property {string|null} tracking_status_name
+ * — Tracking (LATERAL jsonb aggregation) —
+ * @property {TrackingNumberDetail[]|null} tracking_numbers
  *
  * — Fulfillment —
  * @property {string|null} fulfillment_id

@@ -7,41 +7,48 @@
  * bulk status updates across orders/items/allocations/fulfillments/shipments,
  * and inventory activity log entry construction for fulfillment confirmations.
  *
+ * Shipment status updates dispatch internally between markOutboundShipmentsShipped
+ * (stamps shipped_at when transitioning into the Shipped state) and
+ * updateOutboundShipmentStatus (generic, no shipped_at touch) — the target code
+ * is matched against SHIPMENT_STATUS_CODES from the domain constants.
+ *
  * Exports:
  *
  * ─── Validation & Assertions ──────────────────────────────────────────────────
- *  - validateOrderIsFullyAllocated         — assert all order items are fully allocated
- *  - validateFulfillmentStatusTransition   — enforce forward-only fulfillment status transitions
- *  - validateStatusesBeforeConfirmation    — validate order/fulfillment/shipment eligibility
+ *  - validateOrderIsFullyAllocated           — assert all order items are fully allocated
+ *  - validateFulfillmentStatusTransition     — enforce forward-only fulfillment status transitions
+ *  - validateStatusesBeforeConfirmation      — validate order/fulfillment/shipment eligibility
  *  - validateStatusesBeforeManualFulfillment — validate eligibility for manual fulfillment completion
- *  - assertAllocationsValid               — assert allocation list is non-empty and well-formed
- *  - assertOrderMeta                      — assert order metadata is present and valid
- *  - assertFulfillmentsValid              — assert fulfillment list is non-empty and well-formed
- *  - assertShipmentFound                  — assert shipment record exists and has required fields
- *  - assertDeliveryMethodIsAllowed        — assert delivery method permits manual fulfillment
- *  - assertInventoryCoverage              — assert inventory records exist for allocations
- *  - assertEnrichedAllocations            — assert enriched allocations are non-empty and well-formed
- *  - assertInventoryAdjustments           — assert computed adjustment array is non-empty
- *  - assertWarehouseUpdatesApplied        — assert warehouse inventory rows were updated
- *  - assertStatusesResolved               — assert all required status IDs were resolved
- *  - assertActionTypeIdResolved           — assert inventory action type ID was resolved
- *  - assertLogsGenerated                  — assert activity log entries were generated or inserted
+ *  - assertAllocationsValid                  — assert allocation list is non-empty and well-formed
+ *  - assertOrderMeta                         — assert order metadata is present and valid
+ *  - assertFulfillmentsValid                 — assert fulfillment list is non-empty and well-formed
+ *  - assertShipmentFound                     — assert shipment record exists and has required fields
+ *  - assertDeliveryMethodResolved            — assert order has a delivery method before shipment creation
+ *  - assertDeliveryMethodIsAllowed           — assert delivery method permits manual fulfillment
+ *  - assertInventoryCoverage                 — assert inventory records exist for allocations
+ *  - assertEnrichedAllocations               — assert enriched allocations are non-empty and well-formed
+ *  - assertInventoryAdjustments              — assert computed adjustment array is non-empty
+ *  - assertWarehouseUpdatesApplied           — assert warehouse inventory rows were updated
+ *  - assertStatusesResolved                  — assert all required status IDs were resolved
+ *  - assertActionTypeIdResolved              — assert inventory action type ID was resolved
+ *  - assertLogsGenerated                     — assert activity log entries were generated or inserted
  *
  * ─── Allocation & Inventory ───────────────────────────────────────────────────
- *  - getAndLockAllocations                — fetch and lock allocation and warehouse inventory rows
- *  - assertSingleWarehouseAllocations     — assert all allocations belong to one warehouse
- *  - enrichAllocationsWithInventory       — merge current inventory state into allocation records
- *  - calculateInventoryAdjustments        — compute quantity deltas per enriched allocation
+ *  - getAndLockAllocations                   — fetch and lock allocation and warehouse inventory rows
+ *  - assertSingleWarehouseAllocations        — assert all allocations belong to one warehouse
+ *  - enrichAllocationsWithInventory          — merge current inventory state into allocation records
+ *  - calculateInventoryAdjustments           — compute quantity deltas per enriched allocation
  *
  * ─── Record Construction ──────────────────────────────────────────────────────
- *  - insertOutboundShipmentRecord         — create a single outbound shipment record
- *  - buildShipmentBatchInputs             — build shipment batch insert rows from allocations
- *  - buildFulfillmentInputsFromAllocations — build fulfillment insert rows grouped by order item
- *  - buildFulfillmentLogEntry             — build a single activity log entry for fulfillment confirmation
+ *  - insertOutboundShipmentRecord            — create a single outbound shipment record
+ *  - buildShipmentBatchInputs                — build shipment batch insert rows from allocations
+ *  - buildFulfillmentInputsFromAllocations   — build fulfillment insert rows grouped by order item
+ *  - buildFulfillmentLogEntry                — build a single activity log entry for fulfillment confirmation
  *
  * ─── Status Updates ───────────────────────────────────────────────────────────
- *  - updateAllStatuses                    — bulk update order, item, allocation, fulfillment,
- *                                           and shipment statuses within a transaction
+ *  - updateAllStatuses                       — bulk update order, item, allocation, fulfillment,
+ *                                              and shipment statuses within a transaction;
+ *                                              dispatches shipment updates by status code
  */
 
 'use strict';
@@ -60,12 +67,14 @@ const { getStatusId } = require('../config/status-cache');
 const {
   insertOutboundShipmentsBulk,
   updateOutboundShipmentStatus,
+  markOutboundShipmentsShipped,
 } = require('../repositories/outbound-shipment-repository');
 const { updateOrderStatus } = require('../repositories/order-repository');
 const {
   updateOrderFulfillmentStatus,
 } = require('../repositories/order-fulfillment-repository');
 const { uniqCompact } = require('../utils/array-utils');
+const { SHIPMENT_STATUS_CODES } = require('../utils/constants/domain/shipment-status-codes');
 
 // ---------------------------------------------------------------------------
 // Status configuration
@@ -183,17 +192,23 @@ const updateFulfillmentsStatus = async (
 /**
  * Locks shipment rows and updates their status.
  *
+ * Dispatches between markOutboundShipmentsShipped (stamps shipped_at when
+ * transitioning into the Shipped state) and updateOutboundShipmentStatus
+ * (generic, no shipped_at touch) based on newStatusCode.
+ *
  * @param {object[]} fulfillments
- * @param {string} newStatusId
- * @param {string} orderId
- * @param {string} orderNumber
- * @param {string} userId
+ * @param {string}   newStatusId
+ * @param {string|null} newStatusCode
+ * @param {string}   orderId
+ * @param {string}   orderNumber
+ * @param {string}   userId
  * @param {import('pg').PoolClient} client
- * @returns {Promise<object[]>}
+ * @returns {Promise<string[]>} Updated shipment UUIDs.
  */
 const updateShipmentsStatus = async (
   fulfillments,
   newStatusId,
+  newStatusCode,
   orderId,
   orderNumber,
   userId,
@@ -201,20 +216,21 @@ const updateShipmentsStatus = async (
 ) => {
   // Deduplicate — multiple fulfillments can share one shipment
   const shipmentIds = uniqCompact(fulfillments.map((f) => f.shipment_id));
-
+  
   if (!shipmentIds.length || !newStatusId) return [];
-
+  
   await lockRows(client, 'outbound_shipments', shipmentIds, 'FOR UPDATE', {
     stage: 'shipment-status-update',
     orderId,
     orderNumber,
     userId,
   });
-
-  return updateOutboundShipmentStatus(
-    { statusId: newStatusId, userId, shipmentIds },
-    client
-  );
+  
+  const params = { statusId: newStatusId, userId, shipmentIds };
+  
+  return newStatusCode === SHIPMENT_STATUS_CODES.SHIPPED
+    ? markOutboundShipmentsShipped(params, client)
+    : updateOutboundShipmentStatus(params, client);
 };
 
 // ---------------------------------------------------------------------------
@@ -382,7 +398,6 @@ const insertOutboundShipmentRecord = async (
         order_id,
         warehouse_id,
         delivery_method_id,
-        tracking_number_id: null,
         status_id: getStatusId('outbound_shipment_init'),
         shipped_at: null,
         expected_delivery_date: null,
@@ -785,82 +800,91 @@ const calculateInventoryAdjustments = (enrichedAllocations) =>
  * Executes bulk status updates across order, order items, allocations,
  * fulfillments, and shipments within a single transaction.
  *
- * @param {object} options
- * @param {string} options.orderId
- * @param {string} options.orderNumber
+ * Shipment status updates dispatch internally between markShipped (stamps
+ * shipped_at) and generic update based on shipmentStatusCode. Callers that
+ * are not updating shipment status (newShipmentStatusId omitted) can omit
+ * shipmentStatusCode too.
+ *
+ * @param {object}   options
+ * @param {string}   options.orderId
+ * @param {string}   options.orderNumber
  * @param {object[]} [options.allocationMeta=[]]
- * @param {string} options.newOrderStatusId
+ * @param {string}   options.newOrderStatusId
  * @param {string|null} [options.newAllocationStatusId]
  * @param {object[]} [options.fulfillments=[]]
  * @param {string|null} [options.newFulfillmentStatusId]
  * @param {string|null} [options.newShipmentStatusId]
- * @param {string} options.userId
+ * @param {string|null} [options.shipmentStatusCode]   - Required only when newShipmentStatusId is set and the target is the Shipped state; omitted callers fall through to generic status update.
+ * @param {string}   options.userId
  * @param {import('pg').PoolClient} options.client
+ *
  * @returns {Promise<{ orderStatusRow, orderItemStatusRow, inventoryAllocationStatusRow, orderFulfillmentStatusRow, shipmentStatusRow }>}
  */
 const updateAllStatuses = async ({
-  orderId,
-  orderNumber,
-  allocationMeta = [],
-  newOrderStatusId,
-  newAllocationStatusId,
-  fulfillments = [],
-  newFulfillmentStatusId,
-  newShipmentStatusId,
-  userId,
-  client,
-}) => {
+                                   orderId,
+                                   orderNumber,
+                                   allocationMeta = [],
+                                   newOrderStatusId,
+                                   newAllocationStatusId,
+                                   fulfillments = [],
+                                   newFulfillmentStatusId,
+                                   newShipmentStatusId,
+                                   shipmentStatusCode = null,
+                                   userId,
+                                   client,
+                                 }) => {
   const allocations = Array.isArray(allocationMeta) ? allocationMeta : [];
   const fulfillmentList = Array.isArray(fulfillments) ? fulfillments : [];
-
+  
   const orderStatusRow = await updateOrderStatus(client, {
     orderId,
     newStatusId: newOrderStatusId,
     updatedBy: userId,
   });
-
+  
   const orderItemStatusRow = await updateOrderItemStatusesByOrderId(client, {
     orderId,
     newStatusId: newOrderStatusId,
     updatedBy: userId,
   });
-
+  
   const inventoryAllocationStatusRow =
     allocations.length && newAllocationStatusId
       ? await updateAllocationsStatus(
-          allocations,
-          newAllocationStatusId,
-          orderId,
-          orderNumber,
-          userId,
-          client
-        )
+        allocations,
+        newAllocationStatusId,
+        orderId,
+        orderNumber,
+        userId,
+        client
+      )
       : [];
-
+  
   const orderFulfillmentStatusRow =
     fulfillmentList.length && newFulfillmentStatusId
       ? await updateFulfillmentsStatus(
-          fulfillmentList,
-          newFulfillmentStatusId,
-          orderId,
-          orderNumber,
-          userId,
-          client
-        )
+        fulfillmentList,
+        newFulfillmentStatusId,
+        orderId,
+        orderNumber,
+        userId,
+        client
+      )
       : [];
-
+  
   const shipmentStatusRow =
     fulfillmentList.length && newShipmentStatusId
       ? await updateShipmentsStatus(
-          fulfillmentList,
-          newShipmentStatusId,
-          orderId,
-          orderNumber,
-          userId,
-          client
-        )
+        fulfillmentList,
+        newShipmentStatusId,
+        shipmentStatusCode,
+        orderId,
+        orderNumber,
+        userId,
+        client
+      )
       : [];
-
+  
   return {
     orderStatusRow,
     orderItemStatusRow,
