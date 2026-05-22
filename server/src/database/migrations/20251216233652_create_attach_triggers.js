@@ -140,11 +140,6 @@ exports.up = function (knex) {
     FOR EACH ROW
     EXECUTE FUNCTION set_default_status_id();
 
-    CREATE TRIGGER set_tracking_numbers_default_status_id
-    BEFORE INSERT ON tracking_numbers
-    FOR EACH ROW
-    EXECUTE FUNCTION set_default_status_id();
-
     CREATE TRIGGER set_warehouses_default_status_id
     BEFORE INSERT ON warehouses
     FOR EACH ROW
@@ -615,11 +610,6 @@ exports.up = function (knex) {
     FOR EACH ROW
     EXECUTE FUNCTION update_status_date_if_changed();
 
-    CREATE TRIGGER trg_tracking_numbers_status_date
-    BEFORE UPDATE ON tracking_numbers
-    FOR EACH ROW
-    EXECUTE FUNCTION update_status_date_if_changed();
-
     CREATE TRIGGER trg_users_status_date
     BEFORE UPDATE ON users
     FOR EACH ROW
@@ -715,7 +705,6 @@ exports.down = function (knex) {
     DROP TRIGGER IF EXISTS set_sku_code_bases_default_status_id ON sku_code_bases;
     DROP TRIGGER IF EXISTS set_skus_default_status_id ON skus;
     DROP TRIGGER IF EXISTS set_suppliers_default_status_id ON suppliers;
-    DROP TRIGGER IF EXISTS set_tracking_numbers_default_status_id ON tracking_numbers;
     DROP TRIGGER IF EXISTS set_warehouses_default_status_id ON warehouses;
 
     -- === UPDATED_AT TRIGGERS ===
@@ -809,7 +798,6 @@ exports.down = function (knex) {
     DROP TRIGGER IF EXISTS trg_sku_code_bases_status_date ON sku_code_bases;
     DROP TRIGGER IF EXISTS trg_skus_status_date ON skus;
     DROP TRIGGER IF EXISTS trg_suppliers_status_date ON suppliers;
-    DROP TRIGGER IF EXISTS trg_tracking_numbers_status_date ON tracking_numbers;
     DROP TRIGGER IF EXISTS trg_users_status_date ON users;
     DROP TRIGGER IF EXISTS trg_warehouses_status_date ON warehouses;
     DROP TRIGGER IF EXISTS trg_warehouse_inventory_status_date ON warehouse_inventory;

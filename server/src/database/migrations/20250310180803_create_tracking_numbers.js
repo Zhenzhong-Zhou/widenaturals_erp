@@ -17,9 +17,6 @@ exports.up = async function (knex) {
     table.text('custom_notes').nullable();
     table.date('shipped_date').nullable();
     
-    table.uuid('status_id').notNullable().references('id').inTable('status');
-    table.timestamp('status_date', { useTz: true }).defaultTo(knex.fn.now());
-    
     table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
     table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
     table.uuid('created_by').references('id').inTable('users');
@@ -31,15 +28,20 @@ exports.up = async function (knex) {
     
     table.index('outbound_shipment_id');
     table.index('tracking_number');
-    table.index('status_id');
   });
   
   await knex.raw(`
     ALTER TABLE tracking_numbers
     ADD CONSTRAINT check_tracking_number_generic_format
+    CHECK (tracking_number ~ '^[A-Z0-9\\-]{8,30}$' OR tracking_number IS NULL)
+  `);
+  
+  await knex.raw(`
+    ALTER TABLE tracking_numbers
+    ADD CONSTRAINT check_freight_type
     CHECK (
-      tracking_number ~* '^[A-Z0-9\\-]{8,30}$' OR tracking_number IS NULL
-    );
+      freight_type IN ('PARCEL', 'LTL', 'FTL', 'AIR', 'OCEAN', 'COURIER')
+      OR freight_type IS NULL);
   `);
 };
 /**
