@@ -42,8 +42,9 @@ const {
   OUTBOUND_SHIPMENT_JOINS,
   OUTBOUND_SHIPMENT_SORT_WHITELIST,
   buildOutboundShipmentPaginatedQuery,
-  OUTBOUND_SHIPMENT_DETAILS_QUERY,
+  OUTBOUND_SHIPMENT_DETAILS_QUERY, GET_OUTBOUND_SHIPMENT_FOR_TRACKING_ATTACH,
 } = require('./queries/outbound-shipment-queries');
+const AppError = require('../utils/AppError');
 
 const CONTEXT = 'outbound-shipment-repository';
 
@@ -349,6 +350,48 @@ const getShipmentDetailsById = async (shipmentId) => {
   }
 };
 
+/**
+ * Fetches outbound shipment context required before attaching tracking
+ * information.
+ *
+ * Includes shipment identity, order/warehouse references, current status, and
+ * delivery-method rules used by the tracking-number service for validation.
+ *
+ * Returns null if no shipment exists for the given ID.
+ *
+ * @param {string} shipmentId - UUID of the outbound shipment.
+ * @param {object} [client] - Optional database client/transaction client.
+ *
+ * @returns {Promise<OutboundShipmentTrackingAttachRow|null>}
+ *
+ * @throws {AppError} Normalized database error if the query fails.
+ */
+const getOutboundShipmentForTrackingAttach = async (shipmentId, client) => {
+  const context = `${CONTEXT}/getOutboundShipmentForTrackingAttach`;
+
+  try {
+    const { rows } = await query(
+      GET_OUTBOUND_SHIPMENT_FOR_TRACKING_ATTACH,
+      [shipmentId],
+      client
+    );
+    
+    if (rows.length === 0) return null;
+    
+    return rows[0];
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    return handleDbError(error, {
+      context,
+      logFn: (err) =>
+        logDbQueryError(GET_OUTBOUND_SHIPMENT_FOR_TRACKING_ATTACH,[shipmentId], err, {
+          context,
+          shipmentId,
+        }),
+    });
+  }
+};
+
 module.exports = {
   insertOutboundShipmentsBulk,
   getShipmentByShipmentId,
@@ -356,4 +399,5 @@ module.exports = {
   updateOutboundShipmentStatus,
   getPaginatedOutboundShipmentRecords,
   getShipmentDetailsById,
+  getOutboundShipmentForTrackingAttach,
 };

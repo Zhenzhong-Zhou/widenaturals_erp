@@ -4,17 +4,18 @@
  * outbound-shipment-repository.js.
  *
  * Exports:
- *  - OUTBOUND_SHIPMENT_INSERT_COLUMNS       — ordered column list for bulk insert
- *  - OUTBOUND_SHIPMENT_CONFLICT_COLUMNS     — upsert conflict target columns
- *  - OUTBOUND_SHIPMENT_UPDATE_STRATEGIES    — conflict update strategies
- *  - OUTBOUND_SHIPMENT_GET_BY_ID_QUERY      — fetch single shipment by id
- *  - OUTBOUND_SHIPMENT_MARK_SHIPPED_QUERY   — bulk transition to shipped (stamps shipped_at)
- *  - OUTBOUND_SHIPMENT_UPDATE_STATUS_QUERY  — bulk generic status update (no shipped_at stamp)
- *  - OUTBOUND_SHIPMENT_TABLE                — aliased table name for paginated query
- *  - OUTBOUND_SHIPMENT_JOINS                — join array for paginated query (includes LATERAL for primary tracking)
- *  - OUTBOUND_SHIPMENT_SORT_WHITELIST       — valid sort fields for paginated query
- *  - buildOutboundShipmentPaginatedQuery    — factory for paginated list query
- *  - OUTBOUND_SHIPMENT_DETAILS_QUERY        — full detail fetch by shipment id (tracking aggregated via LATERAL)
+ *  - OUTBOUND_SHIPMENT_INSERT_COLUMNS              — ordered column list for bulk insert
+ *  - OUTBOUND_SHIPMENT_CONFLICT_COLUMNS            — upsert conflict target columns
+ *  - OUTBOUND_SHIPMENT_UPDATE_STRATEGIES           — conflict update strategies
+ *  - OUTBOUND_SHIPMENT_GET_BY_ID_QUERY             — fetch a single shipment by id
+ *  - OUTBOUND_SHIPMENT_MARK_SHIPPED_QUERY          — bulk transition to shipped and stamp shipped_at
+ *  - OUTBOUND_SHIPMENT_UPDATE_STATUS_QUERY         — bulk generic status update without shipped_at stamp
+ *  - GET_OUTBOUND_SHIPMENT_FOR_TRACKING_ATTACH     — fetch shipment context for tracking-number attachment
+ *  - OUTBOUND_SHIPMENT_TABLE                       — aliased table name for paginated query
+ *  - OUTBOUND_SHIPMENT_JOINS                       — join array for paginated query, including primary tracking lookup
+ *  - OUTBOUND_SHIPMENT_SORT_WHITELIST              — valid sort fields for paginated query
+ *  - buildOutboundShipmentPaginatedQuery           — factory for paginated shipment list query
+ *  - OUTBOUND_SHIPMENT_DETAILS_QUERY               — full detail fetch by shipment id
  */
 
 'use strict';
@@ -298,6 +299,30 @@ const OUTBOUND_SHIPMENT_DETAILS_QUERY = `
   WHERE os.id = $1
 `;
 
+// ─── Tracking Attachment ──────────────────────────────────────────────────────
+
+// Fetch outbound shipment context before attaching tracking information.
+// Returns one row with shipment status and delivery-method tracking rules.
+// $1: shipment_id (UUID)
+const GET_OUTBOUND_SHIPMENT_FOR_TRACKING_ATTACH = `
+  SELECT
+    os.id,
+    os.order_id,
+    os.warehouse_id,
+    os.delivery_method_id,
+    os.status_id,
+    ss.code         AS status_code,
+    ss.name         AS status_name,
+    dm.method_name,
+    dm.is_pickup_location,
+    dm.requires_tracking_number
+  FROM outbound_shipments os
+  INNER JOIN shipment_status ss   ON ss.id = os.status_id
+  INNER JOIN delivery_methods dm  ON dm.id = os.delivery_method_id
+  WHERE os.id = $1
+  LIMIT 1;
+`;
+
 module.exports = {
   OUTBOUND_SHIPMENT_INSERT_COLUMNS,
   OUTBOUND_SHIPMENT_CONFLICT_COLUMNS,
@@ -310,4 +335,5 @@ module.exports = {
   OUTBOUND_SHIPMENT_SORT_WHITELIST,
   buildOutboundShipmentPaginatedQuery,
   OUTBOUND_SHIPMENT_DETAILS_QUERY,
+  GET_OUTBOUND_SHIPMENT_FOR_TRACKING_ATTACH,
 };

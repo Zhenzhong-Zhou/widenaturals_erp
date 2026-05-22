@@ -1,9 +1,11 @@
 /**
  * @file outbound-fulfillment-transformer.js
- * @description Transformers for outbound fulfillment and shipment records.
+ * @description Transformers for outbound fulfillment, outbound shipment, and
+ * tracking-related records.
  *
- * Maps raw DB rows from outbound-fulfillment-service and outbound-shipment-repository
- * into the canonical API response shapes consumed by the frontend.
+ * Maps raw DB rows from outbound-fulfillment-service and
+ * outbound-shipment-repository into canonical API/business response shapes
+ * consumed by the frontend and service layer.
  *
  * Tracking handling (post-tracking refactor):
  *  - Detail rows carry a single `tracking_numbers` jsonb array aggregated by a
@@ -12,19 +14,34 @@
  *  - List rows carry primary tracking summary fields (tracking_number, carrier,
  *    tracking_count) from a separate LATERAL subquery. Shipments do not fan out
  *    when multiple tracking numbers exist.
+ *  - Tracking-attach rows are transformed into a compact shipment context used
+ *    by the tracking-number service for warehouse, status, and delivery-method
+ *    validation.
+ *  - Tracking-number create results are transformed into a lean `{ count, ids }`
+ *    response after successful insert.
  *
  * Exports:
- *   - transformFulfillmentResult                — minimal result after initial fulfillment creation
- *   - transformAdjustedFulfillmentResult        — full result after fulfillment confirmation
- *   - transformPaginatedOutboundShipmentResults — paginated shipment list
- *   - transformShipmentDetailsRows              — grouped shipment detail with tracking,
- *                                                 fulfillments, and batches
- *   - transformPickupCompletionResult           — result after manual/pickup fulfillment completion
+ *   - transformFulfillmentResult
+ *       Minimal result after initial fulfillment creation.
+ *   - transformAdjustedFulfillmentResult
+ *       Full result after fulfillment confirmation.
+ *   - transformPaginatedOutboundShipmentResults
+ *       Paginated shipment list.
+ *   - transformShipmentDetailsRows
+ *       Grouped shipment detail with tracking, fulfillments, and batches.
+ *   - transformPickupCompletionResult
+ *       Result after manual/pickup fulfillment completion.
+ *   - transformOutboundShipmentForTrackingAttachRow
+ *       Shipment context used before attaching tracking numbers.
+ *   - transformCreateTrackingNumbersResult
+ *       Lean result after creating tracking-number records.
  *
  * Internal helpers (not exported):
- *   - transformOutboundShipmentRow              — per-row transformer for paginated shipment list
+ *   - transformOutboundShipmentRow
+ *       Per-row transformer for paginated shipment list.
  *
- * All functions are pure — no logging, no AppError, no side effects.
+ * All functions are pure — no logging, no AppError, no database access, and no
+ * side effects.
  */
 
 'use strict';
@@ -412,10 +429,46 @@ const transformPickupCompletionResult = (statusResult) => {
   });
 };
 
+/**
+ * Transforms a raw outbound-shipment tracking-attach SQL row into the
+ * normalized shipment context consumed by the tracking-attach business layer.
+ *
+ * @param {OutboundShipmentTrackingAttachRow} row
+ * @returns {OutboundShipmentTrackingAttachContext}
+ */
+const transformOutboundShipmentForTrackingAttachRow = (row) => ({
+  id: row.id,
+  orderId: row.order_id,
+  warehouseId: row.warehouse_id,
+  deliveryMethodId: row.delivery_method_id,
+  statusId: row.status_id,
+  statusCode: row.status_code,
+  statusName: row.status_name,
+  deliveryMethod: {
+    id: row.delivery_method_id,
+    methodName: row.method_name,
+    isPickupLocation: row.is_pickup_location,
+    requiresTrackingNumber: row.requires_tracking_number,
+  },
+});
+
+/**
+ * Transforms inserted tracking-number rows into the lean service result.
+ *
+ * @param {TrackingNumberInsertResultRow[]} insertedRecords
+ * @returns {CreateTrackingNumbersResult}
+ */
+const transformCreateTrackingNumbersResult = (insertedRecords) => ({
+  count: insertedRecords.length,
+  ids: insertedRecords.map((record) => record.id),
+});
+
 module.exports = {
   transformFulfillmentResult,
   transformAdjustedFulfillmentResult,
   transformPaginatedOutboundShipmentResults,
   transformShipmentDetailsRows,
   transformPickupCompletionResult,
+  transformOutboundShipmentForTrackingAttachRow,
+  transformCreateTrackingNumbersResult,
 };
