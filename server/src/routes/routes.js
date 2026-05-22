@@ -45,6 +45,7 @@ const orderRoutes = require('./orders');
 const taxRateRoutes = require('./tax-rates');
 const inventoryAllocationRoutes = require('./inventory-allocations');
 const outboundFulfillmentRoutes = require('./outbound-fulfillments');
+const trackingNumberRoutes = require('./tracking-number');
 const lookupRoutes = require('./lookups');
 
 const router = express.Router();
@@ -119,6 +120,9 @@ router.use('/tax-rates', authenticate(), taxRateRoutes);
 // Fulfillment
 router.use('/inventory-allocations', authenticate(), inventoryAllocationRoutes);
 router.use('/outbound-fulfillments', authenticate(), outboundFulfillmentRoutes);
+
+// Tracking
+router.use('/tracking-numbers', authenticate(), trackingNumberRoutes);
 
 // Lookups
 router.use('/lookups', authenticate(), lookupRoutes);
