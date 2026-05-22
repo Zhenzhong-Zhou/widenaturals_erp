@@ -64,6 +64,7 @@ exports.seed = async function (knex) {
     {
       method_name: 'Standard Shipping',
       is_pickup_location: false,
+      requires_tracking_number: true,
       description: 'Delivery in 5–7 business days.',
       estimated_time: '5 days',
       status_id: active,
@@ -71,6 +72,7 @@ exports.seed = async function (knex) {
     {
       method_name: 'Express Shipping',
       is_pickup_location: false,
+      requires_tracking_number: true,
       description: '2–3 day expedited delivery.',
       estimated_time: '2 days',
       status_id: active,
@@ -112,6 +114,7 @@ exports.seed = async function (knex) {
     {
       method_name: 'Regional Truck Freight',
       is_pickup_location: false,
+      requires_tracking_number: true,
       description: 'Obsolete regional freight transport.',
       estimated_time: '10 days',
       status_id: archived,
