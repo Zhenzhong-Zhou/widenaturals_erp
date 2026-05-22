@@ -11,6 +11,8 @@ const {
 } = require('../../services/inventory-allocation-service');
 const {
   fulfillOutboundShipmentService,
+  confirmOutboundFulfillmentService,
+  completeManualFulfillmentService,
 } = require('../../services/outbound-fulfillment-service');
 
 (async () => {
@@ -84,6 +86,7 @@ const {
       getUniqueScalarValue({
         table: 'delivery_methods',
         where: { method_name: 'In-Store Pickup' },
+        // where: { method_name: 'Standard Shipping' },
         select: 'id',
       }),
       getUniqueScalarValue({
@@ -229,6 +232,42 @@ const {
     );
     console.log('✅ Outbound fulfillment completed:');
     console.dir(fulfillmentResult, { depth: 5 });
+    
+    // Step 10: Confirm outbound fulfillment
+    const confirmFulfillmentRequest = {
+      orderStatus: 'ORDER_FULFILLED',
+      allocationStatus: 'ALLOC_COMPLETED',
+      shipmentStatus: 'SHIPMENT_READY',
+      fulfillmentStatus: 'FULFILLMENT_PACKED',
+    };
+    
+    const confirmFulfillmentResult = await confirmOutboundFulfillmentService(
+      confirmFulfillmentRequest,
+      order.orderId,
+      enrichedUser
+    );
+    console.log('✅ Outbound fulfillment confirmed:');
+    console.dir(confirmFulfillmentResult, { depth: 5 });
+    
+    // Step 11: Complete manual (pickup) fulfillment
+    const shipmentId = confirmFulfillmentResult?.shipment?.id;
+    if (!shipmentId) {
+      throw new Error('Missing shipmentId from confirm fulfillment result.');
+    }
+    
+    const completionData = {
+      orderStatus: 'ORDER_DELIVERED',
+      shipmentStatus: 'SHIPMENT_DELIVERED',
+      fulfillmentStatus: 'FULFILLMENT_DELIVERED',
+    };
+    
+    const manualCompletionResult = await completeManualFulfillmentService(
+      completionData,
+      shipmentId,
+      enrichedUser
+    );
+    console.log('✅ Manual fulfillment completed:');
+    console.dir(manualCompletionResult, { depth: 5 });
   } catch (err) {
     console.error('❌ Full flow failed:', err.stack || err.message);
   } finally {
