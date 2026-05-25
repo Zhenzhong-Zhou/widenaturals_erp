@@ -12,6 +12,7 @@
  *
  * @typedef {Object} OutboundShipmentTrackingAttachRow
  * @property {string} id                          - Outbound shipment UUID.
+ * @property {string} shipment_id                 - Outbound shipment UUID.
  * @property {string} order_id                    - Parent order UUID.
  * @property {string} warehouse_id                - Warehouse UUID.
  * @property {string} delivery_method_id          - Delivery method UUID.
@@ -19,6 +20,7 @@
  * @property {string} status_code                 - shipment_status.code.
  * @property {string} status_name                 - shipment_status.name.
  * @property {string} method_name                 - delivery_methods.method_name.
+ * @property {string} delivery_method_name        - delivery_methods.method_name.
  * @property {boolean} is_pickup_location         - delivery_methods.is_pickup_location.
  * @property {boolean} requires_tracking_number   - delivery_methods.requires_tracking_number.
  */

@@ -26,7 +26,7 @@ const {
 const FREIGHT_TYPES = ['PARCEL', 'LTL', 'FTL', 'AIR', 'OCEAN', 'COURIER'];
 
 const trackingNumberRecordSchema = Joi.object({
-  carrier: validateString('Carrier', 1, 100),
+  carrier: validateString('Carrier', 3, 100),
   
   trackingNumber: Joi.string()
     .max(40)
@@ -72,5 +72,6 @@ const attachTrackingNumbersBodySchema = Joi.object({
 });
 
 module.exports = {
+  trackingNumberRecordSchema,
   attachTrackingNumbersBodySchema,
 };

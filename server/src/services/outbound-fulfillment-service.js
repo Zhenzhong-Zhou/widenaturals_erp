@@ -57,6 +57,7 @@ const {
   transformPaginatedOutboundShipmentResults,
   transformShipmentDetailsRows,
   transformPickupCompletionResult,
+  transformOutboundShipmentForTrackingAttachRow,
 } = require('../transformers/outbound-fulfillment-transformer');
 const {
   validateOrderIsFullyAllocated,
@@ -80,7 +81,6 @@ const {
   assertShipmentFound,
   validateStatusesBeforeConfirmation,
   validateStatusesBeforeManualFulfillment,
-  assertDeliveryMethodIsAllowed,
 } = require('../business/outbound-fulfillment-business');
 const {
   getAllocationStatuses,
@@ -115,6 +115,13 @@ const {
   insertInventoryActivityLogBulk,
 } = require('../repositories/inventory-activity-log-repository');
 const { assertDeliveryMethodResolved } = require('../business/delivery-method-business');
+const {
+  assertDeliveryMethodAllowsTracking,
+  validateTrackingRecords,
+  assertNoDuplicateTrackingNumbers,
+  buildTrackingNumberInsertRow
+} = require('../business/tracking-number-business');
+const { insertTrackingNumbersBulk } = require('../repositories/tracking-number-repository');
 
 const CONTEXT = 'outbound-fulfillment-service';
 
@@ -666,6 +673,7 @@ const fetchShipmentDetailsService = async (shipmentId) => {
  * @throws {AppError} Re-throws AppErrors from lower layers unchanged.
  * @throws {AppError} Wraps unexpected errors as `AppError.serviceError`.
  */
+// todo: completeOutboundFulfillmentService
 const completeManualFulfillmentService = async (
   completionData,
   shipmentId,
@@ -676,7 +684,12 @@ const completeManualFulfillmentService = async (
   try {
     return await withTransaction(async (client) => {
       const userId = user.id;
-      const { orderStatus, shipmentStatus, fulfillmentStatus } = completionData;
+      const {
+        orderStatus,
+        shipmentStatus,
+        fulfillmentStatus,
+        trackings = []
+      } = completionData;
       
       // 1. Fetch and validate shipment record.
       const shipment = await getShipmentByShipmentId(shipmentId, client);
@@ -685,10 +698,7 @@ const completeManualFulfillmentService = async (
       const {
         order_id,
         status_code,
-        delivery_method_name,
-        is_pickup_location,
       } = shipment;
-      assertDeliveryMethodIsAllowed(delivery_method_name, is_pickup_location);
       
       const orderId = order_id;
       
@@ -786,11 +796,43 @@ const completeManualFulfillmentService = async (
         client,
       });
       
+      // 10. Attach tracking numbers if provided in the payload.
+      const shipmentForTracking = transformOutboundShipmentForTrackingAttachRow(shipment);
+      assertDeliveryMethodAllowsTracking(shipmentForTracking.deliveryMethod, trackings);
+      
+      let insertedTrackings = [];
+      if (trackings?.length) {
+        validateTrackingRecords(trackings);
+        await assertNoDuplicateTrackingNumbers(trackings, client);
+        
+        const trackingRows = trackings.map((record) =>
+          buildTrackingNumberInsertRow(record, {
+            outboundShipmentId: shipmentId,
+            userId,
+          })
+        );
+        
+        insertedTrackings = await insertTrackingNumbersBulk(trackingRows, client);
+        
+        if (insertedTrackings.length < trackingRows.length) {
+          throw AppError.conflictError(
+            'Tracking number conflict detected during insert. Please retry.',
+            {
+              meta: {
+                expected: trackingRows.length,
+                inserted: insertedTrackings.length,
+              },
+            }
+          );
+        }
+      }
+      
       return transformPickupCompletionResult({
         orderStatusRow,
         orderItemStatusRow,
         orderFulfillmentStatusRow,
         shipmentStatusRow,
+        insertedTrackings,
       });
     });
   } catch (error) {

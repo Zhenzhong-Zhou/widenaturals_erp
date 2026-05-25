@@ -389,28 +389,29 @@ const transformShipmentDetailsRows = (rows) => {
  */
 const transformPickupCompletionResult = (statusResult) => {
   if (!statusResult) return {};
-
+  
   const {
     orderStatusRow,
     orderItemStatusRow,
     orderFulfillmentStatusRow,
     shipmentStatusRow,
+    insertedTrackings,
   } = statusResult;
-
+  
   return cleanObject({
     order: orderStatusRow
       ? {
-          id: orderStatusRow.id,
-          statusId: orderStatusRow.order_status_id,
-          statusDate: orderStatusRow.status_date,
-        }
+        id: orderStatusRow.id,
+        statusId: orderStatusRow.order_status_id,
+        statusDate: orderStatusRow.status_date,
+      }
       : null,
     items: Array.isArray(orderItemStatusRow)
       ? orderItemStatusRow.map((item) => ({
-          id: item.id,
-          statusId: item.status_id,
-          statusDate: item.status_date,
-        }))
+        id: item.id,
+        statusId: item.status_id,
+        statusDate: item.status_date,
+      }))
       : [],
     fulfillments: Array.isArray(orderFulfillmentStatusRow)
       ? orderFulfillmentStatusRow.map((id) => ({ id }))
@@ -418,10 +419,14 @@ const transformPickupCompletionResult = (statusResult) => {
     shipment: Array.isArray(shipmentStatusRow)
       ? shipmentStatusRow.map((id) => ({ id }))
       : [],
+    trackings: Array.isArray(insertedTrackings)
+      ? insertedTrackings.map((t) => ({ id: t.id }))
+      : [],
     summary: {
       orderItemsCount: orderItemStatusRow?.length || 0,
       fulfillmentsCount: orderFulfillmentStatusRow?.length || 0,
       shipmentCount: shipmentStatusRow?.length || 0,
+      trackingsCount: insertedTrackings?.length || 0,
     },
     meta: {
       updatedAt: new Date().toISOString(),
@@ -437,7 +442,7 @@ const transformPickupCompletionResult = (statusResult) => {
  * @returns {OutboundShipmentTrackingAttachContext}
  */
 const transformOutboundShipmentForTrackingAttachRow = (row) => ({
-  id: row.id,
+  id: row.id ?? row.shipment_id,
   orderId: row.order_id,
   warehouseId: row.warehouse_id,
   deliveryMethodId: row.delivery_method_id,
@@ -446,7 +451,7 @@ const transformOutboundShipmentForTrackingAttachRow = (row) => ({
   statusName: row.status_name,
   deliveryMethod: {
     id: row.delivery_method_id,
-    methodName: row.method_name,
+    methodName: row.method_name ?? row.delivery_method_name,
     isPickupLocation: row.is_pickup_location,
     requiresTrackingNumber: row.requires_tracking_number,
   },

@@ -24,7 +24,6 @@
  *  - assertFulfillmentsValid                 — assert fulfillment list is non-empty and well-formed
  *  - assertShipmentFound                     — assert shipment record exists and has required fields
  *  - assertDeliveryMethodResolved            — assert order has a delivery method before shipment creation
- *  - assertDeliveryMethodIsAllowed           — assert delivery method permits manual fulfillment
  *  - assertInventoryCoverage                 — assert inventory records exist for allocations
  *  - assertEnrichedAllocations               — assert enriched allocations are non-empty and well-formed
  *  - assertInventoryAdjustments              — assert computed adjustment array is non-empty
@@ -97,11 +96,6 @@ const FULFILLMENT_STATUS_SEQUENCE = [
 const FULFILLMENT_FINAL_STATUSES = [
   'FULFILLMENT_DELIVERED',
   'FULFILLMENT_CANCELLED',
-];
-
-const ALLOWED_DELIVERY_METHODS = [
-  'In-Store Pickup',
-  'Personal Driver Delivery',
 ];
 
 // ---------------------------------------------------------------------------
@@ -542,28 +536,6 @@ const assertShipmentFound = (shipment, shipmentId) => {
 };
 
 /**
- * Asserts that the delivery method is permitted for manual fulfillment.
- *
- * Manual fulfillment is only allowed for pickup locations or specific
- * named delivery methods.
- *
- * @param {string | null} methodName - Delivery method name.
- * @param {boolean} isPickupLocation - Whether the method is a pickup location.
- * @throws {AppError} validationError if the method is not permitted.
- */
-const assertDeliveryMethodIsAllowed = (methodName, isPickupLocation) => {
-  const isAllowed =
-    Boolean(isPickupLocation) ||
-    ALLOWED_DELIVERY_METHODS.includes(methodName ?? '');
-
-  if (!isAllowed) {
-    throw AppError.validationError(
-      `Manual fulfillment is only allowed for pickup or personal delivery. Found: ${methodName || 'none'}`
-    );
-  }
-};
-
-/**
  * Asserts that inventory records exist for the given allocations.
  *
  * @param {object[]} [inventoryMeta=[]]
@@ -979,7 +951,6 @@ module.exports = {
   assertOrderMeta,
   assertFulfillmentsValid,
   assertShipmentFound,
-  assertDeliveryMethodIsAllowed,
   assertInventoryCoverage,
   assertEnrichedAllocations,
   assertInventoryAdjustments,

@@ -10,6 +10,7 @@ const {
   shippedDateRangeSchema,
   paginationSchema,
 } = require('./general-validators');
+const { trackingNumberRecordSchema } = require('./tracking-number-validators');
 
 /**
  * Joi schema: fulfillOutboundShipmentBodySchema
@@ -82,14 +83,20 @@ const fulfillOutboundShipmentBodySchema = Joi.object({
 const buildBaseFulfillmentSchema = () =>
   Joi.object({
     orderStatus: validateString('Order Status', 2, 100).description(
-      'Target order status code, e.g. ORDER_FULFILLED'
+      'Target order status code, e.g. ORDER_FULFILLED or ORDER_SHIPPED'
     ),
     shipmentStatus: validateString('Shipment Status', 2, 100).description(
-      'Target shipment status code, e.g. SHIPMENT_READY'
+      'Target shipment status code, e.g. SHIPMENT_COMPLETED or SHIPMENT_READY'
     ),
     fulfillmentStatus: validateString('Fulfillment Status', 2, 100).description(
-      'Target fulfillment status code, e.g. FULFILLMENT_PACKED'
+      'Target fulfillment status code, e.g. FULFILLMENT_COMPLETED or FULFILLMENT_SHIPPED'
     ),
+    trackings: Joi.array()
+      .items(trackingNumberRecordSchema)
+      .optional()
+      .description(
+        'Tracking numbers — required for carrier delivery methods, omitted for pickup'
+      ),
   });
 
 /**
