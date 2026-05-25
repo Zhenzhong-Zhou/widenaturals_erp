@@ -1,5 +1,6 @@
 /**
- * Business-layer guards and validators for the `tracking_numbers` domain.
+ * Business-layer guards, validators, and composite helpers for the
+ * `tracking_numbers` domain.
  *
  * Responsibility split:
  * - Joi schemas (route layer) cover shape, type, and format.
@@ -8,18 +9,26 @@
  *   freight-type/BOL coupling, in-payload duplicate detection, and a final
  *   DB-backed (carrier, tracking_number) uniqueness check.
  *
- * Expected service-layer call order:
- *   1. assertShipmentStatusAllowsTracking
- *   2. assertDeliveryMethodAllowsTracking
- *   3. validateTrackingRecords                 (in-payload duplicates + sanity)
- *   4. assertNoDuplicateTrackingNumbers        (DB-backed; runs last)
+ * Two layers live here:
  *
- * All guards throw AppError — no try/catch needed at call sites.
+ * 1. Atomic guards — each throws AppError on violation; no try/catch needed
+ *    at call sites. The composition order when callers invoke them manually:
+ *      a. assertShipmentStatusAllowsTracking
+ *      b. assertDeliveryMethodAllowsTracking   (lookup row, not a code)
+ *      c. validateTrackingRecords           (in-payload duplicates + sanity)
+ *      d. assertNoDuplicateTrackingNumbers  (DB-backed; runs last)
+ *
+ * 2. `attachTrackingNumbersToShipment` — composite helper used by both the
+ *    standalone `createTrackingNumbersService` and the inline tracking attach
+ *    in `completeManualFulfillmentService`. Runs (a)–(d) end-to-end and
+ *    performs the bulk insert with conflict reconciliation. Warehouse-scope
+ *    checks live with the caller (they need the shipment record); everything
+ *    else is encapsulated.
  */
 
 const AppError = require('../utils/AppError');
 const {
-  findExistingTrackingByCarrierPairs,
+  findExistingTrackingByCarrierPairs, insertTrackingNumbersBulk,
 } = require('../repositories/tracking-number-repository');
 
 // Statuses that allow tracking numbers to be attached.
@@ -214,14 +223,65 @@ const buildTrackingNumberInsertRow = (
   created_by: userId,
 });
 
+/**
+ * Attaches tracking numbers to an outbound shipment.
+ *
+ * Runs the cross-field and DB-backed validations (delivery method
+ * compatibility, in-payload duplicates, then the DB-backed
+ * `(carrier, tracking_number)` uniqueness pre-flight), then bulk-inserts the
+ * rows and reconciles the returned count against expected. A short insert
+ * count surfaces a 409 — this happens when a concurrent insert lands between
+ * the pre-flight and the `ON CONFLICT DO NOTHING` bulk insert.
+ *
+ * No-op (returns `[]`) when `records` is empty — supports both the standalone
+ * `createTrackingNumbersService` and the inline attach inside
+ * `completeManualFulfillmentService` where trackings are optional.
+ *
+ * Status gating and warehouse-scope checks are NOT enforced here. Callers
+ * must run `assertShipmentStatusAllowsTracking` and the warehouse-scope
+ * helpers before invoking.
+ *
+ * @param {string} outboundShipmentId - UUID of the parent outbound shipment.
+ * @param {string} statusCode - Current shipment status code; gates whether tracking attach is allowed.
+ * @param {DeliveryMethodAttachContext} deliveryMethod - Delivery method record from the shipment (lookup row, not a code).
+ * @param {TrackingNumberInputRecord[]} records - Validated tracking payload from the request.
+ * @param {string} userId - UUID of the actor; written to created_by / updated_by.
+ * @param {object} client - Transaction-bound client; this helper does not open its own.
+ * @returns {Promise<TrackingNumberRow[]>} Inserted rows in DB column order (raw, untransformed).
+ */
+const attachTrackingNumbersToShipment = async (
+  {
+    outboundShipmentId,
+    statusCode,
+    deliveryMethod,
+    records,
+    userId
+  },
+  client
+) => {
+  if (!records?.length) return [];
+  
+  assertShipmentStatusAllowsTracking(statusCode);
+  assertDeliveryMethodAllowsTracking(deliveryMethod, records);
+  validateTrackingRecords(records);
+  await assertNoDuplicateTrackingNumbers(records, client);
+  
+  const rows = records.map((record) =>
+    buildTrackingNumberInsertRow(record, { outboundShipmentId, userId })
+  );
+  
+  const inserted = await insertTrackingNumbersBulk(rows, client);
+  
+  if (inserted.length < rows.length) {
+    throw AppError.conflictError(
+      'Tracking number conflict detected during insert. Please retry.',
+      { meta: { expected: rows.length, inserted: inserted.length } }
+    );
+  }
+  
+  return inserted;
+};
+
 module.exports = {
-  TRACKING_ATTACHABLE_STATUSES,
-  FREIGHT_TYPES,
-  FREIGHT_TYPES_REQUIRING_BOL,
-  assertShipmentStatusAllowsTracking,
-  assertDeliveryMethodAllowsTracking,
-  validateTrackingRecords,
-  assertNoDuplicateTrackingNumbers,
-  normalizeTrackingNumber,
-  buildTrackingNumberInsertRow,
+  attachTrackingNumbersToShipment,
 };

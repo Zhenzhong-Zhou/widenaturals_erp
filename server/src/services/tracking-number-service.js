@@ -29,14 +29,8 @@ const {
   getOutboundShipmentForTrackingAttach,
 } = require('../repositories/outbound-shipment-repository');
 const {
-  insertTrackingNumbersBulk,
-} = require('../repositories/tracking-number-repository');
-const {
   assertShipmentStatusAllowsTracking,
-  assertDeliveryMethodAllowsTracking,
-  validateTrackingRecords,
-  assertNoDuplicateTrackingNumbers,
-  buildTrackingNumberInsertRow,
+  attachTrackingNumbersToShipment,
 } = require('../business/tracking-number-business');
 const {
   transformOutboundShipmentForTrackingAttachRow,
@@ -87,47 +81,19 @@ const createTrackingNumbersService = async ({
       // 3. Status gate.
       assertShipmentStatusAllowsTracking(shipment.statusCode);
       
-      // 4. Delivery method gate (fastest record-touching check — runs first).
-      assertDeliveryMethodAllowsTracking(shipment.deliveryMethod, records);
-      
-      // 5. Cross-field + in-payload duplicate validation.
-      validateTrackingRecords(records);
-      
-      // 6. DB-backed (carrier, tracking_number) pre-flight — surfaces 409 with
-      //    conflict meta before the unique constraint fires.
-      await assertNoDuplicateTrackingNumbers(records, client);
-      
-      // 7. Map to snake_case insert rows. Tuple ordering lives in the repo.
-      const trackingRows = records.map((record) =>
-        buildTrackingNumberInsertRow(record, {
+      const insertedTrackings = await attachTrackingNumbersToShipment(
+        {
           outboundShipmentId,
+          statusCode: shipment.statusCode,
+          deliveryMethod: shipment.deliveryMethod,
+          records,
           userId: user.id,
-        })
-      );
-      
-      const insertedRecords = await insertTrackingNumbersBulk(
-        trackingRows,
+        },
         client
       );
       
-      // 8. Reconcile against the pre-flight. bulkInsert uses
-      //    ON CONFLICT DO NOTHING, so a concurrent insert between step 6 and
-      //    here would silently drop rows. Raise 409 instead of returning
-      //    a wrong count.
-      if (insertedRecords.length < trackingRows.length) {
-        throw AppError.conflictError(
-          'Tracking number conflict detected during insert. Please retry.',
-          {
-            meta: {
-              expected: trackingRows.length,
-              inserted: insertedRecords.length,
-            },
-          }
-        );
-      }
-      
       // 9. Lean response — frontend refreshes via the list endpoint.
-      return transformCreateTrackingNumbersResult(insertedRecords);
+      return transformCreateTrackingNumbersResult(insertedTrackings);
     });
   } catch (error) {
     if (error instanceof AppError) throw error;

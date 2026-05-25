@@ -115,13 +115,7 @@ const {
   insertInventoryActivityLogBulk,
 } = require('../repositories/inventory-activity-log-repository');
 const { assertDeliveryMethodResolved } = require('../business/delivery-method-business');
-const {
-  assertDeliveryMethodAllowsTracking,
-  validateTrackingRecords,
-  assertNoDuplicateTrackingNumbers,
-  buildTrackingNumberInsertRow
-} = require('../business/tracking-number-business');
-const { insertTrackingNumbersBulk } = require('../repositories/tracking-number-repository');
+const { attachTrackingNumbersToShipment } = require('../business/tracking-number-business');
 
 const CONTEXT = 'outbound-fulfillment-service';
 
@@ -798,34 +792,17 @@ const completeManualFulfillmentService = async (
       
       // 10. Attach tracking numbers if provided in the payload.
       const shipmentForTracking = transformOutboundShipmentForTrackingAttachRow(shipment);
-      assertDeliveryMethodAllowsTracking(shipmentForTracking.deliveryMethod, trackings);
       
-      let insertedTrackings = [];
-      if (trackings?.length) {
-        validateTrackingRecords(trackings);
-        await assertNoDuplicateTrackingNumbers(trackings, client);
-        
-        const trackingRows = trackings.map((record) =>
-          buildTrackingNumberInsertRow(record, {
-            outboundShipmentId: shipmentId,
-            userId,
-          })
-        );
-        
-        insertedTrackings = await insertTrackingNumbersBulk(trackingRows, client);
-        
-        if (insertedTrackings.length < trackingRows.length) {
-          throw AppError.conflictError(
-            'Tracking number conflict detected during insert. Please retry.',
-            {
-              meta: {
-                expected: trackingRows.length,
-                inserted: insertedTrackings.length,
-              },
-            }
-          );
-        }
-      }
+      const insertedTrackings = await attachTrackingNumbersToShipment(
+        {
+          outboundShipmentId: shipmentId,
+          statusCode: shipmentForTracking.statusCode,
+          deliveryMethod: shipmentForTracking.deliveryMethod,
+          records: trackings,
+          userId,
+        },
+        client
+      );
       
       return transformPickupCompletionResult({
         orderStatusRow,
