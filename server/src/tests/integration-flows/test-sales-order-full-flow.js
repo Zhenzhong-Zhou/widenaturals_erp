@@ -14,6 +14,8 @@ const {
   confirmOutboundFulfillmentService,
   completeManualFulfillmentService,
 } = require('../../services/outbound-fulfillment-service');
+const { buildCompletionPayload } = require('../utlis/fulfillment-completion-fixtures');
+const { getShipmentByShipmentId } = require('../../repositories/outbound-shipment-repository');
 
 (async () => {
   const client = await pool.connect();
@@ -85,8 +87,8 @@ const {
       }),
       getUniqueScalarValue({
         table: 'delivery_methods',
-        where: { method_name: 'In-Store Pickup' },
-        // where: { method_name: 'Standard Shipping' },
+        // where: { method_name: 'In-Store Pickup' },
+        where: { method_name: 'Standard Shipping' },
         select: 'id',
       }),
       getUniqueScalarValue({
@@ -249,25 +251,99 @@ const {
     console.log('✅ Outbound fulfillment confirmed:');
     console.dir(confirmFulfillmentResult, { depth: 5 });
     
-    // Step 11: Complete manual (pickup) fulfillment
+    // Step 11: Complete fulfillment — picks pickup vs carrier from the test's setup.
     const shipmentId = confirmFulfillmentResult?.shipment?.id;
     if (!shipmentId) {
       throw new Error('Missing shipmentId from confirm fulfillment result.');
     }
+
+    // Read the actual shipment to determine pickup vs carrier.
+    const shipmentInfo = await getShipmentByShipmentId(shipmentId, pool);
+    if (!shipmentInfo) {
+      throw new Error(`Shipment ${shipmentId} not found.`);
+    }
     
-    const completionData = {
-      orderStatus: 'ORDER_DELIVERED',
-      shipmentStatus: 'SHIPMENT_DELIVERED',
-      fulfillmentStatus: 'FULFILLMENT_DELIVERED',
-    };
+    const isPickup = shipmentInfo.is_pickup_location;
+    const completionData = buildCompletionPayload({ isPickup });
+    
+    console.log(`📦 Completing ${isPickup ? 'pickup' : 'carrier'} shipment ${shipmentId}`);
+    console.log('⚙️  Completion payload:');
+    console.dir(completionData, { depth: null });
+    
+    const expectedTrackingCount = completionData.trackings?.length ?? 0;
     
     const manualCompletionResult = await completeManualFulfillmentService(
       completionData,
       shipmentId,
       enrichedUser
     );
-    console.log('✅ Manual fulfillment completed:');
+    
+    console.log('✅ Fulfillment completed:');
     console.dir(manualCompletionResult, { depth: 5 });
+
+    // Sanity assertions
+    const returnedTrackings = manualCompletionResult.trackings ?? [];
+    
+    if (isPickup) {
+      if (returnedTrackings.length) {
+        throw new Error(
+          `Pickup completion should return no trackings, got ${returnedTrackings.length}.`
+        );
+      }
+    } else {
+      if (returnedTrackings.length !== expectedTrackingCount) {
+        throw new Error(
+          `Carrier completion: expected ${expectedTrackingCount} trackings, ` +
+          `got ${returnedTrackings.length}.`
+        );
+      }
+      
+      for (const t of returnedTrackings) {
+        if (!t.id) {
+          throw new Error(`Tracking row missing id (insert failed?): ${JSON.stringify(t)}`);
+        }
+      }
+      console.log(`✅ ${returnedTrackings.length} tracking row(s) inserted with IDs.`);
+      
+      const sentTrackings = completionData.trackings ?? [];
+      const returnedIds = returnedTrackings.map((t) => t.id);
+      
+      const { rows: dbTrackings } = await pool.query(
+        `
+          SELECT
+           id,
+           tracking_number,
+           carrier,
+           service_name,
+           bol_number,
+           freight_type,
+           custom_notes
+          FROM tracking_numbers
+          WHERE id = ANY($1::uuid[])
+          ORDER BY created_at ASC
+        `,
+        [returnedIds]
+      );
+      
+      if (dbTrackings.length !== sentTrackings.length) {
+        throw new Error(
+          `Persisted ${dbTrackings.length} trackings, sent ${sentTrackings.length}.`
+        );
+      }
+      
+      // Spot-check that the tracking_number values from payload made it to DB
+      const sentBolNumbers = sentTrackings.map((t) => t.bolNumber).filter(Boolean).sort();
+      const dbBolNumbers = dbTrackings.map((t) => t.bol_number).filter(Boolean).sort();
+      if (JSON.stringify(sentBolNumbers) !== JSON.stringify(dbBolNumbers)) {
+        throw new Error(
+          `BOL numbers in DB don't match payload.\n` +
+          `  sent: ${JSON.stringify(sentBolNumbers)}\n` +
+          `  db:   ${JSON.stringify(dbBolNumbers)}`
+        );
+      }
+      
+      console.log(`✅ ${dbTrackings.length} trackings verified in DB.`);
+    }
   } catch (err) {
     console.error('❌ Full flow failed:', err.stack || err.message);
   } finally {
