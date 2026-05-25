@@ -272,14 +272,11 @@ const OUTBOUND_SHIPMENT_DETAILS_QUERY = `
         'bol_number',      tn.bol_number,
         'freight_type',    tn.freight_type,
         'shipped_date',    tn.shipped_date,
-        'status_id',       tn.status_id,
-        'status_name',     ts.name,
         'notes',           tn.custom_notes,
         'created_at',      tn.created_at
       ) ORDER BY tn.created_at
     ) AS tracking_numbers
     FROM tracking_numbers tn
-    LEFT JOIN status ts ON ts.id = tn.status_id
     WHERE tn.outbound_shipment_id = os.id
   ) tn_agg ON true
   LEFT JOIN order_fulfillments of               ON of.shipment_id      = os.id
