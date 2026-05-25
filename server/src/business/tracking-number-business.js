@@ -59,14 +59,21 @@ const assertShipmentStatusAllowsTracking = (statusCode) => {
  * @param {TrackingNumberInputRecord[]} records
  */
 const assertDeliveryMethodAllowsTracking = (deliveryMethod, records) => {
-  if (deliveryMethod.isPickupLocation) {
+  // Pickup CAN'T have tracking — only throws if someone tried to attach any
+  if (deliveryMethod.isPickupLocation && records.length > 0) {
     throw AppError.businessError(
       `Delivery method '${deliveryMethod.methodName}' is a pickup location and ` +
       `does not support tracking numbers.`
     );
   }
   
-  if (!deliveryMethod.requiresTrackingNumber) return;
+  // Carrier requires tracking — only throws if required but none provided
+  if (deliveryMethod.requiresTrackingNumber && records.length === 0) {
+    throw AppError.businessError(
+      `Delivery method '${deliveryMethod.methodName}' requires at least one ` +
+      `tracking number.`
+    );
+  }
   
   const missingIndices = records.reduce((acc, r, i) => {
     if (!r.trackingNumber?.trim()) acc.push(i);
