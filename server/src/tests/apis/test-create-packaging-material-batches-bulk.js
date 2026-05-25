@@ -25,7 +25,7 @@ const { initStatusCache, getStatusId } = require('../../config/status-cache');
 const {
   initBatchActivityTypeCache,
 } = require('../../cache/batch-activity-type-cache');
-const { toLocal } = require('../utlis/convertDate');
+const { toLocal } = require('../utils/convertDate');
 
 (async () => {
   const logPrefix = chalk.cyan('[Test: CREATE_PACKAGING_MATERIAL_BATCHES]');

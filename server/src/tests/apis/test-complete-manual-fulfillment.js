@@ -4,7 +4,10 @@ const { initStatusCache } = require('../../config/status-cache');
 const {
   completeManualFulfillmentService,
 } = require('../../services/outbound-fulfillment-service');
-const { buildCompletionPayload, buildInvalidPickupWithTrackings } = require('../utlis/fulfillment-completion-fixtures');
+const {
+  buildCompletionPayload,
+  buildInvalidPickupWithTrackings
+} = require('../utils/fulfillment-completion-fixtures');
 
 const TEST_USER_EMAIL = 'root@widenaturals.com';
 

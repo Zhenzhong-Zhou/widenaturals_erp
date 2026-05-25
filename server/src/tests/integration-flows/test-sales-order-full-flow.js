@@ -14,7 +14,7 @@ const {
   confirmOutboundFulfillmentService,
   completeManualFulfillmentService,
 } = require('../../services/outbound-fulfillment-service');
-const { buildCompletionPayload } = require('../utlis/fulfillment-completion-fixtures');
+const { buildCompletionPayload } = require('../utils/fulfillment-completion-fixtures');
 const { getShipmentByShipmentId } = require('../../repositories/outbound-shipment-repository');
 
 (async () => {

@@ -29,11 +29,11 @@ const { initStatusCache } = require('../../config/status-cache');
 const {
   initBatchActivityTypeCache,
 } = require('../../cache/batch-activity-type-cache');
-const { runTestCase } = require('../utlis/runTestCase');
+const { runTestCase } = require('../utils/runTestCase');
 const {
   fetchBatchRecord,
   fetchBatchActivityLog,
-} = require('../utlis/batches/batch-test-helpers');
+} = require('../utils/batches/batch-test-helpers');
 
 (async () => {
   const logPrefix = chalk.cyan('[Test: PRODUCT_BATCH_METADATA_UPDATE]');
