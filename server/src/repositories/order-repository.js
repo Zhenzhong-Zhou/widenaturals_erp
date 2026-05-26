@@ -39,6 +39,7 @@ const {
   ORDER_UPDATE_STATUS_QUERY,
   ORDER_GET_ALLOCATIONS_QUERY,
   ORDER_GET_SHIPMENT_METADATA_QUERY,
+  GET_ORDER_STATUS_ID_BY_ID_QUERY,
 } = require('./queries/order-queries');
 
 // ─── Insert ───────────────────────────────────────────────────────────────────
@@ -399,8 +400,9 @@ const fetchOrderMetadata = async (orderId, client) => {
 /**
  * Updates the status of an order by ID.
  *
- * Returns null if the status already matches — IS DISTINCT FROM ensures
- * no-op updates return null rather than the unchanged row.
+ * Returns the updated row on a real transition, or null if the order is
+ * already at the target status. IS DISTINCT FROM in the UPDATE ensures
+ * no-op updates return no rows rather than the unchanged row.
  *
  * @param {PoolClient} client
  * @param {Object}     options
@@ -408,8 +410,12 @@ const fetchOrderMetadata = async (orderId, client) => {
  * @param {string}     options.newStatusId  - UUID of the new status.
  * @param {string}     options.updatedBy    - UUID of the user performing the update.
  *
- * @returns {Promise<{ id: string, order_status_id: string, status_date: Date }|null>}
- * @throws  {AppError} Normalized database error if the update fails.
+ * @returns {Promise<{ id: string, order_status_id: string, status_date: Date } | null>}
+ *          The updated row, or null if the order was already at newStatusId.
+ *
+ * @throws {AppError} notFoundError if the order does not exist.
+ * @throws {AppError} businessError if the transition was rejected for another reason.
+ * @throws {AppError} Normalized database error on query failure.
  */
 const updateOrderStatus = async (
   client,
@@ -417,11 +423,30 @@ const updateOrderStatus = async (
 ) => {
   const context = 'order-repository/updateOrderStatus';
   const values = [newStatusId, updatedBy, orderId];
-
+  
   try {
     const result = await query(ORDER_UPDATE_STATUS_QUERY, values, client);
-    return result.rows[0] ?? null;
+    if (result.rows[0]) return result.rows[0];
+    
+    // No row updated — disambiguate: missing order, rejected transition, or idempotent no-op.
+    const { rows: [current] } = await query(
+      GET_ORDER_STATUS_ID_BY_ID_QUERY,
+      [orderId],
+      client
+    );
+    if (!current) {
+      throw AppError.notFoundError(`Order ${orderId} not found.`);
+    }
+    if (current.order_status_id !== newStatusId) {
+      throw AppError.businessError(
+        `Order ${orderId} status transition rejected: ` +
+        `current=${current.order_status_id}, target=${newStatusId}.`
+      );
+    }
+    return null; // idempotent: already at target
   } catch (error) {
+    if (error instanceof AppError) throw error;
+    
     throw handleDbError(error, {
       context,
       message: 'Failed to update order status.',

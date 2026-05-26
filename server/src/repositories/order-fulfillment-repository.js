@@ -33,6 +33,8 @@ const {
   ORDER_FULFILLMENT_UPDATE_STATUS_QUERY,
 } = require('./queries/order-fulfillment-queries');
 
+const CONTEXT = 'order-fulfillment-repository';
+
 // ─── Insert / Upsert ──────────────────────────────────────────────────────────
 
 /**
@@ -53,7 +55,7 @@ const {
 const insertOrderFulfillmentsBulk = async (fulfillments, client) => {
   if (!Array.isArray(fulfillments) || fulfillments.length === 0) return [];
 
-  const context = 'order-fulfillment-repository/insertOrderFulfillmentsBulk';
+  const context = `${CONTEXT}/insertOrderFulfillmentsBulk`;
 
   const rows = fulfillments.map((f) => [
     f.order_item_id,
@@ -106,11 +108,11 @@ const insertOrderFulfillmentsBulk = async (fulfillments, client) => {
  * @param {string|string[]} [filters.allocationIds]  - Filter by allocation UUID(s).
  * @param {PoolClient|null} [client=null]     - Optional DB client for transactional context.
  *
- * @returns {Promise<Array<Object>>} Fulfillment rows ordered by created_at ASC.
+ * @returns {Promise<Array<OrderFulfillmentRow>>} Fulfillment rows ordered by created_at ASC.
  * @throws  {AppError}               Normalized database error if the query fails.
  */
 const getOrderFulfillments = async (filters, client = null) => {
-  const context = 'order-fulfillment-repository/getOrderFulfillments';
+  const context = `${CONTEXT}/getOrderFulfillments`;
 
   const { whereClause, params } = buildFulfillmentFilter(filters);
   const queryText = buildOrderFulfillmentQuery(whereClause);
@@ -149,7 +151,8 @@ const updateOrderFulfillmentStatus = async (
   { statusId, userId, fulfillmentIds },
   client
 ) => {
-  const context = 'order-fulfillment-repository/updateOrderFulfillmentStatus';
+  const context = `${CONTEXT}/updateOrderFulfillmentStatus`;
+  
   const params = [statusId, userId, fulfillmentIds];
 
   try {
