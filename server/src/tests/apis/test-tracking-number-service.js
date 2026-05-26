@@ -91,12 +91,7 @@ const assertResultShape = (result, expectedCount) => {
       INNER JOIN delivery_methods dm  ON dm.id = os.delivery_method_id
       WHERE dm.is_pickup_location = false
         AND dm.requires_tracking_number = false
-        AND ss.code IN (
-          'SHIPMENT_READY',
-          'SHIPMENT_COMPLETED',
-          'SHIPMENT_IN_TRANSIT',
-          'SHIPMENT_DELIVERED'
-        )
+        AND ss.code IN ('SHIPMENT_READY', 'SHIPMENT_IN_TRANSIT')
       ORDER BY os.created_at DESC
       LIMIT 3
     `);
@@ -109,12 +104,7 @@ const assertResultShape = (result, expectedCount) => {
       INNER JOIN delivery_methods dm ON dm.id = os.delivery_method_id
       INNER JOIN shipment_status ss  ON ss.id = os.status_id
       WHERE dm.is_pickup_location = true
-        AND ss.code IN (
-          'SHIPMENT_READY',
-          'SHIPMENT_COMPLETED',
-          'SHIPMENT_IN_TRANSIT',
-          'SHIPMENT_DELIVERED'
-        )
+        AND ss.code IN ('SHIPMENT_READY', 'SHIPMENT_IN_TRANSIT')
       LIMIT 1
     `);
     
@@ -125,12 +115,7 @@ const assertResultShape = (result, expectedCount) => {
       INNER JOIN shipment_status ss    ON ss.id = os.status_id
       WHERE dm.requires_tracking_number = true
         AND dm.is_pickup_location = false
-        AND ss.code IN (
-          'SHIPMENT_READY',
-          'SHIPMENT_COMPLETED',
-          'SHIPMENT_IN_TRANSIT',
-          'SHIPMENT_DELIVERED'
-        )
+        AND ss.code IN ('SHIPMENT_READY', 'SHIPMENT_IN_TRANSIT')
       LIMIT 1
     `);
     
@@ -140,9 +125,29 @@ const assertResultShape = (result, expectedCount) => {
       INNER JOIN shipment_status ss ON ss.id = os.status_id
       WHERE ss.code IN (
         'SHIPMENT_PENDING',
+        'SHIPMENT_COMPLETED',
+        'SHIPMENT_DELIVERED',
         'SHIPMENT_CANCELLED',
         'SHIPMENT_RETURNED'
       )
+      LIMIT 1
+    `);
+    
+    // Freight-capable delivery method: LTL/FTL where BOL replaces per-record
+    // tracking. Required for the null-tracking test — parcel methods like
+    // 'Standard Shipping' always require a tracking number per record.
+    const { rows: freightShipments } = await pool.query(`
+      SELECT os.id, dm.method_name
+      FROM outbound_shipments os
+      INNER JOIN delivery_methods dm ON dm.id = os.delivery_method_id
+      INNER JOIN shipment_status ss  ON ss.id = os.status_id
+      WHERE dm.is_pickup_location = false
+        AND (
+          dm.method_name ILIKE '%freight%'
+          OR dm.method_name ILIKE '%LTL%'
+          OR dm.method_name ILIKE '%FTL%'
+        )
+        AND ss.code IN ('SHIPMENT_READY', 'SHIPMENT_IN_TRANSIT')
       LIMIT 1
     `);
     
@@ -184,6 +189,7 @@ const assertResultShape = (result, expectedCount) => {
     console.log(`  pickup shipment available:     ${pickupShipments.length > 0}`);
     console.log(`  requires-tracking available:   ${requiredTrackingShipments.length > 0}`);
     console.log(`  bad-status shipment available: ${badStatusShipments.length > 0}`);
+    console.log(`  freight-capable shipment:      ${freightShipments.length > 0}`);
     console.log(`  scoped user available:         ${scopedUserRows.length > 0}`);
     
     // ─── 2. Happy path — single tracking ──────────────────────────────────────
@@ -249,31 +255,40 @@ const assertResultShape = (result, expectedCount) => {
     
     // ─── 4. Happy path — null tracking_number allowed ─────────────────────────
     
-    try {
-      console.log(`\n${LOG} [create] null tracking_number (not required)`);
-      
-      const result = await createTrackingNumbersService({
-        outboundShipmentId: primaryShipment.id,
-        records: [
-          {
-            carrier: 'Pending Carrier',
-            freightType: 'LTL',
-            bolNumber: `BOL-${RUN_ID}`,
-          },
-        ],
-        user: testUser,
-      });
-      
-      assertResultShape(result, 1);
-      insertedIds.push(...result.ids);
-      
-      info('Count', result.count);
-      
-      pass('create — null tracking_number');
-      results.passed++;
-    } catch (error) {
-      fail('create — null tracking_number', error);
-      results.failed++;
+    if (!freightShipments.length) {
+      skip(
+        'create — null tracking_number',
+        'no freight-capable shipment (LTL/FTL) found in attachable status'
+      );
+      results.skipped++;
+    } else {
+      try {
+        console.log(`\n${LOG} [create] null tracking_number (LTL + BOL)`);
+        info('Using shipment', freightShipments[0].method_name);
+        
+        const result = await createTrackingNumbersService({
+          outboundShipmentId: freightShipments[0].id,
+          records: [
+            {
+              carrier: 'Pending Carrier',
+              freightType: 'LTL',
+              bolNumber: `BOL-${RUN_ID}`,
+            },
+          ],
+          user: testUser,
+        });
+        
+        assertResultShape(result, 1);
+        insertedIds.push(...result.ids);
+        
+        info('Count', result.count);
+        
+        pass('create — null tracking_number');
+        results.passed++;
+      } catch (error) {
+        fail('create — null tracking_number', error);
+        results.failed++;
+      }
     }
     
     // ─── 5. Reject — shipment not found ───────────────────────────────────────
@@ -718,14 +733,16 @@ const assertResultShape = (result, expectedCount) => {
     // ─── 17. Reconciliation path (stubbed repo) ───────────────────────────────
     //
     // The service's post-insert reconciliation guards against the race window
-    // between assertNoDuplicateTrackingNumbers and the bulk insert (which uses
-    // ON CONFLICT DO NOTHING). We simulate that race by stubbing
-    // insertTrackingNumbersBulk to return one fewer row than requested.
+    // between the duplicate pre-flight and the bulk insert (ON CONFLICT DO
+    // NOTHING). We simulate that race by stubbing insertTrackingNumbersBulk to
+    // return one fewer row than requested.
     //
-    // Mechanism: clear the require-cache entry for the repo, mutate the new
-    // exports, then reload the SERVICE module so it re-destructures and
-    // picks up the stub. Original `createTrackingNumbersService` reference
-    // at the top of this file is unaffected (other tests already ran).
+    // Mechanism: clear the require-cache for the repo AND the business layer
+    // (which destructures from the repo at load time), mutate the repo's
+    // exports, then reload the SERVICE so it re-requires the business layer,
+    // which then re-destructures from the now-stubbed repo. Without clearing
+    // the business layer, its bound reference still points at the original
+    // function and the stub never takes effect.
     //
     // Run this LAST — it leaves the require cache in a dirty state.
     
@@ -735,10 +752,15 @@ const assertResultShape = (result, expectedCount) => {
       const repoPath = require.resolve(
         '../../repositories/tracking-number-repository'
       );
+      const businessPath = require.resolve(
+        '../../business/tracking-number-business'
+      );
       const servicePath = require.resolve(
         '../../services/tracking-number-service'
       );
       
+      // Order matters: clear repo first, re-require, mutate, THEN clear the
+      // dependents so they re-bind to the mutated repo on next require.
       delete require.cache[repoPath];
       const stubRepo = require(repoPath);
       const realInsert = stubRepo.insertTrackingNumbersBulk;
@@ -749,6 +771,7 @@ const assertResultShape = (result, expectedCount) => {
         return real.slice(0, Math.max(0, real.length - 1));
       };
       
+      delete require.cache[businessPath];
       delete require.cache[servicePath];
       const { createTrackingNumbersService: stubbedService } =
         require(servicePath);
@@ -782,9 +805,14 @@ const assertResultShape = (result, expectedCount) => {
           results.failed++;
         }
       } finally {
-        // Restore the repo function so any later code that re-requires it
-        // gets the real implementation.
+        // Restore the stubbed repo's export. Note: the business layer
+        // re-required above still holds the stub reference via destructure,
+        // so any later code in this process would still see the stub. We're
+        // the last test, so this is acceptable; for safety we also clear the
+        // business + service caches so the next require() rebuilds cleanly.
         stubRepo.insertTrackingNumbersBulk = realInsert;
+        delete require.cache[businessPath];
+        delete require.cache[servicePath];
       }
     } catch (error) {
       fail('create — reconciliation path (setup)', error);
