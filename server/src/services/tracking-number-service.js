@@ -1,17 +1,15 @@
 /**
  * Service layer for the `tracking_numbers` domain.
  *
- * Orchestrates the end-to-end "attach tracking numbers to a shipment" flow
- * inside a single transaction:
+ * Orchestrates the "attach tracking numbers to a shipment" flow inside a
+ * single transaction:
  *   1. Load the shipment (with delivery method + status) — 404 if missing.
  *   2. Enforce warehouse scope from the shipment's warehouse, not user input.
  *   3. Gate on shipment status (must allow tracking attachment).
- *   4. Gate on delivery method (no pickup; honor requires_tracking_number).
- *   5. Validate records (shape/format business rules + in-payload duplicates).
- *   6. DB-backed (carrier, tracking_number) duplicate pre-flight (409).
- *   7. Build snake_case rows + bulk insert.
- *   8. Reconcile insert count to catch races with the pre-flight.
- *   9. Return a lean { count, ids } — frontend re-fetches the list.
+ *   4. Delegate the attach to the business layer, which owns the
+ *      delivery-method gate, record validation, duplicate pre-flight,
+ *      bulk insert, and insert-count reconciliation.
+ *   5. Return a lean { count, ids } — frontend refreshes via the list endpoint.
  *
  * Conventions:
  * - All work happens inside withTransaction so the dup check + insert are atomic.
@@ -28,13 +26,10 @@ const {
 const {
   getOutboundShipmentForTrackingAttach,
 } = require('../repositories/outbound-shipment-repository');
-const {
-  assertShipmentStatusAllowsTracking,
-  attachTrackingNumbersToShipment,
-} = require('../business/tracking-number-business');
+const { attachTrackingNumbersToShipment } = require('../business/tracking-number-business');
 const {
   transformOutboundShipmentForTrackingAttachRow,
-  transformCreateTrackingNumbersResult
+  transformCreateTrackingNumbersResult,
 } = require('../transformers/outbound-fulfillment-transformer');
 
 const CONTEXT = 'tracking-number-service';
@@ -78,9 +73,8 @@ const createTrackingNumbersService = async ({
         enforceWarehouseScope(assignedWarehouseIds, shipment.warehouseId);
       }
       
-      // 3. Status gate.
-      assertShipmentStatusAllowsTracking(shipment.statusCode);
-      
+      // 3. Delegate the attach — business layer owns delivery-method gate,
+      //    record validation, duplicate pre-flight, insert, and reconcile.
       const insertedTrackings = await attachTrackingNumbersToShipment(
         {
           outboundShipmentId,
@@ -92,7 +86,7 @@ const createTrackingNumbersService = async ({
         client
       );
       
-      // 9. Lean response — frontend refreshes via the list endpoint.
+      // 4. Lean response — frontend refreshes via the list endpoint.
       return transformCreateTrackingNumbersResult(insertedTrackings);
     });
   } catch (error) {

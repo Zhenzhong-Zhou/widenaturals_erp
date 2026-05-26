@@ -106,7 +106,7 @@ const {
 const {
   getOrderItemsByOrderId,
 } = require('../repositories/order-item-repository');
-const { getStatusId } = require('../config/status-cache');
+const { getStatusId, getStatusIdByCode } = require('../config/status-cache');
 const {
   resolveInventoryStatus,
   buildFulfillmentLogEntry,
@@ -116,6 +116,9 @@ const {
 } = require('../repositories/inventory-activity-log-repository');
 const { assertDeliveryMethodResolved } = require('../business/delivery-method-business');
 const { attachTrackingNumbersToShipment } = require('../business/tracking-number-business');
+const { SHIPMENT_STATUS_CODES } = require('../utils/constants/domain/shipment-status-codes');
+const { resolveOrderTargetCodeAfterFulfillment } = require('../business/order-business');
+const { FULFILLMENT_STATUS_CODES } = require('../utils/constants/domain/fulfillment-status-codes');
 
 const CONTEXT = 'outbound-fulfillment-service';
 
@@ -276,7 +279,7 @@ const fulfillOutboundShipmentService = async (requestData, orderId, user) => {
         client
       );
       
-      const { orderStatusRow, orderItemStatusRow } = await updateAllStatuses({
+      const { orderStatusRow, orderItemStatusRows } = await updateAllStatuses({
         orderId: order_id,
         orderNumber: shipmentMeta.order_number,
         allocationMeta,
@@ -295,7 +298,7 @@ const fulfillOutboundShipmentService = async (requestData, orderId, user) => {
         fulfillmentRowsWithStatus,
         shipmentBatchRow,
         orderStatusRow,
-        orderItemStatusRow,
+        orderItemStatusRows,
       });
     });
   } catch (error) {
@@ -489,10 +492,10 @@ const confirmOutboundFulfillmentService = async (
       //     updateOutboundShipmentStatus (generic) based on shipmentStatus code.
       const {
         orderStatusRow,
-        orderItemStatusRow,
-        inventoryAllocationStatusRow,
-        orderFulfillmentStatusRow,
-        shipmentStatusRow,
+        orderItemStatusRows,
+        inventoryAllocationStatusRows,
+        orderFulfillmentStatusRows,
+        shipmentStatusRows,
       } = await updateAllStatuses({
         orderId,
         orderNumber,
@@ -553,10 +556,10 @@ const confirmOutboundFulfillmentService = async (
         shipmentId,
         warehouseInventoryIds: updatedWarehouseRecords.map((r) => r.id),
         orderStatusRow,
-        orderItemStatusRow,
-        inventoryAllocationStatusRow,
-        orderFulfillmentStatusRow,
-        shipmentStatusRow,
+        orderItemStatusRows,
+        inventoryAllocationStatusRows,
+        orderFulfillmentStatusRows,
+        shipmentStatusRows,
         logMetadata: logInsertResult,
       });
     });
@@ -678,23 +681,16 @@ const completeManualFulfillmentService = async (
   try {
     return await withTransaction(async (client) => {
       const userId = user.id;
-      const {
-        orderStatus,
-        shipmentStatus,
-        fulfillmentStatus,
-        trackings = []
-      } = completionData;
+      const { trackings = [] } = completionData;
       
       // 1. Fetch and validate shipment record.
       const shipment = await getShipmentByShipmentId(shipmentId, client);
       assertShipmentFound(shipment, shipmentId);
       
       const {
-        order_id,
+        order_id: orderId,
         status_code,
       } = shipment;
-      
-      const orderId = order_id;
       
       // 2. Fetch and validate fulfillments linked to this order.
       const fulfillments = await getOrderFulfillments({ orderId }, client);
@@ -706,8 +702,7 @@ const completeManualFulfillmentService = async (
       }
       
       const orderIds = [...new Set(fulfillments.map((f) => f.order_id))];
-      
-      if (orderIds.length !== 1 || orderIds[0] !== order_id) {
+      if (orderIds.length !== 1 || orderIds[0] !== orderId) {
         throw AppError.validationError(
           'Mismatched order_id between shipment and fulfillments.'
         );
@@ -750,49 +745,36 @@ const completeManualFulfillmentService = async (
         fulfillmentStatuses: fulfillmentStatusMeta.map((s) => s.code),
       });
       
-      // 8. Resolve target status IDs.
-      const { id: newOrderStatusId } = await getOrderStatusByCode(
-        orderStatus,
-        client
-      );
-      const { id: newShipmentStatusId, code: shipmentStatusCode } = await getShipmentStatusByCode(
-        shipmentStatus,
-        client
-      );
-      const { id: newFulfillmentStatusId } = await getFulfillmentStatusByCode(
-        fulfillmentStatus,
-        client
-      );
+      // 8. Resolve server-determined target codes + IDs.
+      const shipmentForTracking =
+        transformOutboundShipmentForTrackingAttachRow(shipment);
       
-      assertStatusesResolved({
-        orderStatusId: newOrderStatusId,
-        shipmentStatusId: newShipmentStatusId,
-        fulfillmentStatusId: newFulfillmentStatusId,
-      });
+      const isCarrierTracked =
+        shipmentForTracking.deliveryMethod?.isCarrierTracked === true;
       
-      // 9. Apply atomic status updates across all linked entities.
-      const {
-        orderStatusRow,
-        orderItemStatusRow,
-        orderFulfillmentStatusRow,
-        shipmentStatusRow,
-      } = await updateAllStatuses({
-        orderId,
-        orderNumber,
-        allocationMeta: null,
-        newOrderStatusId,
-        newAllocationStatusId: null,
+      // All fulfillments riding this shipment transition together.
+      const transitioningFulfillmentIds = fulfillments
+        .filter((f) => f.shipment_id === shipmentId)
+        .map((f) => f.fulfillment_id);
+      
+      const shipmentTargetCode = isCarrierTracked
+        ? SHIPMENT_STATUS_CODES.IN_TRANSIT
+        : SHIPMENT_STATUS_CODES.COMPLETED;
+      
+      const fulfillmentTargetCode = FULFILLMENT_STATUS_CODES.SHIPPED;
+      
+      const orderTargetCode = resolveOrderTargetCodeAfterFulfillment(
         fulfillments,
-        newFulfillmentStatusId,
-        newShipmentStatusId,
-        shipmentStatusCode,
-        userId,
-        client,
-      });
+        transitioningFulfillmentIds
+      );
       
-      // 10. Attach tracking numbers if provided in the payload.
-      const shipmentForTracking = transformOutboundShipmentForTrackingAttachRow(shipment);
+      const newShipmentStatusId    = getStatusIdByCode(shipmentTargetCode);
+      const newFulfillmentStatusId = getStatusIdByCode(fulfillmentTargetCode);
+      const newOrderStatusId       = getStatusIdByCode(orderTargetCode);
       
+      // 9. Attach tracking numbers first — fails fast on bad payloads, and
+      //    keeps the persisted shipment status consistent with what the
+      //    business-layer gate sees (pre-cascade state).
       const insertedTrackings = await attachTrackingNumbersToShipment(
         {
           outboundShipmentId: shipmentId,
@@ -804,11 +786,30 @@ const completeManualFulfillmentService = async (
         client
       );
       
+      // 10. Apply atomic status updates across all linked entities.
+      const {
+        orderStatusRow,
+        orderItemStatusRows,
+        orderFulfillmentStatusRows,
+        shipmentStatusRows,
+      } = await updateAllStatuses({
+        orderId,
+        orderNumber,
+        allocationMeta: null,
+        newOrderStatusId,
+        newAllocationStatusId: null,
+        fulfillments,
+        newFulfillmentStatusId,
+        newShipmentStatusId,
+        userId,
+        client,
+      });
+      
       return transformPickupCompletionResult({
         orderStatusRow,
-        orderItemStatusRow,
-        orderFulfillmentStatusRow,
-        shipmentStatusRow,
+        orderItemStatusRows,
+        orderFulfillmentStatusRows,
+        shipmentStatusRows,
         insertedTrackings,
       });
     });
