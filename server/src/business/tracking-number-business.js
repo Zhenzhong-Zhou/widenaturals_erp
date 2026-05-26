@@ -20,7 +20,7 @@
  *
  * 2. `attachTrackingNumbersToShipment` — composite helper used by both the
  *    standalone `createTrackingNumbersService` and the inline tracking attach
- *    in `completeManualFulfillmentService`. Runs (a)–(d) end-to-end and
+ *    in `completeOutboundFulfillmentService`. Runs (a)–(d) end-to-end and
  *    performs the bulk insert with conflict reconciliation. Warehouse-scope
  *    checks live with the caller (they need the shipment record); everything
  *    else is encapsulated.
@@ -235,7 +235,7 @@ const buildTrackingNumberInsertRow = (
  *
  * No-op (returns `[]`) when `records` is empty — supports both the standalone
  * `createTrackingNumbersService` and the inline attach inside
- * `completeManualFulfillmentService` where trackings are optional.
+ * `completeOutboundFulfillmentService` where trackings are optional.
  *
  * Status gating and warehouse-scope checks are NOT enforced here. Callers
  * must run `assertShipmentStatusAllowsTracking` and the warehouse-scope

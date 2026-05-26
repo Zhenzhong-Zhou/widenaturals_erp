@@ -3,18 +3,24 @@
  * @description Business logic for outbound fulfillment lifecycle operations.
  *
  * Exports:
- *   - fulfillOutboundShipmentService         – creates shipment and fulfillment records
- *   - confirmOutboundFulfillmentService      — confirms fulfillment, applies bulk inventory
- *                                              quantity updates and status resolution,
- *                                              and inserts inventory activity logs
+ *   - fulfillOutboundShipmentService           – creates shipment and fulfillment records
+ *   - confirmOutboundFulfillmentService        — confirms fulfillment, applies bulk inventory
+ *                                                quantity updates and status resolution,
+ *                                                and inserts inventory activity logs
  *   - fetchPaginatedOutboundFulfillmentService – paginated shipment list
- *   - fetchShipmentDetailsService            – full shipment detail with fulfillments, batches, and tracking
- *   - completeManualFulfillmentService       – completes a manual/pickup fulfillment
+ *   - fetchShipmentDetailsService              – full shipment detail with fulfillments, batches, and tracking
+ *   - completeOutboundFulfillmentService       – completes outbound fulfillment: attaches tracking numbers
+ *                                                and cascades atomic status updates across shipment,
+ *                                                fulfillments, and order. Shipment target is carrier-aware
+ *                                                (IN_TRANSIT for carrier-tracked, COMPLETED otherwise);
+ *                                                fulfillments → SHIPPED; order resolved from remaining
+ *                                                fulfillment state.
  *
- * Schema notes (post-tracking refactor):
+ * Schema notes:
  *   - outbound_shipments.delivery_method_id is NOT NULL
  *   - tracking_numbers is a 1:N child of outbound_shipments (no FK on shipment side)
- *   - delivery_methods.requires_tracking_number gates the future ship-shipment flow
+ *   - delivery_methods.is_carrier_tracked drives shipment target status on completion
+ *     (IN_TRANSIT when true, COMPLETED when false)
  *
  * Error handling follows a single-log principle — errors are not logged here.
  * They bubble up to globalErrorHandler, which logs once with the normalised shape.
@@ -80,7 +86,7 @@ const {
   assertWarehouseUpdatesApplied,
   assertShipmentFound,
   validateStatusesBeforeConfirmation,
-  validateStatusesBeforeManualFulfillment,
+  validateStatusesBeforeOutboundFulfillmentCompletion,
 } = require('../business/outbound-fulfillment-business');
 const {
   getAllocationStatuses,
@@ -656,27 +662,34 @@ const fetchShipmentDetailsService = async (shipmentId) => {
 };
 
 /**
- * Completes a manual or pickup fulfillment by updating all linked statuses.
+ * Completes an outbound fulfillment by attaching tracking numbers and cascading
+ * atomic status updates across shipment, fulfillments, and order.
  *
- * Validates shipment, fulfillments, order state, and delivery method eligibility
- * before applying atomic status updates. Pickup methods carry
- * requires_tracking_number = false on delivery_methods, so no tracking gate runs here.
+ * Validates shipment, fulfillments, order/item state, and allocation status before
+ * persisting any changes. Tracking numbers are attached first so the gate inside
+ * `attachTrackingNumbersToShipment` sees pre-cascade shipment status; status
+ * updates then run together in `updateAllStatuses`.
+ *
+ * Target status resolution:
+ *   - Shipment    → IN_TRANSIT if delivery method is carrier-tracked, COMPLETED otherwise
+ *   - Fulfillment → SHIPPED for all fulfillments riding this shipment
+ *   - Order       → resolved from remaining fulfillment state across the order
  *
  * @param {Object} completionData
+ * @param {Array<Object>} [completionData.trackings] - tracking records to attach (may be empty)
  * @param {string} shipmentId
- * @param {Object} user
- * @returns {Promise<Object>}
+ * @param {Object} user - authenticated user (req.auth.user)
+ * @returns {Promise<Object>} transformed completion result with updated status rows and inserted trackings
  *
  * @throws {AppError} Re-throws AppErrors from lower layers unchanged.
  * @throws {AppError} Wraps unexpected errors as `AppError.serviceError`.
  */
-// todo: completeOutboundFulfillmentService
-const completeManualFulfillmentService = async (
+const completeOutboundFulfillmentService = async (
   completionData,
   shipmentId,
   user
 ) => {
-  const context = `${CONTEXT}/completeManualFulfillmentService`;
+  const context = `${CONTEXT}/completeOutboundFulfillmentService`;
   
   try {
     return await withTransaction(async (client) => {
@@ -734,8 +747,8 @@ const completeManualFulfillmentService = async (
         client
       );
       
-      // 7. Validate status readiness for manual fulfillment completion.
-      validateStatusesBeforeManualFulfillment({
+      // 7. Validate status readiness for outbound fulfillment completion.
+      validateStatusesBeforeOutboundFulfillmentCompletion({
         orderStatusCode: order_status_code,
         orderItemStatusCode: orderItemMetadata.map((oi) => oi.order_item_code),
         allocationStatuses: allocationStatusMetadata.map(
@@ -816,7 +829,7 @@ const completeManualFulfillmentService = async (
   } catch (error) {
     if (error instanceof AppError) throw error;
     
-    throw AppError.serviceError('Unable to complete manual fulfillment.', {
+    throw AppError.serviceError('Unable to complete outbound fulfillment.', {
       context,
       meta: { error: error.message },
     });
@@ -828,5 +841,5 @@ module.exports = {
   confirmOutboundFulfillmentService,
   fetchPaginatedOutboundFulfillmentService,
   fetchShipmentDetailsService,
-  completeManualFulfillmentService,
+  completeOutboundFulfillmentService,
 };

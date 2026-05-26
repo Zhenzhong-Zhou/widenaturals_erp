@@ -78,7 +78,7 @@ const fulfillOutboundShipmentBodySchema = Joi.object({
  *
  * @example
  * // Manual completion (no allocation)
- * const manualFulfillmentBodySchema = buildBaseFulfillmentSchema();
+ * const completeOutboundFulfillmentBodySchema = buildBaseFulfillmentSchema();
  */
 const buildBaseFulfillmentSchema = () =>
   Joi.object({
@@ -150,10 +150,10 @@ const fulfillAdjustmentBodySchema = buildBaseFulfillmentSchema().keys({
 });
 
 /**
- * Joi schema: manualFulfillmentBodySchema
+ * Joi schema: completeOutboundFulfillmentBodySchema
  *
  * @description
- * Validates the request body for **manual fulfillment completion** workflows,
+ * Validates the request body for **outbound fulfillment completion** workflows,
  * such as **in-store pickup** or **personal delivery**, where allocations
  * have already been finalized and no allocation status transition is required.
  *
@@ -175,7 +175,7 @@ const fulfillAdjustmentBodySchema = buildBaseFulfillmentSchema().keys({
  *      → Target fulfillment status code (e.g. `"FULFILLMENT_COMPLETED"`)
  *
  * Usage:
- *  - Applied as middleware to `/outbound-fulfillment/manual/:shipmentId/complete` route.
+ *  - Applied as middleware to `/outbound-fulfillment/:shipmentId/complete` route.
  *  - Used in workflows without carrier tracking or allocation updates.
  *
  * Example valid payload:
@@ -189,7 +189,7 @@ const fulfillAdjustmentBodySchema = buildBaseFulfillmentSchema().keys({
  *
  * @type {Joi.ObjectSchema}
  */
-const manualFulfillmentBodySchema = buildBaseFulfillmentSchema();
+const completeOutboundFulfillmentBodySchema = buildBaseFulfillmentSchema();
 
 /**
  * Joi schema for validating outbound fulfillment (shipment) query parameters.
@@ -260,5 +260,5 @@ module.exports = {
   fulfillOutboundShipmentBodySchema,
   fulfillAdjustmentBodySchema,
   outboundFulfillmentQuerySchema,
-  manualFulfillmentBodySchema,
+  completeOutboundFulfillmentBodySchema,
 };

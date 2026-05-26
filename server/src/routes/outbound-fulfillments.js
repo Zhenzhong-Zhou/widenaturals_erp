@@ -22,14 +22,14 @@ const {
   fulfillOutboundShipmentBodySchema,
   fulfillAdjustmentBodySchema,
   outboundFulfillmentQuerySchema,
-  manualFulfillmentBodySchema,
+  completeOutboundFulfillmentBodySchema,
 } = require('../validators/outbound-fulfillment-validators');
 const {
   fulfillOutboundShipmentController,
   confirmOutboundFulfillmentController,
   getPaginatedOutboundFulfillmentController,
   getShipmentDetailsController,
-  completeManualFulfillmentController,
+  completeOutboundFulfillmentController,
 } = require('../controllers/outbound-fulfillment-controller');
 
 const router = express.Router();
@@ -50,13 +50,13 @@ router.post(
 );
 
 /**
- * @route POST /outbound-fulfillments/orders/:orderId/fulfillment/confirm
+ * @route PATCH /outbound-fulfillments/orders/:orderId/fulfillment/confirm
  * @description Confirm a pending outbound fulfillment, applying any quantity
  * adjustments from the review payload.
  * @access protected
  * @permission PERMISSION_KEYS.OUTBOUND_FULFILLMENTS.CONFIRM
  */
-router.post(
+router.patch(
   '/orders/:orderId/fulfillment/confirm',
   authorize([PERMISSION_KEYS.OUTBOUND_FULFILLMENTS.CONFIRM]),
   validate(orderIdParamSchema, 'params'),
@@ -99,18 +99,20 @@ router.get(
 );
 
 /**
- * @route POST /outbound-fulfillments/manual/:shipmentId/complete
- * @description Mark a manual outbound shipment as complete. Validates the shipment
- * ID and manual fulfillment payload before delegating to the controller.
+ * @route PATCH /outbound-fulfillments/:shipmentId/complete
+ * @description Complete an outbound shipment. Validates the shipment ID and
+ * completion payload before delegating to the controller. Attaches tracking
+ * numbers and cascades status updates across shipment, fulfillments, and order;
+ * shipment target is carrier-aware (IN_TRANSIT vs COMPLETED).
  * @access protected
- * @permission PERMISSION_KEYS.OUTBOUND_FULFILLMENTS.COMPLETE_MANUAL
+ * @permission PERMISSION_KEYS.OUTBOUND_FULFILLMENTS.COMPLETE
  */
-router.post(
-  '/manual/:shipmentId/complete',
-  authorize([PERMISSION_KEYS.OUTBOUND_FULFILLMENTS.COMPLETE_MANUAL]),
+router.patch(
+  '/:shipmentId/complete',
+  authorize([PERMISSION_KEYS.OUTBOUND_FULFILLMENTS.COMPLETE]),
   validate(shipmentIdParamSchema, 'params'),
-  validate(manualFulfillmentBodySchema, 'body'),
-  completeManualFulfillmentController
+  validate(completeOutboundFulfillmentBodySchema, 'body'),
+  completeOutboundFulfillmentController
 );
 
 module.exports = router;

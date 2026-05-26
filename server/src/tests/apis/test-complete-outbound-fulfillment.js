@@ -2,7 +2,7 @@ const { performance } = require('perf_hooks');
 const { pool } = require('../../database/db');
 const { initStatusCache } = require('../../config/status-cache');
 const {
-  completeManualFulfillmentService,
+  completeOutboundFulfillmentService,
 } = require('../../services/outbound-fulfillment-service');
 const {
   buildCompletionPayload,
@@ -108,7 +108,7 @@ const assertExpectedShape = (result, { isCarrier }) => {
     console.log(`${logPrefix} ⚙️  Completion payload:`);
     console.dir(completionData, { depth: null });
     
-    const result = await completeManualFulfillmentService(
+    const result = await completeOutboundFulfillmentService(
       completionData,
       shipmentId,
       testUser

@@ -2,7 +2,6 @@ const { pool } = require('../../database/db');
 const { getUniqueScalarValue } = require('../../utils/db/record-utils');
 const {
   initStatusCache,
-  getStatusCodeById,
   initAllStatusCaches
 } = require('../../config/status-cache');
 const {
@@ -16,7 +15,7 @@ const {
 const {
   fulfillOutboundShipmentService,
   confirmOutboundFulfillmentService,
-  completeManualFulfillmentService,
+  completeOutboundFulfillmentService,
 } = require('../../services/outbound-fulfillment-service');
 const { buildCompletionPayload } = require('../utils/fulfillment-completion-fixtures');
 const { getShipmentByShipmentId } = require('../../repositories/outbound-shipment-repository');
@@ -289,7 +288,7 @@ const { getShipmentByShipmentId } = require('../../repositories/outbound-shipmen
     console.log(`📦 Expecting shipment → ${expectedShipmentStatusCode}, order → ${expectedOrderStatusCode}`);
 
     // === Call the service ===
-    const manualCompletionResult = await completeManualFulfillmentService(
+    const manualCompletionResult = await completeOutboundFulfillmentService(
       completionData,
       shipmentId,
       enrichedUser

@@ -6,11 +6,11 @@
  * Controllers for the Outbound Fulfillment resource.
  *
  * Routes:
- *   POST  /api/v1/orders/:orderId/outbound-fulfillment          → fulfillOutboundShipmentController
- *   PATCH /api/v1/orders/:orderId/outbound-fulfillment/confirm  → confirmOutboundFulfillmentController
- *   GET   /api/v1/outbound-fulfillments                         → getPaginatedOutboundFulfillmentController
- *   GET   /api/v1/shipments/:shipmentId                         → getShipmentDetailsController
- *   PATCH /api/v1/shipments/:shipmentId/complete                → completeManualFulfillmentController
+ *   POST  /api/v1/outbound-fulfillments/orders/:orderId/fulfillment/initiate  → fulfillOutboundShipmentController
+ *   PATCH /api/v1/outbound-fulfillments/orders/:orderId/fulfillment/confirm   → confirmOutboundFulfillmentController
+ *   GET   /api/v1/outbound-fulfillments                                       → getPaginatedOutboundFulfillmentController
+ *   GET   /api/v1/outbound-fulfillments/:shipmentId/dtails                    → getShipmentDetailsController
+ *   PATCH  /api/v1/outbound-fulfillments/:shipmentId/complete                 → completeOutboundFulfillmentController
  *
  * All handlers are wrapped with `wrapAsyncHandler` — errors propagate
  * automatically to the global error handler without try/catch boilerplate.
@@ -29,7 +29,7 @@ const {
   confirmOutboundFulfillmentService,
   fetchPaginatedOutboundFulfillmentService,
   fetchShipmentDetailsService,
-  completeManualFulfillmentService,
+  completeOutboundFulfillmentService,
 } = require('../services/outbound-fulfillment-service');
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -146,24 +146,24 @@ const getShipmentDetailsController = wrapAsyncHandler(async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Completes the manual fulfillment workflow for a shipment.
+ * Completes the outbound fulfillment workflow for a shipment.
  *
- * Requires: auth middleware, Joi body validation, COMPLETE_MANUAL_FULFILLMENT permission.
+ * Requires: auth middleware, Joi body validation, COMPLETE_OUTBOUND_FULFILLMENT permission.
  */
-const completeManualFulfillmentController = wrapAsyncHandler(
+const completeOutboundFulfillmentController = wrapAsyncHandler(
   async (req, res) => {
     const { shipmentId } = req.params;
     const user = req.auth.user;
-
-    const result = await completeManualFulfillmentService(
+    
+    const result = await completeOutboundFulfillmentService(
       req.body,
       shipmentId,
       user
     );
-
+    
     res.status(200).json({
       success: true,
-      message: 'Manual fulfillment completed successfully.',
+      message: 'Outbound fulfillment completed successfully.',
       data: result,
       traceId: req.traceId,
     });
@@ -179,5 +179,5 @@ module.exports = {
   confirmOutboundFulfillmentController,
   getPaginatedOutboundFulfillmentController,
   getShipmentDetailsController,
-  completeManualFulfillmentController,
+  completeOutboundFulfillmentController,
 };

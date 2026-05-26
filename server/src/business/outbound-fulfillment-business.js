@@ -15,39 +15,39 @@
  * Exports:
  *
  * ─── Validation & Assertions ──────────────────────────────────────────────────
- *  - validateOrderIsFullyAllocated           — assert all order items are fully allocated
- *  - validateFulfillmentStatusTransition     — enforce forward-only fulfillment status transitions
- *  - validateStatusesBeforeConfirmation      — validate order/fulfillment/shipment eligibility
- *  - validateStatusesBeforeManualFulfillment — validate eligibility for manual fulfillment completion
- *  - assertAllocationsValid                  — assert allocation list is non-empty and well-formed
- *  - assertOrderMeta                         — assert order metadata is present and valid
- *  - assertFulfillmentsValid                 — assert fulfillment list is non-empty and well-formed
- *  - assertShipmentFound                     — assert shipment record exists and has required fields
- *  - assertDeliveryMethodResolved            — assert order has a delivery method before shipment creation
- *  - assertInventoryCoverage                 — assert inventory records exist for allocations
- *  - assertEnrichedAllocations               — assert enriched allocations are non-empty and well-formed
- *  - assertInventoryAdjustments              — assert computed adjustment array is non-empty
- *  - assertWarehouseUpdatesApplied           — assert warehouse inventory rows were updated
- *  - assertStatusesResolved                  — assert all required status IDs were resolved
- *  - assertActionTypeIdResolved              — assert inventory action type ID was resolved
- *  - assertLogsGenerated                     — assert activity log entries were generated or inserted
+ *  - validateOrderIsFullyAllocated                       — assert all order items are fully allocated
+ *  - validateFulfillmentStatusTransition                 — enforce forward-only fulfillment status transitions
+ *  - validateStatusesBeforeConfirmation                  — validate order/fulfillment/shipment eligibility
+ *  - validateStatusesBeforeOutboundFulfillmentCompletion — validate eligibility for outbound fulfillment completion
+ *  - assertAllocationsValid                              — assert allocation list is non-empty and well-formed
+ *  - assertOrderMeta                                     — assert order metadata is present and valid
+ *  - assertFulfillmentsValid                             — assert fulfillment list is non-empty and well-formed
+ *  - assertShipmentFound                                 — assert shipment record exists and has required fields
+ *  - assertDeliveryMethodResolved                        — assert order has a delivery method before shipment creation
+ *  - assertInventoryCoverage                             — assert inventory records exist for allocations
+ *  - assertEnrichedAllocations                           — assert enriched allocations are non-empty and well-formed
+ *  - assertInventoryAdjustments                          — assert computed adjustment array is non-empty
+ *  - assertWarehouseUpdatesApplied                       — assert warehouse inventory rows were updated
+ *  - assertStatusesResolved                              — assert all required status IDs were resolved
+ *  - assertActionTypeIdResolved                          — assert inventory action type ID was resolved
+ *  - assertLogsGenerated                                 — assert activity log entries were generated or inserted
  *
  * ─── Allocation & Inventory ───────────────────────────────────────────────────
- *  - getAndLockAllocations                   — fetch and lock allocation and warehouse inventory rows
- *  - assertSingleWarehouseAllocations        — assert all allocations belong to one warehouse
- *  - enrichAllocationsWithInventory          — merge current inventory state into allocation records
- *  - calculateInventoryAdjustments           — compute quantity deltas per enriched allocation
+ *  - getAndLockAllocations                               — fetch and lock allocation and warehouse inventory rows
+ *  - assertSingleWarehouseAllocations                    — assert all allocations belong to one warehouse
+ *  - enrichAllocationsWithInventory                      — merge current inventory state into allocation records
+ *  - calculateInventoryAdjustments                       — compute quantity deltas per enriched allocation
  *
  * ─── Record Construction ──────────────────────────────────────────────────────
- *  - insertOutboundShipmentRecord            — create a single outbound shipment record
- *  - buildShipmentBatchInputs                — build shipment batch insert rows from allocations
- *  - buildFulfillmentInputsFromAllocations   — build fulfillment insert rows grouped by order item
- *  - buildFulfillmentLogEntry                — build a single activity log entry for fulfillment confirmation
+ *  - insertOutboundShipmentRecord                        — create a single outbound shipment record
+ *  - buildShipmentBatchInputs                            — build shipment batch insert rows from allocations
+ *  - buildFulfillmentInputsFromAllocations               — build fulfillment insert rows grouped by order item
+ *  - buildFulfillmentLogEntry                            — build a single activity log entry for fulfillment confirmation
  *
  * ─── Status Updates ───────────────────────────────────────────────────────────
- *  - updateAllStatuses                       — bulk update order, item, allocation, fulfillment,
- *                                              and shipment statuses within a transaction;
- *                                              dispatches shipment updates by status code
+ *  - updateAllStatuses                                   — bulk update order, item, allocation, fulfillment,
+ *                                                          and shipment statuses within a transaction;
+ *                                                          dispatches shipment updates by status code
  */
 
 'use strict';
@@ -927,23 +927,22 @@ const updateAllStatuses = async ({
 };
 
 /**
- * Validates that all statuses are eligible for manual fulfillment completion.
+ * Validates that all statuses are eligible for outbound fulfillment completion.
  *
- * @param {object} params
- * @param {string} params.orderStatusCode
- * @param {string | string[]} params.orderItemStatusCode
- * @param {string | string[]} params.allocationStatuses
- * @param {string} params.shipmentStatusCode
- * @param {string | string[]} params.fulfillmentStatuses
+ * @param {string} orderStatusCode
+ * @param {string | string[]} orderItemStatusCode
+ * @param {string | string[]} allocationStatuses
+ * @param {string} shipmentStatusCode
+ * @param {string | string[]} fulfillmentStatuses
  * @throws {AppError} validationError if any status is not eligible.
  */
-const validateStatusesBeforeManualFulfillment = ({
-  orderStatusCode,
-  orderItemStatusCode,
-  allocationStatuses,
-  shipmentStatusCode,
-  fulfillmentStatuses,
-}) => {
+const validateStatusesBeforeOutboundFulfillmentCompletion = ({
+                                                               orderStatusCode,
+                                                               orderItemStatusCode,
+                                                               allocationStatuses,
+                                                               shipmentStatusCode,
+                                                               fulfillmentStatuses,
+                                                             }) => {
   const orderItemCodes = Array.isArray(orderItemStatusCode)
     ? orderItemStatusCode
     : [orderItemStatusCode];
@@ -953,7 +952,7 @@ const validateStatusesBeforeManualFulfillment = ({
   const fulfillmentCodes = Array.isArray(fulfillmentStatuses)
     ? fulfillmentStatuses
     : [fulfillmentStatuses];
-
+  
   const ALLOWED = {
     order: ['ORDER_FULFILLED'],
     orderItem: ['ORDER_FULFILLED'],
@@ -961,39 +960,39 @@ const validateStatusesBeforeManualFulfillment = ({
     shipment: ['SHIPMENT_READY'],
     fulfillment: ['FULFILLMENT_PACKED'],
   };
-
+  
   if (!ALLOWED.order.includes(orderStatusCode)) {
     throw AppError.validationError(
-      `Order status "${orderStatusCode}" is not eligible for manual fulfillment completion.`
+      `Order status "${orderStatusCode}" is not eligible for outbound fulfillment completion.`
     );
   }
-
+  
   for (const code of orderItemCodes) {
     if (!ALLOWED.orderItem.includes(code)) {
       throw AppError.validationError(
-        `Order item with status "${code}" is not eligible for manual fulfillment completion.`
+        `Order item with status "${code}" is not eligible for outbound fulfillment completion.`
       );
     }
   }
-
+  
   for (const code of allocationCodes) {
     if (!ALLOWED.allocation.includes(code)) {
       throw AppError.validationError(
-        `Allocation with status "${code}" is not eligible for manual fulfillment completion.`
+        `Allocation with status "${code}" is not eligible for outbound fulfillment completion.`
       );
     }
   }
-
+  
   if (!ALLOWED.shipment.includes(shipmentStatusCode)) {
     throw AppError.validationError(
-      `Shipment status "${shipmentStatusCode}" is not eligible for manual fulfillment completion.`
+      `Shipment status "${shipmentStatusCode}" is not eligible for outbound fulfillment completion.`
     );
   }
-
+  
   for (const code of fulfillmentCodes) {
     if (!ALLOWED.fulfillment.includes(code)) {
       throw AppError.validationError(
-        `Fulfillment with status "${code}" cannot be marked as completed (manual fulfillment).`
+        `Fulfillment with status "${code}" is not eligible for outbound fulfillment completion.`
       );
     }
   }
@@ -1025,5 +1024,5 @@ module.exports = {
   enrichAllocationsWithInventory,
   calculateInventoryAdjustments,
   updateAllStatuses,
-  validateStatusesBeforeManualFulfillment,
+  validateStatusesBeforeOutboundFulfillmentCompletion,
 };

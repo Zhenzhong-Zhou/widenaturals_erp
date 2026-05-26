@@ -125,7 +125,7 @@ const PERMISSION_KEYS = {
     CONFIRM: 'confirm_outbound_fulfillments',
     VIEW: 'view_outbound_fulfillments',
     VIEW_DETAILS: 'view_outbound_fulfillment_details',
-    COMPLETE_MANUAL: 'complete_manual_outbound_fulfillments',
+    COMPLETE: 'complete_outbound_fulfillments',
   },
   TRACKING_NUMBERS: {
     ATTACH: 'attache_tracking_numbers',

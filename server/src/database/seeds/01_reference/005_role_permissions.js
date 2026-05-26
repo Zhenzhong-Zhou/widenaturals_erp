@@ -397,7 +397,7 @@ exports.seed = async function (knex) {
     'confirm_outbound_fulfillments',
     'view_outbound_fulfillments',
     'view_outbound_fulfillment_details',
-    'complete_manual_outbound_fulfillments',
+    'complete_outbound_fulfillments',
     'ship_sales_order',
     'complete_sales_order',
   ];
