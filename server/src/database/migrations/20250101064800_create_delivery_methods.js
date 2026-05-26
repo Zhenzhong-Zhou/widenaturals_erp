@@ -8,6 +8,7 @@ exports.up = function (knex) {
     table.string('method_name', 100).unique().notNullable();
     table.boolean('is_pickup_location').defaultTo(false);
     table.boolean('requires_tracking_number').defaultTo(false);
+    table.boolean('is_carrier_tracked').notNullable().defaultTo(false);
     table.text('description').nullable();
     table.specificType('estimated_time', 'INTERVAL').nullable();
     table.uuid('status_id').notNullable().references('id').inTable('status');

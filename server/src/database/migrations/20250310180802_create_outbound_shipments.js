@@ -10,8 +10,8 @@ exports.up = async function (knex) {
     table.uuid('warehouse_id').notNullable().references('id').inTable('warehouses');
     table.uuid('delivery_method_id').notNullable().references('id').inTable('delivery_methods');
     table.uuid('status_id').notNullable().references('id').inTable('shipment_status');
-
-    table.date('shipped_at').nullable();
+    
+    table.timestamp('shipped_at', { useTz: true }).nullable();
     table.date('expected_delivery_date').nullable();
 
     table.text('notes').nullable();
