@@ -23,6 +23,7 @@
  * @property {string} delivery_method_name        - delivery_methods.method_name.
  * @property {boolean} is_pickup_location         - delivery_methods.is_pickup_location.
  * @property {boolean} requires_tracking_number   - delivery_methods.requires_tracking_number.
+ * @property {boolean} is_carrier_tracked         - delivery_methods.is_carrier_tracked.
  */
 
 /**
@@ -33,6 +34,7 @@
  * @property {string} methodName
  * @property {boolean} isPickupLocation
  * @property {boolean} requiresTrackingNumber
+ * @property {boolean} isCarrierTracked
  */
 
 /**

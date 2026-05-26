@@ -68,7 +68,8 @@ const OUTBOUND_SHIPMENT_GET_BY_ID_QUERY = `
     dm.method_name                AS delivery_method_name,
     dm.is_pickup_location         AS is_pickup_location,
     dm.estimated_time             AS delivery_estimated_time,
-    dm.requires_tracking_number   AS requires_tracking_number
+    dm.requires_tracking_number   AS requires_tracking_number,
+    dm.is_carrier_tracked         AS is_carrier_tracked
   FROM outbound_shipments os
   LEFT JOIN shipment_status  ss ON ss.id = os.status_id
   LEFT JOIN delivery_methods dm ON dm.id = os.delivery_method_id

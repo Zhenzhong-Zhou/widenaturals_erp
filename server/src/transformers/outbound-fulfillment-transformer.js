@@ -64,17 +64,17 @@ const { makeAudit, compactAudit } = require('../utils/audit-utils');
  * @param {Array}  params.fulfillmentRowsWithStatus
  * @param {Object} params.shipmentBatchRow
  * @param {Object} params.orderStatusRow
- * @param {Array}  params.orderItemStatusRow
+ * @param {Array}  params.orderItemStatusRows
  * @returns {Object}
  */
 const transformFulfillmentResult = ({
-  orderId,
-  shipmentRow,
-  fulfillmentRowsWithStatus,
-  shipmentBatchRow,
-  orderStatusRow,
-  orderItemStatusRow,
-}) => {
+                                      orderId,
+                                      shipmentRow,
+                                      fulfillmentRowsWithStatus,
+                                      shipmentBatchRow,
+                                      orderStatusRow,
+                                      orderItemStatusRows,
+                                    }) => {
   const fulfillmentRow = fulfillmentRowsWithStatus?.[0] ?? null;
 
   return cleanObject({
@@ -92,7 +92,7 @@ const transformFulfillmentResult = ({
       statusId: fulfillmentRow?.status_id ?? null,
     },
     statusUpdates: {
-      updatedOrderItemStatusIds: orderItemStatusRow?.map((row) => row.id) ?? [],
+      updatedOrderItemStatusIds: orderItemStatusRows?.map((row) => row.id) ?? [],
     },
   });
 };
@@ -392,9 +392,9 @@ const transformPickupCompletionResult = (statusResult) => {
   
   const {
     orderStatusRow,
-    orderItemStatusRow,
-    orderFulfillmentStatusRow,
-    shipmentStatusRow,
+    orderItemStatusRows,
+    orderFulfillmentStatusRows,
+    shipmentStatusRows,
     insertedTrackings,
   } = statusResult;
   
@@ -406,26 +406,26 @@ const transformPickupCompletionResult = (statusResult) => {
         statusDate: orderStatusRow.status_date,
       }
       : null,
-    items: Array.isArray(orderItemStatusRow)
-      ? orderItemStatusRow.map((item) => ({
+    items: Array.isArray(orderItemStatusRows)
+      ? orderItemStatusRows.map((item) => ({
         id: item.id,
         statusId: item.status_id,
         statusDate: item.status_date,
       }))
       : [],
-    fulfillments: Array.isArray(orderFulfillmentStatusRow)
-      ? orderFulfillmentStatusRow.map((id) => ({ id }))
+    fulfillments: Array.isArray(orderFulfillmentStatusRows)
+      ? orderFulfillmentStatusRows.map((id) => ({ id }))
       : [],
-    shipment: Array.isArray(shipmentStatusRow)
-      ? shipmentStatusRow.map((id) => ({ id }))
+    shipment: Array.isArray(shipmentStatusRows)
+      ? shipmentStatusRows.map((id) => ({ id }))
       : [],
     trackings: Array.isArray(insertedTrackings)
       ? insertedTrackings.map((t) => ({ id: t.id }))
       : [],
     summary: {
-      orderItemsCount: orderItemStatusRow?.length || 0,
-      fulfillmentsCount: orderFulfillmentStatusRow?.length || 0,
-      shipmentCount: shipmentStatusRow?.length || 0,
+      orderItemsCount: orderItemStatusRows?.length || 0,
+      fulfillmentsCount: orderFulfillmentStatusRows?.length || 0,
+      shipmentCount: shipmentStatusRows?.length || 0,
       trackingsCount: insertedTrackings?.length || 0,
     },
     meta: {
@@ -454,6 +454,7 @@ const transformOutboundShipmentForTrackingAttachRow = (row) => ({
     methodName: row.method_name ?? row.delivery_method_name,
     isPickupLocation: row.is_pickup_location,
     requiresTrackingNumber: row.requires_tracking_number,
+    isCarrierTracked: row.is_carrier_tracked,
   },
 });
 

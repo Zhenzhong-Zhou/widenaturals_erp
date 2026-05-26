@@ -55,9 +55,11 @@ const buildOrderFulfillmentQuery = (whereClause) => `
     f.allocation_id,
     f.quantity_fulfilled,
     f.status_id,
+    fs.code           AS status_code,
     f.shipment_id
   FROM order_fulfillments f
   JOIN order_items oi ON f.order_item_id = oi.id
+  JOIN fulfillment_status fs ON f.status_id = fs.id
   WHERE ${whereClause}
   ORDER BY f.created_at ASC
 `;
