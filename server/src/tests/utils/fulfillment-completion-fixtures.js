@@ -1,19 +1,7 @@
-const PICKUP_COMPLETION = {
-  orderStatus: 'ORDER_DELIVERED',
-  shipmentStatus: 'SHIPMENT_DELIVERED',
-  fulfillmentStatus: 'FULFILLMENT_DELIVERED',
-};
-
-const CARRIER_COMPLETION_BASE = {
-  orderStatus: 'ORDER_SHIPPED',
-  shipmentStatus: 'SHIPMENT_READY',
-  fulfillmentStatus: 'FULFILLMENT_SHIPPED',
-};
-
 const buildUniqueTrackingNumber = (prefix = 'RA') => {
   const ts = Date.now().toString(36).toUpperCase();
   const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
-  return `${prefix}-${ts}-${rand}`; // e.g. RA-LWVPK0-A3F7
+  return `${prefix}-${ts}-${rand}`;
 };
 
 const buildDefaultCarrierTrackings = () => [
@@ -30,22 +18,29 @@ const buildDefaultCarrierTrackings = () => [
   },
 ];
 
+/**
+ * Builds the completion payload the service expects.
+ * The service determines target statuses from the shipment's
+ * delivery method, so the payload only carries trackings.
+ *
+ * - Pickup: empty payload, server picks COMPLETED with no trackings.
+ * - Carrier-tracked: trackings + server picks IN_TRANSIT.
+ * - Non-tracked freight: trackings (BOL) + server picks COMPLETED.
+ */
 const buildCompletionPayload = ({ isPickup, trackings } = {}) => {
-  if (isPickup) return { ...PICKUP_COMPLETION };
-  return {
-    ...CARRIER_COMPLETION_BASE,
-    trackings: trackings ?? buildDefaultCarrierTrackings(),
-  };
+  if (isPickup) return {};
+  return { trackings: trackings ?? buildDefaultCarrierTrackings() };
 };
 
+/**
+ * Negative-path fixture: pickup-method shipment with trackings —
+ * service must reject via assertDeliveryMethodAllowsTracking.
+ */
 const buildInvalidPickupWithTrackings = () => ({
-  ...PICKUP_COMPLETION,
   trackings: buildDefaultCarrierTrackings(),
 });
 
 module.exports = {
-  PICKUP_COMPLETION,
-  CARRIER_COMPLETION_BASE,
   buildUniqueTrackingNumber,
   buildDefaultCarrierTrackings,
   buildCompletionPayload,

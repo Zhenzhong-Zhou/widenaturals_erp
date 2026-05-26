@@ -1,6 +1,10 @@
 const { pool } = require('../../database/db');
 const { getUniqueScalarValue } = require('../../utils/db/record-utils');
-const { initStatusCache } = require('../../config/status-cache');
+const {
+  initStatusCache,
+  getStatusCodeById,
+  initAllStatusCaches
+} = require('../../config/status-cache');
 const {
   createOrderService,
   updateOrderStatusService,
@@ -20,6 +24,7 @@ const { getShipmentByShipmentId } = require('../../repositories/outbound-shipmen
 (async () => {
   const client = await pool.connect();
   await initStatusCache();
+  await initAllStatusCaches();
 
   try {
     const now = new Date();
@@ -251,7 +256,7 @@ const { getShipmentByShipmentId } = require('../../repositories/outbound-shipmen
     console.log('✅ Outbound fulfillment confirmed:');
     console.dir(confirmFulfillmentResult, { depth: 5 });
     
-    // Step 11: Complete fulfillment — picks pickup vs carrier from the test's setup.
+    // Step 11: Complete fulfillment
     const shipmentId = confirmFulfillmentResult?.shipment?.id;
     if (!shipmentId) {
       throw new Error('Missing shipmentId from confirm fulfillment result.');
@@ -264,6 +269,7 @@ const { getShipmentByShipmentId } = require('../../repositories/outbound-shipmen
     }
     
     const isPickup = shipmentInfo.is_pickup_location;
+    const isCarrierTracked = shipmentInfo.is_carrier_tracked === true;
     const completionData = buildCompletionPayload({ isPickup });
     
     console.log(`📦 Completing ${isPickup ? 'pickup' : 'carrier'} shipment ${shipmentId}`);
@@ -271,7 +277,18 @@ const { getShipmentByShipmentId } = require('../../repositories/outbound-shipmen
     console.dir(completionData, { depth: null });
     
     const expectedTrackingCount = completionData.trackings?.length ?? 0;
+
+    // === Compute EXPECTED before the call (inputs only) ===
+    const expectedShipmentStatusCode = isPickup
+      ? 'SHIPMENT_COMPLETED'
+      : isCarrierTracked
+        ? 'SHIPMENT_IN_TRANSIT'
+        : 'SHIPMENT_COMPLETED';
+    const expectedOrderStatusCode = 'ORDER_SHIPPED';  // full-ship path
     
+    console.log(`📦 Expecting shipment → ${expectedShipmentStatusCode}, order → ${expectedOrderStatusCode}`);
+
+    // === Call the service ===
     const manualCompletionResult = await completeManualFulfillmentService(
       completionData,
       shipmentId,
@@ -281,7 +298,88 @@ const { getShipmentByShipmentId } = require('../../repositories/outbound-shipmen
     console.log('✅ Fulfillment completed:');
     console.dir(manualCompletionResult, { depth: 5 });
 
-    // Sanity assertions
+    // === Verify shipment cascade ===
+    const { rows: [shipmentAfter] } = await pool.query(
+      `SELECT s.status_id, s.shipped_at, ss.code AS status_code
+       FROM outbound_shipments s
+       JOIN shipment_status ss ON s.status_id = ss.id
+       WHERE s.id = $1`,
+      [shipmentId]
+    );
+    
+    if (!shipmentAfter) {
+      throw new Error(`Shipment ${shipmentId} vanished after completion.`);
+    }
+    
+    if (shipmentAfter.status_code !== expectedShipmentStatusCode) {
+      throw new Error(
+        `Shipment status cascade mismatch: expected ${expectedShipmentStatusCode}, ` +
+        `got ${shipmentAfter.status_code}`
+      );
+    }
+    
+    const shouldHaveShippedAt =
+      expectedShipmentStatusCode === 'SHIPMENT_IN_TRANSIT' ||
+      expectedShipmentStatusCode === 'SHIPMENT_COMPLETED';
+    
+    if (shouldHaveShippedAt && !shipmentAfter.shipped_at) {
+      throw new Error(
+        `Shipment ${shipmentId} reached ${shipmentAfter.status_code} but shipped_at is null.`
+      );
+    }
+    
+    console.log(
+      `✅ Shipment status correctly cascaded to ${shipmentAfter.status_code} ` +
+      `(shipped_at: ${shipmentAfter.shipped_at ?? 'null'}).`
+    );
+
+    // === Verify order cascade ===
+    const { rows: [orderAfter] } = await pool.query(
+      `SELECT o.order_status_id, os.code AS status_code
+       FROM orders o
+       JOIN order_status os ON o.order_status_id = os.id
+       WHERE o.id = $1`,
+      [order.orderId]
+    );
+    
+    if (!orderAfter) {
+      throw new Error(`Order ${order.orderId} vanished after completion.`);
+    }
+    
+    if (orderAfter.status_code !== expectedOrderStatusCode) {
+      throw new Error(
+        `Order status cascade mismatch: expected ${expectedOrderStatusCode}, ` +
+        `got ${orderAfter.status_code}`
+      );
+    }
+    console.log(`✅ Order status correctly cascaded to ${orderAfter.status_code}.`);
+
+    // === Verify order_items cascade ===
+    const { rows: itemsAfter } = await pool.query(
+      `SELECT oi.id, os.code AS status_code
+       FROM order_items oi
+       JOIN order_status os ON oi.status_id = os.id
+       WHERE oi.order_id = $1`,
+      [order.orderId]
+    );
+    
+    if (!itemsAfter.length) {
+      throw new Error(`Order ${order.orderId} has no items after completion.`);
+    }
+    
+    const mismatchedItems = itemsAfter.filter(
+      (it) => it.status_code !== expectedOrderStatusCode
+    );
+    
+    if (mismatchedItems.length) {
+      throw new Error(
+        `Order item status cascade mismatch on ${mismatchedItems.length} item(s): ` +
+        mismatchedItems.map((it) => `${it.id}=${it.status_code}`).join(', ')
+      );
+    }
+    console.log(`✅ ${itemsAfter.length} order item(s) cascaded to ${expectedOrderStatusCode}.`);
+
+    // === Tracking assertions ===
     const returnedTrackings = manualCompletionResult.trackings ?? [];
     
     if (isPickup) {
