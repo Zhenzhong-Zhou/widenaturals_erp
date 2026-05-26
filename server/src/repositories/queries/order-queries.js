@@ -10,7 +10,8 @@
  *  - buildOrderPaginatedQuery          — factory for paginated list query
  *  - ORDER_FIND_BY_ID_QUERY            — full detail fetch by order id
  *  - ORDER_FETCH_METADATA_QUERY        — lightweight metadata fetch by order id
- *  - ORDER_UPDATE_STATUS_QUERY         — update order status by id
+ *  - ORDER_UPDATE_STATUS_QUERY         — update order status by id (no-op safe)
+ *  - GET_ORDER_STATUS_ID_BY_ID_QUERY   — fetch current order_status_id by order id
  *  - ORDER_GET_ALLOCATIONS_QUERY       — fetch allocations by order id
  *  - ORDER_GET_SHIPMENT_METADATA_QUERY — fetch shipment metadata by order id
  */
@@ -240,6 +241,10 @@ const ORDER_UPDATE_STATUS_QUERY = `
   RETURNING id, order_status_id, status_date
 `;
 
+const GET_ORDER_STATUS_ID_BY_ID_QUERY = `
+    SELECT order_status_id FROM orders WHERE id = $1
+`;
+
 // ─── Allocations By Order ─────────────────────────────────────────────────────
 
 // $1: order_id (UUID)
@@ -281,6 +286,7 @@ module.exports = {
   ORDER_FIND_BY_ID_QUERY,
   ORDER_FETCH_METADATA_QUERY,
   ORDER_UPDATE_STATUS_QUERY,
+  GET_ORDER_STATUS_ID_BY_ID_QUERY,
   ORDER_GET_ALLOCATIONS_QUERY,
   ORDER_GET_SHIPMENT_METADATA_QUERY,
 };
