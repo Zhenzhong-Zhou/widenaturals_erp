@@ -62,7 +62,7 @@ const {
   updateInventoryAllocationStatus,
 } = require('../repositories/inventory-allocations-repository');
 const { lockRows } = require('../utils/db/lock-modes');
-const { getStatusId } = require('../config/status-cache');
+const { getStatusId, getStatusCodeById } = require('../config/status-cache');
 const {
   insertOutboundShipmentsBulk,
   updateOutboundShipmentStatus,
@@ -74,28 +74,61 @@ const {
 } = require('../repositories/order-fulfillment-repository');
 const { uniqCompact } = require('../utils/array-utils');
 const { SHIPMENT_STATUS_CODES } = require('../utils/constants/domain/shipment-status-codes');
+const { FULFILLMENT_STATUS_CODES } = require('../utils/constants/domain/fulfillment-status-codes');
 
 // ---------------------------------------------------------------------------
 // Status configuration
 // ---------------------------------------------------------------------------
 
 /**
- * Ordered sequence of valid fulfillment status codes.
- * Used to enforce forward-only status transitions.
+ * Lifecycle order of valid fulfillment status codes, used by the
+ * forward-only transition validator (`indexOf(target) > indexOf(current)`).
+ *
+ * NOTE: this is a linear approximation of a branching lifecycle —
+ * PACKED can fan out to SHIPPED, COMPLETED, or CANCELLED. The flat
+ * sequence happens to work because COMPLETED/CANCELLED sit after PACKED
+ * in indexOf order, but the model is fragile. Migrate to an explicit
+ * transition map (per-source allowed targets) when the rules get richer.
  */
 const FULFILLMENT_STATUS_SEQUENCE = [
-  'FULFILLMENT_PENDING',
-  'FULFILLMENT_PICKING',
-  'FULFILLMENT_PACKED',
-  'FULFILLMENT_SHIPPED',
-  'FULFILLMENT_DELIVERED',
-  'FULFILLMENT_CANCELLED',
+  FULFILLMENT_STATUS_CODES.PENDING,
+  FULFILLMENT_STATUS_CODES.PICKING,
+  FULFILLMENT_STATUS_CODES.PACKED,
+  FULFILLMENT_STATUS_CODES.SHIPPED,
+  FULFILLMENT_STATUS_CODES.COMPLETED,
+  FULFILLMENT_STATUS_CODES.DELIVERED,
+  FULFILLMENT_STATUS_CODES.CANCELLED,
 ];
 
-/** Statuses from which no further transitions are permitted. */
+/**
+ * Truly terminal fulfillment statuses — no further transitions allowed.
+ * Distinct from `TERMINAL_FULFILLMENT_STATUS_CODES` (which includes
+ * SHIPPED because SHIPPED is "no shipping work left" even though it
+ * may still transition forward to DELIVERED on carrier-tracked routes).
+ */
 const FULFILLMENT_FINAL_STATUSES = [
-  'FULFILLMENT_DELIVERED',
-  'FULFILLMENT_CANCELLED',
+  FULFILLMENT_STATUS_CODES.COMPLETED,
+  FULFILLMENT_STATUS_CODES.DELIVERED,
+  FULFILLMENT_STATUS_CODES.CANCELLED,
+];
+
+/**
+ * Fulfillment statuses considered "done from the order's perspective" —
+ * used when deciding if an order should advance to SHIPPED after one of
+ * its fulfillments transitions. Broader than FULFILLMENT_FINAL_STATUSES
+ * because SHIPPED counts here (the order's shipping work for that
+ * fulfillment is finished; carrier-tracked DELIVERED is downstream).
+ */
+const TERMINAL_FULFILLMENT_STATUS_CODES = [
+  FULFILLMENT_STATUS_CODES.SHIPPED,
+  FULFILLMENT_STATUS_CODES.COMPLETED,
+  FULFILLMENT_STATUS_CODES.DELIVERED,
+  FULFILLMENT_STATUS_CODES.CANCELLED,
+];
+
+const SHIPPED_AT_STAMPING_STATUSES = [
+  SHIPMENT_STATUS_CODES.IN_TRANSIT,
+  SHIPMENT_STATUS_CODES.COMPLETED,
 ];
 
 // ---------------------------------------------------------------------------
@@ -188,21 +221,26 @@ const updateFulfillmentsStatus = async (
  *
  * Dispatches between markOutboundShipmentsShipped (stamps shipped_at when
  * transitioning into the Shipped state) and updateOutboundShipmentStatus
- * (generic, no shipped_at touch) based on newStatusCode.
+ * (generic, no shipped_at touch) based on newStatusCode resolved from cache.
  *
- * @param {object[]} fulfillments
- * @param {string}   newStatusId
- * @param {string|null} newStatusCode
- * @param {string}   orderId
- * @param {string}   orderNumber
- * @param {string}   userId
- * @param {import('pg').PoolClient} client
- * @returns {Promise<string[]>} Updated shipment UUIDs.
+ * Short-circuits to an empty array when there are no shipments to update
+ * or newStatusId is missing — no lock is acquired in that case.
+ *
+ * @param {Array<{ shipment_id: string|null }>} fulfillments
+ *        Fulfillment rows; only `shipment_id` is read. Nulls and duplicates
+ *        are filtered before locking.
+ * @param {string}     newStatusId  - UUID of the target shipment status.
+ * @param {string}     orderId      - UUID of the parent order (lock/log context).
+ * @param {string}     orderNumber  - Human-readable order number (log context).
+ * @param {string}     userId       - UUID of the acting user (audit + log context).
+ * @param {PoolClient} client       - Active transaction client.
+ *
+ * @returns {Promise<string[]>} Updated shipment UUIDs, or [] when nothing to update.
+ * @throws  {AppError} Lock acquisition or status update failures.
  */
 const updateShipmentsStatus = async (
   fulfillments,
   newStatusId,
-  newStatusCode,
   orderId,
   orderNumber,
   userId,
@@ -220,9 +258,10 @@ const updateShipmentsStatus = async (
     userId,
   });
   
+  const newStatusCode = getStatusCodeById(newStatusId);
   const params = { statusId: newStatusId, userId, shipmentIds };
   
-  return newStatusCode === SHIPMENT_STATUS_CODES.SHIPPED
+  return SHIPPED_AT_STAMPING_STATUSES.includes(newStatusCode)
     ? markOutboundShipmentsShipped(params, client)
     : updateOutboundShipmentStatus(params, client);
 };
@@ -597,23 +636,36 @@ const assertWarehouseUpdatesApplied = (warehouseUpdates = [], context = {}) => {
 };
 
 /**
- * Asserts that all required status IDs have been resolved.
+ * Asserts that all required status IDs have been resolved from the cache.
  *
- * @param {{ orderStatusId: string, shipmentStatusId: string, fulfillmentStatusId: string }} params
- * @throws {AppError} validationError if any status ID is missing.
+ * Intended as a guard before order/shipment/fulfillment writes — surfaces
+ * cache misses or seed gaps with a single actionable error listing every
+ * unresolved key, rather than letting a downstream INSERT fail with a NULL
+ * constraint violation that's painful to trace back.
+ *
+ * @param {string} orderStatusId       - Resolved UUID for the order status.
+ * @param {string} shipmentStatusId    - Resolved UUID for the shipment status.
+ * @param {string} fulfillmentStatusId - Resolved UUID for the fulfillment status.
+ *
+ * @throws {AppError} validationError listing every unresolved key (not just the first).
  */
 const assertStatusesResolved = ({
-  orderStatusId,
-  shipmentStatusId,
-  fulfillmentStatusId,
-}) => {
-  if (!orderStatusId || !shipmentStatusId || !fulfillmentStatusId) {
-    throw AppError.validationError('Invalid or unresolved status codes.', {
-      orderStatusId,
-      shipmentStatusId,
-      fulfillmentStatusId,
-    });
-  }
+                                  orderStatusId,
+                                  shipmentStatusId,
+                                  fulfillmentStatusId,
+                                }) => {
+  const missing = [];
+  if (!orderStatusId)       missing.push('orderStatusId');
+  if (!shipmentStatusId)    missing.push('shipmentStatusId');
+  if (!fulfillmentStatusId) missing.push('fulfillmentStatusId');
+  
+  throw AppError.validationError(
+    `Unresolved status IDs: ${missing.join(', ')}`,
+    {
+      context: 'outbound-fulfillment/assertStatusesResolved',
+      meta: { orderStatusId, shipmentStatusId, fulfillmentStatusId },
+    }
+  );
 };
 
 /**
@@ -769,28 +821,38 @@ const calculateInventoryAdjustments = (enrichedAllocations) =>
   });
 
 /**
- * Executes bulk status updates across order, order items, allocations,
- * fulfillments, and shipments within a single transaction.
+ * Orchestrates bulk status updates across order, order items, allocations,
+ * fulfillments, and shipments on the caller-provided transaction client.
  *
- * Shipment status updates dispatch internally between markShipped (stamps
- * shipped_at) and generic update based on shipmentStatusCode. Callers that
- * are not updating shipment status (newShipmentStatusId omitted) can omit
- * shipmentStatusCode too.
+ * The caller owns transaction lifecycle (begin/commit/rollback). Allocation,
+ * fulfillment, and shipment updates each short-circuit to [] when their
+ * target status ID is omitted or the corresponding list is empty.
  *
- * @param {object}   options
- * @param {string}   options.orderId
- * @param {string}   options.orderNumber
- * @param {object[]} [options.allocationMeta=[]]
- * @param {string}   options.newOrderStatusId
- * @param {string|null} [options.newAllocationStatusId]
- * @param {object[]} [options.fulfillments=[]]
- * @param {string|null} [options.newFulfillmentStatusId]
- * @param {string|null} [options.newShipmentStatusId]
- * @param {string|null} [options.shipmentStatusCode]   - Required only when newShipmentStatusId is set and the target is the Shipped state; omitted callers fall through to generic status update.
- * @param {string}   options.userId
- * @param {import('pg').PoolClient} options.client
+ * Shipment dispatch (markShipped vs. generic update) is resolved internally
+ * from the cached code for newShipmentStatusId — callers pass only the UUID.
  *
- * @returns {Promise<{ orderStatusRow, orderItemStatusRow, inventoryAllocationStatusRow, orderFulfillmentStatusRow, shipmentStatusRow }>}
+ * @param {Object}       options
+ * @param {string}       options.orderId                    - UUID of the order.
+ * @param {string}       options.orderNumber                - Order number (lock/log context).
+ * @param {Object[]}     [options.allocationMeta=[]]        - Allocation rows; non-array inputs (incl. null) coerced to [].
+ * @param {string}       options.newOrderStatusId           - UUID of the target status for order + order items.
+ * @param {string|null}  [options.newAllocationStatusId]    - UUID of target allocation status, or null/omitted to skip.
+ * @param {Array<{ shipment_id: string|null }>} [options.fulfillments=[]]
+ *                                                         - Fulfillment rows; read for shipment lock/update.
+ * @param {string|null}  [options.newFulfillmentStatusId]   - UUID of target fulfillment status, or null/omitted to skip.
+ * @param {string|null}  [options.newShipmentStatusId]      - UUID of target shipment status, or null/omitted to skip.
+ * @param {string}       options.userId                     - UUID of the acting user (audit + log context).
+ * @param {PoolClient}   options.client                     - Active transaction client.
+ *
+ * @returns {Promise<{
+ *   orderStatusRow: Object | null,
+ *   orderItemStatusRows: Object[],
+ *   inventoryAllocationStatusRows: string[],
+ *   orderFulfillmentStatusRows: Object[],
+ *   shipmentStatusRows: string[]
+ * }>} Per-domain update results. Skipped branches return null/[] per type.
+ *
+ * @throws {AppError} Bubbles from any underlying repo (notFound/business/validation/database).
  */
 const updateAllStatuses = async ({
                                    orderId,
@@ -801,7 +863,6 @@ const updateAllStatuses = async ({
                                    fulfillments = [],
                                    newFulfillmentStatusId,
                                    newShipmentStatusId,
-                                   shipmentStatusCode = null,
                                    userId,
                                    client,
                                  }) => {
@@ -814,13 +875,13 @@ const updateAllStatuses = async ({
     updatedBy: userId,
   });
   
-  const orderItemStatusRow = await updateOrderItemStatusesByOrderId(client, {
+  const orderItemStatusRows = await updateOrderItemStatusesByOrderId(client, {
     orderId,
     newStatusId: newOrderStatusId,
     updatedBy: userId,
   });
   
-  const inventoryAllocationStatusRow =
+  const inventoryAllocationStatusRows =
     allocations.length && newAllocationStatusId
       ? await updateAllocationsStatus(
         allocations,
@@ -832,7 +893,7 @@ const updateAllStatuses = async ({
       )
       : [];
   
-  const orderFulfillmentStatusRow =
+  const orderFulfillmentStatusRows =
     fulfillmentList.length && newFulfillmentStatusId
       ? await updateFulfillmentsStatus(
         fulfillmentList,
@@ -844,12 +905,11 @@ const updateAllStatuses = async ({
       )
       : [];
   
-  const shipmentStatusRow =
+  const shipmentStatusRows =
     fulfillmentList.length && newShipmentStatusId
       ? await updateShipmentsStatus(
         fulfillmentList,
         newShipmentStatusId,
-        shipmentStatusCode,
         orderId,
         orderNumber,
         userId,
@@ -859,10 +919,10 @@ const updateAllStatuses = async ({
   
   return {
     orderStatusRow,
-    orderItemStatusRow,
-    inventoryAllocationStatusRow,
-    orderFulfillmentStatusRow,
-    shipmentStatusRow,
+    orderItemStatusRows,
+    inventoryAllocationStatusRows,
+    orderFulfillmentStatusRows,
+    shipmentStatusRows,
   };
 };
 
@@ -940,6 +1000,9 @@ const validateStatusesBeforeManualFulfillment = ({
 };
 
 module.exports = {
+  FULFILLMENT_STATUS_SEQUENCE,
+  FULFILLMENT_FINAL_STATUSES,
+  TERMINAL_FULFILLMENT_STATUS_CODES,
   validateOrderIsFullyAllocated,
   validateFulfillmentStatusTransition,
   assertAllocationsValid,

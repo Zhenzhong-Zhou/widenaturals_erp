@@ -18,6 +18,8 @@ const {
 } = require('../utils/logging/system-logger');
 const { createSalesOrder } = require('./sales-order-business');
 const { PERMISSIONS } = require('../utils/constants/domain/order-constants');
+const { TERMINAL_FULFILLMENT_STATUS_CODES } = require('./outbound-fulfillment-business');
+const { ORDER_STATUS_CODES } = require('../utils/constants/domain/order-status-codes');
 
 const CONTEXT = 'order-business';
 
@@ -581,6 +583,47 @@ const enrichStatusMetadata = ({
   };
 };
 
+/**
+ * Picks the order target status code after one or more fulfillments have
+ * just transitioned to a terminal state in the current operation.
+ *
+ * Returns SHIPPED when every fulfillment on the order is terminal after the
+ * transition (full ship), FULFILLED when at least one fulfillment remains
+ * non-terminal (partial).
+ *
+ * A fulfillment is treated as terminal if its id is in
+ * transitioningFulfillmentIds OR its current status_code is already in
+ * TERMINAL_FULFILLMENT_STATUS_CODES. Callers must only include ids in
+ * transitioningFulfillmentIds that actually transitioned to terminal.
+ *
+ * @param {Array<{ fulfillment_id: string, status_code: string }>} fulfillments
+ *        All fulfillments belonging to the order (pre-transition snapshot).
+ * @param {string[]} transitioningFulfillmentIds
+ *        UUIDs of fulfillments that just transitioned to terminal in this op.
+ *
+ * @returns {'SHIPPED'|'FULFILLED'} ORDER_STATUS_CODES value to apply.
+ */
+const resolveOrderTargetCodeAfterFulfillment = (
+  fulfillments,
+  transitioningFulfillmentIds
+) => {
+  if (!fulfillments.length) {
+    throw AppError.businessError(
+      'Cannot resolve order target status from an empty fulfillment list.'
+    );
+  }
+  
+  const transitioningSet = new Set(transitioningFulfillmentIds);
+  const allTerminalAfter = fulfillments.every(
+    (f) =>
+      transitioningSet.has(f.fulfillment_id) ||
+      TERMINAL_FULFILLMENT_STATUS_CODES.includes(f.status_code)
+  );
+  return allTerminalAfter
+    ? ORDER_STATUS_CODES.SHIPPED
+    : ORDER_STATUS_CODES.FULFILLED;
+};
+
 module.exports = {
   verifyOrderCreationPermission,
   createOrderWithType,
@@ -592,4 +635,5 @@ module.exports = {
   validateStatusTransitionByCategory,
   canUpdateOrderStatus,
   enrichStatusMetadata,
+  resolveOrderTargetCodeAfterFulfillment,
 };
