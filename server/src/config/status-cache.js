@@ -4,18 +4,29 @@
  *
  * Responsibilities:
  * - Cache logical application status keys to database UUIDs
- * - Cache status UUIDs to uppercase names and full status rows
+ *   (e.g. 'shipment_completed' → '<uuid>') via STATUS_KEY_LOOKUP
+ * - Cache master `status` UUIDs to uppercase names and full rows
+ *   for generic active/inactive/archived lookups
+ * - Cache per-domain status codes (order, shipment, fulfillment,
+ *   inventory-allocation, inventory-transfer, payment,
+ *   transfer-order-item) with bidirectional UUID ↔ code maps
+ *   for domain operations
  * - Support both pool-based and transactional initialization
- * - Optionally refresh row/name caches in the background
+ * - Refresh non-key caches in the background on a fixed interval
  *
  * Context:
  * - Used during bootstrap and runtime lookups
  * - Exposes synchronous getters after async initialization
  *
  * Design:
- * - Use atomic map replacement for row/name cache refreshes
+ * - Use atomic map replacement for refreshes so callers never see
+ *   partial state
  * - Fail fast during bootstrap initialization
- * - Log exceptions once at orchestration boundaries
+ * - Pass through AppErrors from the repo layer unchanged; wrap only
+ *   unexpected errors at orchestration boundaries
+ * - Log exceptions once at orchestration boundaries (bootstrap, the
+ *   background refresh timer) — no HTTP request context to propagate
+ *   through globalErrorHandler from those entry points
  */
 
 const { query, pool } = require('../database/db');
@@ -24,7 +35,7 @@ const {
   logSystemInfo,
 } = require('../utils/logging/system-logger');
 const AppError = require('../utils/AppError');
-const { getAllStatuses } = require('../repositories/status-repository');
+const { getAllStatuses, getAllDomainStatusCodes } = require('../repositories/status-repository');
 
 /**
  * @typedef {Object} StatusRow
@@ -36,11 +47,28 @@ const { getAllStatuses } = require('../repositories/status-repository');
  * @property {string} updated_at
  */
 
+/**
+ * @typedef {Object} DomainStatusEntry
+ * @property {string} id     - Per-domain status row UUID
+ * @property {string} code   - Canonical short code (e.g. 'PENDING', 'COMPLETED')
+ * @property {string} name   - Human-readable name
+ * @property {string} table  - Source table the row came from
+ */
+
 /** @type {Readonly<Record<string, string>> | null} */
 let statusMap = null;
+
 let STATUS_NAME_MAP = new Map();
+
 /** @type {Map<string, StatusRow>} */
 let STATUS_ROW_MAP = new Map();
+
+/** @type {Map<string, DomainStatusEntry>} */
+let STATUS_CODE_BY_ID_MAP = new Map();
+
+/** @type {Map<string, DomainStatusEntry>} */
+let STATUS_ID_BY_CODE_MAP = new Map();
+
 /** @type {ReturnType<typeof setInterval> | null} */
 let statusCacheRefreshTimer = null;
 
@@ -178,6 +206,21 @@ const STATUS_KEY_LOOKUP = [
     name: 'pending',
   },
   {
+    key: 'fulfillment_completed',
+    table: 'fulfillment_status',
+    name: 'completed',
+  },
+  {
+    key: 'order_delivered',
+    table: 'order_status',
+    name: 'Delivered',
+  },
+  {
+    key: 'shipment_completed',
+    table: 'shipment_status',
+    name: 'completed',
+  },
+  {
     key: 'login_success',
     table: 'auth_action_types',
     name: 'Login Success',
@@ -313,29 +356,86 @@ const getStatusId = (key) => {
  */
 const loadAllStatusesIntoCache = async (client) => {
   const context = `${CONTEXT}/loadAllStatusesIntoCache`;
-
+  
   try {
     const rows = await getAllStatuses(client);
-
+    
     const nextNameMap = new Map();
     const nextRowMap = new Map();
-
+    
     for (const row of rows) {
       const code = (row.name || '').toUpperCase();
       nextNameMap.set(row.id, code);
       nextRowMap.set(row.id, row);
     }
-
+    
     // Build replacement maps first, then swap references once complete.
     STATUS_NAME_MAP = nextNameMap;
     STATUS_ROW_MAP = nextRowMap;
-
+    
     logSystemInfo('Status name and row caches loaded successfully', {
       context,
       recordCount: rows.length,
     });
   } catch (error) {
-    throw AppError.databaseError('Failed to load status cache', {
+    // Pass through normalized errors from the repo layer unchanged.
+    if (error instanceof AppError) throw error;
+    
+    throw AppError.databaseError('Unexpected error loading status cache', {
+      context,
+      details: error.message,
+    });
+  }
+};
+
+/**
+ * Loads all per-domain status rows into the UUID → code reverse lookup cache.
+ *
+ * Notes:
+ * - Covers order, shipment, fulfillment, allocation, transfer, payment, and
+ *   transfer-item status tables. Each row is keyed by its UUID; the value
+ *   carries `code`, `name`, and the source `table`.
+ * - Independent of the master `status` caches loaded by
+ *   loadAllStatusesIntoCache(); the two have zero ID overlap.
+ * - Uses atomic map replacement to avoid exposing partial refresh state.
+ *
+ * @param {import('pg').PoolClient} [client]
+ * @returns {Promise<void>}
+ * @throws {AppError} If the cache cannot be loaded.
+ */
+const loadDomainStatusCodesIntoCache = async (client) => {
+  const context = `${CONTEXT}/loadDomainStatusCodesIntoCache`;
+  
+  try {
+    const rows = await getAllDomainStatusCodes(client);
+    
+    const nextByIdMap = new Map();
+    const nextByCodeMap = new Map();
+    
+    for (const row of rows) {
+      const entry = {
+        id: row.id,
+        code: row.code,
+        name: row.name,
+        table: row.source_table,
+      };
+      nextByIdMap.set(row.id, entry);
+      nextByCodeMap.set(row.code, entry);
+    }
+    
+    // Atomic swap — both maps replaced together so callers never see partial state.
+    STATUS_CODE_BY_ID_MAP = nextByIdMap;
+    STATUS_ID_BY_CODE_MAP = nextByCodeMap;
+    
+    logSystemInfo('Domain status code cache loaded successfully', {
+      context,
+      recordCount: rows.length,
+    });
+  } catch (error) {
+    // Pass through normalized errors from the repo layer unchanged.
+    if (error instanceof AppError) throw error;
+    
+    throw AppError.serviceError('Unexpected error loading domain status code cache', {
       context,
       details: error.message,
     });
@@ -374,12 +474,14 @@ const initStatusNameCache = async (client) => {
 };
 
 /**
- * Starts periodic background refresh for the UUID → name and UUID → row caches.
+ * Starts periodic background refresh for the master status caches
+ * (UUID → name, UUID → row) and the per-domain status code cache.
  *
  * Behavior:
  * - Creates only one interval per process
  * - Skips overlapping refresh executions
- * - Refreshes row/name caches in the background without blocking callers
+ * - Refreshes the non-key caches sequentially so a failure in one
+ *   does not corrupt the others
  *
  * @param {number} [refreshIntervalMs=600000] - Refresh interval in milliseconds.
  * @returns {void}
@@ -399,7 +501,8 @@ const startStatusCacheAutoRefresh = (refreshIntervalMs = 10 * 60 * 1000) => {
 
     try {
       await loadAllStatusesIntoCache();
-
+      await loadDomainStatusCodesIntoCache();
+      
       logSystemInfo('Status cache refresh completed', {
         context,
         timestamp: new Date().toISOString(),
@@ -426,15 +529,19 @@ const startStatusCacheAutoRefresh = (refreshIntervalMs = 10 * 60 * 1000) => {
  * Initializes all status caches during application startup.
  *
  * Combines:
- * - logical key → UUID cache
- * - UUID → uppercase name cache
- * - UUID → row cache
+ * - logical key → UUID cache (STATUS_KEY_LOOKUP-driven)
+ * - master UUID → uppercase name cache
+ * - master UUID → full row cache
+ * - per-domain UUID → code reverse-lookup cache
  *
  * Behavior:
- * - Initializes both cache layers before reporting success
- * - Optionally enables background refresh for row/name caches
+ * - All four layers load in parallel
+ * - Reports success only after every layer is ready
+ * - Optionally enables background refresh for the master and
+ *   domain-code caches (the logical key cache is never refreshed
+ *   in the background — it's expected to be stable between deploys)
  *
- * @param {import('pg').PoolClient} [client]
+ * @param {PoolClient} [client]
  * @param {boolean} [enableAutoRefresh=true]
  * @param {number} [refreshIntervalMs=600000]
  * @returns {Promise<void>}
@@ -454,7 +561,11 @@ const initAllStatusCaches = async (
   });
 
   try {
-    await Promise.all([initStatusCache(client), initStatusNameCache(client)]);
+    await Promise.all([
+      initStatusCache(client),
+      initStatusNameCache(client),
+      loadDomainStatusCodesIntoCache(client),
+    ]);
 
     if (enableAutoRefresh) {
       startStatusCacheAutoRefresh(refreshIntervalMs);
@@ -476,12 +587,46 @@ const initAllStatusCaches = async (
   }
 };
 
+/**
+ * Retrieves a per-domain status code (e.g., "PENDING", "COMPLETED")
+ * for a domain status UUID. Covers shipment, fulfillment, allocation,
+ * transfer, payment, and transfer-item status tables.
+ *
+ * Returns null if the ID is unknown or belongs to a table not covered
+ * by this cache (e.g. a master `status` ID — use getStatusNameById
+ * for those).
+ *
+ * @param {string} statusId - Per-domain status UUID
+ * @returns {string|null} Status code, or null if not found
+ */
+const getStatusCodeById = (statusId) => {
+  if (!statusId) return null;
+  return STATUS_CODE_BY_ID_MAP.get(statusId)?.code ?? null;
+};
+
+/**
+ * Retrieves a per-domain status UUID by its canonical code
+ * (e.g. 'SHIPMENT_IN_TRANSIT', 'FULFILLMENT_SHIPPED', 'ORDER_SHIPPED').
+ * Returns null if the code is unknown or belongs to a table not
+ * covered by this cache.
+ *
+ * @param {string} code
+ * @returns {string|null}
+ */
+const getStatusIdByCode = (code) => {
+  if (!code) return null;
+  return STATUS_ID_BY_CODE_MAP.get(code)?.id ?? null;
+};
+
 module.exports = {
-  initAllStatusCaches, // top-level init (main entry)
-  getStatusId, // main public lookup
+  initAllStatusCaches,        // top-level init (main entry)
+  getStatusId,                // main public lookup
   getStatusNameById,
+  getStatusCodeById,
+  getStatusIdByCode,
   getStatusRowById,
   loadAllStatusesIntoCache,
+  loadDomainStatusCodesIntoCache,
   initStatusCache,
   initStatusNameCache,
 };

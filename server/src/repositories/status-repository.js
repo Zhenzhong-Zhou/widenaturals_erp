@@ -8,10 +8,11 @@
  *  - No success logging — middleware and globalErrorHandler own that layer
  *
  * Exports:
- *  - getPaginatedStatuses — paginated status list with filtering and sorting
- *  - checkStatusExists    — existence check by id
- *  - getAllStatuses        — full unfiltered status list ordered by name
- *  - getStatusLookup      — offset-paginated status dropdown list
+ *  - getPaginatedStatuses     — paginated status list with filtering and sorting
+ *  - checkStatusExists        — existence check by id
+ *  - getAllStatuses           — full unfiltered status list ordered by name
+ *  - getAllDomainStatusCodes  — aggregate status codes across per-domain status tables
+ *  - getStatusLookup          — offset-paginated status dropdown list
  */
 
 'use strict';
@@ -33,9 +34,12 @@ const {
   STATUS_LOOKUP_ADDITIONAL_SORTS,
   CHECK_STATUS_EXISTS_QUERY,
   GET_ALL_STATUSES_QUERY,
+  GET_ALL_DOMAIN_STATUS_CODES_QUERY,
   buildStatusPaginatedQuery,
   buildStatusLookupQuery,
 } = require('./queries/status-queries');
+
+const  CONTEXT = 'status-repository';
 
 // ─── Paginated List ───────────────────────────────────────────────────────────
 
@@ -59,7 +63,7 @@ const getPaginatedStatuses = async ({
   sortBy = 'name',
   sortOrder = 'ASC',
 }) => {
-  const context = 'status-repository/getPaginatedStatuses';
+  const context = `${CONTEXT}/getPaginatedStatuses`;
 
   const { whereClause, params } = buildStatusFilter(filters);
 
@@ -115,7 +119,7 @@ const getPaginatedStatuses = async ({
  * @throws  {AppError} Normalized database error if the query fails.
  */
 const checkStatusExists = async (statusId, client) => {
-  const context = 'status-repository/checkStatusExists';
+  const context = `${CONTEXT}/checkStatusExists`;
   const params = [statusId];
 
   try {
@@ -148,7 +152,7 @@ const checkStatusExists = async (statusId, client) => {
  * @throws  {AppError} Normalized database error if the query fails.
  */
 const getAllStatuses = async (client) => {
-  const context = 'status-repository/getAllStatuses';
+  const context = `${CONTEXT}/getAllStatuses`;
 
   try {
     const { rows } = await query(GET_ALL_STATUSES_QUERY, [], client);
@@ -160,6 +164,39 @@ const getAllStatuses = async (client) => {
       meta: {},
       logFn: (err) =>
         logDbQueryError(GET_ALL_STATUSES_QUERY, [], err, { context }),
+    });
+  }
+};
+
+// ─── Domain Status Codes ──────────────────────────────────────────────────────
+
+/**
+ * Fetches all status records from per-domain status code tables:
+ * order_status, shipment_status, fulfillment_status, inventory_allocation_status,
+ * inventory_transfer_status, payment_status, transfer_order_item_status.
+ *
+ * Each row is tagged with its `source_table` so callers can distinguish the
+ * domain a given code/UUID belongs to. Intended for the UUID → code reverse
+ * lookup cache (initialization and periodic refresh) — not ad-hoc queries.
+ *
+ * @param {PoolClient} [client] - Optional transaction client.
+ *
+ * @returns {Promise<Array<{ id: string, code: string, name: string, source_table: string }>>}
+ * @throws  {AppError} Normalized database error if the query fails.
+ */
+const getAllDomainStatusCodes = async (client) => {
+  const context = `${CONTEXT}/getAllDomainStatusCodes`;
+  
+  try {
+    const { rows } = await query(GET_ALL_DOMAIN_STATUS_CODES_QUERY, [], client);
+    return rows;
+  } catch (error) {
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to load all domain status codes.',
+      meta: {},
+      logFn: (err) =>
+        logDbQueryError(GET_ALL_DOMAIN_STATUS_CODES_QUERY, [], err, { context }),
     });
   }
 };
@@ -181,7 +218,7 @@ const getAllStatuses = async (client) => {
  * @throws  {AppError}        Normalized database error if the query fails.
  */
 const getStatusLookup = async ({ filters = {}, limit = 50, offset = 0 }) => {
-  const context = 'status-repository/getStatusLookup';
+  const context = `${CONTEXT}/getStatusLookup`;
 
   const { whereClause, params } = buildStatusFilter(filters);
 
@@ -220,5 +257,6 @@ module.exports = {
   getPaginatedStatuses,
   checkStatusExists,
   getAllStatuses,
+  getAllDomainStatusCodes,
   getStatusLookup,
 };

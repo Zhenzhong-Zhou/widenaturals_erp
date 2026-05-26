@@ -6,14 +6,15 @@
  * Factory functions accept a pre-built WHERE clause from the filter builder.
  *
  * Exports:
- *  - STATUS_TABLE              — aliased table name passed to paginateQuery
- *  - STATUS_SORT_WHITELIST     — valid sort fields for paginated list query
- *  - STATUS_LOOKUP_SORT_WHITELIST — valid sort fields for lookup query
- *  - STATUS_LOOKUP_ADDITIONAL_SORTS — deterministic tie-break sort columns
- *  - CHECK_STATUS_EXISTS_QUERY — existence check by id
- *  - GET_ALL_STATUSES_QUERY    — full unfiltered status list ordered by name
- *  - buildStatusPaginatedQuery — factory for paginated list query
- *  - buildStatusLookupQuery    — factory for dropdown lookup query
+ *  - STATUS_TABLE                      — aliased table name passed to paginateQuery
+ *  - STATUS_SORT_WHITELIST             — valid sort fields for paginated list query
+ *  - STATUS_LOOKUP_SORT_WHITELIST      — valid sort fields for lookup query
+ *  - STATUS_LOOKUP_ADDITIONAL_SORTS    — deterministic tie-break sort columns
+ *  - CHECK_STATUS_EXISTS_QUERY         — existence check by id
+ *  - GET_ALL_STATUSES_QUERY            — full unfiltered status list ordered by name
+ *  - GET_ALL_DOMAIN_STATUS_CODES_QUERY — union of all per-domain status code tables
+ *  - buildStatusPaginatedQuery         — factory for paginated list query
+ *  - buildStatusLookupQuery            — factory for dropdown lookup query
  */
 
 'use strict';
@@ -56,6 +57,23 @@ const GET_ALL_STATUSES_QUERY = `
   ORDER BY name ASC
 `;
 
+const GET_ALL_DOMAIN_STATUS_CODES_QUERY = `
+  SELECT id, code, name, 'order_status'                AS source_table FROM order_status
+  UNION ALL
+  SELECT id, code, name, 'shipment_status'             AS source_table FROM shipment_status
+  UNION ALL
+  SELECT id, code, name, 'fulfillment_status'          AS source_table FROM fulfillment_status
+  UNION ALL
+  SELECT id, code, name, 'inventory_allocation_status' AS source_table FROM inventory_allocation_status
+  UNION ALL
+  SELECT id, code, name, 'inventory_transfer_status'   AS source_table FROM inventory_transfer_status
+  UNION ALL
+  SELECT id, code, name, 'payment_status'              AS source_table FROM payment_status
+  UNION ALL
+  SELECT id, code, name, 'transfer_order_item_status'  AS source_table FROM transfer_order_item_status
+  ORDER BY source_table, name
+`;
+
 // ─── Paginated List ───────────────────────────────────────────────────────────
 
 /**
@@ -96,6 +114,7 @@ module.exports = {
   STATUS_LOOKUP_ADDITIONAL_SORTS,
   CHECK_STATUS_EXISTS_QUERY,
   GET_ALL_STATUSES_QUERY,
+  GET_ALL_DOMAIN_STATUS_CODES_QUERY,
   buildStatusPaginatedQuery,
   buildStatusLookupQuery,
 };
