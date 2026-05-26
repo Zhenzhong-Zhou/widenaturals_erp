@@ -50,6 +50,12 @@ const createTrackingNumbersService = async ({
                                             }) => {
   const context = `${CONTEXT}/createTrackingNumbersService`;
   
+  if (!Array.isArray(records) || records.length === 0) {
+    throw AppError.validationError(
+      'At least one tracking record is required.'
+    );
+  }
+  
   try {
     return await withTransaction(async (client) => {
       // 1. Load shipment + delivery method + status in a single query.
