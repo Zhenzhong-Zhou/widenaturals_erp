@@ -240,15 +240,7 @@ const { getShipmentByShipmentId } = require('../../repositories/outbound-shipmen
     console.dir(fulfillmentResult, { depth: 5 });
     
     // Step 10: Confirm outbound fulfillment
-    const confirmFulfillmentRequest = {
-      orderStatus: 'ORDER_FULFILLED',
-      allocationStatus: 'ALLOC_COMPLETED',
-      shipmentStatus: 'SHIPMENT_READY',
-      fulfillmentStatus: 'FULFILLMENT_PACKED',
-    };
-    
     const confirmFulfillmentResult = await confirmOutboundFulfillmentService(
-      confirmFulfillmentRequest,
       order.orderId,
       enrichedUser
     );

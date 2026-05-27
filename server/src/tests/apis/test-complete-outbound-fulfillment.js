@@ -1,6 +1,6 @@
 const { performance } = require('perf_hooks');
 const { pool } = require('../../database/db');
-const { initStatusCache } = require('../../config/status-cache');
+const { initStatusCache, initAllStatusCaches } = require('../../config/status-cache');
 const {
   completeOutboundFulfillmentService,
 } = require('../../services/outbound-fulfillment-service');
@@ -91,7 +91,8 @@ const assertExpectedShape = (result, { isCarrier }) => {
     console.log(`${logPrefix} 🚀 Flow: ${flowLabel}`);
     
     client = await pool.connect();              // ← put back
-    await initStatusCache();                    // ← put back
+    await initStatusCache();
+    await initAllStatusCaches();               // ← put back
     console.log(`${logPrefix} ✅ Status cache initialized.`);
     
     const testUser = await fetchTestUser(client); // ← put back
