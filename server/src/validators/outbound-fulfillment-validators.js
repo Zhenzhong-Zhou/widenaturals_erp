@@ -100,56 +100,6 @@ const buildBaseFulfillmentSchema = () =>
   });
 
 /**
- * Joi schema: fulfillAdjustmentBodySchema
- *
- * @description
- * Validates the request body for **outbound fulfillment confirmation**.
- *
- * Business Rules:
- *  - Ensures the client provides all required status codes for the fulfillment confirmation workflow:
- *      • Order status
- *      • Allocation status
- *      • Shipment status
- *      • Fulfillment status
- *  - Each field must be a valid, non-empty string corresponding to a known status code.
- *
- * Fields:
- *  - orderStatus {string} (required)
- *      → Target order status code (e.g. `"ORDER_FULFILLED"`)
- *
- *  - allocationStatus {string} (required)
- *      → Target allocation status code (e.g. `"ALLOC_COMPLETED"`)
- *
- *  - shipmentStatus {string} (required)
- *      → Target shipment status code (e.g. `"SHIPMENT_READY"`)
- *
- *  - fulfillmentStatus {string} (required)
- *      → Target fulfillment status code (e.g. `"FULFILLMENT_PACKED"`)
- *
- * Usage:
- *  - Applied as middleware to `/orders/:orderId/fulfillment/confirm` route.
- *  - Ensures the client explicitly defines the intended transition states
- *    before executing inventory, allocation, and fulfillment updates.
- *
- * Example valid payload:
- * ```json
- * {
- *   "orderStatus": "ORDER_FULFILLED",
- *   "allocationStatus": "ALLOC_COMPLETED",
- *   "shipmentStatus": "SHIPMENT_READY",
- *   "fulfillmentStatus": "FULFILLMENT_PACKED"
- * }
- * ```
- *
- * @type {Joi.ObjectSchema}
- */
-const fulfillAdjustmentBodySchema = buildBaseFulfillmentSchema().keys({
-  allocationStatus: validateString('Allocation Status', 2, 100).description(
-    'Target allocation status code, e.g. ALLOC_COMPLETED'
-  ),
-});
-
-/**
  * Joi schema: completeOutboundFulfillmentBodySchema
  *
  * @description
@@ -258,7 +208,6 @@ const outboundFulfillmentQuerySchema = paginationSchema
 
 module.exports = {
   fulfillOutboundShipmentBodySchema,
-  fulfillAdjustmentBodySchema,
   outboundFulfillmentQuerySchema,
   completeOutboundFulfillmentBodySchema,
 };

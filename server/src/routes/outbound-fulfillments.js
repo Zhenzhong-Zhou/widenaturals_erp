@@ -20,7 +20,6 @@ const {
 } = require('../validators/outbound-shipment-validators');
 const {
   fulfillOutboundShipmentBodySchema,
-  fulfillAdjustmentBodySchema,
   outboundFulfillmentQuerySchema,
   completeOutboundFulfillmentBodySchema,
 } = require('../validators/outbound-fulfillment-validators');
@@ -60,7 +59,6 @@ router.patch(
   '/orders/:orderId/fulfillment/confirm',
   authorize([PERMISSION_KEYS.OUTBOUND_FULFILLMENTS.CONFIRM]),
   validate(orderIdParamSchema, 'params'),
-  validate(fulfillAdjustmentBodySchema, 'body'),
   confirmOutboundFulfillmentController
 );
 
