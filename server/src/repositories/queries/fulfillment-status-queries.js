@@ -9,15 +9,6 @@
 
 'use strict';
 
-// Minimal projection for status resolution — returns shape fields only.
-// $1: status code (string)
-const FULFILLMENT_STATUS_GET_BY_CODE = `
-  SELECT id, code, sort_order, category, is_default
-  FROM fulfillment_status
-  WHERE code = $1
-  LIMIT 1
-`;
-
 // Bulk fetch by id array — $1 must be a UUID array.
 const FULFILLMENT_STATUS_GET_BY_IDS = `
   SELECT DISTINCT id, code, name
@@ -26,6 +17,5 @@ const FULFILLMENT_STATUS_GET_BY_IDS = `
 `;
 
 module.exports = {
-  FULFILLMENT_STATUS_GET_BY_CODE,
   FULFILLMENT_STATUS_GET_BY_IDS,
 };
