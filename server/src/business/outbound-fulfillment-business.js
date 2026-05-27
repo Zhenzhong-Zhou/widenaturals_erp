@@ -4,21 +4,23 @@
  *
  * Covers allocation validation and locking, shipment and fulfillment record
  * construction, inventory adjustment calculation, status transition validation,
- * bulk status updates across orders/items/allocations/fulfillments/shipments,
- * and inventory activity log entry construction for fulfillment confirmations.
+ * server-side target status resolution, bulk status updates across orders/
+ * items/allocations/fulfillments/shipments, and inventory activity log entry
+ * construction for fulfillment confirmations.
  *
  * Shipment status updates dispatch internally between markOutboundShipmentsShipped
- * (stamps shipped_at when transitioning into the Shipped state) and
- * updateOutboundShipmentStatus (generic, no shipped_at touch) — the target code
- * is matched against SHIPMENT_STATUS_CODES from the domain constants.
+ * (stamps shipped_at when transitioning into a ship-state — IN_TRANSIT or
+ * COMPLETED) and updateOutboundShipmentStatus (generic, no shipped_at touch).
+ * The routing predicate is SHIPPED_AT_STAMPING_STATUSES, not a match against
+ * every shipment code in the domain.
  *
  * Exports:
  *
  * ─── Validation & Assertions ──────────────────────────────────────────────────
  *  - validateOrderIsFullyAllocated                       — assert all order items are fully allocated
- *  - validateFulfillmentStatusTransition                 — enforce forward-only fulfillment status transitions
- *  - validateStatusesBeforeConfirmation                  — validate order/fulfillment/shipment eligibility
- *  - validateStatusesBeforeOutboundFulfillmentCompletion — validate eligibility for outbound fulfillment completion
+ *  - validateFulfillmentStatusTransition                 — validate fulfillment transitions against ALLOWED_FULFILLMENT_TRANSITIONS
+ *  - validateStatusesBeforeConfirmation                  — validate order/fulfillment/shipment eligibility before confirm
+ *  - validateStatusesBeforeOutboundFulfillmentCompletion — validate eligibility before outbound fulfillment completion
  *  - assertAllocationsValid                              — assert allocation list is non-empty and well-formed
  *  - assertOrderMeta                                     — assert order metadata is present and valid
  *  - assertFulfillmentsValid                             — assert fulfillment list is non-empty and well-formed
@@ -28,7 +30,7 @@
  *  - assertEnrichedAllocations                           — assert enriched allocations are non-empty and well-formed
  *  - assertInventoryAdjustments                          — assert computed adjustment array is non-empty
  *  - assertWarehouseUpdatesApplied                       — assert warehouse inventory rows were updated
- *  - assertStatusesResolved                              — assert all required status IDs were resolved
+ *  - assertStatusesResolved                              — assert order, allocation, shipment, and fulfillment status IDs were resolved
  *  - assertActionTypeIdResolved                          — assert inventory action type ID was resolved
  *  - assertLogsGenerated                                 — assert activity log entries were generated or inserted
  *
@@ -44,10 +46,19 @@
  *  - buildFulfillmentInputsFromAllocations               — build fulfillment insert rows grouped by order item
  *  - buildFulfillmentLogEntry                            — build a single activity log entry for fulfillment confirmation
  *
+ * ─── Status Target Resolution ─────────────────────────────────────────────────
+ *  - resolveOrderTargetCodeAfterFulfillment              — resolve order target code after a fulfillment ships
+ *                                                          (SHIPPED if every fulfillment is terminal after the
+ *                                                          transition, else FULFILLED)
+ *  - resolveOrderTargetCodeAfterConfirmation             — resolve order target code after a fulfillment is
+ *                                                          confirmed (FULFILLED if every fulfillment is at or past
+ *                                                          the confirm threshold after the transition, else
+ *                                                          PARTIALLY_FULFILLED)
+ *
  * ─── Status Updates ───────────────────────────────────────────────────────────
  *  - updateAllStatuses                                   — bulk update order, item, allocation, fulfillment,
  *                                                          and shipment statuses within a transaction;
- *                                                          dispatches shipment updates by status code
+ *                                                          dispatches shipment updates via SHIPPED_AT_STAMPING_STATUSES
  */
 
 'use strict';
@@ -73,76 +84,12 @@ const {
   updateOrderFulfillmentStatus,
 } = require('../repositories/order-fulfillment-repository');
 const { uniqCompact } = require('../utils/array-utils');
-const { SHIPMENT_STATUS_CODES } = require('../utils/constants/domain/shipment-status-codes');
-const { FULFILLMENT_STATUS_CODES } = require('../utils/constants/domain/fulfillment-status-codes');
-
-// ---------------------------------------------------------------------------
-// Status configuration
-// ---------------------------------------------------------------------------
-
-/**
- * Lifecycle order of valid fulfillment status codes, used by the
- * forward-only transition validator (`indexOf(target) > indexOf(current)`).
- *
- * NOTE: this is a linear approximation of a branching lifecycle —
- * PACKED can fan out to SHIPPED, COMPLETED, or CANCELLED. The flat
- * sequence happens to work because COMPLETED/CANCELLED sit after PACKED
- * in indexOf order, but the model is fragile. Migrate to an explicit
- * transition map (per-source allowed targets) when the rules get richer.
- */
-const FULFILLMENT_STATUS_SEQUENCE = [
-  FULFILLMENT_STATUS_CODES.PENDING,
-  FULFILLMENT_STATUS_CODES.PICKING,
-  FULFILLMENT_STATUS_CODES.PACKED,
-  FULFILLMENT_STATUS_CODES.SHIPPED,
-  FULFILLMENT_STATUS_CODES.COMPLETED,
-  FULFILLMENT_STATUS_CODES.DELIVERED,
-  FULFILLMENT_STATUS_CODES.CANCELLED,
-];
-
-/**
- * Truly terminal fulfillment statuses — no further transitions allowed.
- * Distinct from `TERMINAL_FULFILLMENT_STATUS_CODES` (which includes
- * SHIPPED because SHIPPED is "no shipping work left" even though it
- * may still transition forward to DELIVERED on carrier-tracked routes).
- */
-const FULFILLMENT_FINAL_STATUSES = [
-  FULFILLMENT_STATUS_CODES.COMPLETED,
-  FULFILLMENT_STATUS_CODES.DELIVERED,
-  FULFILLMENT_STATUS_CODES.CANCELLED,
-];
-
-/**
- * Fulfillment statuses considered "done from the order's perspective" —
- * used when deciding if an order should advance to SHIPPED after one of
- * its fulfillments transitions. Broader than FULFILLMENT_FINAL_STATUSES
- * because SHIPPED counts here (the order's shipping work for that
- * fulfillment is finished; carrier-tracked DELIVERED is downstream).
- */
-const TERMINAL_FULFILLMENT_STATUS_CODES = [
-  FULFILLMENT_STATUS_CODES.SHIPPED,
-  FULFILLMENT_STATUS_CODES.COMPLETED,
-  FULFILLMENT_STATUS_CODES.DELIVERED,
-  FULFILLMENT_STATUS_CODES.CANCELLED,
-];
-
-const SHIPPED_AT_STAMPING_STATUSES = [
-  SHIPMENT_STATUS_CODES.IN_TRANSIT,
-  SHIPMENT_STATUS_CODES.COMPLETED,
-];
-
-// ---------------------------------------------------------------------------
-// Private helpers
-// ---------------------------------------------------------------------------
-
-/**
- * Returns true if the given fulfillment status code is a terminal state.
- *
- * @param {string} code
- * @returns {boolean}
- */
-const isFulfillmentStatusFinal = (code) =>
-  FULFILLMENT_FINAL_STATUSES.includes(code);
+const { SHIPPED_AT_STAMPING_STATUSES } = require('../utils/constants/domain/shipment-status-codes');
+const {
+  FULFILLMENT_FINAL_STATUSES,
+  ALLOWED_FULFILLMENT_TRANSITIONS, CONFIRMED_TERMINAL_FULFILLMENT_STATUS_CODES, TERMINAL_FULFILLMENT_STATUS_CODES
+} = require('../utils/constants/domain/fulfillment-status-codes');
+const { ORDER_STATUS_CODES } = require('../utils/constants/domain/order-status-codes');
 
 /**
  * Locks allocation rows and updates their status.
@@ -293,35 +240,38 @@ const validateOrderIsFullyAllocated = async (orderId, client) => {
 };
 
 /**
- * Validates that a fulfillment status transition is permitted.
+ * Validates a fulfillment status transition against ALLOWED_FULFILLMENT_TRANSITIONS.
  *
- * Transitions must be forward-only within the status sequence. Transitions
- * from final statuses are always rejected.
+ * A transition is valid iff nextCode appears in the current code's
+ * allowed-targets array. Terminal states declare themselves via an empty
+ * array, which blocks all outbound moves. The map is the single source of
+ * truth — no indexOf-style positional rules apply.
  *
- * @param {string} currentCode - Current fulfillment status code.
- * @param {string} nextCode - Target fulfillment status code.
- * @returns {void}
- * @throws {AppError} validationError if the transition is invalid.
+ * @param {string} currentCode - The fulfillment's current status code.
+ * @param {string} nextCode - The status code being transitioned into.
+ *
+ * @throws {AppError} validationError - currentCode is not a known fulfillment status code.
+ * @throws {AppError} validationError - currentCode is terminal (no outbound transitions allowed).
+ * @throws {AppError} validationError - nextCode is not in the allowed targets for currentCode.
  */
 const validateFulfillmentStatusTransition = (currentCode, nextCode) => {
-  const currentIndex = FULFILLMENT_STATUS_SEQUENCE.indexOf(currentCode);
-  const nextIndex = FULFILLMENT_STATUS_SEQUENCE.indexOf(nextCode);
-
-  if (currentIndex === -1 || nextIndex === -1) {
+  const allowedTargets = ALLOWED_FULFILLMENT_TRANSITIONS[currentCode];
+  
+  if (allowedTargets === undefined) {
     throw AppError.validationError(
-      `Invalid fulfillment status code(s): ${currentCode}, ${nextCode}`
+      `Invalid current fulfillment status code: ${currentCode}`
     );
   }
-
-  if (isFulfillmentStatusFinal(currentCode)) {
+  
+  if (allowedTargets.length === 0) {
     throw AppError.validationError(
       `Cannot transition from final fulfillment status: ${currentCode}`
     );
   }
-
-  if (nextIndex <= currentIndex) {
+  
+  if (!allowedTargets.includes(nextCode)) {
     throw AppError.validationError(
-      `Cannot transition fulfillment status backward: ${currentCode} → ${nextCode}`
+      `Invalid fulfillment status transition: ${currentCode} → ${nextCode}`
     );
   }
 };
@@ -638,32 +588,42 @@ const assertWarehouseUpdatesApplied = (warehouseUpdates = [], context = {}) => {
 /**
  * Asserts that all required status IDs have been resolved from the cache.
  *
- * Intended as a guard before order/shipment/fulfillment writes — surfaces
- * cache misses or seed gaps with a single actionable error listing every
- * unresolved key, rather than letting a downstream INSERT fail with a NULL
- * constraint violation that's painful to trace back.
+ * Intended as a guard before order, allocation, shipment, and fulfillment
+ * writes — surfaces cache misses or seed gaps with a single actionable error
+ * listing every unresolved key, rather than letting a downstream INSERT fail
+ * with a NULL constraint violation that's painful to trace back to its
+ * source. Every falsy value is treated as unresolved; the listing is
+ * exhaustive, not first-failure, so a single run flushes out all missing
+ * keys instead of forcing a fix-and-retry loop.
  *
  * @param {string} orderStatusId       - Resolved UUID for the order status.
+ * @param {string} allocationStatusId  - Resolved UUID for the allocation status.
  * @param {string} shipmentStatusId    - Resolved UUID for the shipment status.
  * @param {string} fulfillmentStatusId - Resolved UUID for the fulfillment status.
  *
- * @throws {AppError} validationError listing every unresolved key (not just the first).
+ * @throws {AppError} validationError - Lists every unresolved key in the error
+ *   message; original values (including the falsy ones) attached to error meta
+ *   for log inspection.
  */
 const assertStatusesResolved = ({
                                   orderStatusId,
+                                  allocationStatusId,
                                   shipmentStatusId,
                                   fulfillmentStatusId,
                                 }) => {
   const missing = [];
   if (!orderStatusId)       missing.push('orderStatusId');
+  if (!allocationStatusId)  missing.push('allocationStatusId');
   if (!shipmentStatusId)    missing.push('shipmentStatusId');
   if (!fulfillmentStatusId) missing.push('fulfillmentStatusId');
+  
+  if (missing.length === 0) return;
   
   throw AppError.validationError(
     `Unresolved status IDs: ${missing.join(', ')}`,
     {
       context: 'outbound-fulfillment/assertStatusesResolved',
-      meta: { orderStatusId, shipmentStatusId, fulfillmentStatusId },
+      meta: { orderStatusId, allocationStatusId, shipmentStatusId, fulfillmentStatusId },
     }
   );
 };
@@ -998,10 +958,101 @@ const validateStatusesBeforeOutboundFulfillmentCompletion = ({
   }
 };
 
+/**
+ * Resolves the order target status code after a fulfillment confirmation,
+ * accounting for the post-transition state of every fulfillment on the order.
+ *
+ * Returns ORDER_FULFILLED when every fulfillment on the order will be at or
+ * past the confirm threshold after the in-flight transition completes —
+ * defined as either being in the transitioningFulfillmentIds set (about to
+ * be confirmed by this call) or already carrying a code from
+ * CONFIRMED_TERMINAL_FULFILLMENT_STATUS_CODES (PACKED, COMPLETED, SHIPPED,
+ * DELIVERED, or CANCELLED). Otherwise returns ORDER_PARTIALLY_FULFILLED.
+ *
+ * The transitioningFulfillmentIds parameter exists because the in-flight
+ * fulfillments haven't been written to the DB yet at the point this resolver
+ * runs — their post-confirm state has to be assumed from the caller's
+ * intent rather than read from a stale snapshot.
+ *
+ * Mirrors resolveOrderTargetCodeAfterFulfillment in shape so the
+ * confirm and fulfillment-ship boundaries stay symmetric.
+ *
+ * @param {Array<OrderFulfillmentRow>} fulfillments - All fulfillments on the
+ *   order, each carrying at minimum fulfillment_id and status_code.
+ * @param {Array<string>} transitioningFulfillmentIds - Fulfillment UUIDs
+ *   being confirmed in the current transaction.
+ *
+ * @returns {OrderStatusCode} ORDER_FULFILLED when every fulfillment will
+ *   be confirm-terminal after the transition; otherwise
+ *   ORDER_PARTIALLY_FULFILLED.
+ *
+ * @throws {AppError} businessError - The fulfillments list is empty
+ *   (resolver has nothing to evaluate; caller bug).
+ */
+const resolveOrderTargetCodeAfterConfirmation = (
+  fulfillments,
+  transitioningFulfillmentIds
+) => {
+  if (!fulfillments.length) {
+    throw AppError.businessError(
+      'Cannot resolve order target status from an empty fulfillment list.'
+    );
+  }
+  
+  const transitioningSet = new Set(transitioningFulfillmentIds);
+  const allConfirmedAfter = fulfillments.every(
+    (f) =>
+      transitioningSet.has(f.fulfillment_id) ||
+      CONFIRMED_TERMINAL_FULFILLMENT_STATUS_CODES.includes(f.status_code)
+  );
+  return allConfirmedAfter
+    ? ORDER_STATUS_CODES.FULFILLED
+    : ORDER_STATUS_CODES.PARTIALLY_FULFILLED; // ← verify your intermediate code
+};
+
+/**
+ * Picks the order target status code after one or more fulfillments have
+ * just transitioned to a terminal state in the current operation.
+ *
+ * Returns SHIPPED when every fulfillment on the order is terminal after the
+ * transition (full ship), FULFILLED when at least one fulfillment remains
+ * non-terminal (partial).
+ *
+ * A fulfillment is treated as terminal if its id is in
+ * transitioningFulfillmentIds OR its current status_code is already in
+ * TERMINAL_FULFILLMENT_STATUS_CODES. Callers must only include ids in
+ * transitioningFulfillmentIds that actually transitioned to terminal.
+ *
+ * @param {Array<{ fulfillment_id: string, status_code: string }>} fulfillments
+ *        All fulfillments belonging to the order (pre-transition snapshot).
+ * @param {string[]} transitioningFulfillmentIds
+ *        UUIDs of fulfillments that just transitioned to terminal in this op.
+ *
+ * @returns {'SHIPPED'|'FULFILLED'} ORDER_STATUS_CODES value to apply.
+ */
+const resolveOrderTargetCodeAfterFulfillment = (
+  fulfillments,
+  transitioningFulfillmentIds
+) => {
+  if (!fulfillments.length) {
+    throw AppError.businessError(
+      'Cannot resolve order target status from an empty fulfillment list.'
+    );
+  }
+  
+  const transitioningSet = new Set(transitioningFulfillmentIds);
+  const allTerminalAfter = fulfillments.every(
+    (f) =>
+      transitioningSet.has(f.fulfillment_id) ||
+      TERMINAL_FULFILLMENT_STATUS_CODES.includes(f.status_code)
+  );
+  return allTerminalAfter
+    ? ORDER_STATUS_CODES.SHIPPED
+    : ORDER_STATUS_CODES.FULFILLED;
+};
+
 module.exports = {
-  FULFILLMENT_STATUS_SEQUENCE,
   FULFILLMENT_FINAL_STATUSES,
-  TERMINAL_FULFILLMENT_STATUS_CODES,
   validateOrderIsFullyAllocated,
   validateFulfillmentStatusTransition,
   assertAllocationsValid,
@@ -1025,4 +1076,6 @@ module.exports = {
   calculateInventoryAdjustments,
   updateAllStatuses,
   validateStatusesBeforeOutboundFulfillmentCompletion,
+  resolveOrderTargetCodeAfterConfirmation,
+  resolveOrderTargetCodeAfterFulfillment,
 };

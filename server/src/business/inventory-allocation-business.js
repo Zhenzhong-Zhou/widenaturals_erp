@@ -6,7 +6,7 @@
  *   - Warehouse visibility evaluation and ACL filter injection
  *   - Batch allocation engine (FEFO / FIFO strategies)
  *   - Order item display resolution for error messages and logs
- *   - Allocation status transition validation
+ *   - Allocation status transition validation against an explicit transition graph
  *   - Per-item allocation status computation
  *   - Reserved quantity updates and inventory status recalculation
  *   - Warehouse-batch key deduplication for row locking
@@ -34,6 +34,7 @@ const {
 const { logSystemException } = require('../utils/logging/system-logger');
 const AppError = require('../utils/AppError');
 const { getProductDisplayName } = require('../utils/display-name-utils');
+const { ALLOWED_ALLOCATION_TRANSITIONS } = require('../utils/constants/domain/allocation-status-codes');
 
 const CONTEXT = 'inventory-allocation-business';
 
@@ -342,61 +343,39 @@ const resolveOrderItemDisplay = (meta) => {
 
 // ─── Allocation Status Validation ─────────────────────────────────────────────
 
-// Forward-only allocation status sequence — transitions must move rightward.
-const ALLOCATION_STATUS_SEQUENCE = [
-  'ALLOC_PENDING',
-  'ALLOC_CONFIRMED',
-  'ALLOC_PARTIAL',
-  'ALLOC_COMPLETED',
-  'ALLOC_FULFILLING',
-  'ALLOC_FULFILLED',
-  'ALLOC_CANCELLED',
-];
-
-// Terminal statuses — no further transitions are permitted from these.
-const ALLOCATION_FINAL_STATUSES = ['ALLOC_FULFILLED', 'ALLOC_CANCELLED'];
-
 /**
- * Returns true if the given allocation status code is terminal.
+ * Validates an allocation status transition against ALLOWED_ALLOCATION_TRANSITIONS.
  *
- * @param {string} code
- * @returns {boolean}
- */
-const isFinalStatus = (code) => ALLOCATION_FINAL_STATUSES.includes(code);
-
-/**
- * Validates whether a transition from `currentCode` to `nextCode` is permitted.
+ * A transition is valid iff nextCode appears in the current code's
+ * allowed-targets array. Terminal states declare themselves via an empty
+ * array, which blocks all outbound moves. The map is the single source of
+ * truth — no indexOf-style positional rules apply.
  *
- * Rules enforced:
- *  - Both codes must exist in `ALLOCATION_STATUS_SEQUENCE`.
- *  - Transitions from terminal statuses are always rejected.
- *  - Backward transitions are rejected (nextIndex must be > currentIndex).
+ * @param {string} currentCode - The allocation's current status code.
+ * @param {string} nextCode - The status code being transitioned into.
  *
- * @param {string} currentCode - Current allocation status code.
- * @param {string} nextCode    - Target allocation status code.
- * @returns {void}
- *
- * @throws {AppError} `validationError` — unknown codes, terminal source, or backward transition.
+ * @throws {AppError} validationError - currentCode is not a known allocation status code.
+ * @throws {AppError} validationError - currentCode is terminal (no outbound transitions allowed).
+ * @throws {AppError} validationError - nextCode is not in the allowed targets for currentCode.
  */
 const validateAllocationStatusTransition = (currentCode, nextCode) => {
-  const currentIndex = ALLOCATION_STATUS_SEQUENCE.indexOf(currentCode);
-  const nextIndex = ALLOCATION_STATUS_SEQUENCE.indexOf(nextCode);
-
-  if (currentIndex === -1 || nextIndex === -1) {
+  const allowedTargets = ALLOWED_ALLOCATION_TRANSITIONS[currentCode];
+  
+  if (allowedTargets === undefined) {
     throw AppError.validationError(
-      `Invalid allocation status code(s): ${currentCode}, ${nextCode}`
+      `Invalid current allocation status code: ${currentCode}`
     );
   }
-
-  if (isFinalStatus(currentCode)) {
+  
+  if (allowedTargets.length === 0) {
     throw AppError.validationError(
       `Cannot transition from final allocation status: ${currentCode}`
     );
   }
-
-  if (nextIndex <= currentIndex) {
+  
+  if (!allowedTargets.includes(nextCode)) {
     throw AppError.validationError(
-      `Cannot transition allocation status backward: ${currentCode} → ${nextCode}`
+      `Invalid allocation status transition: ${currentCode} → ${nextCode}`
     );
   }
 };
