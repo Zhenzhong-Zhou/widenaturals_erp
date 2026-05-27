@@ -86,8 +86,9 @@ const {
 const { uniqCompact } = require('../utils/array-utils');
 const { SHIPPED_AT_STAMPING_STATUSES } = require('../utils/constants/domain/shipment-status-codes');
 const {
-  FULFILLMENT_FINAL_STATUSES,
-  ALLOWED_FULFILLMENT_TRANSITIONS, CONFIRMED_TERMINAL_FULFILLMENT_STATUS_CODES, TERMINAL_FULFILLMENT_STATUS_CODES
+  ALLOWED_FULFILLMENT_TRANSITIONS,
+  CONFIRMED_TERMINAL_FULFILLMENT_STATUS_CODES,
+  TERMINAL_FULFILLMENT_STATUS_CODES
 } = require('../utils/constants/domain/fulfillment-status-codes');
 const { ORDER_STATUS_CODES } = require('../utils/constants/domain/order-status-codes');
 
@@ -1052,7 +1053,6 @@ const resolveOrderTargetCodeAfterFulfillment = (
 };
 
 module.exports = {
-  FULFILLMENT_FINAL_STATUSES,
   validateOrderIsFullyAllocated,
   validateFulfillmentStatusTransition,
   assertAllocationsValid,
