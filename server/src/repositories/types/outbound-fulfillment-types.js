@@ -222,3 +222,66 @@
  * @property {{ id: string|null, statusId: string|null }} fulfillment
  * @property {{ updatedOrderItemStatusIds: string[] }} statusUpdates
  */
+
+/**
+ * @typedef {Object} AdjustedFulfillmentResult
+ * @description Return shape of confirmOutboundFulfillmentService.
+ *
+ * @property {{ id: string, number: string }} order
+ *   Order identity — UUID and human-readable order number.
+ *
+ * @property {{ id: string, statuses: Array<StatusTransitionRow> }} shipment
+ *   Shipment identity and the status transition rows produced for it.
+ *
+ * @property {Array<{ id: string, statusId: string }>} fulfillments
+ *   Lightweight fulfillment summary — UUID + pre-transition status ID per row.
+ *
+ * @property {{ updatedWarehouseIds: Array<string> }} inventory
+ *   IDs of warehouse_inventory rows whose reserved/warehouse quantities
+ *   were adjusted during confirmation.
+ *
+ * @property {AdjustedFulfillmentStatusBundle} statuses
+ *   Status transition rows grouped by entity.
+ *
+ * @property {Array<InventoryActivityLogRow>} logs
+ *   Inventory activity log rows written under the 'fulfilled' action type.
+ */
+
+/**
+ * @typedef {Object} AdjustedFulfillmentStatusBundle
+ * @property {StatusTransitionRow} order
+ * @property {Array<StatusTransitionRow>} orderItems
+ * @property {Array<StatusTransitionRow>} allocations
+ * @property {Array<StatusTransitionRow>} fulfillments
+ * @property {Array<StatusTransitionRow>} shipments
+ */
+
+/**
+ * @typedef {Object} StatusTransitionRow
+ * @property {string} id - UUID of the affected row (order, item, allocation, fulfillment, or shipment).
+ * @property {string} status_id - New status UUID applied.
+ * @property {Date}   status_date - Timestamp the transition was recorded.
+ */
+
+/**
+ * @typedef {Object} FulfillmentRow
+ * @description Row shape returned by getOrderFulfillments — order_fulfillments
+ * joined with fulfillment_status for inline code lookup. Consumed by order
+ * target resolvers and confirm/complete service flows.
+ *
+ * @property {string} fulfillment_id - UUID of the fulfillment.
+ * @property {string} order_id - UUID of the parent order (derived via order_items join).
+ * @property {string} order_item_id - UUID of the order item this fulfillment is against.
+ * @property {string} allocation_id - UUID of the inventory allocation backing this fulfillment.
+ * @property {number} quantity_fulfilled - Quantity fulfilled in this row.
+ * @property {string} status_id - UUID of the current fulfillment_status.
+ * @property {FulfillmentStatusCode} status_code - Code of the current fulfillment_status, joined from the lookup table.
+ * @property {string} shipment_id - UUID of the outbound_shipment this fulfillment belongs to.
+ * @property {string|null} fulfillment_notes - Optional notes captured at create or update.
+ * @property {Date|null} fulfilled_at - When the fulfillment was completed (null until completion).
+ * @property {Date} created_at - Row creation timestamp.
+ * @property {Date} updated_at - Row last update timestamp.
+ * @property {string|null} fulfilled_by - User UUID who marked it fulfilled (null until completion).
+ * @property {string} created_by - User UUID who created the row.
+ * @property {string|null} updated_by - User UUID who last updated the row.
+ */

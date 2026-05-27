@@ -4,17 +4,30 @@
  *
  * Exports:
  *   - fulfillOutboundShipmentService           – creates shipment and fulfillment records
- *   - confirmOutboundFulfillmentService        — confirms fulfillment, applies bulk inventory
- *                                                quantity updates and status resolution,
- *                                                and inserts inventory activity logs
+ *   - confirmOutboundFulfillmentService        – confirms outbound fulfillment for a single
+ *                                                shipment: deducts reserved inventory against
+ *                                                affected batches, cascades atomic status updates
+ *                                                across order, order items, allocations,
+ *                                                fulfillments, and the shipment, and writes
+ *                                                inventory activity logs under the 'fulfilled'
+ *                                                action. Status targets are server-resolved —
+ *                                                clients never pass codes (allocations →
+ *                                                ALLOC_COMPLETED, shipment → SHIPMENT_READY,
+ *                                                fulfillments → FULFILLMENT_PACKED; order
+ *                                                resolved from remaining fulfillment state —
+ *                                                ORDER_FULFILLED when all fulfillments are
+ *                                                terminal-after-confirm, else
+ *                                                ORDER_PARTIALLY_FULFILLED).
  *   - fetchPaginatedOutboundFulfillmentService – paginated shipment list
- *   - fetchShipmentDetailsService              – full shipment detail with fulfillments, batches, and tracking
- *   - completeOutboundFulfillmentService       – completes outbound fulfillment: attaches tracking numbers
- *                                                and cascades atomic status updates across shipment,
- *                                                fulfillments, and order. Shipment target is carrier-aware
- *                                                (IN_TRANSIT for carrier-tracked, COMPLETED otherwise);
- *                                                fulfillments → SHIPPED; order resolved from remaining
- *                                                fulfillment state.
+ *   - fetchShipmentDetailsService              – full shipment detail with fulfillments,
+ *                                                batches, and tracking
+ *   - completeOutboundFulfillmentService       – completes outbound fulfillment: attaches
+ *                                                tracking numbers and cascades atomic status
+ *                                                updates across shipment, fulfillments, and
+ *                                                order. Shipment target is carrier-aware
+ *                                                (IN_TRANSIT for carrier-tracked, COMPLETED
+ *                                                otherwise); fulfillments → SHIPPED; order
+ *                                                resolved from remaining fulfillment state.
  *
  * Schema notes:
  *   - outbound_shipments.delivery_method_id is NOT NULL
@@ -86,7 +99,7 @@ const {
   assertWarehouseUpdatesApplied,
   assertShipmentFound,
   validateStatusesBeforeConfirmation,
-  validateStatusesBeforeOutboundFulfillmentCompletion,
+  validateStatusesBeforeOutboundFulfillmentCompletion, validateFulfillmentStatusTransition,
 } = require('../business/outbound-fulfillment-business');
 const {
   getAllocationStatuses,
@@ -95,10 +108,6 @@ const {
   validateAllocationStatusTransition,
 } = require('../business/inventory-allocation-business');
 const {
-  getShipmentStatusByCode,
-} = require('../repositories/shipment-status-repository');
-const {
-  getFulfillmentStatusByCode,
   getFulfillmentStatusesByIds,
 } = require('../repositories/fulfillment-status-repository');
 const {
@@ -123,8 +132,9 @@ const {
 const { assertDeliveryMethodResolved } = require('../business/delivery-method-business');
 const { attachTrackingNumbersToShipment } = require('../business/tracking-number-business');
 const { SHIPMENT_STATUS_CODES } = require('../utils/constants/domain/shipment-status-codes');
-const { resolveOrderTargetCodeAfterFulfillment } = require('../business/order-business');
+const { resolveOrderTargetCodeAfterFulfillment, resolveOrderTargetCodeAfterConfirmation } = require('../business/outbound-fulfillment-business');
 const { FULFILLMENT_STATUS_CODES } = require('../utils/constants/domain/fulfillment-status-codes');
+const { ALLOCATION_STATUS_CODES } = require('../utils/constants/domain/allocation-status-codes');
 
 const CONTEXT = 'outbound-fulfillment-service';
 
@@ -318,59 +328,50 @@ const fulfillOutboundShipmentService = async (requestData, orderId, user) => {
 };
 
 /**
- * Confirms an outbound fulfillment for an order — adjusts warehouse inventory
- * quantities and status, updates order, item, allocation, fulfillment, and
- * shipment statuses, and inserts inventory activity logs within a single transaction.
+ * Confirms outbound fulfillment for an order in the post-fulfill state,
+ * transitioning all linked entities atomically and deducting reserved
+ * inventory to reflect physical pick-and-pack completion.
  *
- * Flow:
- *  1. Validates order metadata and current status eligibility.
- *  2. Fetches and locks allocation and warehouse inventory rows.
- *  3. Validates fulfillment and shipment status eligibility.
- *  4. Enriches allocations with current inventory snapshot.
- *  5. Computes inventory quantity deltas per allocation.
- *  6. Resolves new inventory status per row and applies bulk quantity updates.
- *  7. Updates order, item, allocation, fulfillment, and shipment statuses.
- *  8. Builds and inserts inventory activity log entries for each quantity change.
+ * Single-transaction workflow:
+ *  1. Validates order metadata and locks allocations FOR UPDATE.
+ *  2. Asserts exactly one shipment is in scope — multi-shipment orders
+ *     are confirmed one shipment per call.
+ *  3. Gates on pre-confirm status eligibility via
+ *     validateStatusesBeforeConfirmation (order, shipment, fulfillments).
+ *  4. Reads warehouse inventory for affected batches, computes
+ *     reserved → warehouse-out deltas, and applies them in bulk.
+ *  5. Resolves server-side target status codes — clients never pass codes:
+ *     - Order        → ORDER_FULFILLED or ORDER_PARTIALLY_FULFILLED
+ *                      (via resolveOrderTargetCodeAfterConfirmation —
+ *                      depends on whether every fulfillment is now terminal)
+ *     - Allocation   → ALLOC_COMPLETED
+ *     - Shipment     → SHIPMENT_READY
+ *     - Fulfillment  → FULFILLMENT_PACKED
+ *  6. Dispatches all status transitions via updateAllStatuses, which
+ *     internally routes shipment updates between markOutboundShipmentsShipped
+ *     and updateOutboundShipmentStatus based on the resolved shipment code.
+ *  7. Writes inventory activity logs for each fulfilled allocation under
+ *     the 'fulfilled' action type.
  *
- * The shipment record now exposes `requires_tracking_number` via the
- * delivery_method join — available for future tracking-attached gating in
- * the ship-shipment flow. Not enforced at confirmation time.
+ * @param {string} orderId - UUID of the order to confirm.
+ * @param {AuthUser} user - Authenticated user performing the action.
+ * @returns {Promise<AdjustedFulfillmentResult>} Confirmation summary with
+ *   order, shipment, fulfillments, inventory updates, status transition
+ *   rows for each affected entity, and inventory activity log metadata.
  *
- * No warehouse ACL check required — warehouse scope is implicitly enforced
- * by the existing allocation records created during allocateInventoryForOrderService.
- *
- * @param {object} requestData
- * @param {string} requestData.orderStatus       - Target order status code.
- * @param {string} requestData.allocationStatus  - Target allocation status code.
- * @param {string} requestData.shipmentStatus    - Target shipment status code.
- * @param {string} requestData.fulfillmentStatus - Target fulfillment status code.
- * @param {string} orderId                       - UUID of the order to confirm fulfillment for.
- * @param {object} user                          - Authenticated user (requires `id`).
- *
- * @returns {Promise<object>} Transformed fulfillment confirmation response.
- *
- * @throws {AppError} `validationError`  — ineligible order, fulfillment, or shipment status.
- * @throws {AppError} `notFoundError`    — missing allocations, shipment, or status codes.
- * @throws {AppError} `businessError`    — empty enriched allocations or missing inventory adjustments.
- * @throws {AppError} Re-throws all other AppErrors from lower layers unchanged.
- * @throws {AppError} Wraps unexpected errors as `serviceError`.
+ * @throws {AppError} validationError - Multi-shipment payload, eligibility
+ *   gate failure, missing inventory coverage, or unresolved status IDs.
+ * @throws {AppError} notFoundError - Order, allocations, or shipment
+ *   cannot be located.
+ * @throws {AppError} serviceError - Wraps any non-AppError thrown inside
+ *   the transaction.
  */
-const confirmOutboundFulfillmentService = async (
-  requestData,
-  orderId,
-  user
-) => {
+const confirmOutboundFulfillmentService = async (orderId, user) => {
   const context = `${CONTEXT}/confirmOutboundFulfillmentService`;
   
   try {
     return await withTransaction(async (client) => {
       const userId = user.id;
-      const {
-        orderStatus,
-        allocationStatus,
-        shipmentStatus,
-        fulfillmentStatus,
-      } = requestData;
       
       // 1. Validate and fetch order metadata.
       const orderMeta = await getOrderTypeMetaByOrderId(orderId, client);
@@ -406,7 +407,7 @@ const confirmOutboundFulfillmentService = async (
       
       const shipmentId = uniqueShipmentIds[0];
       
-      // 5. Fetch shipment record (now exposes requires_tracking_number).
+      // 5. Fetch shipment record.
       const shipment = /** @type {ShipmentRow} */ (
         await getShipmentByShipmentId(shipmentId, client)
       );
@@ -468,34 +469,41 @@ const confirmOutboundFulfillmentService = async (
         updates: updateInputs,
       });
       
-      // 12. Resolve new status IDs.
-      const { id: newOrderStatusId } = await getOrderStatusByCode(
-        orderStatus,
-        client
-      );
-      const newAllocationStatusId = await getInventoryAllocationStatusId(
-        allocationStatus,
-        client
-      );
-      const { id: newShipmentStatusId, code: shipmentStatusCode } = await getShipmentStatusByCode(
-        shipmentStatus,
-        client
-      );
-      const { id: newFulfillmentStatusId } = await getFulfillmentStatusByCode(
-        fulfillmentStatus,
-        client
-      );
+      // 12. Resolve server-determined target codes + IDs.
+      // All fulfillments riding this shipment transition together.
+      const transitioningFulfillmentIds = fulfillments
+        .filter((f) => f.shipment_id === shipmentId)
+        .map((f) => f.fulfillment_id);
       
+      const orderTargetCode       = resolveOrderTargetCodeAfterConfirmation(
+        fulfillments,
+        transitioningFulfillmentIds
+      );
+      const allocationTargetCode  = ALLOCATION_STATUS_CODES.COMPLETED;  // 'ALLOC_COMPLETED'
+      const shipmentTargetCode    = SHIPMENT_STATUS_CODES.READY;        // 'SHIPMENT_READY'
+      const fulfillmentTargetCode = FULFILLMENT_STATUS_CODES.PACKED;    // 'FULFILLMENT_PACKED'
+      
+      // Validate transition graph against the resolved target.
+      fulfillmentStatusMeta.forEach(({ code }) => {
+        validateFulfillmentStatusTransition(code, fulfillmentTargetCode);
+      });
+      
+      const newOrderStatusId       = getStatusIdByCode(orderTargetCode);
+      const newAllocationStatusId  = getStatusIdByCode(allocationTargetCode);
+      const newShipmentStatusId    = getStatusIdByCode(shipmentTargetCode);
+      const newFulfillmentStatusId = getStatusIdByCode(fulfillmentTargetCode);
+     
       assertStatusesResolved({
-        orderStatusId: newOrderStatusId,
-        shipmentStatusId: newShipmentStatusId,
+        orderStatusId:       newOrderStatusId,
+        allocationStatusId:  newAllocationStatusId,
+        shipmentStatusId:    newShipmentStatusId,
         fulfillmentStatusId: newFulfillmentStatusId,
       });
       
       // 13. Update statuses across all linked entities.
-      //     updateAllStatuses must dispatch shipment status updates between
+      //     updateAllStatuses dispatches shipment status updates between
       //     markOutboundShipmentsShipped (stamps shipped_at) and
-      //     updateOutboundShipmentStatus (generic) based on shipmentStatus code.
+      //     updateOutboundShipmentStatus (generic) based on shipmentStatusCode.
       const {
         orderStatusRow,
         orderItemStatusRows,
@@ -511,7 +519,6 @@ const confirmOutboundFulfillmentService = async (
         fulfillments,
         newFulfillmentStatusId,
         newShipmentStatusId,
-        shipmentStatusCode,
         userId,
         client,
       });
@@ -780,6 +787,11 @@ const completeOutboundFulfillmentService = async (
         fulfillments,
         transitioningFulfillmentIds
       );
+      
+      // Validate transition graph against the resolved target.
+      fulfillmentStatusMeta.forEach(({ code }) => {
+        validateFulfillmentStatusTransition(code, fulfillmentTargetCode);
+      });
       
       const newShipmentStatusId    = getStatusIdByCode(shipmentTargetCode);
       const newFulfillmentStatusId = getStatusIdByCode(fulfillmentTargetCode);

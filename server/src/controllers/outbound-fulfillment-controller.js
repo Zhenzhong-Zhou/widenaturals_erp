@@ -70,7 +70,6 @@ const confirmOutboundFulfillmentController = wrapAsyncHandler(
     const user = req.auth.user;
 
     const result = await confirmOutboundFulfillmentService(
-      req.body,
       orderId,
       user
     );

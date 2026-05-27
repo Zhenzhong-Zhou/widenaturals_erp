@@ -105,25 +105,25 @@ const transformFulfillmentResult = ({
  * @returns {Object}
  */
 const transformAdjustedFulfillmentResult = ({
-  orderId,
-  orderNumber,
-  fulfillments,
-  shipmentId,
-  warehouseInventoryIds,
-  orderStatusRow,
-  orderItemStatusRow,
-  inventoryAllocationStatusRow,
-  orderFulfillmentStatusRow,
-  shipmentStatusRow,
-  logMetadata,
-}) => ({
+                                              orderId,
+                                              orderNumber,
+                                              fulfillments,
+                                              shipmentId,
+                                              warehouseInventoryIds,
+                                              orderStatusRow,
+                                              orderItemStatusRows,
+                                              inventoryAllocationStatusRows,
+                                              orderFulfillmentStatusRows,
+                                              shipmentStatusRows,
+                                              logMetadata,
+                                            }) => ({
   order: {
     id: orderId,
     number: orderNumber,
   },
   shipment: {
     id: shipmentId,
-    statuses: shipmentStatusRow,
+    statuses: shipmentStatusRows,
   },
   fulfillments: fulfillments.map((f) => ({
     id: f.fulfillment_id,
@@ -134,10 +134,10 @@ const transformAdjustedFulfillmentResult = ({
   },
   statuses: {
     order: orderStatusRow,
-    orderItems: orderItemStatusRow,
-    allocations: inventoryAllocationStatusRow,
-    fulfillments: orderFulfillmentStatusRow,
-    shipments: shipmentStatusRow,
+    orderItems: orderItemStatusRows,
+    allocations: inventoryAllocationStatusRows,
+    fulfillments: orderFulfillmentStatusRows,
+    shipments: shipmentStatusRows,
   },
   logs: logMetadata,
 });
