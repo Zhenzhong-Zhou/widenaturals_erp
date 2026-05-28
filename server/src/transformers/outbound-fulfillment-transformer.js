@@ -29,12 +29,15 @@
  *       Paginated shipment list.
  *   - transformShipmentDetailsRows
  *       Grouped shipment detail with tracking, fulfillments, and batches.
- *   - transformPickupCompletionResult
- *       Result after manual/pickup fulfillment completion.
+ *   - transformOutboundFulfillmentCompletionResult
+ *       Result after outbound fulfillment completion (pickup or carrier).
  *   - transformOutboundShipmentForTrackingAttachRow
  *       Shipment context used before attaching tracking numbers.
  *   - transformCreateTrackingNumbersResult
  *       Lean result after creating tracking-number records.
+ *   - transformDeliveryConfirmationResult
+ *       Result after shipment delivery confirmation, including delivered_at
+ *       stamps for shipments transitioning to DELIVERED.
  *
  * Internal helpers (not exported):
  *   - transformOutboundShipmentRow
@@ -382,12 +385,18 @@ const transformShipmentDetailsRows = (rows) => {
 };
 
 /**
- * Transforms the result of a manual/pickup fulfillment completion.
+ * Transforms the result of an outbound fulfillment completion, covering both
+ * pickup and carrier-tracked delivery paths.
  *
  * @param {Object} statusResult
+ * @param {Object} [statusResult.orderStatusRow]
+ * @param {Object[]} [statusResult.orderItemStatusRows]
+ * @param {Array<{ id: string }>} [statusResult.orderFulfillmentStatusRows] - Updated fulfillment rows.
+ * @param {string[]} [statusResult.shipmentStatusRows]
+ * @param {Object[]} [statusResult.insertedTrackings]
  * @returns {Object}
  */
-const transformPickupCompletionResult = (statusResult) => {
+const transformOutboundFulfillmentCompletionResult = (statusResult) => {
   if (!statusResult) return {};
   
   const {
@@ -469,12 +478,84 @@ const transformCreateTrackingNumbersResult = (insertedRecords) => ({
   ids: insertedRecords.map((record) => record.id),
 });
 
+/**
+ * Transforms the raw status-update result from delivery confirmation into the
+ * canonical API response shape.
+ *
+ * Maps order, order-item, fulfillment, and shipment status rows produced by
+ * the delivery flow, plus the delivered-at stamp rows from
+ * markOutboundShipmentsDelivered. Fulfillment and shipment rows carry only
+ * IDs; delivered-at rows additionally carry the stamped timestamp.
+ *
+ * Returns an empty object when `statusResult` is null or undefined. Empty
+ * arrays are produced when a section's source rows are missing.
+ *
+ * @param {object} [statusResult]
+ * @param {{ id: string, order_status_id: string, status_date: string }} [statusResult.orderStatusRow]
+ * @param {Array<{ id: string, status_id: string, status_date: string }>}  [statusResult.orderItemStatusRows]
+ * @param {Array<{ id: string }>} [statusResult.orderFulfillmentStatusRows] - Updated fulfillment rows.
+ * @param {string[]} [statusResult.shipmentStatusRows]         - Updated shipment UUIDs.
+ * @param {Array<{ id: string, delivered_at: string }>} [statusResult.deliveredAtRows]
+ *        Shipments stamped with delivered_at in this transaction.
+ *
+ * @returns {object} Canonical delivery confirmation response with
+ *                   order/items/fulfillments/shipment/deliveredShipments
+ *                   sections, a counts summary, and an updatedAt meta stamp.
+ */
+const transformDeliveryConfirmationResult = (statusResult) => {
+  if (!statusResult) return {};
+  
+  const {
+    orderStatusRow,
+    orderItemStatusRows,
+    orderFulfillmentStatusRows,
+    shipmentStatusRows,
+    deliveredAtRows,
+  } = statusResult;
+  
+  return cleanObject({
+    order: orderStatusRow
+      ? {
+        id: orderStatusRow.id,
+        statusId: orderStatusRow.order_status_id,
+        statusDate: orderStatusRow.status_date,
+      }
+      : null,
+    items: Array.isArray(orderItemStatusRows)
+      ? orderItemStatusRows.map((item) => ({
+        id: item.id,
+        statusId: item.status_id,
+        statusDate: item.status_date,
+      }))
+      : [],
+    fulfillments: Array.isArray(orderFulfillmentStatusRows)
+      ? orderFulfillmentStatusRows.map((id) => ({ id }))
+      : [],
+    shipment: Array.isArray(shipmentStatusRows)
+      ? shipmentStatusRows.map((id) => ({ id }))
+      : [],
+    deliveredShipments: Array.isArray(deliveredAtRows)
+      ? deliveredAtRows.map((d) => ({ id: d.id, deliveredAt: d.delivered_at }))
+      : [],
+    summary: {
+      orderItemsCount:         orderItemStatusRows?.length        || 0,
+      fulfillmentsCount:       orderFulfillmentStatusRows?.length || 0,
+      shipmentCount:           shipmentStatusRows?.length         || 0,
+      deliveredShipmentCount:  deliveredAtRows?.length            || 0,
+    },
+    meta: {
+      updatedAt: new Date().toISOString(),
+    },
+  });
+};
+
 module.exports = {
   transformFulfillmentResult,
   transformAdjustedFulfillmentResult,
   transformPaginatedOutboundShipmentResults,
   transformShipmentDetailsRows,
-  transformPickupCompletionResult,
+  transformOutboundFulfillmentCompletionResult,
   transformOutboundShipmentForTrackingAttachRow,
   transformCreateTrackingNumbersResult,
+  transformDeliveryConfirmationResult,
 };

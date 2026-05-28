@@ -8,24 +8,27 @@
  * items/allocations/fulfillments/shipments, and inventory activity log entry
  * construction for fulfillment confirmations.
  *
- * Shipment status updates dispatch internally between markOutboundShipmentsShipped
- * (stamps shipped_at when transitioning into a ship-state — IN_TRANSIT or
- * COMPLETED) and updateOutboundShipmentStatus (generic, no shipped_at touch).
- * The routing predicate is SHIPPED_AT_STAMPING_STATUSES, not a match against
- * every shipment code in the domain.
+ * Shipment status updates dispatch internally between three paths based on the
+ * target code: markOutboundShipmentsShipped (stamps shipped_at when transitioning
+ * into a ship-state — IN_TRANSIT or COMPLETED), markOutboundShipmentsDelivered
+ * (stamps delivered_at when transitioning into DELIVERED), and
+ * updateOutboundShipmentStatus (generic, no timestamp touch). The routing
+ * predicates are SHIPPED_AT_STAMPING_STATUSES and DELIVERED_AT_STAMPING_STATUSES,
+ * not a match against every shipment code in the domain.
  *
  * Exports:
  *
  * ─── Validation & Assertions ──────────────────────────────────────────────────
  *  - validateOrderIsFullyAllocated                       — assert all order items are fully allocated
  *  - validateFulfillmentStatusTransition                 — validate fulfillment transitions against ALLOWED_FULFILLMENT_TRANSITIONS
+ *  - validateShipmentStatusTransition                    — validate shipment transitions against ALLOWED_SHIPMENT_TRANSITIONS
  *  - validateStatusesBeforeConfirmation                  — validate order/fulfillment/shipment eligibility before confirm
  *  - validateStatusesBeforeOutboundFulfillmentCompletion — validate eligibility before outbound fulfillment completion
+ *  - validateStatusesBeforeShipmentDelivery              — validate order/shipment/fulfillment eligibility before shipment delivery
  *  - assertAllocationsValid                              — assert allocation list is non-empty and well-formed
  *  - assertOrderMeta                                     — assert order metadata is present and valid
  *  - assertFulfillmentsValid                             — assert fulfillment list is non-empty and well-formed
  *  - assertShipmentFound                                 — assert shipment record exists and has required fields
- *  - assertDeliveryMethodResolved                        — assert order has a delivery method before shipment creation
  *  - assertInventoryCoverage                             — assert inventory records exist for allocations
  *  - assertEnrichedAllocations                           — assert enriched allocations are non-empty and well-formed
  *  - assertInventoryAdjustments                          — assert computed adjustment array is non-empty
@@ -44,7 +47,6 @@
  *  - insertOutboundShipmentRecord                        — create a single outbound shipment record
  *  - buildShipmentBatchInputs                            — build shipment batch insert rows from allocations
  *  - buildFulfillmentInputsFromAllocations               — build fulfillment insert rows grouped by order item
- *  - buildFulfillmentLogEntry                            — build a single activity log entry for fulfillment confirmation
  *
  * ─── Status Target Resolution ─────────────────────────────────────────────────
  *  - resolveOrderTargetCodeAfterFulfillment              — resolve order target code after a fulfillment ships
@@ -54,11 +56,16 @@
  *                                                          confirmed (FULFILLED if every fulfillment is at or past
  *                                                          the confirm threshold after the transition, else
  *                                                          PARTIALLY_FULFILLED)
+ *  - resolveOrderTargetCodeAfterDelivery                 — resolve order target code after a shipment is delivered
+ *                                                          (DELIVERED if every fulfillment is terminal-delivered
+ *                                                          after the transition, else PARTIALLY_DELIVERED)
  *
  * ─── Status Updates ───────────────────────────────────────────────────────────
  *  - updateAllStatuses                                   — bulk update order, item, allocation, fulfillment,
  *                                                          and shipment statuses within a transaction;
- *                                                          dispatches shipment updates via SHIPPED_AT_STAMPING_STATUSES
+ *                                                          dispatches shipment updates via
+ *                                                          SHIPPED_AT_STAMPING_STATUSES and
+ *                                                          DELIVERED_AT_STAMPING_STATUSES
  */
 
 'use strict';
@@ -78,17 +85,25 @@ const {
   insertOutboundShipmentsBulk,
   updateOutboundShipmentStatus,
   markOutboundShipmentsShipped,
+  markOutboundShipmentsDelivered,
 } = require('../repositories/outbound-shipment-repository');
 const { updateOrderStatus } = require('../repositories/order-repository');
 const {
   updateOrderFulfillmentStatus,
 } = require('../repositories/order-fulfillment-repository');
 const { uniqCompact } = require('../utils/array-utils');
-const { SHIPPED_AT_STAMPING_STATUSES } = require('../utils/constants/domain/shipment-status-codes');
+const {
+  SHIPPED_AT_STAMPING_STATUSES,
+  ALLOWED_SHIPMENT_TRANSITIONS,
+  SHIPMENT_STATUS_CODES,
+  DELIVERED_AT_STAMPING_STATUSES
+} = require('../utils/constants/domain/shipment-status-codes');
 const {
   ALLOWED_FULFILLMENT_TRANSITIONS,
   CONFIRMED_TERMINAL_FULFILLMENT_STATUS_CODES,
-  TERMINAL_FULFILLMENT_STATUS_CODES
+  TERMINAL_FULFILLMENT_STATUS_CODES,
+  DELIVERED_TERMINAL_FULFILLMENT_STATUS_CODES,
+  FULFILLMENT_STATUS_CODES
 } = require('../utils/constants/domain/fulfillment-status-codes');
 const { ORDER_STATUS_CODES } = require('../utils/constants/domain/order-status-codes');
 
@@ -167,9 +182,12 @@ const updateFulfillmentsStatus = async (
 /**
  * Locks shipment rows and updates their status.
  *
- * Dispatches between markOutboundShipmentsShipped (stamps shipped_at when
- * transitioning into the Shipped state) and updateOutboundShipmentStatus
- * (generic, no shipped_at touch) based on newStatusCode resolved from cache.
+ * Dispatches between three paths based on the target code resolved from cache:
+ *  - markOutboundShipmentsShipped   — stamps shipped_at when transitioning
+ *                                     into a ship-state (SHIPPED_AT_STAMPING_STATUSES)
+ *  - markOutboundShipmentsDelivered — stamps delivered_at when transitioning
+ *                                     into DELIVERED (DELIVERED_AT_STAMPING_STATUSES)
+ *  - updateOutboundShipmentStatus   — generic, no timestamp touch
  *
  * Short-circuits to an empty array when there are no shipments to update
  * or newStatusId is missing — no lock is acquired in that case.
@@ -209,9 +227,15 @@ const updateShipmentsStatus = async (
   const newStatusCode = getStatusCodeById(newStatusId);
   const params = { statusId: newStatusId, userId, shipmentIds };
   
-  return SHIPPED_AT_STAMPING_STATUSES.includes(newStatusCode)
-    ? markOutboundShipmentsShipped(params, client)
-    : updateOutboundShipmentStatus(params, client);
+  if (SHIPPED_AT_STAMPING_STATUSES.includes(newStatusCode)) {
+    return markOutboundShipmentsShipped(params, client);
+  }
+  
+  if (DELIVERED_AT_STAMPING_STATUSES.includes(newStatusCode)) {
+    return markOutboundShipmentsDelivered(params, client);
+  }
+  
+  return updateOutboundShipmentStatus(params, client);
 };
 
 // ---------------------------------------------------------------------------
@@ -1052,6 +1076,136 @@ const resolveOrderTargetCodeAfterFulfillment = (
     : ORDER_STATUS_CODES.FULFILLED;
 };
 
+/**
+ * Validates a shipment status transition against ALLOWED_SHIPMENT_TRANSITIONS.
+ *
+ * Throws if the current code is unknown to the transition map, the current
+ * code is terminal (empty allowed-target list), or the proposed next code is
+ * not in the allowed-target list for the current code.
+ *
+ * @param {string} currentCode - Current shipment status code.
+ * @param {string} nextCode    - Proposed target shipment status code.
+ *
+ * @returns {void}
+ * @throws  {AppError} Validation error when the transition is not allowed.
+ */
+const validateShipmentStatusTransition = (currentCode, nextCode) => {
+  const allowedTargets = ALLOWED_SHIPMENT_TRANSITIONS[currentCode];
+  
+  if (allowedTargets === undefined) {
+    throw AppError.validationError(
+      `Invalid current shipment status code: ${currentCode}`
+    );
+  }
+  
+  if (allowedTargets.length === 0) {
+    throw AppError.validationError(
+      `Cannot transition from final shipment status: ${currentCode}`
+    );
+  }
+  
+  if (!allowedTargets.includes(nextCode)) {
+    throw AppError.validationError(
+      `Invalid shipment status transition: ${currentCode} → ${nextCode}`
+    );
+  }
+};
+
+/**
+ * Resolves the order target status code after a shipment is delivered.
+ *
+ * Returns DELIVERED when every fulfillment is either in the transitioning
+ * set or already at a delivered-terminal status
+ * (DELIVERED_TERMINAL_FULFILLMENT_STATUS_CODES); otherwise returns
+ * PARTIALLY_DELIVERED.
+ *
+ * @param {Array<{ fulfillment_id: string, status_code: string }>} fulfillments
+ *        All fulfillments belonging to the order.
+ * @param {string[]} transitioningFulfillmentIds
+ *        IDs of fulfillments transitioning to a delivered-terminal status in
+ *        this call.
+ *
+ * @returns {string} ORDER_STATUS_CODES.DELIVERED or PARTIALLY_DELIVERED.
+ * @throws  {AppError} Business error when the fulfillment list is empty.
+ */
+const resolveOrderTargetCodeAfterDelivery = (
+  fulfillments,
+  transitioningFulfillmentIds
+) => {
+  if (!fulfillments.length) {
+    throw AppError.businessError(
+      'Cannot resolve order target status from an empty fulfillment list.'
+    );
+  }
+  
+  const transitioningSet = new Set(transitioningFulfillmentIds);
+  const allDeliveredAfter = fulfillments.every(
+    (f) =>
+      transitioningSet.has(f.fulfillment_id) ||
+      DELIVERED_TERMINAL_FULFILLMENT_STATUS_CODES.includes(f.status_code)
+  );
+  return allDeliveredAfter
+    ? ORDER_STATUS_CODES.DELIVERED
+    : ORDER_STATUS_CODES.PARTIALLY_DELIVERED;
+};
+
+/**
+ * Validates that the order, shipment, and fulfillment statuses are all
+ * eligible for shipment delivery confirmation.
+ *
+ * Allowed combinations:
+ *  - order:       SHIPPED, PARTIALLY_DELIVERED
+ *  - shipment:    IN_TRANSIT
+ *  - fulfillment: SHIPPED (per fulfillment in the set)
+ *
+ * Accepts a single fulfillment code or an array; each is checked
+ * independently.
+ *
+ * @param {object} params
+ * @param {string} params.orderStatusCode    - Current order status code.
+ * @param {string} params.shipmentStatusCode - Current shipment status code.
+ * @param {string|string[]} params.fulfillmentStatuses
+ *        One or more current fulfillment status codes.
+ *
+ * @returns {void}
+ * @throws  {AppError} Validation error when any status is not eligible.
+ */
+const validateStatusesBeforeShipmentDelivery = ({
+                                                  orderStatusCode,
+                                                  shipmentStatusCode,
+                                                  fulfillmentStatuses,
+                                                }) => {
+  const fulfillmentCodes = Array.isArray(fulfillmentStatuses)
+    ? fulfillmentStatuses
+    : [fulfillmentStatuses];
+  
+  const ALLOWED = {
+    order:       [ORDER_STATUS_CODES.SHIPPED, ORDER_STATUS_CODES.PARTIALLY_DELIVERED],
+    shipment:    [SHIPMENT_STATUS_CODES.IN_TRANSIT],
+    fulfillment: [FULFILLMENT_STATUS_CODES.SHIPPED],
+  };
+  
+  if (!ALLOWED.order.includes(orderStatusCode)) {
+    throw AppError.validationError(
+      `Order status "${orderStatusCode}" is not eligible for shipment delivery.`
+    );
+  }
+  
+  if (!ALLOWED.shipment.includes(shipmentStatusCode)) {
+    throw AppError.validationError(
+      `Shipment status "${shipmentStatusCode}" is not eligible for delivery confirmation.`
+    );
+  }
+  
+  for (const code of fulfillmentCodes) {
+    if (!ALLOWED.fulfillment.includes(code)) {
+      throw AppError.validationError(
+        `Fulfillment with status "${code}" is not eligible for delivery confirmation.`
+      );
+    }
+  }
+};
+
 module.exports = {
   validateOrderIsFullyAllocated,
   validateFulfillmentStatusTransition,
@@ -1078,4 +1232,7 @@ module.exports = {
   validateStatusesBeforeOutboundFulfillmentCompletion,
   resolveOrderTargetCodeAfterConfirmation,
   resolveOrderTargetCodeAfterFulfillment,
+  validateShipmentStatusTransition,
+  resolveOrderTargetCodeAfterDelivery,
+  validateStatusesBeforeShipmentDelivery,
 };

@@ -28,12 +28,24 @@
  *                                                (IN_TRANSIT for carrier-tracked, COMPLETED
  *                                                otherwise); fulfillments → SHIPPED; order
  *                                                resolved from remaining fulfillment state.
+ *   - markShipmentDeliveredService             – marks a carrier-tracked shipment as DELIVERED:
+ *                                                guards on is_carrier_tracked, validates
+ *                                                eligibility, and cascades atomic status updates
+ *                                                across shipment, fulfillments, and order.
+ *                                                Status targets are server-resolved — shipment →
+ *                                                SHIPMENT_DELIVERED (stamps delivered_at),
+ *                                                fulfillments → FULFILLMENT_DELIVERED; order
+ *                                                resolved from remaining fulfillment state
+ *                                                (ORDER_DELIVERED when all fulfillments are at a
+ *                                                delivered-terminal status after the transition,
+ *                                                else ORDER_PARTIALLY_DELIVERED).
  *
  * Schema notes:
  *   - outbound_shipments.delivery_method_id is NOT NULL
  *   - tracking_numbers is a 1:N child of outbound_shipments (no FK on shipment side)
  *   - delivery_methods.is_carrier_tracked drives shipment target status on completion
- *     (IN_TRANSIT when true, COMPLETED when false)
+ *     (IN_TRANSIT when true, COMPLETED when false) and gates the delivery confirmation
+ *     path (markShipmentDeliveredService rejects non-carrier shipments)
  *
  * Error handling follows a single-log principle — errors are not logged here.
  * They bubble up to globalErrorHandler, which logs once with the normalised shape.
@@ -75,8 +87,8 @@ const {
   transformAdjustedFulfillmentResult,
   transformPaginatedOutboundShipmentResults,
   transformShipmentDetailsRows,
-  transformPickupCompletionResult,
-  transformOutboundShipmentForTrackingAttachRow,
+  transformOutboundFulfillmentCompletionResult,
+  transformOutboundShipmentForTrackingAttachRow, transformDeliveryConfirmationResult,
 } = require('../transformers/outbound-fulfillment-transformer');
 const {
   validateOrderIsFullyAllocated,
@@ -99,7 +111,10 @@ const {
   assertWarehouseUpdatesApplied,
   assertShipmentFound,
   validateStatusesBeforeConfirmation,
-  validateStatusesBeforeOutboundFulfillmentCompletion, validateFulfillmentStatusTransition,
+  validateStatusesBeforeOutboundFulfillmentCompletion,
+  validateFulfillmentStatusTransition,
+  validateStatusesBeforeShipmentDelivery,
+  resolveOrderTargetCodeAfterDelivery, validateShipmentStatusTransition,
 } = require('../business/outbound-fulfillment-business');
 const {
   getAllocationStatuses,
@@ -132,7 +147,10 @@ const {
 const { assertDeliveryMethodResolved } = require('../business/delivery-method-business');
 const { attachTrackingNumbersToShipment } = require('../business/tracking-number-business');
 const { SHIPMENT_STATUS_CODES } = require('../utils/constants/domain/shipment-status-codes');
-const { resolveOrderTargetCodeAfterFulfillment, resolveOrderTargetCodeAfterConfirmation } = require('../business/outbound-fulfillment-business');
+const {
+  resolveOrderTargetCodeAfterFulfillment,
+  resolveOrderTargetCodeAfterConfirmation
+} = require('../business/outbound-fulfillment-business');
 const { FULFILLMENT_STATUS_CODES } = require('../utils/constants/domain/fulfillment-status-codes');
 const { ALLOCATION_STATUS_CODES } = require('../utils/constants/domain/allocation-status-codes');
 
@@ -830,7 +848,7 @@ const completeOutboundFulfillmentService = async (
         client,
       });
       
-      return transformPickupCompletionResult({
+      return transformOutboundFulfillmentCompletionResult({
         orderStatusRow,
         orderItemStatusRows,
         orderFulfillmentStatusRows,
@@ -848,10 +866,163 @@ const completeOutboundFulfillmentService = async (
   }
 };
 
+/**
+ * Marks a carrier-tracked outbound shipment as delivered.
+ *
+ * Guards on is_carrier_tracked — non-carrier freight uses the
+ * SHIPMENT_COMPLETED terminal path through completeOutboundFulfillmentService
+ * and never enters the IN_TRANSIT → DELIVERED branch. Validates eligibility
+ * for the order, shipment, and the fulfillments riding this shipment before
+ * cascading.
+ *
+ * Status targets are server-resolved — clients never pass codes:
+ *   - shipment    → SHIPMENT_DELIVERED (stamps delivered_at via the
+ *                   markOutboundShipmentsDelivered dispatch inside
+ *                   updateAllStatuses)
+ *   - fulfillment → FULFILLMENT_DELIVERED (only fulfillments on this shipment)
+ *   - order       → ORDER_DELIVERED when every fulfillment is at a
+ *                   delivered-terminal status after the transition, else
+ *                   ORDER_PARTIALLY_DELIVERED
+ *
+ * Runs inside a single transaction. AppErrors from lower layers bubble as-is;
+ * unexpected errors are wrapped in AppError.serviceError.
+ *
+ * @param {string}   shipmentId - UUID of the shipment to mark delivered.
+ * @param {AuthUser} user       - Authenticated acting user.
+ *
+ * @returns {Promise<object>} Canonical delivery confirmation result from
+ *                            transformDeliveryConfirmationResult.
+ * @throws  {AppError} Validation, business, or service error from any layer.
+ */
+const markShipmentDeliveredService = async (shipmentId, user) => {
+  const context = `${CONTEXT}/markShipmentDeliveredService`;
+  
+  try {
+    return await withTransaction(async (client) => {
+      const userId = user.id;
+      
+      // 1. Fetch and validate shipment record.
+      const shipment = await getShipmentByShipmentId(shipmentId, client);
+      assertShipmentFound(shipment, shipmentId);
+      
+      const { order_id: orderId, status_code: shipmentStatusCode } = shipment;
+      
+      // 2. Carrier-tracked guard — IN_TRANSIT should only be reachable via carrier branch,
+      //    but assert here so non-carrier freight can't slip into the delivery path.
+      const shipmentRow = transformOutboundShipmentForTrackingAttachRow(shipment);
+      const isCarrierTracked = shipmentRow.deliveryMethod?.isCarrierTracked === true;
+      
+      if (!isCarrierTracked) {
+        throw AppError.validationError(
+          'Delivery confirmation is only valid for carrier-tracked shipments.'
+        );
+      }
+      
+      // 3. Fetch all order fulfillments + isolate the set riding this shipment.
+      const fulfillments = await getOrderFulfillments({ orderId }, client);
+      
+      if (!fulfillments?.length) {
+        throw AppError.validationError(
+          `No fulfillments found for order ID ${orderId}.`
+        );
+      }
+      
+      const transitioningFulfillments = fulfillments.filter(
+        (f) => f.shipment_id === shipmentId
+      );
+      
+      if (!transitioningFulfillments.length) {
+        throw AppError.validationError(
+          `No fulfillments are linked to shipment ${shipmentId}.`
+        );
+      }
+      
+      const transitioningFulfillmentIds = transitioningFulfillments.map(
+        (f) => f.fulfillment_id
+      );
+      
+      // 4. Fetch current status metadata for the transitioning fulfillments only.
+      const fulfillmentStatusIds = transitioningFulfillments.map((f) => f.status_id);
+      const fulfillmentStatusMeta = await getFulfillmentStatusesByIds(
+        fulfillmentStatusIds,
+        client
+      );
+      
+      // 5. Fetch order metadata.
+      const orderMeta = await getOrderTypeMetaByOrderId(orderId, client);
+      assertOrderMeta(orderMeta);
+      const { order_number: orderNumber } = orderMeta;
+      
+      const { order_status_code: orderStatusCode } =
+        await fetchOrderMetadata(orderId, client);
+      
+      // 6. Validate state readiness for delivery.
+      validateStatusesBeforeShipmentDelivery({
+        orderStatusCode,
+        shipmentStatusCode,
+        fulfillmentStatuses: fulfillmentStatusMeta.map((s) => s.code),
+      });
+      
+      // 7. Resolve server-determined target codes + IDs.
+      const shipmentTargetCode    = SHIPMENT_STATUS_CODES.DELIVERED;
+      const fulfillmentTargetCode = FULFILLMENT_STATUS_CODES.DELIVERED;
+      const orderTargetCode       = resolveOrderTargetCodeAfterDelivery(
+        fulfillments,
+        transitioningFulfillmentIds
+      );
+      
+      // 8. Validate transition graphs against the resolved targets.
+      validateShipmentStatusTransition(shipmentStatusCode, shipmentTargetCode);
+      fulfillmentStatusMeta.forEach(({ code }) => {
+        validateFulfillmentStatusTransition(code, fulfillmentTargetCode);
+      });
+      
+      const newShipmentStatusId    = getStatusIdByCode(shipmentTargetCode);
+      const newFulfillmentStatusId = getStatusIdByCode(fulfillmentTargetCode);
+      const newOrderStatusId       = getStatusIdByCode(orderTargetCode);
+      
+      // 9. Cascade — updateShipmentsStatus dispatches to markOutboundShipmentsDelivered
+      //    for DELIVERED targets, stamping status_id and delivered_at atomically.
+      const {
+        orderStatusRow,
+        orderItemStatusRows,
+        orderFulfillmentStatusRows,
+        shipmentStatusRows,
+      } = await updateAllStatuses({
+        orderId,
+        orderNumber,
+        allocationMeta: null,
+        newOrderStatusId,
+        newAllocationStatusId: null,
+        fulfillments: transitioningFulfillments,
+        newFulfillmentStatusId,
+        newShipmentStatusId,
+        userId,
+        client,
+      });
+      
+      return transformDeliveryConfirmationResult({
+        orderStatusRow,
+        orderItemStatusRows,
+        orderFulfillmentStatusRows,
+        shipmentStatusRows,
+      });
+    });
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    
+    throw AppError.serviceError('Unable to mark shipment as delivered.', {
+      context,
+      meta: { error: error.message },
+    });
+  }
+};
+
 module.exports = {
   fulfillOutboundShipmentService,
   confirmOutboundFulfillmentService,
   fetchPaginatedOutboundFulfillmentService,
   fetchShipmentDetailsService,
   completeOutboundFulfillmentService,
+  markShipmentDeliveredService,
 };
