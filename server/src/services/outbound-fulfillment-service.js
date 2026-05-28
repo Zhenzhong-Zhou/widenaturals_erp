@@ -88,7 +88,8 @@ const {
   transformPaginatedOutboundShipmentResults,
   transformShipmentDetailsRows,
   transformOutboundFulfillmentCompletionResult,
-  transformOutboundShipmentForTrackingAttachRow, transformDeliveryConfirmationResult,
+  transformOutboundShipmentForTrackingAttachRow,
+  transformDeliveryConfirmationResult,
 } = require('../transformers/outbound-fulfillment-transformer');
 const {
   validateOrderIsFullyAllocated,

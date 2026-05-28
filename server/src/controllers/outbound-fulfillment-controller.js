@@ -9,8 +9,9 @@
  *   POST  /api/v1/outbound-fulfillments/orders/:orderId/fulfillment/initiate  → fulfillOutboundShipmentController
  *   PATCH /api/v1/outbound-fulfillments/orders/:orderId/fulfillment/confirm   → confirmOutboundFulfillmentController
  *   GET   /api/v1/outbound-fulfillments                                       → getPaginatedOutboundFulfillmentController
- *   GET   /api/v1/outbound-fulfillments/:shipmentId/dtails                    → getShipmentDetailsController
- *   PATCH  /api/v1/outbound-fulfillments/:shipmentId/complete                 → completeOutboundFulfillmentController
+ *   GET   /api/v1/outbound-fulfillments/:shipmentId/details                   → getShipmentDetailsController
+ *   PATCH /api/v1/outbound-fulfillments/:shipmentId/complete                  → completeOutboundFulfillmentController
+ *   PATCH /api/v1/outbound-fulfillments/:shipmentId/deliver                   → markShipmentDeliveredController
  *
  * All handlers are wrapped with `wrapAsyncHandler` — errors propagate
  * automatically to the global error handler without try/catch boilerplate.
@@ -30,6 +31,7 @@ const {
   fetchPaginatedOutboundFulfillmentService,
   fetchShipmentDetailsService,
   completeOutboundFulfillmentService,
+  markShipmentDeliveredService,
 } = require('../services/outbound-fulfillment-service');
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -170,6 +172,31 @@ const completeOutboundFulfillmentController = wrapAsyncHandler(
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
+// PATCH /api/v1/shipments/:shipmentId/deliver
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Confirms delivery for a carrier-tracked outbound shipment.
+ *
+ * Requires: auth middleware, Joi params validation, DELIVER permission.
+ */
+const markShipmentDeliveredController = wrapAsyncHandler(
+  async (req, res) => {
+    const { shipmentId } = req.params;
+    const user = req.auth.user;
+    
+    const result = await markShipmentDeliveredService(shipmentId, user);
+    
+    res.status(200).json({
+      success: true,
+      message: 'Shipment marked as delivered successfully.',
+      data: result,
+      traceId: req.traceId,
+    });
+  }
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Exports
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -179,4 +206,5 @@ module.exports = {
   getPaginatedOutboundFulfillmentController,
   getShipmentDetailsController,
   completeOutboundFulfillmentController,
+  markShipmentDeliveredController,
 };

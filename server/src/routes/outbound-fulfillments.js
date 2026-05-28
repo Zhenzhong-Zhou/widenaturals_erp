@@ -29,6 +29,7 @@ const {
   getPaginatedOutboundFulfillmentController,
   getShipmentDetailsController,
   completeOutboundFulfillmentController,
+  markShipmentDeliveredController,
 } = require('../controllers/outbound-fulfillment-controller');
 
 const router = express.Router();
@@ -111,6 +112,22 @@ router.patch(
   validate(shipmentIdParamSchema, 'params'),
   validate(completeOutboundFulfillmentBodySchema, 'body'),
   completeOutboundFulfillmentController
+);
+
+/**
+ * @route PATCH /outbound-fulfillments/:shipmentId/deliver
+ * @description Confirm delivery for a carrier-tracked outbound shipment.
+ * Transitions the shipment from IN_TRANSIT to DELIVERED, the riding fulfillments
+ * to FULFILLMENT_DELIVERED, and the parent order to ORDER_DELIVERED or
+ * ORDER_PARTIALLY_DELIVERED depending on the state of sibling shipments.
+ * @access protected
+ * @permission PERMISSION_KEYS.OUTBOUND_FULFILLMENTS.DELIVER
+ */
+router.patch(
+  '/:shipmentId/deliver',
+  authorize([PERMISSION_KEYS.OUTBOUND_FULFILLMENTS.DELIVER]),
+  validate(shipmentIdParamSchema, 'params'),
+  markShipmentDeliveredController
 );
 
 module.exports = router;
