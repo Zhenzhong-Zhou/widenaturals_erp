@@ -9,6 +9,7 @@
  *  - OUTBOUND_SHIPMENT_UPDATE_STRATEGIES           — conflict update strategies
  *  - OUTBOUND_SHIPMENT_GET_BY_ID_QUERY             — fetch a single shipment by id
  *  - OUTBOUND_SHIPMENT_MARK_SHIPPED_QUERY          — bulk transition to shipped and stamp shipped_at
+ *  - OUTBOUND_SHIPMENT_MARK_DELIVERED_QUERY        — bulk transition to delivered and stamp delivered_at
  *  - OUTBOUND_SHIPMENT_UPDATE_STATUS_QUERY         — bulk generic status update without shipped_at stamp
  *  - GET_OUTBOUND_SHIPMENT_FOR_TRACKING_ATTACH     — fetch shipment context for tracking-number attachment
  *  - OUTBOUND_SHIPMENT_TABLE                       — aliased table name for paginated query
@@ -91,7 +92,22 @@ const OUTBOUND_SHIPMENT_MARK_SHIPPED_QUERY = `
   RETURNING id
 `;
 
-// For all other status transitions (does not stamp shipped_at).
+// For transitions to delivered (stamps delivered_at).
+// Idempotent on retry — WHERE clause guards against overwriting the original timestamp.
+// $1: status_id, $2: user_id, $3: shipment_ids
+const OUTBOUND_SHIPMENT_MARK_DELIVERED_QUERY = `
+  UPDATE outbound_shipments
+  SET
+    status_id    = $1,
+    delivered_at = NOW(),
+    updated_at   = NOW(),
+    updated_by   = $2
+  WHERE id = ANY($3::uuid[])
+    AND delivered_at IS NULL
+  RETURNING id, delivered_at
+`;
+
+// For all other status transitions (does not stamp any lifecycle timestamp).
 // $1: status_id, $2: user_id, $3: shipment_ids
 const OUTBOUND_SHIPMENT_UPDATE_STATUS_QUERY = `
   UPDATE outbound_shipments
@@ -136,6 +152,7 @@ const OUTBOUND_SHIPMENT_SORT_WHITELIST = new Set(
  * @param {string} whereClause - Parameterised WHERE predicate from buildOutboundShipmentFilter.
  * @returns {string}
  */
+// todo: add deliveried at
 const buildOutboundShipmentPaginatedQuery = (whereClause) => `
   SELECT
     os.id                         AS shipment_id,
@@ -327,6 +344,7 @@ module.exports = {
   OUTBOUND_SHIPMENT_UPDATE_STRATEGIES,
   OUTBOUND_SHIPMENT_GET_BY_ID_QUERY,
   OUTBOUND_SHIPMENT_MARK_SHIPPED_QUERY,
+  OUTBOUND_SHIPMENT_MARK_DELIVERED_QUERY,
   OUTBOUND_SHIPMENT_UPDATE_STATUS_QUERY,
   OUTBOUND_SHIPMENT_TABLE,
   OUTBOUND_SHIPMENT_JOINS,

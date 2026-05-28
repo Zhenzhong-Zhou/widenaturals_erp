@@ -11,6 +11,7 @@
  *  - insertOutboundShipmentsBulk          — bulk upsert with conflict resolution
  *  - getShipmentByShipmentId              — fetch single shipment by id
  *  - markOutboundShipmentsShipped         — bulk transition to shipped (stamps shipped_at)
+ *  - markOutboundShipmentsDelivered       — bulk transition to delivered (stamps delivered_at)
  *  - updateOutboundShipmentStatus         — bulk generic status update (no shipped_at stamp)
  *  - getPaginatedOutboundShipmentRecords  — paginated list with filtering and sorting
  *  - getShipmentDetailsById               — full detail fetch with fulfillment and batch joins
@@ -42,7 +43,7 @@ const {
   OUTBOUND_SHIPMENT_JOINS,
   OUTBOUND_SHIPMENT_SORT_WHITELIST,
   buildOutboundShipmentPaginatedQuery,
-  OUTBOUND_SHIPMENT_DETAILS_QUERY, GET_OUTBOUND_SHIPMENT_FOR_TRACKING_ATTACH,
+  OUTBOUND_SHIPMENT_DETAILS_QUERY, GET_OUTBOUND_SHIPMENT_FOR_TRACKING_ATTACH, OUTBOUND_SHIPMENT_MARK_DELIVERED_QUERY,
 } = require('./queries/outbound-shipment-queries');
 const AppError = require('../utils/AppError');
 
@@ -189,6 +190,58 @@ const markOutboundShipmentsShipped = async (
       meta: { statusId, shipmentIds },
       logFn: (err) =>
         logDbQueryError(OUTBOUND_SHIPMENT_MARK_SHIPPED_QUERY, params, err, {
+          context,
+          statusId,
+          shipmentIds,
+        }),
+    });
+  }
+};
+
+// ─── Mark Delivered ─────────────────────────────────────────────────────────────
+
+/**
+ * Marks multiple outbound shipments as delivered — stamps delivered_at = NOW().
+ *
+ * Use this only for transitions into the "Delivered" lifecycle state. For all
+ * other status transitions (Cancelled, OnHold, Returned, etc.) use
+ * updateOutboundShipmentStatus, which does not touch delivered_at.
+ *
+ * Returns an empty array if no shipments match — not treated as an error.
+ *
+ * @param {string}     statusId    - UUID of the "Delivered" status.
+ * @param {string}     userId      - UUID of the user performing the update.
+ * @param {string[]}   shipmentIds - UUIDs of shipments to mark delivered.
+ * @param {PoolClient} client      - DB client for transactional context.
+ *
+ * @returns {Promise<string[]>} UUIDs of updated shipment records.
+ * @throws  {AppError}          Normalized database error if the update fails.
+ */
+const markOutboundShipmentsDelivered = async (
+  { statusId, userId, shipmentIds },
+  client
+) => {
+  const context = `${CONTEXT}/markOutboundShipmentsDelivered`;
+  
+  const ids = Array.isArray(shipmentIds) ? shipmentIds : [shipmentIds];
+  if (!ids.length) return [];
+  
+  const params = [statusId, userId, ids];
+  
+  try {
+    const result = await query(
+      OUTBOUND_SHIPMENT_MARK_DELIVERED_QUERY,
+      params,
+      client
+    );
+    return result.rows.map((r) => r.id);
+  } catch (error) {
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to mark outbound shipments as delivered.',
+      meta: { statusId, shipmentIds },
+      logFn: (err) =>
+        logDbQueryError(OUTBOUND_SHIPMENT_MARK_DELIVERED_QUERY, params, err, {
           context,
           statusId,
           shipmentIds,
@@ -396,6 +449,7 @@ module.exports = {
   insertOutboundShipmentsBulk,
   getShipmentByShipmentId,
   markOutboundShipmentsShipped,
+  markOutboundShipmentsDelivered,
   updateOutboundShipmentStatus,
   getPaginatedOutboundShipmentRecords,
   getShipmentDetailsById,
