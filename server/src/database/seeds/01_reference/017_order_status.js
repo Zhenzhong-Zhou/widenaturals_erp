@@ -124,6 +124,13 @@ exports.seed = async function (knex) {
       is_final: false,
     },
     {
+      name: 'Partially Delivered',
+      code: 'ORDER_PARTIALLY_DELIVERED',
+      category: 'delivery',
+      description: 'Some shipments delivered; others still in transit.',
+      is_final: false,
+    },
+    {
       name: 'Delivered',
       code: 'ORDER_DELIVERED',
       category: 'completion',
