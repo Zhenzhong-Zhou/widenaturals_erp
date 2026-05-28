@@ -7,20 +7,29 @@
  *
  * Used by:
  *  - outbound-fulfillment-business.js — dispatches updateShipmentsStatus
- *    between markOutboundShipmentsShipped (stamps shipped_at when the target
- *    is in SHIPPED_AT_STAMPING_STATUSES) and updateOutboundShipmentStatus
- *    (generic, no stamping)
+ *    between three paths based on the target code:
+ *    markOutboundShipmentsShipped (when in SHIPPED_AT_STAMPING_STATUSES),
+ *    markOutboundShipmentsDelivered (when in DELIVERED_AT_STAMPING_STATUSES),
+ *    and updateOutboundShipmentStatus (generic, no stamping)
+ *  - validateShipmentStatusTransition — graph-based transition validation
+ *    against ALLOWED_SHIPMENT_TRANSITIONS (single source of truth for which
+ *    shipment state moves are legal, including terminal states with empty
+ *    target lists: COMPLETED, CANCELLED, RETURNED)
  *  - validateStatusesBeforeConfirmation /
- *    validateStatusesBeforeOutboundFulfillmentCompletion — gate workflow
- *    transitions on the current shipment state
+ *    validateStatusesBeforeOutboundFulfillmentCompletion /
+ *    validateStatusesBeforeShipmentDelivery — gate workflow transitions
+ *    on the current shipment state
  *
  * Sync requirement:
  *  - If a code is added, removed, or renamed in the shipment_status seed,
- *    update both SHIPMENT_STATUS_CODES and SHIPPED_AT_STAMPING_STATUSES
- *    membership in the same commit. Mismatches surface as silent dispatch
- *    failures (a code that should stamp shipped_at falls through to the
- *    generic update path because it's not in the stamping set, or vice
- *    versa — a non-shipping code accidentally stamps shipped_at).
+ *    update SHIPMENT_STATUS_CODES, ALLOWED_SHIPMENT_TRANSITIONS, and the
+ *    stamping sets (SHIPPED_AT_STAMPING_STATUSES,
+ *    DELIVERED_AT_STAMPING_STATUSES) in the same commit. Mismatches surface
+ *    as silent dispatch failures (a code that should stamp shipped_at /
+ *    delivered_at falls through to the generic update path because it's
+ *    not in the stamping set, or vice versa), or transitions failing closed
+ *    at the validator because they're missing from
+ *    ALLOWED_SHIPMENT_TRANSITIONS.
  */
 
 'use strict';
@@ -64,7 +73,49 @@ const SHIPPED_AT_STAMPING_STATUSES = [
   SHIPMENT_STATUS_CODES.COMPLETED,
 ];
 
+/**
+ * Graph of allowed shipment status transitions.
+ *
+ * Keyed by the current status code; each value is the list of legal next
+ * codes. Terminal states resolve to an empty array — COMPLETED (terminal for
+ * non-carrier freight, e.g. LTL/FTL/OCEAN/BOL), DELIVERED's only successor
+ * RETURNED aside, plus CANCELLED and RETURNED themselves.
+ *
+ * Two parallel "done" branches:
+ *   - Carrier-tracked parcels:     READY → IN_TRANSIT → DELIVERED (→ RETURNED)
+ *   - Non-carrier freight:         READY → COMPLETED (terminal)
+ *
+ * Used by validateShipmentStatusTransition as the single source of truth for
+ * which shipment state moves are legal. Adding a new status code requires
+ * updating both SHIPMENT_STATUS_CODES and this map in the same commit.
+ */
+const ALLOWED_SHIPMENT_TRANSITIONS = Object.freeze({
+  [SHIPMENT_STATUS_CODES.PENDING]:    [SHIPMENT_STATUS_CODES.READY, SHIPMENT_STATUS_CODES.CANCELLED],
+  [SHIPMENT_STATUS_CODES.READY]:      [SHIPMENT_STATUS_CODES.IN_TRANSIT, SHIPMENT_STATUS_CODES.COMPLETED, SHIPMENT_STATUS_CODES.CANCELLED],
+  [SHIPMENT_STATUS_CODES.IN_TRANSIT]: [SHIPMENT_STATUS_CODES.DELIVERED, SHIPMENT_STATUS_CODES.RETURNED],
+  [SHIPMENT_STATUS_CODES.COMPLETED]:  [],                                  // terminal for non-carrier freight
+  [SHIPMENT_STATUS_CODES.DELIVERED]:  [SHIPMENT_STATUS_CODES.RETURNED],
+  [SHIPMENT_STATUS_CODES.CANCELLED]:  [],                                  // terminal
+  [SHIPMENT_STATUS_CODES.RETURNED]:   [],                                  // terminal
+});
+
+/**
+ * Shipment status codes that should stamp `delivered_at` when entered.
+ *
+ * Routing predicate for updateShipmentsStatus — when the resolved target
+ * code is in this set, the dispatch goes through markOutboundShipmentsDelivered
+ * (which writes status_id + delivered_at atomically) rather than the generic
+ * updateOutboundShipmentStatus path.
+ *
+ * Currently a single-element array, but kept as an array for parallelism
+ * with SHIPPED_AT_STAMPING_STATUSES (which holds IN_TRANSIT and COMPLETED)
+ * and to make future additions a one-line change.
+ */
+const DELIVERED_AT_STAMPING_STATUSES = [SHIPMENT_STATUS_CODES.DELIVERED];
+
 module.exports = {
   SHIPMENT_STATUS_CODES,
   SHIPPED_AT_STAMPING_STATUSES,
+  ALLOWED_SHIPMENT_TRANSITIONS,
+  DELIVERED_AT_STAMPING_STATUSES,
 };

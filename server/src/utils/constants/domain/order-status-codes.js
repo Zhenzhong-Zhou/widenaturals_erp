@@ -34,6 +34,7 @@ const ORDER_STATUS_CODES = Object.freeze({
   OUT_FOR_DELIVERY:     'ORDER_OUT_FOR_DELIVERY',
   FULFILLED:            'ORDER_FULFILLED',
   DELIVERED:            'ORDER_DELIVERED',
+  PARTIALLY_DELIVERED:  'ORDER_PARTIALLY_DELIVERED',
   
   // ── Terminal / non-happy paths ─────────────────────────
   CANCELED:             'ORDER_CANCELED',

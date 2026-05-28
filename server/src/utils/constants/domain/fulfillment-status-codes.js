@@ -17,13 +17,18 @@
  *  - resolveOrderTargetCodeAfterConfirmation — checks the post-confirm
  *    threshold (CONFIRMED_TERMINAL_FULFILLMENT_STATUS_CODES) to decide
  *    FULFILLED vs PARTIALLY_FULFILLED
+ *  - resolveOrderTargetCodeAfterDelivery — checks the post-delivery
+ *    threshold (DELIVERED_TERMINAL_FULFILLMENT_STATUS_CODES) to decide
+ *    DELIVERED vs PARTIALLY_DELIVERED
  *
  * Sync requirement:
  *  - If a code is added, removed, or renamed in the fulfillment_status seed,
  *    update FULFILLMENT_STATUS_CODES, ALLOWED_FULFILLMENT_TRANSITIONS, and
- *    the relevant classification sets in the same commit. Mismatches surface
- *    as cache misses in status resolution, silent dispatch failures, or
- *    transitions failing closed at the validator.
+ *    the relevant classification sets (TERMINAL_FULFILLMENT_STATUS_CODES,
+ *    CONFIRMED_TERMINAL_FULFILLMENT_STATUS_CODES,
+ *    DELIVERED_TERMINAL_FULFILLMENT_STATUS_CODES) in the same commit.
+ *    Mismatches surface as cache misses in status resolution, silent
+ *    dispatch failures, or transitions failing closed at the validator.
  */
 
 'use strict';
@@ -129,10 +134,27 @@ const ALLOWED_FULFILLMENT_TRANSITIONS = Object.freeze({
   [FULFILLMENT_STATUS_CODES.CANCELLED]: [],   // terminal
 });
 
+/**
+ * Fulfillment status codes considered terminal once a shipment is delivered.
+ *
+ * Used by resolveOrderTargetCodeAfterDelivery to decide DELIVERED vs
+ * PARTIALLY_DELIVERED — if every fulfillment on the order is either
+ * transitioning in this call or already at one of these codes, the order
+ * is fully delivered.
+ *
+ * CANCELLED is included so a cancelled fulfillment doesn't block an
+ * otherwise-complete delivery from marking the order DELIVERED.
+ */
+const DELIVERED_TERMINAL_FULFILLMENT_STATUS_CODES = [
+  FULFILLMENT_STATUS_CODES.DELIVERED,
+  FULFILLMENT_STATUS_CODES.CANCELLED,
+];
+
 module.exports = {
   FULFILLMENT_STATUS_CODES,
   FULFILLMENT_FINAL_STATUSES,
   TERMINAL_FULFILLMENT_STATUS_CODES,
   CONFIRMED_TERMINAL_FULFILLMENT_STATUS_CODES,
   ALLOWED_FULFILLMENT_TRANSITIONS,
+  DELIVERED_TERMINAL_FULFILLMENT_STATUS_CODES,
 };
