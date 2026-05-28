@@ -13,7 +13,9 @@ exports.up = async function (knex) {
     
     table.timestamp('shipped_at', { useTz: true }).nullable();
     table.date('expected_delivery_date').nullable();
-
+    
+    table.timestamp('delivered_at', { useTz: true }).nullable();
+    
     table.text('notes').nullable();
     table.jsonb('shipment_details').nullable(); // Stores carrier details, special instructions
     
@@ -32,6 +34,28 @@ exports.up = async function (knex) {
     table.index('status_id');
     table.index('delivery_method_id');
   });
+  
+  await knex.raw(`
+    ALTER TABLE outbound_shipments
+    ADD CONSTRAINT check_delivered_after_shipped
+    CHECK (
+      delivered_at IS NULL
+      OR shipped_at IS NULL
+      OR delivered_at >= shipped_at
+    )
+  `);
+  
+  await knex.raw(`
+    CREATE INDEX outbound_shipments_shipped_at_index
+    ON outbound_shipments (shipped_at)
+    WHERE shipped_at IS NOT NULL
+  `);
+  
+  await knex.raw(`
+    CREATE INDEX outbound_shipments_delivered_at_index
+    ON outbound_shipments (delivered_at)
+    WHERE delivered_at IS NOT NULL
+  `);
 };
 
 /**
